@@ -6,7 +6,7 @@
 #ifndef BOOST_OPENMETHOD_POLICY_STD_RTTI_HPP
 #define BOOST_OPENMETHOD_POLICY_STD_RTTI_HPP
 
-#include <boost/openmethod/registry.hpp>
+#include <boost/openmethod/preamble.hpp>
 
 #ifndef BOOST_NO_RTTI
 #include <typeindex>

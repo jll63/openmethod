@@ -1791,7 +1791,7 @@ pointers:</p>
 #include &lt;memory&gt;
 
 #include &lt;boost/openmethod.hpp&gt;
-#include &lt;boost/openmethod/unique_ptr.hpp&gt;
+#include &lt;boost/openmethod/interop/std_unique_ptr.hpp&gt;
 #include &lt;boost/openmethod/compiler.hpp&gt;
 
 using namespace boost::openmethod::aliases;
@@ -2870,7 +2870,7 @@ stored in the same place (the policy&#8217;s <code>static_vptr&lt;Class&gt;</cod
 #include &lt;unistd.h&gt;
 
 #include &lt;boost/openmethod.hpp&gt;
-#include &lt;boost/openmethod/unique_ptr.hpp&gt;
+#include &lt;boost/openmethod/interop/std_unique_ptr.hpp&gt;
 #include &lt;boost/openmethod/compiler.hpp&gt;
 
 #include "dl.hpp"
@@ -3117,7 +3117,7 @@ program.</p>
 </div>
 </div>
 <div class="sect4">
-<h5 id="ref_boostopenmethodshared_ptr_hpp">&lt;boost/openmethod/shared_ptr.hpp&gt;</h5>
+<h5 id="ref_boostopenmethodshared_ptr_hpp">&lt;boost/openmethod/interop/std_shared_ptr.hpp&gt;</h5>
 <div class="paragraph">
 <p>Provides support for using <code>std::shared_ptr</code> in place of plain pointers in
 virtual parameters.</p>
@@ -4211,7 +4211,7 @@ auto operator!=(
 </div>
 </div>
 <div class="paragraph">
-<p>Defined in <code>&lt;boost/openmethod/shared_ptr.hpp&gt;</code>:</p>
+<p>Defined in <code>&lt;boost/openmethod/interop/std_shared_ptr.hpp&gt;</code>:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -4229,7 +4229,7 @@ inline auto make_shared_virtual(T&amp;&amp;... args)
 </div>
 </div>
 <div class="paragraph">
-<p>Defined in <code>&lt;boost/openmethod/unique_ptr.hpp&gt;</code>:</p>
+<p>Defined in <code>&lt;boost/openmethod/interop/std_unique_ptr.hpp&gt;</code>:</p>
 </div>
 <div class="listingblock">
 <div class="content">
@@ -4606,13 +4606,13 @@ struct virtual_traits&lt;..., Policy&gt; {
 <p><code>T*</code></p>
 </li>
 <li>
-<p><code>std::shared_ptr&lt;T&gt;</code>: defined in &lt;boost/openmethod/shared_ptr.hpp&gt;</p>
+<p><code>std::shared_ptr&lt;T&gt;</code>: defined in &lt;boost/openmethod/interop/std_shared_ptr.hpp&gt;</p>
 </li>
 <li>
-<p><code>const std::shared_ptr&lt;T&gt;&amp;</code>: defined in &lt;boost/openmethod/shared_ptr.hpp&gt;</p>
+<p><code>const std::shared_ptr&lt;T&gt;&amp;</code>: defined in &lt;boost/openmethod/interop/std_shared_ptr.hpp&gt;</p>
 </li>
 <li>
-<p><code>std::unique_ptr&lt;T&gt;</code>: defined in &lt;boost/openmethod/unique_ptr.hpp&gt;</p>
+<p><code>std::unique_ptr&lt;T&gt;</code>: defined in &lt;boost/openmethod/interop/std_unique_ptr.hpp&gt;</p>
 </li>
 </ul>
 </div>

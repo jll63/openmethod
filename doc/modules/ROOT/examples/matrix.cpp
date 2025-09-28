@@ -10,7 +10,7 @@
 
 #include <boost/openmethod.hpp>
 #include <boost/openmethod/initialize.hpp>
-#include <boost/openmethod/shared_ptr.hpp>
+#include <boost/openmethod/interop/std_shared_ptr.hpp>
 
 using std::make_shared;
 using std::shared_ptr;

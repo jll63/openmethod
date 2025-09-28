@@ -19,5 +19,5 @@ NOTE: The default value for `REGISTRY` is the value of
 `BOOST_OPENMETHOD_DEFAULT_REGISTRY` when `<boost/openmethod/core.hpp>` is
 included. Subsequently changing it has no retroactive effect.
 
-This macro is a wrapper around `use_classes`; see its documentation for more
+This macro is a wrapper around cpp:use_classes[]; see its documentation for more
 details.

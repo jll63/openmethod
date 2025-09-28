@@ -23,7 +23,7 @@ struct throw_if_not_implemented : bom::policies::error_handler {
         static auto error(const bom::openmethod_error&) -> void {
         }
 
-        static auto error(const bom::not_implemented_error& err) -> void {
+        static auto error(const bom::no_overrider& err) -> void {
             throw err;
         }
     };
@@ -58,7 +58,7 @@ auto main() -> int {
     for (auto animal : animals) {
         try {
             trick(std::cout, *animal);
-        } catch (bom::not_implemented_error&) {
+        } catch (bom::no_overrider&) {
             std::cout << "not implemented\n";
         }
     }

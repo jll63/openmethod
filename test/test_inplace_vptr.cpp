@@ -16,7 +16,7 @@ struct test_registry : bom::default_registry::without<
 
 #include <boost/openmethod.hpp>
 #include <boost/openmethod/inplace_vptr.hpp>
-#include <boost/openmethod/shared_ptr.hpp>
+#include <boost/openmethod/interop/std_shared_ptr.hpp>
 #include <boost/openmethod/initialize.hpp>
 
 #define BOOST_TEST_MODULE intrusive
@@ -25,25 +25,25 @@ struct test_registry : bom::default_registry::without<
 namespace bom = boost::openmethod;
 using bom::virtual_;
 
-struct Animal : bom::inplace_vptr<Animal> {
+struct Animal : bom::inplace_vptr_base<Animal> {
     explicit Animal(std::ostream& os);
     ~Animal();
     std::ostream& os;
 };
 
-struct Cat : Animal, bom::inplace_vptr<Cat, Animal> {
+struct Cat : Animal, bom::inplace_vptr_derived<Cat, Animal> {
     explicit Cat(std::ostream& os);
     ~Cat();
 };
 
-struct Pet : bom::inplace_vptr<Pet> {
+struct Pet : bom::inplace_vptr_base<Pet> {
     explicit Pet(std::ostream& os);
     ~Pet();
     std::string name;
     std::ostream& os;
 };
 
-struct DomesticCat : Cat, Pet, bom::inplace_vptr<DomesticCat, Cat, Pet> {
+struct DomesticCat : Cat, Pet, bom::inplace_vptr_derived<DomesticCat, Cat, Pet> {
     explicit DomesticCat(std::ostream& os);
     ~DomesticCat();
 };
@@ -181,7 +181,7 @@ BOOST_AUTO_TEST_CASE(intrusive_mode) {
 
 struct indirect_policy : test_registry::with<bom::policies::indirect_vptr> {};
 
-struct Indirect : bom::inplace_vptr<Indirect, indirect_policy> {};
+struct Indirect : bom::inplace_vptr_base<Indirect, indirect_policy> {};
 
 BOOST_OPENMETHOD(whatever, (virtual_<Indirect&>), void, indirect_policy);
 
@@ -189,7 +189,7 @@ BOOST_OPENMETHOD_OVERRIDE(whatever, (Indirect&), void) {
 }
 
 BOOST_AUTO_TEST_CASE(core_intrusive_vptr) {
-    indirect_policy::initialize();
+    bom::initialize<indirect_policy>();
     Indirect i;
     BOOST_TEST(
         boost_openmethod_vptr(i, nullptr) ==

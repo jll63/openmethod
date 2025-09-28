@@ -6,7 +6,7 @@
 #ifndef BOOST_OPENMETHOD_POLICY_VPTR_VECTOR_HPP
 #define BOOST_OPENMETHOD_POLICY_VPTR_VECTOR_HPP
 
-#include <boost/openmethod/registry.hpp>
+#include <boost/openmethod/preamble.hpp>
 
 #include <variant>
 #include <vector>
@@ -62,12 +62,14 @@ struct vptr_vector : vptr {
         //! IdsToVptr objects.
         //! @param first The beginning of the range.
         //! @param last The end of the range.
-        template<typename ForwardIterator>
+        template<class ForwardIterator, class... Options>
         static auto
         initialize(ForwardIterator first, ForwardIterator last) -> void {
             std::size_t size;
             if constexpr (has_type_hash) {
-                auto [_, max_value] = type_hash::initialize(first, last);
+                auto [_, max_value] =
+                    type_hash::template initialize<ForwardIterator, Options...>(
+                        first, last);
                 size = max_value + 1;
             } else {
                 size = 0;
@@ -121,7 +123,7 @@ struct vptr_vector : vptr {
         //! If the registry contains the @ref runtime_checks policy, verifies
         //! that the index falls within the limits of the vector. If it does
         //! not, and if the registry contains a @ref error_handler policy, calls
-        //! its @ref error function with a @ref unknown_class_error value, then
+        //! its @ref error function with a @ref missing_class value, then
         //! terminates the program with @ref abort.
         //!
         //! @tparam Class A registered class.
@@ -148,7 +150,7 @@ struct vptr_vector : vptr {
 
                     if (index >= max_index) {
                         if constexpr (Registry::has_error_handler) {
-                            unknown_class_error error;
+                            missing_class error;
                             error.type = dynamic_type;
                             Registry::error_handler::error(error);
                         }

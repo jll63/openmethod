@@ -4,10 +4,10 @@
 // or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 #include <boost/openmethod.hpp>
-#include <boost/openmethod/registry.hpp>
+#include <boost/openmethod/preamble.hpp>
 #include <boost/openmethod/policies/throw_error_handler.hpp>
 #include <boost/openmethod/initialize.hpp>
-#include <boost/openmethod/unique_ptr.hpp>
+#include <boost/openmethod/interop/std_unique_ptr.hpp>
 
 #include "test_util.hpp"
 
@@ -35,7 +35,7 @@ struct errors_ : test_registry_<N, capture_output> {
 
         capture() {
             prev = error_handler::set(
-                [this](const policies::default_error_handler::error_variant&
+                [this](const typename errors_::error_handler::error_variant&
                            error) {
                     prev(error);
                     std::visit([](auto&& arg) { throw arg; }, error);
@@ -51,13 +51,13 @@ struct errors_ : test_registry_<N, capture_output> {
             return output::os.str();
         }
 
-        policies::default_error_handler::function_type prev;
+        typename errors_::error_handler::function_type prev;
     };
 };
 
 namespace TEST_NS {
 
-using registry = errors_<__COUNTER__>;
+struct registry : errors_<__COUNTER__> {};
 
 BOOST_OPENMETHOD(
     transpose, (virtual_ptr<const matrix, registry>), void, registry);
@@ -66,7 +66,7 @@ BOOST_OPENMETHOD_OVERRIDE(
     transpose, (virtual_ptr<const diagonal_matrix, registry>), void) {
 }
 
-BOOST_AUTO_TEST_CASE(not_initialized) {
+BOOST_AUTO_TEST_CASE(no_initialization) {
     if constexpr (registry::has_runtime_checks) {
         // throw during virtual_ptr construction, because of hash table lookup
         {
@@ -74,7 +74,7 @@ BOOST_AUTO_TEST_CASE(not_initialized) {
             BOOST_CHECK_THROW(
                 (unique_virtual_ptr<matrix, registry>{
                     std::make_unique<diagonal_matrix>()}),
-                not_initialized_error);
+                not_initialized);
             BOOST_TEST(capture() == "not initialized\n");
         }
 
@@ -83,12 +83,12 @@ BOOST_AUTO_TEST_CASE(not_initialized) {
             registry::capture capture;
             BOOST_CHECK_THROW(
                 transpose(make_unique_virtual<diagonal_matrix, registry>()),
-                not_initialized_error);
+                not_initialized);
         }
     } else {
         try {
-            registry::check_initialized();
-        } catch (not_initialized_error&) {
+            registry::require_initialized();
+        } catch (not_initialized&) {
             BOOST_TEST_FAIL("should have not thrown in release variant");
         }
     }
@@ -112,7 +112,7 @@ BOOST_AUTO_TEST_CASE(initialize_unknown_class) {
     if constexpr (registry::has_runtime_checks) {
         {
             registry::capture capture;
-            BOOST_CHECK_THROW(registry::initialize(), unknown_class_error);
+            BOOST_CHECK_THROW(initialize<registry>(), missing_class);
             BOOST_TEST(capture().find("unknown class") != std::string::npos);
         }
     }
@@ -136,10 +136,10 @@ BOOST_OPENMETHOD_OVERRIDE(transpose, (const matrix&), void) {
 BOOST_AUTO_TEST_CASE(call_unknown_class) {
     if constexpr (registry::has_runtime_checks) {
         {
-            registry::initialize();
+            initialize<registry>();
 
             registry::capture capture;
-            BOOST_CHECK_THROW(transpose(dense_matrix()), unknown_class_error);
+            BOOST_CHECK_THROW(transpose(dense_matrix()), missing_class);
             BOOST_TEST(capture().find("unknown class") != std::string::npos);
         }
     }
@@ -165,21 +165,21 @@ BOOST_OPENMETHOD_OVERRIDE(
     times, (const diagonal_matrix&, const matrix&), void) {
 }
 
-BOOST_AUTO_TEST_CASE(call_error) {
-    auto report = registry::initialize().report;
+BOOST_AUTO_TEST_CASE(bad_call) {
+    auto report = initialize<registry>().report;
     BOOST_TEST(report.not_implemented == 1u);
     BOOST_TEST(report.ambiguous == 1u);
 
     {
         registry::capture capture;
-        BOOST_CHECK_THROW(times(matrix(), matrix()), not_implemented_error);
+        BOOST_CHECK_THROW(times(matrix(), matrix()), no_overrider);
         BOOST_TEST(capture().find("not implemented") != std::string::npos);
     }
 
     {
         registry::capture capture;
         BOOST_CHECK_THROW(
-            times(diagonal_matrix(), diagonal_matrix()), ambiguous_error);
+            times(diagonal_matrix(), diagonal_matrix()), ambiguous_call);
         BOOST_TEST(capture().find("ambiguous") != std::string::npos);
     }
 }
@@ -198,7 +198,7 @@ BOOST_OPENMETHOD(
     times, (virtual_<const matrix&>, virtual_<const matrix&>), void, registry);
 
 BOOST_AUTO_TEST_CASE(throw_error) {
-    registry::initialize();
+    initialize<registry>();
 
     try {
         times(matrix(), matrix());

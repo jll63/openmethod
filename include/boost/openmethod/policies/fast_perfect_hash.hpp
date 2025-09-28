@@ -6,7 +6,7 @@
 #ifndef BOOST_OPENMETHOD_POLICY_FAST_PERFECT_HASH_HPP
 #define BOOST_OPENMETHOD_POLICY_FAST_PERFECT_HASH_HPP
 
-#include <boost/openmethod/registry.hpp>
+#include <boost/openmethod/preamble.hpp>
 
 #include <limits>
 #include <random>
@@ -19,10 +19,21 @@ namespace boost::openmethod {
 
 namespace detail {
 
+#if defined(UINTPTR_MAX)
+using uintptr = std::uintptr_t;
+constexpr uintptr uintptr_max = UINTPTR_MAX;
+#else
+static_assert(
+    sizeof(std::size_t) == sizeof(void*),
+    "This implementation requires that size_t and void* have the same size.");
+using uintptr = std::size_t;
+constexpr uintptr uintptr_max = (std::numeric_limits<std::size_t>::max)();
+#endif
+
 template<class Registry>
 std::vector<type_id> fast_perfect_hash_control;
 
-}
+} // namespace detail
 
 namespace policies {
 
@@ -39,6 +50,24 @@ namespace policies {
 //! range of integers. In other words, a lot of space may be wasted in presence
 //! of large sets of type_ids.
 struct fast_perfect_hash : type_hash {
+
+    //! Cannot find hash factors
+    struct search_error : openmethod_error {
+        //! Number of attempts to find hash factors
+        std::size_t attempts;
+        //! Number of buckets used in the last attempt
+        std::size_t buckets;
+
+        //! Write a short description to an output stream
+        //! @param os The output stream
+        //! @tparam Registry The registry
+        //! @tparam Stream A @ref LightweightOutputStream
+        template<class Registry, class Stream>
+        auto write(Stream& os) const -> void;
+    };
+
+    using errors = std::variant<search_error>;
+
     //! A model of @ref type_hash::fn.
     //!
     //! @tparam Registry The registry containing this policy
@@ -50,7 +79,7 @@ struct fast_perfect_hash : type_hash {
         inline static std::size_t max_value;
         inline static void check(std::size_t index, type_id type);
 
-        template<typename ForwardIterator>
+        template<class ForwardIterator, class... Options>
         static void initialize(
             ForwardIterator first, ForwardIterator last,
             std::vector<type_id>& buckets);
@@ -69,7 +98,7 @@ struct fast_perfect_hash : type_hash {
         //! @ref IdsToVptr objects
         //! @param first Beginning of the range
         //! @param last End of the range
-        template<typename ForwardIterator>
+        template<class ForwardIterator, class... Options>
         static auto initialize(ForwardIterator first, ForwardIterator last) {
             if constexpr (Registry::has_runtime_checks) {
                 initialize(
@@ -90,7 +119,7 @@ struct fast_perfect_hash : type_hash {
         //! the type id is valid, i.e. if it was present in the set passed to
         //! @ref initialize. Its absence indicates that a class involved in a
         //! method definition, method overrider, or method call was not
-        //! registered. In this case, signal a @ref unknown_class_error using
+        //! registered. In this case, signal a @ref missing_class using
         //! the registry's @ref error_handler if present; then calls `abort`.
         //!
         //! @param type The type_id to hash
@@ -115,7 +144,7 @@ struct fast_perfect_hash : type_hash {
 };
 
 template<class Registry>
-template<typename ForwardIterator>
+template<class ForwardIterator, class... Options>
 void fast_perfect_hash::fn<Registry>::initialize(
     ForwardIterator first, ForwardIterator last,
     std::vector<type_id>& buckets) {
@@ -123,8 +152,10 @@ void fast_perfect_hash::fn<Registry>::initialize(
 
     const auto N = std::distance(first, last);
 
-    if constexpr (Registry::has_trace && Registry::has_output) {
-        if (Registry::trace::on) {
+    if constexpr (
+        mp11::mp_contains<mp11::mp_list<Options...>, trace>::value &&
+        Registry::has_output) {
+        if (trace::on) {
             Registry::output::os << "Finding hash factor for " << N
                                  << " types\n";
         }
@@ -146,7 +177,9 @@ void fast_perfect_hash::fn<Registry>::initialize(
         min_value = (std::numeric_limits<std::size_t>::max)();
         max_value = (std::numeric_limits<std::size_t>::min)();
 
-        if constexpr (Registry::has_trace && Registry::has_output) {
+        if constexpr (
+            mp11::mp_contains<mp11::mp_list<Options...>, trace>::value &&
+            Registry::has_output) {
             if (Registry::trace::on) {
                 Registry::output::os << "  trying with M = " << M << ", "
                                      << hash_size << " buckets\n";
@@ -180,7 +213,9 @@ void fast_perfect_hash::fn<Registry>::initialize(
                 }
             }
 
-            if constexpr (Registry::has_trace && Registry::has_output) {
+            if constexpr (
+                mp11::mp_contains<mp11::mp_list<Options...>, trace>::value &&
+                Registry::has_output) {
                 if (Registry::trace::on) {
                     Registry::output::os
                         << "  found " << mult << " after " << total_attempts
@@ -195,7 +230,7 @@ void fast_perfect_hash::fn<Registry>::initialize(
         }
     }
 
-    fast_perfect_hash_error error;
+    search_error error;
     error.attempts = total_attempts;
     error.buckets = std::size_t(1) << M;
 
@@ -212,13 +247,19 @@ void fast_perfect_hash::fn<Registry>::check(std::size_t index, type_id type) {
         detail::fast_perfect_hash_control<Registry>[index] != type) {
 
         if constexpr (Registry::has_error_handler) {
-            unknown_class_error error;
+            missing_class error;
             error.type = type;
             Registry::error_handler::error(error);
         }
 
         abort();
     }
+}
+
+template<class Registry, class Stream>
+auto fast_perfect_hash::search_error::write(Stream& os) const -> void {
+    os << "could not find hash factors after " << attempts << "s using "
+       << buckets << " buckets\n";
 }
 
 } // namespace policies

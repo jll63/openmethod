@@ -76,7 +76,7 @@ struct Dog : virtual Animal {
     static custom_type_info type_info;
 };
 
-#include <boost/openmethod/registry.hpp>
+#include <boost/openmethod/preamble.hpp>
 #include <boost/openmethod/policies/vptr_vector.hpp>
 
 namespace bom = boost::openmethod;

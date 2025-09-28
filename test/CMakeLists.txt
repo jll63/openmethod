@@ -5,13 +5,17 @@
 # Distributed under the Boost Software License, Version 1.0. (See accompanying
 # file LICENSE_1_0.txt or copy at http://www.boost.org/LICENSE_1_0.txt)
 #
-# Official repository: https://github.com/boostorg/url
+# Official repository: https://github.com/boostorg/openmethod
 #
 
 message(STATUS "Building tests")
 
+if (CMAKE_BUILD_TYPE STREQUAL "Debug")
+    add_compile_definitions(BOOST_OPENMETHOD_ENABLE_RUNTIME_CHECKS)
+endif()
+
 # Custom target used by the boost super-project
-if(NOT TARGET tests)
+if (NOT TARGET tests)
     add_custom_target(tests)
     set_property(TARGET tests PROPERTY FOLDER Dependencies)
 endif()
@@ -59,3 +63,35 @@ foreach(test_cpp ${test_cpp_files})
     add_test(NAME ${test} COMMAND ${test})
     add_dependencies(tests ${test})
 endforeach()
+
+add_executable(test_mix_release_debug mix_release_debug/main.cpp mix_release_debug/lib.cpp)
+target_link_libraries(test_mix_release_debug Boost::openmethod Boost::unit_test_framework)
+add_test(NAME test_mix_release_debug COMMAND test_mix_release_debug)
+add_dependencies(tests test_mix_release_debug)
+
+function(openmethod_compile_fail_test testname fail_regex)
+  add_library("compile-fail-${testname}" STATIC EXCLUDE_FROM_ALL "${testname}.cpp")
+  target_link_libraries("compile-fail-${testname}" PRIVATE Boost::openmethod)
+  add_test(
+    NAME "openmethod-${testname}"
+    COMMAND "${CMAKE_COMMAND}" --build ${CMAKE_BINARY_DIR} --target "compile-fail-${testname}" --config $<CONFIG>)
+  set_property(TEST "openmethod-${testname}" PROPERTY PASS_REGULAR_EXPRESSION "${fail_regex}")
+endfunction()
+
+openmethod_compile_fail_test(
+    compile_fail_non_polymorphic_virtual_parameter "parameter is not a polymorphic class")
+openmethod_compile_fail_test(
+    compile_fail_non_polymorphic_virtual_ptr ".*")
+openmethod_compile_fail_test(
+    compile_fail_virtual_parameter_to_value "virtual_traits not specialized for type")
+openmethod_compile_fail_test(
+    compile_fail_virtual_ptr_different_registries "registry mismatch")
+openmethod_compile_fail_test(
+    compile_fail_virtual_ptr_other
+    "virtual_ptr<> is required in overrider in same position as in method")
+openmethod_compile_fail_test(
+    compile_fail_virtual_ptr_ref_to_value "different virtual_ptr<> reference categories")
+openmethod_compile_fail_test(
+    compile_fail_virtual_ptr_shared_not_const "std::shared_ptr cannot be passed by non-const lvalue reference")
+openmethod_compile_fail_test(
+    compile_fail_virtual_ptr_value_to_ref "different virtual_ptr<> reference categories")

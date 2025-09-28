@@ -6,7 +6,7 @@
 #ifndef BOOST_OPENMETHOD_POLICY_VECTORED_ERROR_HPP
 #define BOOST_OPENMETHOD_POLICY_VECTORED_ERROR_HPP
 
-#include <boost/openmethod/registry.hpp>
+#include <boost/openmethod/preamble.hpp>
 
 #include <functional>
 #include <variant>
@@ -15,7 +15,7 @@ namespace boost::openmethod::policies {
 
 struct default_error_handler : error_handler {
     using error_variant = std::variant<
-        openmethod_error, not_implemented_error, unknown_class_error,
+        openmethod_error, no_overrider, missing_class,
         fast_perfect_hash_error, final_error, static_slot_error,
         static_stride_error>;
 
@@ -43,7 +43,7 @@ struct default_error_handler : error_handler {
             if constexpr (Registry::has_output) {
                 auto& os = Registry::template policy<policies::output>::os;
 
-                if (auto error = std::get_if<not_implemented_error>(&error_v)) {
+                if (auto error = std::get_if<no_overrider>(&error_v)) {
                     os << "no applicable overrider for ";
                     Registry::template policy<policies::rtti>::type_name(
                         error->method, os);
@@ -60,7 +60,7 @@ struct default_error_handler : error_handler {
 
                     os << ")\n";
                 } else if (
-                    auto error = std::get_if<unknown_class_error>(&error_v)) {
+                    auto error = std::get_if<missing_class>(&error_v)) {
                     os << "unknown class ";
                     Registry::template policy<policies::rtti>::type_name(
                         error->type, os);

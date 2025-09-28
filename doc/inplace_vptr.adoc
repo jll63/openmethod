@@ -38,7 +38,7 @@ member to `Class`. In either case, it sets the vptr to the v-table of `Class`
 from `Policy`. It also creates a `boost_openmethod_vptr` friend function that
 takes a a `const Class&` and returns the embedded vptr.
 
-If `Class` has has more than one base, the `boost_openmethod_vptr` friend
+If `Class` has more than one base, the `boost_openmethod_vptr` friend
 function is also created. It returns one of the embedded vptrs (it doesn't
 matter which one, as they all have the same value). This is to resolve
 ambiguities

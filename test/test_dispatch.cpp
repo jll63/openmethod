@@ -10,8 +10,8 @@
 #include <any>
 
 #include <boost/openmethod.hpp>
-#include <boost/openmethod/shared_ptr.hpp>
-#include <boost/openmethod/unique_ptr.hpp>
+#include <boost/openmethod/interop/std_shared_ptr.hpp>
+#include <boost/openmethod/interop/std_unique_ptr.hpp>
 #include <boost/openmethod/initialize.hpp>
 #include <boost/openmethod/policies/vptr_vector.hpp>
 #include <boost/openmethod/policies/throw_error_handler.hpp>
@@ -75,7 +75,7 @@ BOOST_OPENMETHOD_OVERRIDE(name, (const Dog& dog), std::string) {
 }
 
 BOOST_AUTO_TEST_CASE(cast_args_lvalue_refs) {
-    test_registry::initialize();
+    initialize<test_registry>();
 
     Dog spot("Spot");
     BOOST_TEST(name(spot) == "Bill's dog Spot");
@@ -114,7 +114,7 @@ BOOST_OPENMETHOD_OVERRIDE(teleport, (Dog && dog), std::unique_ptr<Animal>) {
 }
 
 BOOST_AUTO_TEST_CASE(cast_args_rvalue_refs) {
-    test_registry::initialize();
+    initialize<test_registry>();
 
     {
         Dog spot("Spot");
@@ -153,7 +153,7 @@ BOOST_OPENMETHOD_OVERRIDE(name, (const Dog* dog), std::string) {
 }
 
 BOOST_AUTO_TEST_CASE(cast_args_pointer) {
-    test_registry::initialize();
+    initialize<test_registry>();
 
     Dog spot("Spot");
     BOOST_TEST(name(&spot) == "Bill's dog Spot");
@@ -186,7 +186,7 @@ BOOST_OPENMETHOD_OVERRIDE(name, (std::shared_ptr<const Dog> dog), std::string) {
 }
 
 BOOST_AUTO_TEST_CASE(cast_args_shared_ptr_by_value) {
-    test_registry::initialize();
+    initialize<test_registry>();
 
     auto spot = std::make_shared<Dog>("Spot");
     BOOST_TEST(name(spot) == "Bill's dog Spot");
@@ -227,7 +227,7 @@ BOOST_OPENMETHOD_OVERRIDE(
 }
 
 BOOST_AUTO_TEST_CASE(cast_args_shared_ptr_by_ref) {
-    test_registry::initialize();
+    initialize<test_registry>();
 
     auto spot = std::make_shared<Dog>("Spot");
     BOOST_TEST(name(spot) == "Bill's dog Spot");
@@ -260,7 +260,7 @@ BOOST_OPENMETHOD_OVERRIDE(name, (std::unique_ptr<Dog> dog), std::string) {
 }
 
 BOOST_AUTO_TEST_CASE(cast_args_unique_ptr) {
-    test_registry::initialize();
+    initialize<test_registry>();
 
     auto spot = std::make_unique<Dog>("Spot");
     BOOST_TEST(name(std::move(spot)) == "Bill's dog Spot");
@@ -318,7 +318,7 @@ BOOST_OPENMETHOD_OVERRIDE(times, (const matrix&, double), string_pair) {
 }
 
 BOOST_AUTO_TEST_CASE(simple) {
-    auto report = test_registry::initialize().report;
+    auto report = initialize<test_registry>().report;
     BOOST_TEST(report.not_implemented == 0u);
     BOOST_TEST(report.ambiguous == 0u);
 
@@ -339,7 +339,7 @@ BOOST_AUTO_TEST_CASE(simple) {
     if constexpr (std::is_same_v<test_registry::vptr, policies::vptr_vector>) {
         BOOST_TEST(
             !detail::vptr_vector_vptrs<test_registry::registry_type>.empty());
-        finalize<test_registry>();
+        test_registry::finalize();
         static_assert(detail::has_finalize_aux<
                       test_registry::policy<policies::vptr>>::value);
         BOOST_TEST(
@@ -439,7 +439,7 @@ BOOST_OPENMETHOD_OVERRIDE(foo, (Test&), std::pair<int, int>) {
 }
 
 BOOST_AUTO_TEST_CASE(comma_in_return_type) {
-    test_registry::initialize();
+    initialize<test_registry>();
 
     Test test;
 

@@ -13,4 +13,7 @@ BOOST_OPENMETHOD_REGISTER(TYPE);
 
 ### Description
 
-Creates a static instance of `TYPE`, using a unique generated name.
+Creates a registrar for `TYPE`, i.e. a static `TYPE` object with a unique
+generated name. At static initialization time, the object adds itself to a list:
+methods and class registrations add themselves to a cpp:registry[], and
+overriders add themselves to a method's overrider list.

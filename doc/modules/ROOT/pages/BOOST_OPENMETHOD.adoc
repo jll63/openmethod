@@ -6,35 +6,38 @@
 Defined in <boost/openmethod/macros.hpp>.
 
 ```c++
-BOOST_OPENMETHOD(NAME, (PARAMETERS...), RETURN_TYPE [, REGISTRY]);
+BOOST_OPENMETHOD(ID, (PARAMETERS...), RETURN_TYPE [, REGISTRY]);
 ```
 
 ### Description
 
-Declare a method.
+Declares a method.
 
 The macro expands to several constructs:
 
 * A `struct` forward declaration that acts as the method's identifier:
 
 ```c++
-struct BOOST_OPENMETHOD_ID(NAME);
+struct BOOST_OPENMETHOD_ID(ID);
 ```
 
 * An inline function template, constrained to take the same `PARAMETERS`,
   without the `virtual_` decorators, returning a `RETURN_TYPE`. The function
   forwards to +
-  `method<BOOST_OPENMETHOD_ID(NAME)(PARAMETERS...), RETURN_TYPE, REGISTRY>::fn`.
+  `method<BOOST_OPENMETHOD_ID(ID)(PARAMETERS...), RETURN_TYPE, REGISTRY>::fn`.
 
 * A guide function used to match overriders with the method:
 
 ```c++
-auto BOOST_OPENMETHOD_ID(NAME)_guide(...)
+auto BOOST_OPENMETHOD_ID(ID)_guide(...)
     -> ::boost::openmethod::method<
-        BOOST_OPENMETHOD_ID(NAME)(PARAMETERS...), RETURN_TYPE [, REGISTRY]>;
+        BOOST_OPENMETHOD_ID(ID)(PARAMETERS...), RETURN_TYPE [, REGISTRY]>;
 ```
 
-NOTE: `NAME` must be an *identifier*. Qualified names are not allowed.
+* A xref:BOOST_OPENMETHOD_REGISTER.adoc[registrar] that adds the method to the
+registry.
+
+NOTE: `ID` must be an *identifier*. Qualified names are not allowed.
 
 NOTE: The default value for `REGISTRY` is the value of
 `BOOST_OPENMETHOD_DEFAULT_REGISTRY` at the point `<boost/openmethod/core.hpp>` is

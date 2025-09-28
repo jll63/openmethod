@@ -12,8 +12,10 @@ struct Cat {
     }
 };
 
-BOOST_OPENMETHOD(
-    poke, (virtual_ptr<Cat, release_registry>), void, debug_registry);
+struct other_registry : default_registry::without<policies::type_hash>::with<
+                            policies::runtime_checks> {};
+
+BOOST_OPENMETHOD(poke, (virtual_ptr<Cat>), void, other_registry);
 
 int main() {
     Cat felix;

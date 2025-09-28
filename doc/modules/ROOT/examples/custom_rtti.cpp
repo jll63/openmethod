@@ -31,7 +31,7 @@ struct Dog : Animal {
     static constexpr unsigned static_type = 3;
 };
 
-#include <boost/openmethod/registry.hpp>
+#include <boost/openmethod/preamble.hpp>
 #include <boost/openmethod/policies/vptr_vector.hpp>
 
 // tag::policy[]
@@ -65,8 +65,8 @@ struct custom_rtti : bom::policies::rtti {
 // end::policy[]
 
 // tag::registry[]
-struct custom_registry : bom::registry<custom_rtti, bom::policies::vptr_vector> {
-};
+struct custom_registry
+    : bom::registry<custom_rtti, bom::policies::vptr_vector> {};
 
 #define BOOST_OPENMETHOD_DEFAULT_REGISTRY custom_registry
 // end::registry[]

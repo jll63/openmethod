@@ -93,7 +93,7 @@ BOOST_OPENMETHOD_OVERRIDE(poke, (Cat & cat, std::ostream& os), void) {
 }
 
 BOOST_AUTO_TEST_CASE(custom_rtti_simple_projection) {
-    test_registry::initialize();
+    initialize<test_registry>();
 
     Animal &&a = Dog("Snoopy"), &&b = Cat("Sylvester");
 
@@ -204,7 +204,7 @@ BOOST_AUTO_TEST_CASE(custom_rtti_simple) {
     BOOST_TEST(Animal::static_type == 0u);
     BOOST_TEST(Dog::static_type == 1u);
     BOOST_TEST(Cat::static_type == 2u);
-    test_registry::initialize();
+    initialize<test_registry>();
 
     Animal &&a = Dog("Snoopy"), &&b = Cat("Sylvester");
 
@@ -362,7 +362,7 @@ BOOST_AUTO_TEST_CASE(virtual_base) {
     BOOST_TEST(Animal::static_type == 0u);
     BOOST_TEST(Dog::static_type == 1u);
     BOOST_TEST(Cat::static_type == 2u);
-    test_registry::initialize();
+    initialize<test_registry>();
 
     Animal &&a = Dog("Snoopy"), &&b = Cat("Sylvester");
 
@@ -497,7 +497,7 @@ BOOST_OPENMETHOD_OVERRIDE(meet, (Dog&, Dog&, std::ostream& os), void) {
 }
 
 BOOST_AUTO_TEST_CASE(custom_rtti_deferred) {
-    test_registry::initialize();
+    initialize<test_registry>();
 
     Animal &&a = Dog("Snoopy"), &&b = Cat("Sylvester");
 

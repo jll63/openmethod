@@ -73,7 +73,7 @@ Provides `intialize` and `finalize`. Typically included only by the translation
 unit that contains `main`, unless dynamic loading is used in other places in the
 program.
 
-#### <boost/openmethod/shared_ptr.hpp>
+#### <boost/openmethod/interop/std_shared_ptr.hpp>
 
 Provides support for using `std::shared_ptr` in place of plain pointers in
 virtual parameters.

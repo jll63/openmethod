@@ -9,7 +9,7 @@
 #define BOOST_TEST_MODULE core
 #include <boost/test/unit_test.hpp>
 
-#include <boost/openmethod/registry.hpp>
+#include <boost/openmethod/preamble.hpp>
 
 using namespace boost::openmethod;
 using namespace boost::openmethod::detail;
@@ -17,7 +17,7 @@ namespace mp11 = boost::mp11;
 
 #include <boost/openmethod.hpp>
 #include <boost/openmethod/inplace_vptr.hpp>
-#include <boost/openmethod/shared_ptr.hpp>
+#include <boost/openmethod/interop/std_shared_ptr.hpp>
 
 #include "test_util.hpp"
 
@@ -269,41 +269,6 @@ static_assert(
 
 } // namespace test_use_classes
 
-// -----------------------------------------------------------------------------
-// static_slots
-
-namespace test_static_slots {
-struct Animal;
-}
-
-namespace boost::openmethod::detail {
-
-template<>
-struct static_offsets<method<
-    void,
-    void(
-        virtual_<test_static_slots::Animal&>,
-        virtual_<test_static_slots::Animal&>)>> {
-    static constexpr std::size_t slots[] = {0, 1};
-};
-
-} // namespace boost::openmethod::detail
-
-namespace test_static_slots {
-
-struct Animal {
-    virtual ~Animal() {
-    }
-};
-
-using poke = method<void, void(virtual_<Animal&>)>;
-static_assert(!has_static_offsets<poke>::value);
-
-using meet = method<void, void(virtual_<Animal&>, virtual_<Animal&>)>;
-static_assert(has_static_offsets<meet>::value);
-
-} // namespace test_static_slots
-
 namespace TEST_NS {
 
 struct Animal {
@@ -330,7 +295,7 @@ static_assert(detail::has_vptr_fn<Animal, test_registry>);
 static_assert(!detail::has_vptr_fn<Animal, default_registry>);
 
 BOOST_AUTO_TEST_CASE(vptr_from_function) {
-    test_registry::initialize();
+    initialize<test_registry>();
     BOOST_TEST(detail::acquire_vptr<test_registry>(Animal{}) == &value);
 }
 

@@ -119,12 +119,7 @@ struct va_args<ReturnType> {
         BOOST_ASSERT(has_next());                                              \
         return boost_openmethod_detail_locate_method_aux<                      \
             void ARGS>::type::next<fn>(std::forward<Args>(args)...);           \
-    }                                                                          \
-    inline BOOST_OPENMETHOD_REGISTER(                                          \
-        BOOST_OPENMETHOD_OVERRIDERS(NAME) < __VA_ARGS__ ARGS >                 \
-        ::boost_openmethod_detail_locate_method_aux<void ARGS>::type::         \
-            override<                                                          \
-                BOOST_OPENMETHOD_OVERRIDERS(NAME) < __VA_ARGS__ ARGS>::fn >);
+    }
 
 #define BOOST_OPENMETHOD_OVERRIDER(NAME, ARGS, ...)                            \
     BOOST_OPENMETHOD_OVERRIDERS(NAME)<__VA_ARGS__ ARGS>
@@ -135,10 +130,20 @@ struct va_args<ReturnType> {
 
 #define BOOST_OPENMETHOD_INLINE_OVERRIDE(NAME, ARGS, ...)                      \
     BOOST_OPENMETHOD_DECLARE_OVERRIDER(NAME, ARGS, __VA_ARGS__)                \
+    inline BOOST_OPENMETHOD_REGISTER(                                          \
+        BOOST_OPENMETHOD_OVERRIDERS(NAME) < __VA_ARGS__ ARGS >                 \
+        ::boost_openmethod_detail_locate_method_aux<void ARGS>::type::         \
+            override<                                                          \
+                BOOST_OPENMETHOD_OVERRIDERS(NAME) < __VA_ARGS__ ARGS>::fn >);  \
     inline BOOST_OPENMETHOD_DEFINE_OVERRIDER(NAME, ARGS, __VA_ARGS__)
 
 #define BOOST_OPENMETHOD_OVERRIDE(NAME, ARGS, ...)                             \
     BOOST_OPENMETHOD_DECLARE_OVERRIDER(NAME, ARGS, __VA_ARGS__)                \
+    BOOST_OPENMETHOD_REGISTER(                                                 \
+        BOOST_OPENMETHOD_OVERRIDERS(NAME) < __VA_ARGS__ ARGS >                 \
+        ::boost_openmethod_detail_locate_method_aux<void ARGS>::type::         \
+            override<                                                          \
+                BOOST_OPENMETHOD_OVERRIDERS(NAME) < __VA_ARGS__ ARGS>::fn >);  \
     BOOST_OPENMETHOD_DEFINE_OVERRIDER(NAME, ARGS, __VA_ARGS__)
 
 #define BOOST_OPENMETHOD_CLASSES(...)                                          \

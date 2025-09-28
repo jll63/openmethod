@@ -33,7 +33,7 @@ auto main() -> int {
     bom::initialize();
 
     bom::default_registry::error_handler::set([](const auto& error) {
-        if (std::holds_alternative<bom::not_implemented_error>(error)) {
+        if (std::holds_alternative<bom::no_overrider>(error)) {
             throw std::runtime_error("not implemented");
         }
     });

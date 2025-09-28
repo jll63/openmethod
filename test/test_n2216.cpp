@@ -10,8 +10,8 @@
 #include <any>
 
 #include <boost/openmethod.hpp>
-#include <boost/openmethod/shared_ptr.hpp>
-#include <boost/openmethod/unique_ptr.hpp>
+#include <boost/openmethod/interop/std_shared_ptr.hpp>
+#include <boost/openmethod/interop/std_unique_ptr.hpp>
 #include <boost/openmethod/initialize.hpp>
 #include <boost/openmethod/policies/vptr_vector.hpp>
 
@@ -26,13 +26,13 @@ namespace TEST_NS {
 
 using namespace test_matrices;
 
-struct n2216 : test_registry_<__COUNTER__>::with<policies::n2216> {};
+struct test_registry : test_registry_<__COUNTER__> {};
 
-BOOST_OPENMETHOD_CLASSES(matrix, dense_matrix, n2216);
+BOOST_OPENMETHOD_CLASSES(matrix, dense_matrix, test_registry);
 
 BOOST_OPENMETHOD(
     times, (virtual_<const matrix&>, virtual_<const matrix&>),
-    std::unique_ptr<matrix>, n2216);
+    std::unique_ptr<matrix>, test_registry);
 
 BOOST_OPENMETHOD_OVERRIDE(
     times, (const dense_matrix&, const matrix&),
@@ -46,13 +46,13 @@ BOOST_OPENMETHOD_OVERRIDE(
 }
 
 static_assert(std::is_same_v<
-              detail::virtual_type<std::unique_ptr<matrix>, n2216>, matrix>);
+              detail::virtual_type<std::unique_ptr<matrix>, test_registry>, matrix>);
 
 BOOST_AUTO_TEST_CASE(covariant_return_type) {
-    auto compiler = n2216::initialize();
+    auto compiler = boost::openmethod::initialize<test_registry, n2216>();
     BOOST_TEST(compiler.report.ambiguous == 0u);
 
-    // N2216: use covariant return types to resolve ambiguity.
+    // test_registry: use covariant return types to resolve ambiguity.
     dense_matrix left, right;
     auto result = times(left, right);
     BOOST_TEST(result->type == DENSE_MATRIX);
@@ -64,13 +64,13 @@ namespace TEST_NS {
 
 using namespace test_matrices;
 
-struct n2216 : test_registry_<__COUNTER__>::with<policies::n2216> {};
+struct test_registry : test_registry_<__COUNTER__> {};
 
-BOOST_OPENMETHOD_CLASSES(matrix, dense_matrix, n2216);
+BOOST_OPENMETHOD_CLASSES(matrix, dense_matrix, test_registry);
 
 BOOST_OPENMETHOD(
     times, (virtual_<const matrix&>, virtual_<const matrix&>), string_pair,
-    n2216);
+    test_registry);
 
 BOOST_OPENMETHOD_OVERRIDE(times, (const matrix&, const matrix&), string_pair) {
     return string_pair(MATRIX_MATRIX, NONE);
@@ -87,10 +87,10 @@ BOOST_OPENMETHOD_OVERRIDE(
 }
 
 BOOST_AUTO_TEST_CASE(pick_any_ambiguous) {
-    auto compiler = n2216::initialize();
+    auto compiler = boost::openmethod::initialize<test_registry, n2216>();
     BOOST_TEST(compiler.report.ambiguous == 1u);
 
-    // N2216: use covariant return types to resolve ambiguity.
+    // test_registry: use covariant return types to resolve ambiguity.
     dense_matrix left, right;
     auto result = times(left, right);
     BOOST_TEST(result.first == MATRIX_DENSE);

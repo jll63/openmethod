@@ -4,8 +4,8 @@
 // or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 #include <boost/openmethod.hpp>
-#include <boost/openmethod/shared_ptr.hpp>
-#include <boost/openmethod/unique_ptr.hpp>
+#include <boost/openmethod/interop/std_shared_ptr.hpp>
+#include <boost/openmethod/interop/std_unique_ptr.hpp>
 #include <boost/openmethod/initialize.hpp>
 
 #include <iostream>
@@ -220,7 +220,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(
     BOOST_OPENMETHOD_REGISTER(typename poke::template override<
                               poke_bear<virtual_ptr<Player, Registry>>>);
 
-    Registry::initialize();
+    initialize<Registry>();
 
     using vptr_player = virtual_ptr<Player, Registry>;
     static_assert(detail::is_virtual_ptr<vptr_player>);
@@ -248,13 +248,6 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(
     };
 
     upcast::fn(virtual_bear_ptr);
-
-    // Registry::finalize();
-    // Registry::initialize();
-
-    // BOOST_TEST(
-    //     (virtual_bear_ptr.vptr() == Registry::template static_vptr<Bear>) ==
-    //     Registry::has_indirect_vptr);
 }
 } // namespace BOOST_OPENMETHOD_GENSYM
 
@@ -284,7 +277,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(
             virtual_ptr<Player, Registry>, virtual_ptr<Object, Registry>,
             virtual_ptr<Player, Registry>>>);
 
-    Registry::initialize();
+    initialize<Registry>();
 
     Bear bear;
     BOOST_TEST(poke::fn(virtual_ptr<Player, Registry>(bear)) == "growl");
@@ -329,7 +322,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(
                                   shared_virtual_ptr<Object, Registry>,
                                   shared_virtual_ptr<Player, Registry>>>);
 
-    Registry::initialize();
+    initialize<Registry>();
 
     auto bear = make_shared_virtual<Bear, Registry>();
     auto warrior = make_shared_virtual<Warrior, Registry>();

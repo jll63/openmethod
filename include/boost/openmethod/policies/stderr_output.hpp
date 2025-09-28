@@ -6,7 +6,7 @@
 #ifndef BOOST_OPENMETHOD_POLICIES_STANDARD_ERROR_OUTPUT_HPP
 #define BOOST_OPENMETHOD_POLICIES_STANDARD_ERROR_OUTPUT_HPP
 
-#include <boost/openmethod/registry.hpp>
+#include <boost/openmethod/preamble.hpp>
 #include <boost/openmethod/detail/ostdstream.hpp>
 
 namespace boost::openmethod::policies {

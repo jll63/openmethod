@@ -6,7 +6,7 @@
 #ifndef BOOST_OPENMETHOD_POLICY_VPTR_MAP_HPP
 #define BOOST_OPENMETHOD_POLICY_VPTR_MAP_HPP
 
-#include <boost/openmethod/registry.hpp>
+#include <boost/openmethod/preamble.hpp>
 
 #include <unordered_map>
 
@@ -42,7 +42,7 @@ class vptr_map : public vptr {
         //! @ref IdsToVptr objects.
         //! @param first The beginning of the range.
         //! @param last The end of the range.
-        template<typename ForwardIterator>
+        template<class ForwardIterator>
         static void initialize(ForwardIterator first, ForwardIterator last) {
             for (auto iter = first; iter != last; ++iter) {
                 for (auto type_iter = iter->type_id_begin();
@@ -65,7 +65,7 @@ class vptr_map : public vptr {
         //! If the registry contains the @ref runtime_checks policy, checks that
         //! the map contains the type id. If it does not, and if the registry
         //! contains a @ref error_handler policy, calls its
-        //! @ref error function with a @ref unknown_class_error value, then
+        //! @ref error function with a @ref missing_class value, then
         //! terminates the program with @ref abort.
         //!
         //! @tparam Class A registered class.
@@ -79,7 +79,7 @@ class vptr_map : public vptr {
             if constexpr (Registry::has_runtime_checks) {
                 if (iter == vptrs.end()) {
                     if constexpr (Registry::has_error_handler) {
-                        unknown_class_error error;
+                        missing_class error;
                         error.type = type;
                         Registry::error_handler::error(error);
                     }

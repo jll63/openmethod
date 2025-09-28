@@ -6,7 +6,7 @@
 #ifndef BOOST_OPENMETHOD_DEFAULT_REGISTRY_HPP
 #define BOOST_OPENMETHOD_DEFAULT_REGISTRY_HPP
 
-#include <boost/openmethod/registry.hpp>
+#include <boost/openmethod/preamble.hpp>
 #include <boost/openmethod/policies/std_rtti.hpp>
 #include <boost/openmethod/policies/vptr_vector.hpp>
 #include <boost/openmethod/policies/stderr_output.hpp>
@@ -15,33 +15,44 @@
 
 namespace boost::openmethod {
 
-struct release_registry
+//! Default registry.
+//!
+//! `default_registry` is a predefined @ref registry, and the default value of
+//! [BOOST_OPENMETHOD_DEFAULT_REGISTRY](../BOOST_OPENMETHOD_DEFAULT_REGISTRY.html).
+//! It contains the following policies:
+//! @li @ref policies::std_rtti: Use standard RTTI.
+//! @li @ref policies::fast_perfect_hash: Use a fast perfect hash function to
+//!   map type ids to indices.
+//! @li @ref policies::vptr_vector: Store v-table pointers in a `std::vector`.
+//! @li @ref policies::default_error_handler: Write short diagnostic messages.
+//! @li @ref policies::stderr_output: Write messages to `stderr`.
+//!
+//! If
+//! [BOOST_OPENMETHOD_ENABLE_RUNTIME_CHECKS](../BOOST_OPENMETHOD_ENABLE_RUNTIME_CHECKS.html)
+//! is defined, `default_registry` also includes the @ref runtime_checks policy.
+//!
+//! @note Use `BOOST_OPENMETHOD_ENABLE_RUNTIME_CHECKS` with caution, as
+//! inconsistent use of the macro can cause ODR violations. If defined, it must
+//! be in all the translation units in the program that use `default_registry`,
+//! including those pulled from libraries.
+
+struct default_registry
     : registry<
           policies::std_rtti, policies::fast_perfect_hash,
           policies::vptr_vector, policies::default_error_handler,
-          policies::stderr_output> {};
-
-//! Registry with runtime checks and trace enabled
-//!
-//! `debug_registry` uses the same policies as @ref release_registry, with the
-//! additional policies of @ref policies::runtime_checks and @ref
-//! policies::trace.
-//!
-//! This is the default value of
-//! [BOOST_OPENMETHOD_DEFAULT_REGISTRY](../BOOST_OPENMETHOD_DEFAULT_REGISTRY.html)
-//! when NDEBUG is not defined.
-//!
-//! `debug_registry` is derived from `release_registry::with<...>`, instead of
-//! being aliased, to avoid creating long symbol names wherever it is used. Its
-//! state is entirely distinct from `release_registry`\'s.
-struct debug_registry
-    : release_registry::with<policies::runtime_checks, policies::trace> {};
-
-#ifdef NDEBUG
-using default_registry = release_registry;
-#else
-using default_registry = debug_registry;
+          policies::stderr_output
+#ifdef BOOST_OPENMETHOD_ENABLE_RUNTIME_CHECKS
+          ,
+          policies::runtime_checks
 #endif
+          > {
+};
+
+namespace detail {
+
+static odr_check<default_registry> default_registry_odr_check_instance;
+
+}
 
 } // namespace boost::openmethod
 

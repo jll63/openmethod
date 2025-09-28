@@ -12,5 +12,6 @@
 ** xref:custom_rtti.adoc[Custom RTTI]
 ** xref:dynamic_loading.adoc[Dynamic Loading]
 * Reference
+** xref:headers.adoc[Headers]
 ** xref:macros.adoc[Macros]
-** xref:reference:boost/openmethod.adoc[boost::openmethod]
+** xref:reference:boost/openmethod.adoc[Namespace boost::openmethod]

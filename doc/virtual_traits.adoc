@@ -36,9 +36,9 @@ Specializations are provided for:
 * `T&`
 * `T&&`
 * `T*`
-* `std::shared_ptr<T>`: defined in <boost/openmethod/shared_ptr.hpp>
-* `const std::shared_ptr<T>&`: defined in <boost/openmethod/shared_ptr.hpp>
-* `std::unique_ptr<T>`: defined in <boost/openmethod/unique_ptr.hpp>
+* `std::shared_ptr<T>`: defined in <boost/openmethod/interop/std_shared_ptr.hpp>
+* `const std::shared_ptr<T>&`: defined in <boost/openmethod/interop/std_shared_ptr.hpp>
+* `std::unique_ptr<T>`: defined in <boost/openmethod/interop/std_unique_ptr.hpp>
 
 ### Members
 

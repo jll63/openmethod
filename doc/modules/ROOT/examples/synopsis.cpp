@@ -95,7 +95,7 @@ BOOST_OPENMETHOD_OVERRIDE(
 
 auto main() -> int {
     // Initialize the dispatch tables.
-    boost::openmethod::initialize();
+    boost::openmethod::initialize<>();
 
     // Create a few objects.
     // Note that the actual classes are type-erased to base class Animal!

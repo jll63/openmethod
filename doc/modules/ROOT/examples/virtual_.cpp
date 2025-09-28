@@ -74,10 +74,10 @@ namespace inplace_vptr {
 
 #include <boost/openmethod/inplace_vptr.hpp>
 
-class Animal : public boost::openmethod::inplace_vptr<Animal> {
+class Animal : public boost::openmethod::inplace_vptr_base<Animal> {
 };
 
-class Cat : public Animal, public boost::openmethod::inplace_vptr<Cat, Animal> {
+class Cat : public Animal, public boost::openmethod::inplace_vptr_derived<Cat, Animal> {
 };
 
 BOOST_OPENMETHOD(poke, (std::ostream&, virtual_<Animal&>), void);

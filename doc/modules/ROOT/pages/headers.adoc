@@ -1,0 +1,141 @@
+[#headers]
+= xref:headers.adoc[Headers]
+:toc:
+
+{empty}
+
+*NOTE*: The two important headers are:
+
+* xref:#main[`boost/openmethod.hpp`] to define open-methods and overriders using
+convenient macros.
+
+* xref:#initialize[`boost/openmethod.hpp/initialize`] to initialize the library.
+Typically only included in the translation unit containing `main`.
+
+The following headers make it possible to use standard smart pointers in virtual
+parameters:
+
+* xref:#std_shared_ptr[`boost/openmethod/interop/std_shared_ptr.hpp`] to use
+`std::shared_ptr` in virtual parameters.
+
+* xref:#std_unique_ptr[`boost/openmethod/interop/std_unique_ptr.hpp`] to use
+`std::unique_ptr` in virtual parameters.
+
+*The other headers are for advanced use*.
+
+### boost/openmethod/preamble.hpp
+
+Defines `registry` and stock policies. Also defines all the types and functions
+necessary to the definition of `registry`.
+
+Most users should not include this header directly, unless for the purpose of
+overriding the default registry.
+
+### boost/openmethod/policies/std_rtti.hpp
+
+Includes all the headers above.
+
+Provides an implementation of the `rtti` policy using standard RTTI.
+
+### boost/openmethod/policies/fast_perfect_hash.hpp
+
+Includes all the headers above.
+
+Provides an implementation of the `hash` policy using a fast perfect hash
+function.
+
+### boost/openmethod/policies/vptr_vector.hpp
+
+Includes all the headers above.
+
+Provides an implementation of the `vptr` policy that stores the v-table pointers
+in a `std::vector` indexed by type ids, possibly hashed.
+
+### boost/openmethod/policies/default_error_handler.hpp
+
+Includes all the headers above.
+
+Provides an implementation of the `error_handler` policy that calls a
+`std::function<void(openmethod_error)>` when an error is encountered, and before
+the library aborts the program.
+
+### boost/openmethod/policies/stderr_output.hpp
+
+Includes all the headers above.
+
+Provides an implementation of the `output` policy that writes diagnostics to
+the C standard error stream (not using iostreams).
+
+### boost/openmethod/default_registry.hpp
+
+Includes all the headers above.
+
+Defines the default registry, which contains all the stock policies listed
+above.
+
+Most users should not include this header directly, unless for the purpose of
+overriding the default registry.
+
+### boost/openmethod/core.hpp
+
+Includes all the headers above.
+
+Defines the main constructs of the library: methods, overriders and virtual
+pointers, and mechanisms to implement them. Does not define any public macros
+apart from `BOOST_OPENMETHOD_DEFAULT_REGISTRY`, if it is not defined already.
+
+Users with a severe allergy to macros can include this header.
+
+### boost/openmethod/macros.hpp
+
+Includes all the headers above.
+
+Defines the public macros of the library, such as `BOOST_OPENMETHOD`,
+`BOOST_OPENMETHOD_CLASSES`, etc.
+
+There is little point in including this header directly, as it has the same
+effect as including `boost/openmethod.hpp`, which is shorter.
+
+[#main]
+### boost/openmethod.hpp
+
+Includes all the headers above.
+
+This is the header that most users should include.
+
+### boost/openmethod/policies/static_rtti.hpp
+
+Includes `preamble.hpp`.
+
+Provides a minimal implementation of the `rtti` policy that does not depend on
+standard RTTI.
+
+### boost/openmethod/policies/throw_error_handler.hpp
+
+Includes `preamble.hpp`.
+
+Provides an implementation of the `error_handler` policy that throws errors as
+exceptions.
+
+### boost/openmethod/policies/vptr_map.hpp
+
+Includes `preamble.hpp`.
+
+Provides an implementation of the `vptr` policy that stores the v-table pointers
+in a map (by default a `std::map`) indexed by type ids.
+
+[#std_shared_ptr]
+### boost/openmethod/interop/std_shared_ptr.hpp
+
+Includes `core.hpp`.
+
+Provides a `virtual_traits` specialization that make it possible to use a
+`std::shared_ptr` in place of a raw pointer or reference in virtual parameters.
+
+[#std_unique_ptr]
+### boost/openmethod/interop/std_unique_ptr.hpp
+
+Includes `core.hpp`.
+
+Provides a `virtual_traits` specialization that make it possible to use a
+`std::unique_ptr` in place of a raw pointer or reference in virtual parameters.

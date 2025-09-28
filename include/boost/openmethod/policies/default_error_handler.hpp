@@ -6,7 +6,7 @@
 #ifndef BOOST_OPENMETHOD_POLICY_VECTORED_ERROR_HPP
 #define BOOST_OPENMETHOD_POLICY_VECTORED_ERROR_HPP
 
-#include <boost/openmethod/registry.hpp>
+#include <boost/openmethod/preamble.hpp>
 
 #include <functional>
 #include <variant>
@@ -32,22 +32,51 @@ namespace boost::openmethod::policies {
 //! enable exception throwing on a registry basis.
 
 struct default_error_handler : error_handler {
-    //! A @ref std::variant containing an instance of a subclass of @ref
-    //! openmethod_error.
-    using error_variant = std::variant<
-        not_initialized_error, not_implemented_error, ambiguous_error,
-        unknown_class_error, fast_perfect_hash_error, final_error,
-        static_slot_error, static_stride_error>;
-
-    //! The type of the error handler function object.
-    using function_type = std::function<void(const error_variant& error)>;
-
     //! A model of @ref error_handler::fn.
     //!
     //! @tparam Registry The registry containing this policy.
     template<class Registry>
     class fn {
+        template<typename, typename, typename>
+        struct error_variant_aux;
+
+        template<
+            typename T, class... Errors, class Policy, class... MorePolicies>
+        struct error_variant_aux<
+            T, std::variant<Errors...>, mp11::mp_list<Policy, MorePolicies...>>
+            : error_variant_aux<
+                  void, std::variant<Errors...>,
+                  mp11::mp_list<MorePolicies...>> {};
+
+        template<class... Errors, class Policy, class... MorePolicies>
+        struct error_variant_aux<
+            std::void_t<typename Policy::errors>, std::variant<Errors...>,
+            mp11::mp_list<Policy, MorePolicies...>>
+            : error_variant_aux<
+                  void,
+                  mp11::mp_append<
+                      std::variant<Errors...>, typename Policy::errors>,
+                  mp11::mp_list<MorePolicies...>> {};
+
+        template<class... Errors>
+        struct error_variant_aux<
+            void, std::variant<Errors...>, mp11::mp_list<>> {
+            using type = std::variant<Errors...>;
+        };
+
       public:
+        //! A @ref std::variant containing an instance of a subclass of @ref
+        //! openmethod_error.
+        using error_variant = typename error_variant_aux<
+            void,
+            std::variant<
+                not_initialized, no_overrider, ambiguous_call,
+                missing_class, missing_base, odr_violation, final_error>,
+            typename Registry::policy_list>::type;
+
+        //! The type of the error handler function object.
+        using function_type = std::function<void(const error_variant& error)>;
+
         //! Calls a function with the error object, wrapped in an @ref
         //! error_variant.
         //!
@@ -96,7 +125,7 @@ struct default_error_handler : error_handler {
 };
 
 template<class Registry>
-typename default_error_handler::function_type
+typename default_error_handler::fn<Registry>::function_type
     default_error_handler::fn<Registry>::handler = default_handler;
 
 } // namespace boost::openmethod::policies

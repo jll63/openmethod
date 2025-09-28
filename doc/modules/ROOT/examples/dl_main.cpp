@@ -13,7 +13,7 @@
 #include <unistd.h>
 
 #include <boost/openmethod.hpp>
-#include <boost/openmethod/unique_ptr.hpp>
+#include <boost/openmethod/interop/std_unique_ptr.hpp>
 #include <boost/openmethod/initialize.hpp>
 
 #include "dl.hpp"
@@ -32,7 +32,7 @@ BOOST_OPENMETHOD_OVERRIDE(
 auto main() -> int {
     using namespace boost::openmethod;
 
-    dynamic::initialize();
+    initialize<dynamic>();
 
     std::cout << "Before loading library\n";
 
@@ -61,7 +61,7 @@ auto main() -> int {
 
     std::cout << "\nAfter loading library\n";
 
-    dynamic::initialize();
+    initialize<dynamic>();
 
     auto make_tiger =
         reinterpret_cast<Animal* (*)()>(dlsym(handle, "make_tiger"));
@@ -86,7 +86,7 @@ auto main() -> int {
 
     std::cout << "\nAfter unloading library\n";
 
-    dynamic::initialize();
+    initialize<dynamic>();
 
     std::cout << "Gracie encounters Willy -> "
               << encounter(gracie, willy); // ignore

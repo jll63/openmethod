@@ -14,7 +14,7 @@ struct static_registry
 #define BOOST_OPENMETHOD_DEFAULT_REGISTRY static_registry
 
 #include <boost/openmethod.hpp>
-#include <boost/openmethod/unique_ptr.hpp>
+#include <boost/openmethod/interop/std_unique_ptr.hpp>
 #include <boost/openmethod/initialize.hpp>
 
 #include <iostream>

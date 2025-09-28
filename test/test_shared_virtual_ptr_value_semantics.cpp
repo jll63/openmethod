@@ -3,7 +3,7 @@
 // See accompanying file LICENSE_1_0.txt
 // or q at http://www.boost.org/LICENSE_1_0.txt)
 
-#include <boost/openmethod/shared_ptr.hpp>
+#include <boost/openmethod/interop/std_shared_ptr.hpp>
 
 #define BOOST_TEST_MODULE openmethod
 #include <boost/test/unit_test.hpp>

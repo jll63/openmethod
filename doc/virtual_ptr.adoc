@@ -63,7 +63,7 @@ auto operator!=(
 } // namespace boost::openmethod
 ```
 
-Defined in `<boost/openmethod/shared_ptr.hpp>`:
+Defined in `<boost/openmethod/interop/std_shared_ptr.hpp>`:
 
 ```c++
 namespace boost::openmethod {
@@ -78,7 +78,7 @@ inline auto make_shared_virtual(T&&... args)
 
 }
 ```
-Defined in `<boost/openmethod/unique_ptr.hpp>`:
+Defined in `<boost/openmethod/interop/std_unique_ptr.hpp>`:
 
 ```c++
 namespace boost::openmethod {

@@ -35,6 +35,9 @@ for local src in [ glob test_*.cpp ]
   run $(src) unit_test_framework ;
 }
 
+run mix_release_debug/main.cpp mix_release_debug/lib.cpp unit_test_framework ;
+
+
 for local src in [ glob compile_fail_*.cpp ]
 {
   compile-fail $(src) ;

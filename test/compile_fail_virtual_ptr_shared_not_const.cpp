@@ -4,7 +4,7 @@
 // or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 #include <boost/openmethod.hpp>
-#include <boost/openmethod/shared_ptr.hpp>
+#include <boost/openmethod/interop/std_shared_ptr.hpp>
 
 using namespace boost::openmethod;
 

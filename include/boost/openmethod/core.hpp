@@ -20,7 +20,7 @@
 #include <boost/mp11/integral.hpp>
 #include <boost/mp11/list.hpp>
 
-#include <boost/openmethod/registry.hpp>
+#include <boost/openmethod/preamble.hpp>
 #include <boost/openmethod/default_registry.hpp>
 
 #ifndef BOOST_OPENMETHOD_DEFAULT_REGISTRY
@@ -35,10 +35,6 @@
 #endif
 
 //! Main namespace of the OpenMethod library.
-//!
-//! @note Names in CamelCase are for exposition only. Blueprints are
-//! exposition-only classes that describe the requirements for existing classes.
-
 namespace boost::openmethod {
 
 #ifdef __MRDOCS__
@@ -216,7 +212,9 @@ BOOST_OPENMETHOD_CLOSE_NAMESPACE_DETAIL_UNLESS_MRDOCS
 //! `Cat&`)
 //! @li cast the argument to another type (e.g. cast a `Animal&` to a `Cat&`)
 //!
-//! Specializations of `virtual_traits` must conform to the @ref VirtualTraits
+//!
+//! @par Requirements
+//! Specializations of `virtual_traits` must implement the members deswcribed to the @ref VirtualTraits
 //! blueprint.
 //!
 //! @tparam T A type referring (in the broad sense) to an instance of a class.
@@ -398,12 +396,12 @@ class use_classes {
     detail::use_classes_tuple_type<Classes...> tuple;
 };
 
-void boost_openmethod_vptr(...);
-
 // =============================================================================
 // virtual_ptr
 
 namespace detail {
+
+void boost_openmethod_vptr(...);
 
 template<typename, class, typename = void>
 struct is_smart_ptr_aux : std::false_type {};
@@ -458,7 +456,7 @@ constexpr bool IsPolymorphic = Registry::rtti::template is_polymorphic<Class>;
 template<typename Class, class Registry>
 constexpr bool IsSmartPtr = detail::is_smart_ptr_aux<Class, Registry>::value;
 
-//! Test if arguments are smart pointers of same type (exposition only)
+//! Test if arguments are same kind of smart pointers (exposition only)
 //!
 //! Evaluates to `true` if `Class` and `Other` are both smart pointers of the
 //! same type.
@@ -509,7 +507,7 @@ constexpr bool has_vptr_fn = std::is_same_v<
 
 template<class Registry, class ArgType>
 decltype(auto) acquire_vptr(const ArgType& arg) {
-    Registry::check_initialized();
+    Registry::require_initialized();
 
     if constexpr (detail::has_vptr_fn<ArgType, Registry>) {
         return boost_openmethod_vptr(arg, static_cast<Registry*>(nullptr));
@@ -539,23 +537,25 @@ inline vptr_type null_vptr = nullptr;
 
 } // namespace detail
 
-//! Create a `virtual_ptr` for an object of an exact known type
+//! Creates a `virtual_ptr` for an object of a known dynamic type.
 //!
-//! `final_virtual_ptr` creates a `virtual_ptr` to an object, setting its
-//! v-table pointer according to the declared type of its argument. It assumes
-//! that the static and dynamic types are the same. The v-table pointer is
-//! initialized from the `Policy::static_vptr` for the class, which needs
-//! not be polymorphic.
+//! Creates a @ref virtual_ptr to an object, setting its v-table pointer
+//! according to the declared type of its argument. Assumes that the static and
+//! dynamic types are the same. Sets the v-table pointer to the
+//! @ref registry::static_vptr for the class.
 //!
-//! @par Errors If the registry has runtime checks enabled, and the argument is
-//! a class type that is polymorphic according to the registry's `rtti` policy,
-//! a check is performed to verify that the static and dynamic types are indeed
-//! the same. If they are not, and if the registry contains an @ref
-//! error_handler policy, its
-//! @ref error function is called with a @ref final_error value, then the
-//! program is terminated with @ref abort.
+//! `Class` is _not_ required to be polymorphic.
 //!
-//! @tparam Registry The registry in which the class is registered.
+//! If runtime checks are enabled, and the argument is polymorphic, checks if
+//! the static and dynamic types are the same. If not, calls the error handler
+//! with a @ref final_error value, then terminates the program with @ref abort.
+//!
+//! @par Errors
+//!
+//! @li @ref final_error The static and dynamic types of the object are
+//! different.
+//!
+//! @tparam Registry A @ref registry.
 //! @tparam Arg The type of the argument.
 //! @param obj A reference to an object.
 //! @return A `virtual_ptr<Class, Registry>` pointing to `obj`.
@@ -592,6 +592,12 @@ inline auto final_virtual_ptr(Arg&& obj) {
             Registry::template static_vptr<Class>));
 }
 
+//! Create a `virtual_ptr` for an object of a known dynamic type.
+//!
+//! This is an overload of `final_virtual_ptr` that uses the default
+//! registry as the `Registry` template parameter.
+//!
+//! @see @ref final_virtual_ptr
 template<class Arg>
 inline auto final_virtual_ptr(Arg&& obj) {
     return final_virtual_ptr<BOOST_OPENMETHOD_DEFAULT_REGISTRY, Arg>(
@@ -613,15 +619,13 @@ inline auto final_virtual_ptr(Arg&& obj) {
 //! "plain" `virtual_ptr` can be constructed from a smart `virtual_ptr`, but not
 //! the other way around.
 //!
-//! TODO: link out from mrdocs to macro documentation
-//! The default value for `Registry` can be customized by defining the <a href="openmethod/BOOST_OPENMETHOD_DEFAULT_REGISTRY.html">BOOST_OPENMETHOD_DEFAULT_REGISTRY</a>
+//! The default value for `Registry` can be customized by defining the
+//! [BOOST_OPENMETHOD_DEFAULT_REGISTRY](../BOOST_OPENMETHOD_DEFAULT_REGISTRY.html)
 //! preprocessor symbol.
 //!
 //! The default value for `Registry` can be customized by defining the
 //! xref:BOOST_OPENMETHOD_DEFAULT_REGISTRY.adoc[`BOOST_OPENMETHOD_DEFAULT_REGISTRY`]
 //! preprocessor symbol.
-//!
-//! @par Examples
 //!
 //! @par Requirements
 //!
@@ -728,7 +732,7 @@ class virtual_ptr {
     //! The following errors may occur, depending on the policies selected in
     //! `Registry`:
     //!
-    //! @li @ref unknown_class_error
+    //! @li @ref missing_class
     template<
         class Other,
         typename = std::enable_if_t<
@@ -778,7 +782,7 @@ class virtual_ptr {
     //! The following errors may occur, depending on the policies selected in
     //! `Registry`:
     //!
-    //! @li @ref unknown_class_error
+    //! @li @ref missing_class
     template<
         class Other,
         typename = std::enable_if_t<
@@ -890,7 +894,7 @@ class virtual_ptr {
     //! The following errors may occur, depending on the policies selected in
     //! `Registry`:
     //!
-    //! @li @ref unknown_class_error
+    //! @li @ref missing_class
     template<
         class Other,
         typename = std::enable_if_t<
@@ -940,7 +944,7 @@ class virtual_ptr {
     //! The following errors may occur, depending on the policies selected in
     //! `Registry`:
     //!
-    //! @li @ref unknown_class_error
+    //! @li @ref missing_class
     template<
         class Other,
         typename = std::enable_if_t<
@@ -1735,16 +1739,40 @@ class virtual_ptr<
     }
 };
 
+//! Construct a `virtual_ptr` from a lvalue reference.
+//!
+//! @tparam Class A class type, possibly cv-qualified.
+//! @param obj A lvalue reference to an object.
+//! @return A `virtual_ptr<Class>`.
 template<class Class>
-virtual_ptr(Class&) -> virtual_ptr<Class, BOOST_OPENMETHOD_DEFAULT_REGISTRY>;
+virtual_ptr(Class& obj)
+    -> virtual_ptr<Class, BOOST_OPENMETHOD_DEFAULT_REGISTRY>;
 
+//! Construct a `virtual_ptr` from a xvalue reference.
+//!
+//! @tparam Class A class type.
+//! @param obj A xvalue reference to an object.
+//! @return A `virtual_ptr<Class>`.
 template<class Class>
-virtual_ptr(Class&&) -> virtual_ptr<Class, BOOST_OPENMETHOD_DEFAULT_REGISTRY>;
+virtual_ptr(Class&& obj)
+    -> virtual_ptr<Class, BOOST_OPENMETHOD_DEFAULT_REGISTRY>;
 
 // Alas this is not allowed:
 // template<class Registry, class Class>
 // virtual_ptr<Registry>(Class&) -> virtual_ptr<Class, Registry>;
 
+//! Compare two `virtual_ptr`s for equality.
+//!
+//! Compare the underlying object pointers for equality. The v-table pointers
+//! are not compared.
+//!!
+//! @tparam Left The type of the left-hand side argument.
+//! @tparam Right The type of the right-hand side argument.
+//! @tparam Registry A @ref registry.
+//! @param left A reference to a `virtual_ptr`.
+//! @param right A reference to a `virtual_ptr`.
+//! @return `true` if both `virtual_ptr`s point to the same object or both
+//! are `nullptr`, `false` otherwise.
 template<class Left, class Right, class Registry>
 auto operator==(
     const virtual_ptr<Left, Registry>& left,
@@ -1752,6 +1780,17 @@ auto operator==(
     return left.pointer() == right.pointer();
 }
 
+//! Compare two `virtual_ptr`s for inequality.
+//!
+//! Compare the underlying object pointers for inequality. The v-table pointers
+//! are not compared.
+//!! @tparam Left The type of the left-hand side argument.
+//! @tparam Right The type of the right-hand side argument.
+//! @tparam Registry A @ref registry.
+//! @param left A reference to a `virtual_ptr`.
+//! @param right A reference to a `virtual_ptr`.
+//! @return `true` if both `virtual_ptr`s point to different objects, or one
+//! is `nullptr` and the other is not, `false` otherwise.
 template<class Left, class Right, class Registry>
 auto operator!=(
     const virtual_ptr<Left, Registry>& left,
@@ -1881,9 +1920,9 @@ using overrider_virtual_types = boost::mp11::mp_remove<
     void>;
 
 template<class Method, class Rtti, std::size_t Index>
-struct init_call_error {
+struct init_bad_call {
     template<typename Arg, typename... Args>
-    static auto fn(call_error& error, const Arg& arg, const Args&... args) {
+    static auto fn(bad_call& error, const Arg& arg, const Args&... args) {
         if constexpr (Index == 0u) {
             error.method = Rtti::template static_type<Method>();
             error.arity = sizeof...(args);
@@ -1899,29 +1938,18 @@ struct init_call_error {
 
         error.types[Index] = arg_type_id;
 
-        init_call_error<Method, Rtti, Index + 1>::fn(error, args...);
+        init_bad_call<Method, Rtti, Index + 1>::fn(error, args...);
     }
 
-    static auto fn(call_error&) {
+    static auto fn(bad_call&) {
     }
 };
 
 template<class Method, class Rtti>
-struct init_call_error<Method, Rtti, call_error::max_types> {
-    static auto fn(call_error&) {
+struct init_bad_call<Method, Rtti, bad_call::max_types> {
+    static auto fn(bad_call&) {
     }
 };
-
-template<class Method>
-struct static_offsets;
-
-template<class Method, typename = void>
-struct has_static_offsets : std::false_type {};
-
-template<class Method>
-struct has_static_offsets<
-    Method, std::void_t<decltype(static_offsets<Method>::slots)>>
-    : std::true_type {};
 
 template<class Registry>
 using method_base = std::conditional_t<
@@ -2040,14 +2068,14 @@ struct validate_method_parameter<
 //! 1. If `result` is a `virtual_ptr`, get the pointer to the v-table from it.
 //!
 //! 2. If `boost_openmethod_vptr` can be called with `result` and a `Registry*`,
-//!    and returns a `vptr_type`, call it.
+//!    and it returns a `vptr_type`, call it.
 //!
 //! 3. Call `Registry::rtti::dynamic_vptr(result)`.
 //!
 //! @par N2216 Handling of Ambiguous Calls
 //!
-//! If `Registry` contains the @ref n2216 policy, ambiguous calls are not an
-//! error. Instead, the following extra steps are taken to select an
+//! If `Registry` was initialized with the @ref N2216 option, ambiguous calls
+//! are not an error. Instead, the following extra steps are taken to select an
 //! overrider:
 //!
 //! 1. If the return type is a registered polymorphic type, remove all the
@@ -2122,7 +2150,7 @@ class method<Id, ReturnType(Parameters...), Registry>
     //! Check if a next most specialized overrider exists
     //!
     //! Return `true` if a next most specialized overrider after _Fn_ exists,
-    //! and @ref next can be called without causing a @ref call_error.
+    //! and @ref next can be called without causing a @ref bad_call.
     //!
     //! @par Requirements
     //!
@@ -2217,10 +2245,6 @@ class method<Id, ReturnType(Parameters...), Registry>
 
     template<typename ArgType>
     auto vptr(const ArgType& arg) const -> vptr_type;
-
-    template<class Error>
-    auto
-    check_static_offset(std::size_t actual, std::size_t expected) const -> void;
 
     template<typename MethodArgList, typename ArgType, typename... MoreArgTypes>
     auto resolve_uni(const ArgType& arg, const MoreArgTypes&... more_args) const
@@ -2334,12 +2358,7 @@ method<Id, ReturnType(Parameters...), Registry>::method() {
     this->vp_begin = vp_type_ids;
     this->vp_end = vp_type_ids + Arity;
     this->not_implemented = reinterpret_cast<void (*)()>(fn_not_implemented);
-
-    if constexpr (Registry::has_n2216) {
-        this->ambiguous = nullptr;
-    } else {
-        this->ambiguous = reinterpret_cast<void (*)()>(fn_ambiguous);
-    }
+    this->ambiguous = reinterpret_cast<void (*)()>(fn_ambiguous);
 
     Registry::methods.push_back(*this);
 }
@@ -2369,26 +2388,6 @@ method<Id, ReturnType(Parameters...), Registry>::~method() {
     Registry::methods.remove(*this);
 }
 
-template<
-    typename Id, typename... Parameters, typename ReturnType, class Registry>
-template<class Error>
-auto method<Id, ReturnType(Parameters...), Registry>::check_static_offset(
-    std::size_t actual, std::size_t expected) const -> void {
-    using namespace detail;
-
-    if constexpr (Registry::has_error_handler) {
-        if (actual != expected) {
-            Error error;
-            error.method = Registry::rtti::template static_type<method>();
-            error.expected = this->slots_strides[0];
-            error.actual = actual;
-            Registry::error_handler::error(error);
-
-            abort();
-        }
-    }
-}
-
 // -----------------------------------------------------------------------------
 // method dispatch
 
@@ -2414,7 +2413,7 @@ BOOST_FORCEINLINE
         const ArgType&... args) const {
     using namespace detail;
 
-    Registry::check_initialized();
+    Registry::require_initialized();
 
     void (*pf)();
 
@@ -2455,16 +2454,7 @@ method<Id, ReturnType(Parameters...), Registry>::resolve_uni(
 
     if constexpr (is_virtual<mp_first<MethodArgList>>::value) {
         vptr_type vtbl = vptr<ArgType>(arg);
-
-        if constexpr (has_static_offsets<method>::value) {
-            if constexpr (Registry::has_runtime_checks) {
-                check_static_offset<static_slot_error>(
-                    static_offsets<method>::slots[0], this->slots_strides[0]);
-            }
-            return vtbl[static_offsets<method>::slots[0]];
-        } else {
-            return vtbl[this->slots_strides[0]];
-        }
+        return vtbl[this->slots_strides[0]];
     } else {
         return resolve_uni<mp_rest<MethodArgList>>(more_args...);
     }
@@ -2483,17 +2473,7 @@ method<Id, ReturnType(Parameters...), Registry>::resolve_multi_first(
 
     if constexpr (is_virtual<mp_first<MethodArgList>>::value) {
         vptr_type vtbl = vptr<ArgType>(arg);
-        std::size_t slot;
-
-        if constexpr (has_static_offsets<method>::value) {
-            slot = static_offsets<method>::slots[0];
-            if constexpr (Registry::has_runtime_checks) {
-                check_static_offset<static_slot_error>(
-                    static_offsets<method>::slots[0], this->slots_strides[0]);
-            }
-        } else {
-            slot = this->slots_strides[0];
-        }
+        std::size_t slot = this->slots_strides[0];
 
         // The first virtual parameter is special.  Since its stride is
         // 1, there is no need to store it. Also, the method table
@@ -2523,23 +2503,8 @@ method<Id, ReturnType(Parameters...), Registry>::resolve_multi_next(
 
     if constexpr (is_virtual<mp_first<MethodArgList>>::value) {
         vptr_type vtbl = vptr<ArgType>(arg);
-        std::size_t slot, stride;
-
-        if constexpr (has_static_offsets<method>::value) {
-            slot = static_offsets<method>::slots[VirtualArg];
-            stride = static_offsets<method>::strides[VirtualArg - 1];
-
-            if constexpr (Registry::has_runtime_checks) {
-                check_static_offset<static_slot_error>(
-                    this->slots_strides[VirtualArg], slot);
-                check_static_offset<static_stride_error>(
-                    this->slots_strides[2 * VirtualArg], stride);
-            }
-        } else {
-            slot = this->slots_strides[VirtualArg];
-            stride = this->slots_strides[Arity + VirtualArg - 1];
-        }
-
+        std::size_t slot = this->slots_strides[VirtualArg];
+        std::size_t stride = this->slots_strides[Arity + VirtualArg - 1];
         dispatch = dispatch + vtbl[slot].i * stride;
     }
 
@@ -2564,10 +2529,8 @@ method<Id, ReturnType(Parameters...), Registry>::has_next() -> bool {
         return false;
     }
 
-    if constexpr (!Registry::has_n2216) {
-        if (next<Fn> == fn_ambiguous) {
-            return false;
-        }
+    if (next<Fn> == fn_ambiguous) {
+        return false;
     }
 
     return true;
@@ -2581,8 +2544,8 @@ method<Id, ReturnType(Parameters...), Registry>::fn_not_implemented(
     using namespace policies;
 
     if constexpr (Registry::has_error_handler) {
-        not_implemented_error error;
-        detail::init_call_error<method, rtti, 0u>::fn(
+        no_overrider error;
+        detail::init_bad_call<method, rtti, 0u>::fn(
             error,
             detail::parameter_traits<Parameters, Registry>::peek(args)...);
         Registry::error_handler::error(error);
@@ -2599,8 +2562,8 @@ method<Id, ReturnType(Parameters...), Registry>::fn_ambiguous(
     using namespace policies;
 
     if constexpr (Registry::has_error_handler) {
-        ambiguous_error error;
-        detail::init_call_error<method, rtti, 0u>::fn(
+        ambiguous_call error;
+        detail::init_bad_call<method, rtti, 0u>::fn(
             error,
             detail::parameter_traits<Parameters, Registry>::peek(args)...);
         Registry::error_handler::error(error);
@@ -2767,7 +2730,7 @@ void method<Id, ReturnType(Parameters...), Registry>::override_impl<
             this->vp_type_ids);
 }
 
-//! Contains aliases for the most frequently used types in the library
+//! Aliases for the most frequently used types in the library.
 namespace aliases {
 
 using boost::openmethod::final_virtual_ptr;
