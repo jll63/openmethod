@@ -1925,7 +1925,7 @@ struct init_bad_call {
     static auto fn(bad_call& error, const Arg& arg, const Args&... args) {
         if constexpr (Index == 0u) {
             error.method = Rtti::template static_type<Method>();
-            error.arity = sizeof...(args);
+            error.arity = sizeof...(args) + 1;
         }
 
         type_id arg_type_id;
@@ -1957,8 +1957,8 @@ using method_base = std::conditional_t<
 
 template<typename T, class Registry>
 struct parameter_traits {
-    static auto peek(const T&) {
-        return nullptr;
+    static auto peek(const T& value) -> const T&{
+        return value;
     }
 
     template<typename>
