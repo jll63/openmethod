@@ -18,8 +18,8 @@ struct Node {
     virtual ~Node() {}
 };
 
-struct Literal : Node {
-    explicit Literal(int value) : value(value) {}
+struct Variable : Node {
+    explicit Variable(int value) : value(value) {}
 
     int value;
 };
@@ -39,7 +39,7 @@ struct Negate : Node {
 
 BOOST_OPENMETHOD(value, (virtual_ptr<Node>), int);
 
-BOOST_OPENMETHOD_OVERRIDE(value, (virtual_ptr<Literal> node), int) {
+BOOST_OPENMETHOD_OVERRIDE(value, (virtual_ptr<Variable> node), int) {
     return node->value;
 }
 
@@ -51,12 +51,12 @@ BOOST_OPENMETHOD_OVERRIDE(value, (virtual_ptr<Negate> node), int) {
     return -value(node->child);
 }
 
-BOOST_OPENMETHOD_CLASSES(Node, Literal, Plus, Negate);
+BOOST_OPENMETHOD_CLASSES(Node, Variable, Plus, Negate);
 
 auto main() -> int {
     boost::openmethod::initialize();
 
-    Literal one(1), two(2);
+    Variable one(1), two(2);
     Plus sum(one, two);
     Negate neg(sum);
 
@@ -74,7 +74,7 @@ auto negate(virtual_ptr<Node> node) -> int {
 
 auto main() -> int {
 // tag::final[]
-    Literal one(1);
+    Variable one(1);
     Negate neg(boost::openmethod::final_virtual_ptr(one));
 // end::final[]
 

@@ -714,7 +714,7 @@ struct output {
     using category = output;
 };
 
-//! Policy for runtime sanity checks.
+//! Policy for post-initialize runtime checks.
 //!
 //! If this policy is present, performs the following checks:
 //! @li Classes of virtual arguments have been registered.

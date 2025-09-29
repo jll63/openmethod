@@ -1,3 +1,4 @@
+* xref:motivation.adoc[Motivation]
 * Tutorials
 ** xref:hello_world.adoc[Hello World]
 ** xref:multiple_dispatch.adoc[Multiple Dispatch]
