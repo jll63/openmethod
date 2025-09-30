@@ -16,10 +16,12 @@
 #include <boost/openmethod/interop/std_unique_ptr.hpp>
 #include <boost/openmethod/initialize.hpp>
 
-#include "dl.hpp"
+#include <boost/dll/shared_library.hpp>
 
-BOOST_OPENMETHOD_CLASSES(
-    Animal, Herbivore, Cow, Wolf, Carnivore, dynamic);
+#include "dl.hpp"
+#include <boost/dll/runtime_symbol_info.hpp>
+
+BOOST_OPENMETHOD_CLASSES(Animal, Herbivore, Cow, Wolf, Carnivore, dynamic);
 
 BOOST_OPENMETHOD_OVERRIDE(
     encounter, (dyn_vptr<Animal>, dyn_vptr<Animal>), std::string) {
@@ -37,8 +39,6 @@ auto main() -> int {
     std::cout << "Before loading library\n";
 
     auto gracie = make_unique_virtual<Cow, dynamic>();
-    // Wolf _willy;
-    // auto willy = virtual_ptr<Wolf, dynamic>(_willy);
     auto willy = make_unique_virtual<Wolf, dynamic>();
 
     std::cout << "Gracie encounters Willy -> "
@@ -48,50 +48,37 @@ auto main() -> int {
     // end::before_dlopen[]
 
     // tag::dlopen[]
-    char dl_path[4096];
-    dl_path[readlink("/proc/self/exe", dl_path, sizeof(dl_path))] = 0;
-    *strrchr(dl_path, '/') = 0;
-    strcat(dl_path, "/libdl_shared.so");
-    void* handle = dlopen(dl_path, RTLD_NOW);
-
-    if (!handle) {
-        std::cerr << "dlopen() failed: " << dlerror() << "\n";
-        exit(1);
-    }
+    boost::dll::shared_library lib(
+        boost::dll::program_location().parent_path() / "libdl_shared.so",
+        boost::dll::load_mode::rtld_now);
 
     std::cout << "\nAfter loading library\n";
 
     initialize<dynamic>();
 
-    auto make_tiger =
-        reinterpret_cast<Animal* (*)()>(dlsym(handle, "make_tiger"));
-
-    if (!make_tiger) {
-        std::cerr << "dlsym() failed: " << dlerror() << "\n";
-        exit(1);
-    }
+    auto make_tiger = lib.get<Animal*()>("make_tiger");
 
     std::cout << "Willy encounters Gracie -> "
               << encounter(willy, gracie); // hunt
 
-    {
-        auto hobbes = std::unique_ptr<Animal>(make_tiger());
-        std::cout << "Gracie encounters Hobbes -> "
-                  << encounter(gracie, *hobbes); // run
-    }
+    auto hobbes = std::unique_ptr<Animal>(make_tiger());
+    std::cout << "Gracie encounters Hobbes -> "
+              << encounter(gracie, *hobbes); // run
+    hobbes.release();
     // end::dlopen[]
 
     // tag::after_dlclose[]
-    dlclose(handle);
+    lib.unload();
 
     std::cout << "\nAfter unloading library\n";
 
     initialize<dynamic>();
 
     std::cout << "Gracie encounters Willy -> "
-              << encounter(gracie, willy); // ignore
+              << encounter(gracie, willy); // clang: ignore, g++: run
     std::cout << "Willy encounters Gracie -> "
-              << encounter(willy, gracie); // ignore
+              << encounter(willy, gracie); // clang: ignore, g++: hunt
     // end::after_dlclose[]
+
     return 0;
 }

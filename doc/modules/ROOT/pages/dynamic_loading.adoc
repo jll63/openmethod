@@ -2,20 +2,31 @@
 ## Dynamic Loading
 
 OpenMethod supports dynamic loading on operating systems that are capable of
-handling C++ templates correctly during dynamic link. A dynamic library can add
-classes, methods and overriders to an existing policy. `initialize` must then be
-called to rebuild the dispatch tables.
+handling C++ templates correctly during dynamic link. Specifically, the dynamic
+loader must ensure that only one copy of an instantiation of a variable
+template, with a given set of template parameters, exists in a program. For
+example, `default_registry::static_vptr<Plus>` may be referenced from the main
+program and a dynamically loaded library, but there must be only one copy of it.
+
+The standard does not guarantee that a single copy of `std::type_info` exists
+for a given class. The library supports this, as long as the class is registered
+with evry possible type id. On platforms like Windows, this may require
+registering classes in both the main program and the dynamic library.
+
+A dynamic library can add classes and methods to an existing policy, and
+overriders to existing methods. `initialize` must then be called to rebuild the
+dispatch tables.
 
 This leads to a problem: any `virtual_ptr` in existence before `initialize` is
-called again becomes invalid. This also applies to vptrs that are stored inside
-objects by `inplace_vptr`.
+called is invalidated. This also applies to vptrs that are stored inside objects
+by cpp:inplace_vptr[].
 
 NOTE: This applies only to cases where a dynamic library adds to an _existing_
 policy. Even if the dynamic library itself uses open-methods, for example as an
 implementation detail, but it uses its own policy, there is no issue.
 
-The solution is to use a policy that contains the `indirect_vptr` policy. Instead
-of storing the vptr directly, it stores a reference to the vptr.
+The solution is to use a policy that contains the cpp:indirect_vptr[] policy.
+Instead of storing the vptr directly, it stores a reference to the vptr.
 
 Here is an example:
 
