@@ -1,17 +1,18 @@
 * xref:motivation.adoc[Motivation]
-* Tutorials
+* Basic Features
 ** xref:hello_world.adoc[Hello World]
-** xref:multiple_dispatch.adoc[Multiple Dispatch]
+** xref:smart_pointers.adoc[Smart Pointers]
+** xref:performance.adoc[Performance]
 ** xref:headers_namespaces.adoc[Headers and Namespaces]
 ** xref:friendship.adoc[Friendship]
-** xref:performance.adoc[Performance]
-** xref:smart_pointers.adoc[Smart Pointers]
-** xref:virtual_ptr_alt.adoc[Virtual Pointer Alternatives]
+** xref:multiple_dispatch.adoc[Multiple Dispatch]
+* Advanced Features
 ** xref:core_api.adoc[Core API]
+** xref:virtual_ptr_alt.adoc[Virtual Pointer Alternatives]
 ** xref:policies.adoc[Registries and Policies]
 ** xref:error_handling.adoc[Error Handling]
 ** xref:custom_rtti.adoc[Custom RTTI]
-** xref:dynamic_loading.adoc[Dynamic Loading]
+** xref:shared_libraries.adoc[Shared Libraries]
 * Reference
 ** xref:headers.adoc[Headers]
 ** xref:macros.adoc[Macros]

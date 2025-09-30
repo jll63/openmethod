@@ -73,11 +73,12 @@ struct fast_perfect_hash : type_hash {
     //! @tparam Registry The registry containing this policy
     template<class Registry>
     class fn {
-        inline static std::size_t mult;
-        inline static std::size_t shift;
-        inline static std::size_t min_value;
-        inline static std::size_t max_value;
-        inline static void check(std::size_t index, type_id type);
+        static std::size_t mult;
+        static std::size_t shift;
+        static std::size_t min_value;
+        static std::size_t max_value;
+
+        static void check(std::size_t index, type_id type);
 
         template<class ForwardIterator, class... Options>
         static void initialize(
@@ -142,6 +143,20 @@ struct fast_perfect_hash : type_hash {
         }
     };
 };
+
+#ifndef BOOST_OPENMETHOD_IMPORT
+template<class Registry>
+std::size_t fast_perfect_hash::fn<Registry>::mult;
+
+template<class Registry>
+std::size_t fast_perfect_hash::fn<Registry>::shift;
+
+template<class Registry>
+std::size_t fast_perfect_hash::fn<Registry>::min_value;
+
+template<class Registry>
+std::size_t fast_perfect_hash::fn<Registry>::max_value;
+#endif
 
 template<class Registry>
 template<class ForwardIterator, class... Options>

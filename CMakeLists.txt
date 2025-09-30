@@ -79,7 +79,7 @@ if (NOT BOOST_OPENMETHOD_MRDOCS_BUILD)
         set(BOOST_OPENMETHOD_UNIT_TEST_LIBRARIES test)
     endif()
     if (BOOST_OPENMETHOD_BUILD_EXAMPLES)
-        #set(BOOST_OPENMETHOD_EXAMPLE_LIBRARIES json regex beast)
+        set(BOOST_OPENMETHOD_EXAMPLE_LIBRARIES dll)
     endif()
 endif()
 # Complete dependency list

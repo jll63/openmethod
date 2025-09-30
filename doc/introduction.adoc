@@ -9,11 +9,11 @@ the Expression Problem:
 to add new operations on the existing types, and new types to the existing
 operations, without modifying existing code?
 
-Open-methods also address the banana-gorilla-jungle problem:
+Open-methods also address the banana-gorilla-shared problem:
 
 > The problem with object-oriented languages is they’ve got all this implicit
 environment that they carry around with them. You wanted a banana but what you
-got was a gorilla holding the banana and the entire jungle.  — Joe Armstrong,
+got was a gorilla holding the banana and the entire shared.  — Joe Armstrong,
 creator of Erlang progamming language
 
 As a bonus, open-methods can take more than one argument into account when

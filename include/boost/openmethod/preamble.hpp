@@ -89,14 +89,23 @@ struct odr_violation : openmethod_error {
 
 template<class Registry>
 struct odr_check {
-    inline static std::size_t count;
+    static std::size_t count;
     template<class R>
-    inline static std::size_t inc = count++;
+    static std::size_t inc;
 
     odr_check() {
         [[maybe_unused]] auto _ = &inc<typename Registry::registry_type>;
     }
 };
+
+#ifndef BOOST_OPENMETHOD_IMPORT
+template<class Registry>
+std::size_t odr_check<Registry>::count;
+
+template<class Registry>
+template<class R>
+std::size_t odr_check<Registry>::inc = count++;
+#endif
 
 //! Registry not initialized
 struct not_initialized : openmethod_error {
@@ -323,7 +332,7 @@ struct overrider_info;
 struct method_info : static_list<method_info>::static_link {
     type_id* vp_begin;
     type_id* vp_end;
-    static_list<overrider_info> specs;
+    static_list<overrider_info> overriders;
     void (*not_implemented)();
     void (*ambiguous)();
     type_id method_type_id;
@@ -341,7 +350,7 @@ struct deferred_method_info : method_info {
 
 struct overrider_info : static_list<overrider_info>::static_link {
     ~overrider_info() {
-        method->specs.remove(*this);
+        method->overriders.remove(*this);
     }
 
     method_info* method; // for the destructor, to remove definition
@@ -854,16 +863,16 @@ struct initialize_aux;
 //! @see @ref policies
 template<class... Policy>
 class registry : detail::registry_base {
-    inline static detail::class_catalog classes;
-    inline static detail::method_catalog methods;
+    static detail::class_catalog classes;
+    static detail::method_catalog methods;
 
     template<class...>
     friend struct detail::use_class_aux;
     template<typename Name, typename ReturnType, class Registry>
     friend class method;
 
-    inline static std::vector<detail::word> dispatch_data;
-    inline static bool initialized;
+    static std::vector<detail::word> dispatch_data;
+    static bool initialized;
 
     template<class... Options>
     struct compiler;
@@ -903,7 +912,7 @@ class registry : detail::registry_base {
     //!
     //! @tparam Class A registered class.
     template<class Class>
-    inline static vptr_type static_vptr;
+    static vptr_type static_vptr;
 
     //! List of policies selected in a registry.
     //!
@@ -983,6 +992,24 @@ class registry : detail::registry_base {
     static constexpr auto has_indirect_vptr =
         !std::is_same_v<policy<policies::indirect_vptr>, void>;
 };
+
+#ifndef BOOST_OPENMETHOD_IMPORT
+template<class... Policies>
+detail::class_catalog registry<Policies...>::classes;
+
+template<class... Policies>
+detail::method_catalog registry<Policies...>::methods;
+
+template<class... Policies>
+std::vector<detail::word> registry<Policies...>::dispatch_data;
+
+template<class... Policies>
+bool registry<Policies...>::initialized;
+
+template<class... Policies>
+template<class Class>
+vptr_type registry<Policies...>::static_vptr;
+#endif
 
 template<class... Policies>
 void registry<Policies...>::require_initialized() {
