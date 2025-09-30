@@ -4,10 +4,8 @@
 // accompanying file LICENSE_1_0.txt or copy at
 // http://www.boost.org/LICENSE_1_0.txt)
 
-// clang-format on
-
-#ifndef DL_DEFINED
-#define DL_DEFINED
+#ifndef ANIMALS_DEFINED
+#define ANIMALS_DEFINED
 
 // tag::header[]
 // dl.hpp
@@ -26,15 +24,11 @@ struct Carnivore : Animal {};
 struct Cow : Herbivore {};
 struct Wolf : Carnivore {};
 
-struct dynamic : boost::openmethod::default_registry::with<
-                            boost::openmethod::policies::indirect_vptr> {};
-
-template<class Class>
-using dyn_vptr = boost::openmethod::virtual_ptr<Class, dynamic>;
-
 BOOST_OPENMETHOD(
-    encounter, (dyn_vptr<Animal>, dyn_vptr<Animal>), std::string,
-    dynamic);
+    meet,
+    (boost::openmethod::virtual_ptr<Animal>,
+     boost::openmethod::virtual_ptr<Animal>),
+    std::string);
 
 // end::header[]
 

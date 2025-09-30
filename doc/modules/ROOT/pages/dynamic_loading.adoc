@@ -1,21 +1,33 @@
 
 ## Dynamic Loading
 
-OpenMethod supports dynamic loading on operating systems that are capable of
-handling C++ templates correctly during dynamic link. A dynamic library can add
-classes, methods and overriders to an existing policy. `initialize` must then be
-called to rebuild the dispatch tables.
+OpenMethod interacts well with dynamic loading of libraries if the platform and
+toolchain make global variables truly global.
+
+Registries contain collections of methods and classes, and methods contain
+collections of overriders stored in global variables, all managed by static
+constructors. cpp:initialize[] sets up global dispatch data. If these variables
+are truly global, dynamically loaded libraries can add classes, methods and
+overriders to a registry at runtime. Such is the case on Linux, and other
+POSIX-like platforms.
+
+After loading a dynamic library, the program must call `initialize` to rebuild
+the dispatch tables. If `virtual_ptr`{empty}s already exist
+
+A dynamic library can add classes and methods to an existing policy, and
+overriders to existing methods. `initialize` must then be called to rebuild the
+dispatch tables.
 
 This leads to a problem: any `virtual_ptr` in existence before `initialize` is
-called again becomes invalid. This also applies to vptrs that are stored inside
-objects by `inplace_vptr`.
+called is invalidated. This also applies to vptrs that are stored inside objects
+by cpp:inplace_vptr[].
 
 NOTE: This applies only to cases where a dynamic library adds to an _existing_
 policy. Even if the dynamic library itself uses open-methods, for example as an
 implementation detail, but it uses its own policy, there is no issue.
 
-The solution is to use a policy that contains the `indirect_vptr` policy. Instead
-of storing the vptr directly, it stores a reference to the vptr.
+The solution is to use a policy that contains the cpp:indirect_vptr[] policy.
+Instead of storing the vptr directly, it stores a reference to the vptr.
 
 Here is an example:
 
@@ -53,7 +65,7 @@ Let's load a dynamic library containing this code:
 include::example$dl_shared.cpp[tag=dl_shared]
 ----
 
-Now back to `main`:
+Now back to `main`. We need to call `initialize` before using any
 
 [source,c++]
 ----
