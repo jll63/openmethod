@@ -6,6 +6,7 @@
 // tag::dl_shared[]
 // dl_shared.cpp
 
+#include <iostream>
 #include <string>
 #include <boost/openmethod.hpp>
 
@@ -20,9 +21,13 @@ struct Tiger : Carnivore {};
 
 BOOST_OPENMETHOD_CLASSES(Tiger, Carnivore, dynamic);
 
-extern "C" auto make_tiger() -> Tiger* {
-    return new Tiger;
+extern "C" __declspec(dllexport) void test() {
+    std::cerr << "Shared library loaded\n";
 }
+
+
+//BOOST_DLL_ALIAS(test, test)
+
 
 BOOST_OPENMETHOD_OVERRIDE(
     encounter, (dyn_vptr<Carnivore>, dyn_vptr<Herbivore>), std::string) {

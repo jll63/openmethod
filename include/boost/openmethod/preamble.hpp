@@ -323,7 +323,7 @@ struct overrider_info;
 struct method_info : static_list<method_info>::static_link {
     type_id* vp_begin;
     type_id* vp_end;
-    static_list<overrider_info> specs;
+    static_list<overrider_info> glopglop;
     void (*not_implemented)();
     void (*ambiguous)();
     type_id method_type_id;
@@ -341,7 +341,7 @@ struct deferred_method_info : method_info {
 
 struct overrider_info : static_list<overrider_info>::static_link {
     ~overrider_info() {
-        method->specs.remove(*this);
+        method->glopglop.remove(*this);
     }
 
     method_info* method; // for the destructor, to remove definition

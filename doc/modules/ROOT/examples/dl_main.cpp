@@ -7,10 +7,10 @@
 
 // dl_main.cpp
 
+#define MAIN
+
 #include <cstring>
 #include <iostream>
-#include <dlfcn.h>
-#include <unistd.h>
 
 #include <boost/openmethod.hpp>
 #include <boost/openmethod/interop/std_unique_ptr.hpp>
@@ -34,51 +34,53 @@ BOOST_OPENMETHOD_OVERRIDE(
 auto main() -> int {
     using namespace boost::openmethod;
 
-    initialize<dynamic>();
+        try {
 
-    std::cout << "Before loading library\n";
+        initialize<dynamic>();
 
-    auto gracie = make_unique_virtual<Cow, dynamic>();
-    auto willy = make_unique_virtual<Wolf, dynamic>();
+        std::cout << "Before loading library\n";
 
-    std::cout << "Gracie encounters Willy -> "
-              << encounter(gracie, willy); // ignore
-    std::cout << "Willy encounters Gracie -> "
-              << encounter(willy, gracie); // ignore
-    // end::before_dlopen[]
+        auto gracie = make_unique_virtual<Cow, dynamic>();
+        auto willy = make_unique_virtual<Wolf, dynamic>();
 
-    // tag::dlopen[]
-    boost::dll::shared_library lib(
-        boost::dll::program_location().parent_path() / "libdl_shared.so",
-        boost::dll::load_mode::rtld_now);
+        std::cout << "Gracie encounters Willy -> "
+                << encounter(gracie, willy); // ignore
+        std::cout << "Willy encounters Gracie -> "
+                << encounter(willy, gracie); // ignore
+        // end::before_dlopen[]
 
-    std::cout << "\nAfter loading library\n";
+        // tag::dlopen[]
+        boost::dll::shared_library lib(
+            boost::dll::program_location().parent_path() / "dl_shared.dll",
+            boost::dll::load_mode::rtld_now);
 
-    initialize<dynamic>();
+        std::cout << "\nAfter loading library\n";
 
-    auto make_tiger = lib.get<Animal*()>("make_tiger");
+        initialize<dynamic>();
 
-    std::cout << "Willy encounters Gracie -> "
-              << encounter(willy, gracie); // hunt
 
-    auto hobbes = std::unique_ptr<Animal>(make_tiger());
-    std::cout << "Gracie encounters Hobbes -> "
-              << encounter(gracie, *hobbes); // run
-    hobbes.release();
-    // end::dlopen[]
+        lib.get<void()>("test")();
 
-    // tag::after_dlclose[]
-    lib.unload();
 
-    std::cout << "\nAfter unloading library\n";
 
-    initialize<dynamic>();
+        std::cout << "Willy encounters Gracie -> "
+                << encounter(willy, gracie); // hunt
+        // end::dlopen[]
 
-    std::cout << "Gracie encounters Willy -> "
-              << encounter(gracie, willy); // clang: ignore, g++: run
-    std::cout << "Willy encounters Gracie -> "
-              << encounter(willy, gracie); // clang: ignore, g++: hunt
-    // end::after_dlclose[]
+        // tag::after_dlclose[]
+        lib.unload();
 
+        std::cout << "\nAfter unloading library\n";
+
+        initialize<dynamic>();
+
+        std::cout << "Gracie encounters Willy -> "
+                << encounter(gracie, willy); // clang: ignore, g++: run
+        std::cout << "Willy encounters Gracie -> "
+                << encounter(willy, gracie); // clang: ignore, g++: hunt
+        // end::after_dlclose[]
+    } catch (std::exception& e) {
+        std::cerr << "Error: " << e.what() << "\n";
+    }
     return 0;
 }

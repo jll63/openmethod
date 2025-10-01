@@ -2123,7 +2123,11 @@ class method<Id, ReturnType(Parameters...), Registry>
     //!
     //! The only instance of `method`. Its `operator()` is used to call
     //! the method.
-    static method fn;
+    #ifdef MAIN
+    static __declspec(dllexport) method fn;
+    #else
+    static __declspec(dllimport) method fn;
+    #endif
     // `fn` cannot be `inline static` becaused of MSVC (19.43) bug causing
     // a "no appropriate default constructor available".
 
@@ -2333,10 +2337,12 @@ class method<Id, ReturnType(Parameters...), Registry>
     };
 };
 
+    #ifdef MAIN
 template<
     typename Id, typename... Parameters, typename ReturnType, class Registry>
 method<Id, ReturnType(Parameters...), Registry>
     method<Id, ReturnType(Parameters...), Registry>::fn;
+#endif
 
 // template<
 //     typename Id, typename... Parameters, typename ReturnType, class Registry>
@@ -2711,7 +2717,7 @@ method<Id, ReturnType(Parameters...), Registry>::override_impl<
     this->vp_begin = vp_type_ids;
     this->vp_end = vp_type_ids + Arity;
 
-    fn.specs.push_back(*this);
+    fn.glopglop.push_back(*this);
 }
 
 template<
