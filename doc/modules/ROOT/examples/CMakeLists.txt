@@ -31,17 +31,18 @@ foreach(cpp ${cpp_files})
 endforeach()
 
 message(STATUS "Building dlopen example")
-set(CMAKE_EXECUTABLE_ENABLE_EXPORTS ON)
 set(CMAKE_VERBOSE_MAKEFILE ON)
+
 add_executable(dl_main dl_main.cpp)
+set_target_properties(dl_main PROPERTIES ENABLE_EXPORTS ON)
+target_link_libraries(dl_main Boost::openmethod Boost::dll)
+
 add_library(dl_shared SHARED dl_shared.cpp)
 get_target_property(BOOST_OPENMETHOD_INCLUDE_DIRS Boost::openmethod INTERFACE_INCLUDE_DIRECTORIES)
 target_include_directories(dl_shared PUBLIC ${BOOST_OPENMETHOD_INCLUDE_DIRS})
-set_target_properties(dl_main PROPERTIES ENABLE_EXPORTS ON)
-set_target_properties(dl_main PROPERTIES LINK_FLAGS "/MAP")
-set_target_properties(dl_shared PROPERTIES LINK_FLAGS "/MAP" ENABLE_EXPORTS ON)
-target_link_libraries(dl_main Boost::openmethod Boost::dll)
+set_target_properties(dl_shared PROPERTIES ENABLE_EXPORTS ON)
 target_link_libraries(dl_shared PRIVATE dl_main Boost::openmethod)
+
 add_test(NAME dlopen COMMAND dl_main)
 
 add_subdirectory(headers_namespaces)

@@ -25,9 +25,7 @@ extern "C" __declspec(dllexport) void test() {
     std::cerr << "Shared library loaded\n";
 }
 
-
 //BOOST_DLL_ALIAS(test, test)
-
 
 BOOST_OPENMETHOD_OVERRIDE(
     encounter, (dyn_vptr<Carnivore>, dyn_vptr<Herbivore>), std::string) {
