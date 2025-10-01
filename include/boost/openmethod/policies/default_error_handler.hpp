@@ -70,8 +70,8 @@ struct default_error_handler : error_handler {
         using error_variant = typename error_variant_aux<
             void,
             std::variant<
-                not_initialized, no_overrider, ambiguous_call,
-                missing_class, missing_base, odr_violation, final_error>,
+                not_initialized, no_overrider, ambiguous_call, missing_class,
+                missing_base, odr_violation, final_error>,
             typename Registry::policy_list>::type;
 
         //! The type of the error handler function object.
@@ -119,14 +119,15 @@ struct default_error_handler : error_handler {
         }
 
       private:
-        static function_type
-            handler; // Cannot be inline static because it confuses MSVC
+        static BOOST_OPENMETHOD_DECLSPEC function_type handler;
     };
 };
 
+#ifndef BOOST_OPENMETHOD_IMPORT
 template<class Registry>
 typename default_error_handler::fn<Registry>::function_type
     default_error_handler::fn<Registry>::handler = default_handler;
+#endif
 
 } // namespace boost::openmethod::policies
 

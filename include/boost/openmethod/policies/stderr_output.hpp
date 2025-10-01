@@ -19,9 +19,16 @@ struct stderr_output : output {
     template<class Registry>
     struct fn {
         //! A @ref LightweightOuputStream.
-        inline static detail::ostderr os;
+        static BOOST_OPENMETHOD_DECLSPEC detail::ostderr os;
     };
 };
+
+#ifndef BOOST_OPENMETHOD_IMPORT
+
+template<class Registry>
+detail::ostderr stderr_output::fn<Registry>::os;
+
+#endif
 
 } // namespace boost::openmethod::policies
 

@@ -10,6 +10,7 @@
 #include <boost/openmethod.hpp>
 
 #include "animals.hpp"
+#include <boost/dll/alias.hpp>
 
 using boost::openmethod::virtual_ptr;
 
@@ -22,4 +23,13 @@ BOOST_OPENMETHOD_OVERRIDE(
     meet, (virtual_ptr<Carnivore>, virtual_ptr<Herbivore>), std::string) {
     return "hunt";
 }
+
+struct Tiger : Carnivore {};
+
+BOOST_OPENMETHOD_CLASSES(Tiger, Carnivore);
+
+extern "C" auto make_tiger() -> Tiger* {
+    return new Tiger;
+}
+
 // end::dl_shared[]

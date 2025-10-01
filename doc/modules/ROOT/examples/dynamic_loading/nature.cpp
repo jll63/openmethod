@@ -19,6 +19,9 @@
 
 using namespace boost::openmethod::aliases;
 
+struct Cow : Herbivore {};
+struct Wolf : Carnivore {};
+
 BOOST_OPENMETHOD_CLASSES(Animal, Herbivore, Cow, Wolf, Carnivore);
 
 BOOST_OPENMETHOD_OVERRIDE(
@@ -30,22 +33,52 @@ BOOST_OPENMETHOD_OVERRIDE(
 
 // tag::before_dlopen[]
 auto main(int argc, const char* argv[]) -> int {
-    boost::dll::shared_library lib;
+    boost::openmethod::initialize();
 
-    if (argc >= 2 && std::string(argv[1]) == "reality") {
-        lib.load(
-            boost::dll::program_location().parent_path() / "libjungle.so",
-            boost::dll::load_mode::rtld_now);
-        std::cout << "Nature is just another word for jungle!\n";
+    std::cout << "Before loading the shared library.\n";
+
+    {
+        std::unique_ptr<Animal> gracie(new Cow());
+        std::unique_ptr<Animal> willy(new Wolf());
+
+        std::cout << "Gracie meets Willy -> " << meet(*gracie, *willy) << "\n";
+        std::cout << "Willy meets Gracie -> " << meet(*willy, *gracie) << "\n";
     }
+
+    std::cout << "\nAfter loading the shared library.\n";
+
+    boost::dll::shared_library lib(
+        boost::dll::program_location().parent_path() / "libjungle.so",
+        boost::dll::load_mode::rtld_now);
 
     boost::openmethod::initialize();
 
-    Animal&& gracie = Cow();
-    Animal&& willy = Wolf();
+    {
+        std::unique_ptr<Animal> gracie(new Cow());
+        std::unique_ptr<Animal> willy(new Wolf());
 
-    std::cout << "Gracie meets Willy -> " << meet(gracie, willy) << "\n";
-    std::cout << "Willy meets Gracie -> " << meet(willy, gracie) << "\n";
+        std::cout << "Gracie meets Willy -> " << meet(*gracie, *willy) << "\n";
+        std::cout << "Willy meets Gracie -> " << meet(*willy, *gracie) << "\n";
+    }
+
+    {
+        auto make_tiger = lib.get<Animal*()>("make_tiger");
+        std::unique_ptr<Animal> hobbes{make_tiger()};
+        std::unique_ptr<Animal> gracie(new Cow());
+        std::cout << "Gracie meets Tiger -> " << meet(*gracie, *hobbes) << "\n";
+    }
+
+    std::cout << "\nAfter unloading the shared library.\n";
+    lib.unload();
+    boost::openmethod::initialize();
+
+    {
+        std::unique_ptr<Animal> gracie(new Cow());
+        std::unique_ptr<Animal> willy(new Wolf());
+
+        std::cout << "Gracie meets Willy -> " << meet(*gracie, *willy) << "\n";
+        std::cout << "Willy meets Gracie -> " << meet(*willy, *gracie) << "\n";
+    }
 
     return 0;
 }

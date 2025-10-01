@@ -8,7 +8,7 @@
 #define ANIMALS_DEFINED
 
 // tag::header[]
-// dl.hpp
+// animals.hpp
 
 #include <string>
 
@@ -21,8 +21,6 @@ struct Animal {
 
 struct Herbivore : Animal {};
 struct Carnivore : Animal {};
-struct Cow : Herbivore {};
-struct Wolf : Carnivore {};
 
 BOOST_OPENMETHOD(
     meet,

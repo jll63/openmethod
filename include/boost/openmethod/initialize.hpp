@@ -156,7 +156,7 @@ struct generic_compiler {
         detail::method_info* info;
         std::vector<class_*> vp;
         class_* covariant_return_type = nullptr;
-        std::vector<overrider> specs;
+        std::vector<overrider> overriders;
         std::vector<std::size_t> slots;
         std::vector<std::size_t> strides;
         std::vector<const overrider*> dispatch_table;
@@ -728,7 +728,7 @@ void registry<Policies...>::compiler<Options...>::augment_methods() {
         // initialize the function pointer in the synthetic not_implemented
         // overrider
         const auto method_index = meth_iter - methods.begin();
-        auto spec_size = meth_info.specs.size();
+        auto spec_size = meth_info.overriders.size();
         meth_iter->not_implemented.pf = meth_iter->info->not_implemented;
         meth_iter->not_implemented.method_index = method_index;
         meth_iter->not_implemented.spec_index = spec_size;
@@ -736,17 +736,17 @@ void registry<Policies...>::compiler<Options...>::augment_methods() {
         meth_iter->ambiguous.method_index = method_index;
         meth_iter->ambiguous.spec_index = spec_size + 1;
 
-        meth_iter->specs.resize(spec_size);
-        auto spec_iter = meth_iter->specs.begin();
+        meth_iter->overriders.resize(spec_size);
+        auto spec_iter = meth_iter->overriders.begin();
 
-        for (auto& overrider_info : meth_info.specs) {
+        for (auto& overrider_info : meth_info.overriders) {
             if constexpr (has_deferred_static_rtti) {
                 static_cast<deferred_overrider_info&>(overrider_info)
                     .resolve_type_ids();
             }
 
             spec_iter->method_index = method_index;
-            spec_iter->spec_index = spec_iter - meth_iter->specs.begin();
+            spec_iter->spec_index = spec_iter - meth_iter->overriders.begin();
 
             ++tr << type_name(overrider_info.type) << " (" << overrider_info.pf
                  << ")\n";
@@ -805,7 +805,7 @@ void registry<Policies...>::compiler<Options...>::augment_methods() {
         std::size_t param_index = 0;
 
         for (auto vp : method.vp) {
-            for (auto& overrider : method.specs) {
+            for (auto& overrider : method.overriders) {
                 if (overrider.vp[param_index] == vp) {
                     continue;
                 }
@@ -1001,14 +1001,14 @@ void registry<Policies...>::compiler<Options...>::build_dispatch_tables() {
                 indent _(tr);
 
                 for (auto covariant_class : vp->transitive_derived) {
-                    ++tr << "specs applicable to " << *covariant_class << "\n";
+                    ++tr << "overriders applicable to " << *covariant_class << "\n";
                     bitvec mask;
-                    mask.resize(m.specs.size());
+                    mask.resize(m.overriders.size());
 
                     std::size_t group_index = 0;
                     indent _2(tr);
 
-                    for (auto& spec : m.specs) {
+                    for (auto& spec : m.overriders) {
                         if (spec.vp[dim]->transitive_derived.find(
                                 covariant_class) !=
                             spec.vp[dim]->transitive_derived.end()) {
@@ -1065,7 +1065,7 @@ void registry<Policies...>::compiler<Options...>::build_dispatch_tables() {
 
         {
             ++tr << "building dispatch table\n";
-            bitvec all(m.specs.size());
+            bitvec all(m.overriders.size());
             all = ~all;
             build_dispatch_table(m, dims - 1, groups.end() - 1, all, true);
 
@@ -1129,7 +1129,7 @@ void registry<Policies...>::compiler<Options...>::build_dispatch_table(
             std::vector<overrider*> overriders;
             std::size_t i = 0;
 
-            for (auto& spec : m.specs) {
+            for (auto& spec : m.overriders) {
                 if (mask[i]) {
                     overriders.push_back(&spec);
                 }
@@ -1313,7 +1313,7 @@ void registry<Policies...>::compiler<Options...>::write_global_data() {
         indent _(tr);
         ++tr << "method #" << " " << type_name(m.info->method_type_id) << "\n";
 
-        for (auto& overrider : m.specs) {
+        for (auto& overrider : m.overriders) {
             if (overrider.next) {
                 ++tr << "#" << overrider.spec_index << " "
                      << spec_name(m, &overrider) << " -> ";

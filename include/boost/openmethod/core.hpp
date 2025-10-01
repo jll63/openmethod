@@ -330,7 +330,7 @@ struct use_class_aux<Registry, mp11::mp_list<Class, Bases...>>
     : std::conditional_t<
           Registry::has_deferred_static_rtti, detail::deferred_class_info,
           detail::class_info> {
-    inline static type_id bases[sizeof...(Bases)];
+    static BOOST_OPENMETHOD_DECLSPEC type_id bases[sizeof...(Bases)];
     use_class_aux() {
         this->first_base = bases;
         this->last_base = bases + sizeof...(Bases);
@@ -354,6 +354,12 @@ struct use_class_aux<Registry, mp11::mp_list<Class, Bases...>>
         Registry::classes.remove(*this);
     }
 };
+
+#ifndef BOOST_OPENMETHOD_IMPORT
+template<class Registry, class Class, typename... Bases>
+type_id use_class_aux<
+    Registry, mp11::mp_list<Class, Bases...>>::bases[sizeof...(Bases)];
+#endif
 
 template<class... Classes>
 using use_classes_tuple_type = boost::mp11::mp_apply<
@@ -1957,7 +1963,7 @@ using method_base = std::conditional_t<
 
 template<typename T, class Registry>
 struct parameter_traits {
-    static auto peek(const T& value) -> const T&{
+    static auto peek(const T& value) -> const T& {
         return value;
     }
 
@@ -2118,14 +2124,25 @@ class method<Id, ReturnType(Parameters...), Registry>
     template<auto Function, typename FunctionType>
     struct override_aux;
 
+    // Aliases used in implementation only. Everything extracted from template
+    // arguments is capitalized like the arguments themselves.
+    using RegistryType = Registry;
+    using rtti = typename Registry::rtti;
+    using DeclaredParameters = mp11::mp_list<Parameters...>;
+    using CallParameters =
+        boost::mp11::mp_transform<detail::remove_virtual_, DeclaredParameters>;
+    using VirtualParameters =
+        typename detail::virtual_types<DeclaredParameters>;
+    using Signature = auto(Parameters...) -> ReturnType;
+    using FunctionPointer = auto (*)(detail::remove_virtual_<Parameters>...)
+        -> ReturnType;
+
   public:
     //! Method singleton
     //!
     //! The only instance of `method`. Its `operator()` is used to call
     //! the method.
     static method fn;
-    // `fn` cannot be `inline static` becaused of MSVC (19.43) bug causing
-    // a "no appropriate default constructor available".
 
     //! Call the method
     //!
@@ -2172,9 +2189,7 @@ class method<Id, ReturnType(Parameters...), Registry>
     //!
     //! @tparam Fn A function that is an overrider of the method.
     template<auto Fn>
-    inline static ReturnType (*next)(
-        typename BOOST_OPENMETHOD_DETAIL_UNLESS_MRDOCS
-            StripVirtualDecorator<Parameters>::type... args);
+    static BOOST_OPENMETHOD_DECLSPEC FunctionPointer next;
 
     //! Add overriders to method
     //!
@@ -2210,18 +2225,6 @@ class method<Id, ReturnType(Parameters...), Registry>
     };
 
   private:
-    // Aliases used in implementation only. Everything extracted from template
-    // arguments is capitalized like the arguments themselves.
-    using RegistryType = Registry;
-    using rtti = typename Registry::rtti;
-    using DeclaredParameters = mp11::mp_list<Parameters...>;
-    using CallParameters =
-        boost::mp11::mp_transform<detail::remove_virtual_, DeclaredParameters>;
-    using VirtualParameters =
-        typename detail::virtual_types<DeclaredParameters>;
-    using Signature = auto(Parameters...) -> ReturnType;
-    using FunctionPointer = auto (*)(detail::remove_virtual_<Parameters>...)
-        -> ReturnType;
     static constexpr auto Arity = boost::mp11::mp_count_if<
         mp11::mp_list<Parameters...>, detail::is_virtual>::value;
 
@@ -2302,7 +2305,7 @@ class method<Id, ReturnType(Parameters...), Registry>
         explicit override_impl(FunctionPointer* next = nullptr);
         void resolve_type_ids();
 
-        inline static type_id vp_type_ids[Arity];
+        static BOOST_OPENMETHOD_DECLSPEC type_id vp_type_ids[Arity];
     };
 
     template<auto Function, typename FunctionType>
@@ -2314,35 +2317,39 @@ class method<Id, ReturnType(Parameters...), Registry>
             (void)&impl;
         }
 
-        inline static override_impl<Function, FnReturnType> impl;
-    };
-
-    template<
-        auto Function, class FnClass, typename FnReturnType,
-        typename... FnParameters>
-    struct override_aux<Function, FnReturnType (FnClass::*)(FnParameters...)> {
-        override_aux() {
-            (void)&impl;
-        }
-
-        static auto fn(FnClass* this_, FnParameters&&... args) -> FnReturnType {
-            return (this_->*Function)(std::forward<FnParameters>(args)...);
-        }
-
-        inline static override_impl<fn, FnReturnType> impl{&next<Function>};
+        static BOOST_OPENMETHOD_DECLSPEC override_impl<Function, FnReturnType>
+            impl;
     };
 };
+
+#ifndef BOOST_OPENMETHOD_IMPORT
 
 template<
     typename Id, typename... Parameters, typename ReturnType, class Registry>
 method<Id, ReturnType(Parameters...), Registry>
     method<Id, ReturnType(Parameters...), Registry>::fn;
 
-// template<
-//     typename Id, typename... Parameters, typename ReturnType, class Registry>
-// template<auto>
-// typename method<Id, ReturnType(Parameters...), Registry>::FunctionPointer
-//     method<Id, ReturnType(Parameters...), Registry>::next;
+template<
+    typename Id, typename... Parameters, typename ReturnType, class Registry>
+template<auto Fn>
+typename method<Id, ReturnType(Parameters...), Registry>::FunctionPointer
+    method<Id, ReturnType(Parameters...), Registry>::next;
+
+template<
+    typename Id, typename... Parameters, typename ReturnType, class Registry>
+template<auto Function, typename FnReturnType>
+type_id method<Id, ReturnType(Parameters...), Registry>::override_impl<
+    Function, FnReturnType>::vp_type_ids[Arity];
+
+template<
+    typename Id, typename... Parameters, typename ReturnType, class Registry>
+template<auto Function, typename FnReturnType, typename... FnParameters>
+typename method<Id, ReturnType(Parameters...), Registry>::
+    template override_impl<Function, FnReturnType>
+        method<Id, ReturnType(Parameters...), Registry>::override_aux<
+            Function, FnReturnType (*)(FnParameters...)>::impl;
+
+#endif
 
 template<
     typename Id, typename... Parameters, typename ReturnType, class Registry>
@@ -2711,7 +2718,7 @@ method<Id, ReturnType(Parameters...), Registry>::override_impl<
     this->vp_begin = vp_type_ids;
     this->vp_end = vp_type_ids + Arity;
 
-    fn.specs.push_back(*this);
+    fn.overriders.push_back(*this);
 }
 
 template<
