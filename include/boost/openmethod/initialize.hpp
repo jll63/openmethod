@@ -434,8 +434,8 @@ struct registry<Policies...>::compiler : detail::generic_compiler {
     static void select_dominant_overriders(
         std::vector<overrider*>& dominants, std::size_t& pick,
         std::size_t& remaining);
-    static auto
-    is_more_specific(const overrider* a, const overrider* b) -> bool;
+    static auto is_more_specific(const overrider* a, const overrider* b)
+        -> bool;
     static auto is_base(const overrider* a, const overrider* b) -> bool;
 
     mutable detail::trace_stream<compiler> tr;
@@ -1267,10 +1267,13 @@ void registry<Policies...>::compiler<Options...>::write_global_data() {
 
     auto dispatch_data_size = std::accumulate(
         methods.begin(), methods.end(), std::size_t(0),
-        [](auto sum, auto& m) { return sum + m.dispatch_table.size(); });
+        [](std::size_t sum, const method& m) {
+            // msvc doesn't like (auto sum, auto& m) (C2187), go figure...
+            return sum + m.dispatch_table.size();
+        });
     dispatch_data_size = std::accumulate(
         classes.begin(), classes.end(), dispatch_data_size,
-        [](auto sum, auto& cls) { return sum + cls.vtbl.size(); });
+        [](auto sum, const auto& cls) { return sum + cls.vtbl.size(); });
 
     std::vector<detail::word> new_dispatch_data(dispatch_data_size);
     auto gv_first = new_dispatch_data.data();
@@ -1289,8 +1292,8 @@ void registry<Policies...>::compiler<Options...>::write_global_data() {
             std::copy(m.strides.begin(), m.strides.end(), strides_iter);
 
             if constexpr (has_trace) {
-                ++tr << rflush(4, dispatch_data_size) << " " << " method #"
-                     << m.dispatch_table[0]->method_index << " "
+                ++tr << rflush(4, dispatch_data_size) << " "
+                     << " method #" << m.dispatch_table[0]->method_index << " "
                      << type_name(m.info->method_type_id) << "\n";
                 indent _(tr);
 
@@ -1312,7 +1315,8 @@ void registry<Policies...>::compiler<Options...>::write_global_data() {
 
     for (auto& m : methods) {
         indent _(tr);
-        ++tr << "method #" << " " << type_name(m.info->method_type_id) << "\n";
+        ++tr << "method #"
+             << " " << type_name(m.info->method_type_id) << "\n";
 
         for (auto& overrider : m.overriders) {
             if (overrider.next) {
