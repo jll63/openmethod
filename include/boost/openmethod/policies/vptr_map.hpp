@@ -42,19 +42,23 @@ class vptr_map : public vptr {
         //! @ref IdsToVptr objects.
         //! @param first The beginning of the range.
         //! @param last The end of the range.
-        template<class ForwardIterator>
+        template<class ForwardIterator, class... Options>
         static void initialize(ForwardIterator first, ForwardIterator last) {
+            decltype(vptrs) new_vptrs;
+
             for (auto iter = first; iter != last; ++iter) {
                 for (auto type_iter = iter->type_id_begin();
                      type_iter != iter->type_id_end(); ++type_iter) {
 
                     if constexpr (Registry::has_indirect_vptr) {
-                        vptrs.emplace(*type_iter, &iter->vptr());
+                        new_vptrs.emplace(*type_iter, &iter->vptr());
                     } else {
-                        vptrs.emplace(*type_iter, iter->vptr());
+                        new_vptrs.emplace(*type_iter, iter->vptr());
                     }
                 }
             }
+
+            vptrs.swap(new_vptrs);
         }
 
         //! Returns a reference to a v-table pointer for an object.
