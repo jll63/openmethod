@@ -1001,7 +1001,8 @@ void registry<Policies...>::compiler<Options...>::build_dispatch_tables() {
                 indent _(tr);
 
                 for (auto covariant_class : vp->transitive_derived) {
-                    ++tr << "overriders applicable to " << *covariant_class << "\n";
+                    ++tr << "overriders applicable to " << *covariant_class
+                         << "\n";
                     bitvec mask;
                     mask.resize(m.overriders.size());
 
@@ -1271,9 +1272,9 @@ void registry<Policies...>::compiler<Options...>::write_global_data() {
         classes.begin(), classes.end(), dispatch_data_size,
         [](auto sum, auto& cls) { return sum + cls.vtbl.size(); });
 
-    dispatch_data.resize(dispatch_data_size);
-    auto gv_first = dispatch_data.data();
-    [[maybe_unused]] auto gv_last = gv_first + dispatch_data.size();
+    std::vector<detail::word> new_dispatch_data(dispatch_data_size);
+    auto gv_first = new_dispatch_data.data();
+    [[maybe_unused]] auto gv_last = gv_first + dispatch_data_size;
     auto gv_iter = gv_first;
 
     ++tr << "Initializing multi-method dispatch tables at " << gv_iter << "\n";
@@ -1288,7 +1289,7 @@ void registry<Policies...>::compiler<Options...>::write_global_data() {
             std::copy(m.strides.begin(), m.strides.end(), strides_iter);
 
             if constexpr (has_trace) {
-                ++tr << rflush(4, dispatch_data.size()) << " " << " method #"
+                ++tr << rflush(4, dispatch_data_size) << " " << " method #"
                      << m.dispatch_table[0]->method_index << " "
                      << type_name(m.info->method_type_id) << "\n";
                 indent _(tr);
@@ -1371,12 +1372,14 @@ void registry<Policies...>::compiler<Options...>::write_global_data() {
         }
     }
 
-    ++tr << rflush(4, dispatch_data.size()) << " " << gv_iter << " end\n";
+    ++tr << rflush(4, dispatch_data_size) << " " << gv_iter << " end\n";
 
     if constexpr (has_vptr) {
         vptr::template initialize<decltype(classes.begin()), Options...>(
             classes.begin(), classes.end());
     }
+
+    new_dispatch_data.swap(dispatch_data);
 }
 
 template<class... Policies>
@@ -1630,6 +1633,10 @@ auto registry<Policies...>::finalize() -> void {
 //! Finalize the default registry
 inline auto finalize() -> void {
     BOOST_OPENMETHOD_DEFAULT_REGISTRY::finalize();
+}
+
+namespace aliases {
+using boost::openmethod::initialize;
 }
 
 } // namespace boost::openmethod

@@ -48,6 +48,9 @@ struct default_registry
           > {
 };
 
+struct indirect_registry
+    : default_registry::with<policies::indirect_vptr> {};
+
 namespace detail {
 
 static odr_check<default_registry> default_registry_odr_check_instance;

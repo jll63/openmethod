@@ -11,6 +11,7 @@
 
 #include <boost/openmethod.hpp>
 #include <boost/openmethod/initialize.hpp>
+#include <boost/openmethod/interop/std_unique_ptr.hpp>
 
 #include <boost/dll/shared_library.hpp>
 #include <boost/dll/runtime_symbol_info.hpp>
@@ -32,45 +33,44 @@ BOOST_OPENMETHOD_OVERRIDE(
 // end::main[]
 
 // tag::before_dlopen[]
-auto main(int argc, const char* argv[]) -> int {
-    boost::openmethod::initialize();
+auto main() -> int {
+    using namespace boost::openmethod::aliases;
 
     std::cout << "Before loading the shared library.\n";
+    initialize();
 
     {
-        std::unique_ptr<Animal> gracie(new Cow());
-        std::unique_ptr<Animal> willy(new Wolf());
+        auto gracie = make_unique_virtual<Cow>();
+        auto willy = make_unique_virtual<Wolf>();
 
         std::cout << "Gracie meets Willy -> " << meet(*gracie, *willy) << "\n";
         std::cout << "Willy meets Gracie -> " << meet(*willy, *gracie) << "\n";
     }
+
+    boost::dll::shared_library lib(
+        boost::dll::program_location().parent_path() / "libshared.so",
+        boost::dll::load_mode::rtld_now);
 
     std::cout << "\nAfter loading the shared library.\n";
 
-    boost::dll::shared_library lib(
-        boost::dll::program_location().parent_path() / "libjungle.so",
-        boost::dll::load_mode::rtld_now);
-
-    boost::openmethod::initialize();
+    initialize();
 
     {
-        std::unique_ptr<Animal> gracie(new Cow());
-        std::unique_ptr<Animal> willy(new Wolf());
+        auto gracie = make_unique_virtual<Cow>();
+        auto willy = make_unique_virtual<Wolf>();
 
         std::cout << "Gracie meets Willy -> " << meet(*gracie, *willy) << "\n";
         std::cout << "Willy meets Gracie -> " << meet(*willy, *gracie) << "\n";
-    }
 
-    {
         auto make_tiger = lib.get<Animal*()>("make_tiger");
         std::unique_ptr<Animal> hobbes{make_tiger()};
-        std::unique_ptr<Animal> gracie(new Cow());
         std::cout << "Gracie meets Tiger -> " << meet(*gracie, *hobbes) << "\n";
     }
 
     std::cout << "\nAfter unloading the shared library.\n";
     lib.unload();
-    boost::openmethod::initialize();
+
+    initialize();
 
     {
         std::unique_ptr<Animal> gracie(new Cow());

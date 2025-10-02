@@ -27,4 +27,4 @@ foreach(cpp ${cpp_files})
 endforeach()
 
 add_subdirectory(headers_namespaces)
-add_subdirectory(dynamic_loading)
+add_subdirectory(shared_libs)
