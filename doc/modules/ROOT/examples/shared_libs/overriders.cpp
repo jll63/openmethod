@@ -24,12 +24,4 @@ BOOST_OPENMETHOD_OVERRIDE(
     return "hunt";
 }
 
-struct Tiger : Carnivore {};
-
-BOOST_OPENMETHOD_CLASSES(Tiger, Carnivore);
-
-extern "C" auto make_tiger() -> Tiger* {
-    return new Tiger;
-}
-
 // end::dl_shared[]

@@ -20,6 +20,12 @@
 
 using namespace boost::openmethod::aliases;
 
+#ifdef _MSC_VER
+#define LIBRARY_NAME "indirect_shared.dll"
+#else
+#define LIBRARY_NAME "libindirect_shared.so"
+#endif
+
 struct Cow : Herbivore {};
 struct Wolf : Carnivore {};
 
@@ -46,7 +52,7 @@ auto main() -> int {
     std::cout << "Willy meets Gracie -> " << meet(*willy, *gracie) << "\n";
 
     boost::dll::shared_library lib(
-        boost::dll::program_location().parent_path() / "libindirect_shared.so",
+        boost::dll::program_location().parent_path() / LIBRARY_NAME,
         boost::dll::load_mode::rtld_now);
 
     std::cout << "\nAfter loading the shared library.\n";
@@ -57,7 +63,7 @@ auto main() -> int {
     std::cout << "Willy meets Gracie -> " << meet(*willy, *gracie) << "\n";
 
     {
-        auto make_tiger = lib.get<Animal*()>("make_tiger");
+        auto make_tiger = lib.get_alias<Animal*()>("make_tiger");
         std::unique_ptr<Animal> hobbes{make_tiger()};
         std::cout << "Gracie meets Tiger -> " << meet(*gracie, *hobbes) << "\n";
     }

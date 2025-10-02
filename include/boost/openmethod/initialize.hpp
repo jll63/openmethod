@@ -1273,7 +1273,7 @@ void registry<Policies...>::compiler<Options...>::write_global_data() {
         });
     dispatch_data_size = std::accumulate(
         classes.begin(), classes.end(), dispatch_data_size,
-        [](auto sum, const auto& cls) { return sum + cls.vtbl.size(); });
+        [](auto sum, auto& cls) { return sum + cls.vtbl.size(); });
 
     std::vector<detail::word> new_dispatch_data(dispatch_data_size);
     auto gv_first = new_dispatch_data.data();

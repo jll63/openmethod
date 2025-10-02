@@ -33,6 +33,15 @@ BOOST_OPENMETHOD_OVERRIDE(
 // end::main[]
 
 // tag::before_dlopen[]
+
+#ifndef LIBRARY_NAME
+#ifdef _MSC_VER
+#define LIBRARY_NAME "shared.dll"
+#else
+#define LIBRARY_NAME "libshared.so"
+#endif
+#endif
+
 auto main() -> int {
     using namespace boost::openmethod::aliases;
 
@@ -48,7 +57,7 @@ auto main() -> int {
     }
 
     boost::dll::shared_library lib(
-        boost::dll::program_location().parent_path() / "libshared.so",
+        boost::dll::program_location().parent_path() / LIBRARY_NAME,
         boost::dll::load_mode::rtld_now);
 
     std::cout << "\nAfter loading the shared library.\n";
@@ -62,7 +71,7 @@ auto main() -> int {
         std::cout << "Gracie meets Willy -> " << meet(*gracie, *willy) << "\n";
         std::cout << "Willy meets Gracie -> " << meet(*willy, *gracie) << "\n";
 
-        auto make_tiger = lib.get<Animal*()>("make_tiger");
+        auto make_tiger = lib.get_alias<Animal*()>("make_tiger");
         std::unique_ptr<Animal> hobbes{make_tiger()};
         std::cout << "Gracie meets Tiger -> " << meet(*gracie, *hobbes) << "\n";
     }
