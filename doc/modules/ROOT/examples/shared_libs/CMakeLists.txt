@@ -6,11 +6,18 @@
 message(STATUS "Building dynamic_shared loading examples")
 
 # ------------------------------------------------------------------------------
-# dynamic loading, direct virtual_ptrs
+# static linking
 
 add_library(shared SHARED overriders.cpp tiger.cpp)
 target_link_libraries(shared Boost::openmethod Boost::dll)
 set_target_properties(shared PROPERTIES ENABLE_EXPORTS ON)
+
+add_executable(static static_main.cpp)
+target_link_libraries(static Boost::openmethod Boost::dll shared)
+add_test(NAME static_shared COMMAND static)
+
+# ------------------------------------------------------------------------------
+# dynamic loading, direct virtual_ptrs
 
 add_executable(dynamic dynamic_main.cpp)
 set_target_properties(dynamic PROPERTIES ENABLE_EXPORTS ON)
@@ -34,10 +41,3 @@ set_target_properties(indirect PROPERTIES ENABLE_EXPORTS ON)
 target_link_libraries(indirect Boost::openmethod Boost::dll)
 add_dependencies(indirect indirect_shared)
 add_test(NAME indirect_shared COMMAND indirect)
-
-# ------------------------------------------------------------------------------
-# static linking
-
-add_executable(static static_main.cpp)
-target_link_libraries(static Boost::openmethod Boost::dll shared)
-add_test(NAME static_shared COMMAND static)

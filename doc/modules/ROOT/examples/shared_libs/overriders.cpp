@@ -3,16 +3,11 @@
 // accompanying file LICENSE_1_0.txt or copy at
 // http://www.boost.org/LICENSE_1_0.txt)
 
-// tag::dl_shared[]
-// dl_shared.cpp
-
-#include <string>
-#include <boost/openmethod.hpp>
-
+// tag::content[]
+// overriders.cpp
 #include "animals.hpp"
-#include <boost/dll/alias.hpp>
 
-using boost::openmethod::virtual_ptr;
+using namespace boost::openmethod::aliases;
 
 BOOST_OPENMETHOD_OVERRIDE(
     meet, (virtual_ptr<Herbivore>, virtual_ptr<Carnivore>), std::string) {
@@ -23,5 +18,4 @@ BOOST_OPENMETHOD_OVERRIDE(
     meet, (virtual_ptr<Carnivore>, virtual_ptr<Herbivore>), std::string) {
     return "hunt";
 }
-
-// end::dl_shared[]
+// end::content[]

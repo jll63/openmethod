@@ -48,8 +48,8 @@ auto main() -> int {
     auto gracie = make_unique_virtual<Cow>();
     auto willy = make_unique_virtual<Wolf>();
 
-    std::cout << "Gracie meets Willy -> " << meet(*gracie, *willy) << "\n";
-    std::cout << "Willy meets Gracie -> " << meet(*willy, *gracie) << "\n";
+    std::cout << "cow meets wolf -> " << meet(*gracie, *willy) << "\n";
+    std::cout << "wolf meets cow -> " << meet(*willy, *gracie) << "\n";
 
     boost::dll::shared_library lib(
         boost::dll::program_location().parent_path() / LIBRARY_NAME,
@@ -59,11 +59,11 @@ auto main() -> int {
 
     initialize();
 
-    std::cout << "Gracie meets Willy -> " << meet(*gracie, *willy) << "\n";
-    std::cout << "Willy meets Gracie -> " << meet(*willy, *gracie) << "\n";
+    std::cout << "cow meets wolf -> " << meet(*gracie, *willy) << "\n";
+    std::cout << "wolf meets cow -> " << meet(*willy, *gracie) << "\n";
 
     {
-        auto make_tiger = lib.get_alias<Animal*()>("make_tiger");
+        auto make_tiger = lib.get<Animal*()>("make_tiger");
         std::unique_ptr<Animal> hobbes{make_tiger()};
         std::cout << "Gracie meets Tiger -> " << meet(*gracie, *hobbes) << "\n";
     }
@@ -73,8 +73,8 @@ auto main() -> int {
 
     initialize();
 
-    std::cout << "Gracie meets Willy -> " << meet(*gracie, *willy) << "\n";
-    std::cout << "Willy meets Gracie -> " << meet(*willy, *gracie) << "\n";
+    std::cout << "cow meets wolf -> " << meet(*gracie, *willy) << "\n";
+    std::cout << "wolf meets cow -> " << meet(*willy, *gracie) << "\n";
 
     return 0;
 }
