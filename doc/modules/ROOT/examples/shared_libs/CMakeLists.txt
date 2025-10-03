@@ -9,7 +9,7 @@ message(STATUS "Building dynamic_shared loading examples")
 # static linking
 
 add_library(shared SHARED overriders.cpp tiger.cpp)
-target_link_libraries(shared Boost::openmethod Boost::dll)
+target_link_libraries(shared Boost::openmethod)
 set_target_properties(shared PROPERTIES ENABLE_EXPORTS ON)
 
 add_executable(static static_main.cpp)

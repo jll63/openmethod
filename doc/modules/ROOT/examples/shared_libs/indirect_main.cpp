@@ -65,7 +65,7 @@ auto main() -> int {
     {
         auto make_tiger = lib.get<Animal*()>("make_tiger");
         std::unique_ptr<Animal> hobbes{make_tiger()};
-        std::cout << "Gracie meets Tiger -> " << meet(*gracie, *hobbes) << "\n";
+        std::cout << "cow meets tiger -> " << meet(*gracie, *hobbes) << "\n";
     }
 
     std::cout << "\nAfter unloading the shared library.\n";

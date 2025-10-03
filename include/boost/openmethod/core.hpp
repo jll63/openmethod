@@ -2235,7 +2235,7 @@ class method<Id, ReturnType(Parameters...), Registry>
 
     type_id vp_type_ids[Arity];
 
-    static std::size_t slots_strides[2 * Arity - 1];
+    std::size_t slots_strides[2 * Arity - 1];
     // Slots followed by strides. No stride for first virtual argument.
     // For 1-method: the offset of the method in the method table, which
     // contains a pointer to a function.
@@ -2383,11 +2383,6 @@ void method<Id, ReturnType(Parameters...), Registry>::resolve_type_ids() {
             mp11::mp_bind_back<virtual_type, Registry>,
             VirtualParameters>>::fn(this->vp_type_ids);
 }
-
-template<
-    typename Id, typename... Parameters, typename ReturnType, class Registry>
-std::size_t method<
-    Id, ReturnType(Parameters...), Registry>::slots_strides[2 * Arity - 1];
 
 template<
     typename Id, typename... Parameters, typename ReturnType, class Registry>
