@@ -34,7 +34,7 @@
 #pragma warning(disable : 4702) // unreachable code
 #endif
 
-//! Main namespace of the OpenMethod library.
+//! Top namespace of the library.
 namespace boost::openmethod {
 
 #ifdef __MRDOCS__

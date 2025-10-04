@@ -5,9 +5,8 @@
 
 // clang-format off
 
-#include <iostream>
-
 // tag::all[]
+#include <iostream>
 
 struct Node {
     virtual ~Node() {}
@@ -47,3 +46,7 @@ int main() {
     std::cout << " = " << e.value() << "\n"; // 2 3 + 4 * = 20
 }
 // end::all[]
+
+void call_virtual_function(const Node& node, std::ostream& os) {
+    node.postfix(os);
+}

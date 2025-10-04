@@ -7,39 +7,45 @@
 
 // tag::content[]
 #include <boost/openmethod.hpp>
-#include <boost/openmethod/interop/std_unique_ptr.hpp>
-
 using namespace boost::openmethod::aliases;
 
-// NOTE: unique_virtual_ptr<Class> is an alias for
-// virtual_ptr<std::unique_ptr<Class>>
-
 struct Node {
-    virtual ~Node() {}
-    virtual int value() const = 0;
 };
 
 struct Variable : Node {
     Variable(int value) : v(value) {}
-    int value() const override { return v; }
     int v;
 };
 
 struct Plus : Node {
-    Plus(unique_virtual_ptr<const Node> left, unique_virtual_ptr<const Node> right)
-        : left(std::move(left)), right(std::move(right)) {}
-    int value() const override { return left->value() + right->value(); }
-    unique_virtual_ptr<const Node> left, right;
+    Plus(virtual_ptr<const Node> left, virtual_ptr<const Node> right)
+        : left(left), right(right) {}
+    virtual_ptr<const Node> left, right;
 };
 
 struct Times : Node {
-    Times(unique_virtual_ptr<const Node> left, unique_virtual_ptr<const Node> right)
-        : left(std::move(left)), right(std::move(right)) {}
-    int value() const override { return left->value() * right->value(); }
-    unique_virtual_ptr<const Node> left, right;
+    Times(virtual_ptr<const Node> left, virtual_ptr<const Node> right)
+        : left(left), right(right) {}
+    virtual_ptr<const Node> left, right;
 };
 
 #include <iostream>
+
+using boost::openmethod::virtual_ptr;
+
+BOOST_OPENMETHOD(value, (virtual_ptr<const Node>), int);
+
+BOOST_OPENMETHOD_OVERRIDE(value, (virtual_ptr<const Variable> node), int) {
+    return node->v;
+}
+
+BOOST_OPENMETHOD_OVERRIDE(value, (virtual_ptr<const Plus> node), int) {
+    return value(node->left) + value(node->right);
+}
+
+BOOST_OPENMETHOD_OVERRIDE(value, (virtual_ptr<const Times> node), int) {
+    return value(node->left) * value(node->right);
+}
 
 BOOST_OPENMETHOD(postfix, (virtual_ptr<const Node> node, std::ostream& os), void);
 
@@ -70,12 +76,11 @@ BOOST_OPENMETHOD_CLASSES(Node, Variable, Plus, Times);
 
 int main() {
     boost::openmethod::initialize();
-    auto a = std::make_unique<Variable>(2);
-    auto b = std::make_unique<Variable>(3);
-    auto c = std::make_unique<Variable>(4);
-    auto d = make_unique_virtual<Plus>(std::move(a), std::move(b));
-    auto e = make_unique_virtual<Times>(std::move(d), std::move(c));
-    postfix(e, std::cout);
-    std::cout << " = " << e->value() << "\n"; // 2 3 + 4 * = 20
+    Variable a{2}, b{3}, c{4};
+    Plus d{final_virtual_ptr(a), final_virtual_ptr(b)};
+    Times e{final_virtual_ptr(d), final_virtual_ptr(c)};
+    auto root = final_virtual_ptr(e);
+    postfix(root, std::cout);
+    std::cout << " = " << value(root) << "\n"; // 2 3 + 4 * = 20
 }
 // end::content[]

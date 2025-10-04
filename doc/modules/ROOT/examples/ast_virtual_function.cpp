@@ -5,9 +5,8 @@
 
 // clang-format off
 
+// tag::content[]
 #include <iostream>
-
-// tag::all[]
 
 struct Node {
     virtual ~Node() {}
@@ -35,6 +34,6 @@ struct Times : Node {
 int main() {
     Variable a{2}, b{3}, c{4};
     Plus d{a, b}; Times e{d, c};
-    std::cout << e.value() << "\n"; // prints "20"
+    std::cout << e.value() << "\n"; // 20
 }
-// end::all[]
+// end::content[]

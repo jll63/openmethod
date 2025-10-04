@@ -35,7 +35,6 @@ namespace boost::openmethod {
 //! inconsistent use of the macro can cause ODR violations. If defined, it must
 //! be in all the translation units in the program that use `default_registry`,
 //! including those pulled from libraries.
-
 struct default_registry
     : registry<
           policies::std_rtti, policies::fast_perfect_hash,
@@ -48,14 +47,20 @@ struct default_registry
           > {
 };
 
-struct indirect_registry
-    : default_registry::with<policies::indirect_vptr> {};
-
 namespace detail {
 
 static odr_check<default_registry> default_registry_odr_check_instance;
 
 }
+
+//! Indirect registry.
+//!
+//! `indirect_registry` is a predefined @ref registry that uses the same
+//! policies as @ref default_registry, plus the @ref indirect_vptr policy.
+//!
+//! @see indirect_vptr.
+struct indirect_registry
+    : default_registry::with<policies::indirect_vptr> {};
 
 } // namespace boost::openmethod
 

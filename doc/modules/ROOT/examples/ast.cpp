@@ -5,80 +5,73 @@
 
 // clang-format off
 
-// tag::ast[]
-
-#include <iostream>
-
-#include <boost/openmethod.hpp>
-#include <boost/openmethod/initialize.hpp>
-
-using boost::openmethod::virtual_ptr;
-
+// tag::content[]
 struct Node {
     virtual ~Node() {}
+    virtual int value() const = 0;
 };
 
 struct Variable : Node {
-    explicit Variable(int value) : value(value) {}
-
-    int value;
+    Variable(int value) : v(value) {}
+    int value() const override { return v; }
+    int v;
 };
 
 struct Plus : Node {
-    Plus(virtual_ptr<Node> left, virtual_ptr<Node> right)
-        : left(left), right(right) {}
-
-    virtual_ptr<Node> left, right;
+    Plus(const Node& left, const Node& right) : left(left), right(right) {}
+    int value() const override { return left.value() + right.value(); }
+    const Node& left; const Node& right;
 };
 
-struct Negate : Node {
-    explicit Negate(virtual_ptr<Node> node) : child(node) {}
-
-    virtual_ptr<Node> child;
+struct Times : Node {
+    Times(const Node& left, const Node& right) : left(left), right(right) {}
+    int value() const override { return left.value() * right.value(); }
+    const Node& left; const Node& right;
 };
 
-BOOST_OPENMETHOD(value, (virtual_ptr<Node>), int);
+#include <boost/openmethod.hpp>
+#include <boost/openmethod/initialize.hpp>
+#include <iostream>
 
-BOOST_OPENMETHOD_OVERRIDE(value, (virtual_ptr<Variable> node), int) {
-    return node->value;
+using boost::openmethod::virtual_ptr;
+
+BOOST_OPENMETHOD(postfix, (virtual_ptr<const Node> node, std::ostream& os), void);
+
+BOOST_OPENMETHOD_OVERRIDE(
+    postfix, (virtual_ptr<const Variable> var, std::ostream& os), void) {
+    os << var->v;
 }
 
-BOOST_OPENMETHOD_OVERRIDE(value, (virtual_ptr<Plus> node), int) {
-    return value(node->left) + value(node->right);
+BOOST_OPENMETHOD_OVERRIDE(
+    postfix, (virtual_ptr<const Plus> plus, std::ostream& os), void) {
+    postfix(plus->left, os);
+    os << ' ';
+    postfix(plus->right, os);
+    os << " +";
 }
 
-BOOST_OPENMETHOD_OVERRIDE(value, (virtual_ptr<Negate> node), int) {
-    return -value(node->child);
+BOOST_OPENMETHOD_OVERRIDE(
+    postfix, (virtual_ptr<const Times> times, std::ostream& os), void) {
+    postfix(times->left, os);
+    os << ' ';
+    postfix(times->right, os);
+    os << " *";
 }
 
-BOOST_OPENMETHOD_CLASSES(Node, Variable, Plus, Negate);
+BOOST_OPENMETHOD_CLASSES(Node, Variable, Plus, Times);
 
-auto main() -> int {
+int main() {
     boost::openmethod::initialize();
-
-    Variable one(1), two(2);
-    Plus sum(one, two);
-    Negate neg(sum);
-
-    std::cout << value(neg) << "\n"; // -3
-
-    return 0;
-}
-// end::ast[]
-
-auto negate(virtual_ptr<Node> node) -> int {
-    return -value(node);
+    Variable a{2}, b{3}, c{4};
+    Plus d{a, b}; Times e{d, c};
+    postfix(e, std::cout);
+    std::cout << " = " << e.value() << "\n"; // 2 3 + 4 * = 20
 }
 
-#define main alt_main
+void call_via_ref(const Node& node, std::ostream& os) {
+    postfix(node, os);
+}
 
-auto main() -> int {
-// tag::final[]
-    Variable one(1);
-    Negate neg(boost::openmethod::final_virtual_ptr(one));
-// end::final[]
-
-    std::cout << value(boost::openmethod::final_virtual_ptr(neg)) << "\n"; // -3
-
-    return 0;
+void call_via_virtual_ptr(virtual_ptr<const Node> node, std::ostream& os) {
+    postfix(node, os);
 }

@@ -1,0 +1,15 @@
+
+= BOOST_OPENMETHOD_TYPE
+
+### Synopsis
+
+Defined in <boost/openmethod/macros.hpp>.
+
+```c++
+BOOST_OPENMETHOD_TYPE(ID, (PARAMETERS...), RETURN_TYPE [, REGISTRY]);
+```
+
+### Description
+
+Expands to the core cpp:method[`method`] specialization created by
+xref:BOOST_OPENMETHOD.adoc[BOOST_OPENMETHOD] called with the same arguments.

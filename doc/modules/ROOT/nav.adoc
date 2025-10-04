@@ -1,11 +1,10 @@
-* xref:motivation.adoc[Motivation]
-* Basic Features
-** xref:hello_world.adoc[Hello World]
-** xref:smart_pointers.adoc[Smart Pointers]
-** xref:performance.adoc[Performance]
-** xref:headers_namespaces.adoc[Headers and Namespaces]
-** xref:friendship.adoc[Friendship]
-** xref:multiple_dispatch.adoc[Multiple Dispatch]
+* xref:introduction.adoc[Introduction]
+* xref:basics.adoc[Basics]
+* xref:performance.adoc[Performance]
+* xref:smart_pointers.adoc[Smart Pointers]
+* xref:headers_namespaces.adoc[Headers and Namespaces]
+* xref:friendship.adoc[Friendship]
+* xref:multiple_dispatch.adoc[Multiple Dispatch]
 * Advanced Features
 ** xref:core_api.adoc[Core API]
 ** xref:virtual_ptr_alt.adoc[Virtual Pointer Alternatives]

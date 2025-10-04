@@ -2,35 +2,45 @@
 
 = Boost.OpenMethod
 
-Boost.OpenMethod is a C++17 library that implements open-methods.
+Boost.OpenMethod implements open-(multi-)methods in C++17 and above.
 
 == Features
 
-* Headers-only.
+* Single dispatch can be as fast as equivalent virtual function calls.
 
-* Single-virtual-argument method calls are as fast as equivalent virtual
-function calls. Multi-methods are dispatched in constant time.
+* Multiple dispatch in constant time (for a given number of virtual parameters).
 
 * Redundancy-free multiple dispatch tables.
 
+* Inter-operation with standard smart pointers, extensible to other pointer-like
+  types.
+
 * Exception agnostic by default.
 
+* Macro-based interface for convenience.
+
+* Macro-free interface for inter-operation with templates.
+
 * Customization points for alternative RTTI systems, error handling, vptr
-placement, etc.
+  placement, etc.
+
+* Headers-only.
 
 == Requirements
 
-The library requires a compiler supporting C++17 or above.
+The library requires an optimizing compiler supporting C++17 or above.
 
 == Tested Compilers
 
-Boost.OpenMethod has been tested with the following compilers:
+Boost.OpenMethod is tested with the following compilers:
 
 * clang: 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20
 
 * gcc: 8, 9, 10, 11, 12, 13, 14, 15
 
 * msvc: 14.3
+
+* icpx
 
 and on the following platforms:
 
@@ -39,6 +49,8 @@ and on the following platforms:
 * macOS
 
 * Windows
+
+* s390x
 
 == Quality Assurance
 
@@ -53,42 +65,43 @@ analyses:
 
 == Acknowledgments
 
-I would like to thank the C++ Alliance for their support, in particular Joaquín
-M. López Muñoz for encouraging me to submit my library and being the first to
-endorse it; and Dmitryi Arkhipov for volunteering to be the review manager.
+I would like to thank the C++ Alliance for their support, in particular
+Joaquín M. López Muñoz for encouraging me to submit my library and being the
+first to endorse it; and Dmitryi Arkhipov for volunteering to be the review
+manager.
 
 Thanks to the members of the Boost community who posted a formal review:
 
-* Joaquin M López Muñoz,
+* Joaquin M López Muñoz
 
-* Christian Mazakas,
+* Christian Mazakas
 
-* Ruben Perez,
+* Ruben Perez
 
-* Yannick Le Goc,
+* Yannick Le Goc
 
-* Klemens Morgenstern,
+* Klemens Morgenstern
 
-* Andrzej Krzemienski.
+* Andrzej Krzemienski
 
-Also thanks to Steven Watanabe for his cogent feedback and advice, and all the
-people who posted comments and remarks.
+Also thanks to Steven Watanabe for his cogent feedback and advice, and all
+the people who posted remarks and suggestions.
 
 This work was strongly influenced by the following papers:
 
-* https://www.stroustrup.com/multimethods.pdf[Open Multi-Methods for C++], Peter
-Pirkelbauer, Yuri Solodkyi and Bjarne Stroustrup
+* https://www.stroustrup.com/multimethods.pdf[Open Multi-Methods for C++],
+Peter Pirkelbauer, Yuriy Solodkyy and Bjarne Stroustrup
 
-* https://core.ac.uk/download/pdf/18599789.pdf[Simplifying the Analysis of C++
-Programs], Yuriy Solodkyy.
+* https://core.ac.uk/download/pdf/18599789.pdf[Simplifying the Analysis of
+C++ Programs], Yuriy Solodkyy.
 
-* http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2007/n2216.pdf[Report on
-language support for Multi-Methods and Open-Methods for C++], Peter Pirkelbauer,
-Yuri Solodkyi and Bjarne Stroustrup.
+* http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2007/n2216.pdf[Report
+on language support for Multi-Methods and Open-Methods for C++], Peter
+Pirkelbauer, Yuriy Solodkyy and Bjarne Stroustrup.
 
 * https://dl.acm.org/doi/abs/10.1145/191081.191117[Optimizing multi-method
-dispatch using compressed dispatch tables], Eric Amiel, Olivier Gruber and Eric
-Simon.
+dispatch using compressed dispatch tables], Eric Amiel, Olivier Gruber and
+Eric Simon.
 
-Finally, thanks to Prof J.D. Garcia for organizing the "using std::cpp"
-conference, and introducing me to Joaquín.
+Finally, thanks to Prof. J.D. Garcia, of the Universidad Carlos III in Madrid,
+for organizing the "using std::cpp" conference, and introducing me to Joaquín.

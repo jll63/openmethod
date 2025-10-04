@@ -7,12 +7,7 @@
 
 // tag::content[]
 #include <boost/openmethod.hpp>
-#include <boost/openmethod/interop/std_unique_ptr.hpp>
-
-using namespace boost::openmethod::aliases;
-
-// NOTE: unique_virtual_ptr<Class> is an alias for
-// virtual_ptr<std::unique_ptr<Class>>
+using boost::openmethod::virtual_ptr;
 
 struct Node {
     virtual ~Node() {}
@@ -26,20 +21,22 @@ struct Variable : Node {
 };
 
 struct Plus : Node {
-    Plus(unique_virtual_ptr<const Node> left, unique_virtual_ptr<const Node> right)
-        : left(std::move(left)), right(std::move(right)) {}
+    Plus(virtual_ptr<const Node> left, virtual_ptr<const Node> right)
+        : left(left), right(right) {}
     int value() const override { return left->value() + right->value(); }
-    unique_virtual_ptr<const Node> left, right;
+    virtual_ptr<const Node> left, right;
 };
 
 struct Times : Node {
-    Times(unique_virtual_ptr<const Node> left, unique_virtual_ptr<const Node> right)
-        : left(std::move(left)), right(std::move(right)) {}
+    Times(virtual_ptr<const Node> left, virtual_ptr<const Node> right)
+        : left(left), right(right) {}
     int value() const override { return left->value() * right->value(); }
-    unique_virtual_ptr<const Node> left, right;
+    virtual_ptr<const Node> left, right;
 };
 
 #include <iostream>
+
+using boost::openmethod::virtual_ptr;
 
 BOOST_OPENMETHOD(postfix, (virtual_ptr<const Node> node, std::ostream& os), void);
 
@@ -70,12 +67,9 @@ BOOST_OPENMETHOD_CLASSES(Node, Variable, Plus, Times);
 
 int main() {
     boost::openmethod::initialize();
-    auto a = std::make_unique<Variable>(2);
-    auto b = std::make_unique<Variable>(3);
-    auto c = std::make_unique<Variable>(4);
-    auto d = make_unique_virtual<Plus>(std::move(a), std::move(b));
-    auto e = make_unique_virtual<Times>(std::move(d), std::move(c));
+    Variable a{2}, b{3}, c{4};
+    Plus d{a, b}; Times e{d, c};
     postfix(e, std::cout);
-    std::cout << " = " << e->value() << "\n"; // 2 3 + 4 * = 20
+    std::cout << " = " << e.value() << "\n"; // 2 3 + 4 * = 20
 }
 // end::content[]

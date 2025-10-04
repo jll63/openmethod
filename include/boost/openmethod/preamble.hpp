@@ -637,15 +637,10 @@ struct vptr {
 //! Policy to add an indirection to pointers to v-tables.
 //!
 //! If this policy is present, constructs like @ref virtual_ptr, @ref
-//! inplace_vptr, @ref vptr_vector, etc store pointers to pointers to v-tables.
-//! These indirect pointers remain valid after a call to @ref initialize, even
-//! though the v-tables move to different locations. This is useful in presence
-//! of dynamic loading.
-//!
-//! @par Requirements
-//!
-//! None. `indirect_vptr` can be added to a registry's policy list as-is.
-
+//! inplace_vptr, @ref vptr_vector, etc use pointers to pointers to v-tables.
+//! These indirect pointers remain valid after a call to @ref initialize, after
+//! dynamically loading a library that adds classes, methods and overriders to
+//! the registry.
 struct indirect_vptr final {
     // Policy category.
     using category = indirect_vptr;
