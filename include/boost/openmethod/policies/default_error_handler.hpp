@@ -119,7 +119,7 @@ struct default_error_handler : error_handler {
         }
 
       private:
-        static BOOST_OPENMETHOD_DECLSPEC function_type handler;
+        static function_type handler;
     };
 };
 

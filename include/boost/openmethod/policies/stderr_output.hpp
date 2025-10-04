@@ -19,7 +19,7 @@ struct stderr_output : output {
     template<class Registry>
     struct fn {
         //! A @ref LightweightOuputStream.
-        static BOOST_OPENMETHOD_DECLSPEC detail::ostderr os;
+        static detail::ostderr os;
     };
 };
 

@@ -330,7 +330,7 @@ struct use_class_aux<Registry, mp11::mp_list<Class, Bases...>>
     : std::conditional_t<
           Registry::has_deferred_static_rtti, detail::deferred_class_info,
           detail::class_info> {
-    static BOOST_OPENMETHOD_DECLSPEC type_id bases[sizeof...(Bases)];
+    static type_id bases[sizeof...(Bases)];
     use_class_aux() {
         this->first_base = bases;
         this->last_base = bases + sizeof...(Bases);
@@ -2189,7 +2189,7 @@ class method<Id, ReturnType(Parameters...), Registry>
     //!
     //! @tparam Fn A function that is an overrider of the method.
     template<auto Fn>
-    static BOOST_OPENMETHOD_DECLSPEC FunctionPointer next;
+    static FunctionPointer next;
 
     //! Add overriders to method
     //!
@@ -2305,7 +2305,7 @@ class method<Id, ReturnType(Parameters...), Registry>
         explicit override_impl(FunctionPointer* next = nullptr);
         void resolve_type_ids();
 
-        static BOOST_OPENMETHOD_DECLSPEC type_id vp_type_ids[Arity];
+        static type_id vp_type_ids[Arity];
     };
 
     template<auto Function, typename FunctionType>
@@ -2317,7 +2317,7 @@ class method<Id, ReturnType(Parameters...), Registry>
             (void)&impl;
         }
 
-        static BOOST_OPENMETHOD_DECLSPEC override_impl<Function, FnReturnType>
+        static override_impl<Function, FnReturnType>
             impl;
     };
 };

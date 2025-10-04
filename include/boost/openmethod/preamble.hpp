@@ -15,14 +15,6 @@
 #pragma warning(disable : 4702)
 #endif
 
-#ifdef BOOST_OPENMETHOD_EXPORT
-#define BOOST_OPENMETHOD_DECLSPEC __declspec(dllexport)
-#elif defined(BOOST_OPENMETHOD_IMPORT)
-#define BOOST_OPENMETHOD_DECLSPEC __declspec(dllimport)
-#else
-#define BOOST_OPENMETHOD_DECLSPEC
-#endif
-
 namespace boost::openmethod {
 
 namespace detail {
@@ -97,9 +89,9 @@ struct odr_violation : openmethod_error {
 
 template<class Registry>
 struct odr_check {
-    static BOOST_OPENMETHOD_DECLSPEC std::size_t count;
+    static std::size_t count;
     template<class R>
-    static BOOST_OPENMETHOD_DECLSPEC std::size_t inc;
+    static std::size_t inc;
 
     odr_check() {
         [[maybe_unused]] auto _ = &inc<typename Registry::registry_type>;
@@ -871,16 +863,16 @@ struct initialize_aux;
 //! @see @ref policies
 template<class... Policy>
 class registry : detail::registry_base {
-    static BOOST_OPENMETHOD_DECLSPEC detail::class_catalog classes;
-    static BOOST_OPENMETHOD_DECLSPEC detail::method_catalog methods;
+    static detail::class_catalog classes;
+    static detail::method_catalog methods;
 
     template<class...>
     friend struct detail::use_class_aux;
     template<typename Name, typename ReturnType, class Registry>
     friend class method;
 
-    static BOOST_OPENMETHOD_DECLSPEC std::vector<detail::word> dispatch_data;
-    static BOOST_OPENMETHOD_DECLSPEC bool initialized;
+    static std::vector<detail::word> dispatch_data;
+    static bool initialized;
 
     template<class... Options>
     struct compiler;
@@ -920,7 +912,7 @@ class registry : detail::registry_base {
     //!
     //! @tparam Class A registered class.
     template<class Class>
-    static BOOST_OPENMETHOD_DECLSPEC vptr_type static_vptr;
+    static vptr_type static_vptr;
 
     //! List of policies selected in a registry.
     //!

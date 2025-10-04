@@ -73,10 +73,10 @@ struct fast_perfect_hash : type_hash {
     //! @tparam Registry The registry containing this policy
     template<class Registry>
     class fn {
-        static BOOST_OPENMETHOD_DECLSPEC std::size_t mult;
-        static BOOST_OPENMETHOD_DECLSPEC std::size_t shift;
-        static BOOST_OPENMETHOD_DECLSPEC std::size_t min_value;
-        static BOOST_OPENMETHOD_DECLSPEC std::size_t max_value;
+        static std::size_t mult;
+        static std::size_t shift;
+        static std::size_t min_value;
+        static std::size_t max_value;
 
         static void check(std::size_t index, type_id type);
 
