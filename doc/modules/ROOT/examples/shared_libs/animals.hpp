@@ -6,7 +6,14 @@
 #ifndef ANIMALS_DEFINED
 #define ANIMALS_DEFINED
 
+#ifdef _WINDLL
+#define DECLSPEC __declspec(dllimport)
+#else
+#define DECLSPEC __declspec(dllexport)
+#endif
+
 // clang-format off
+
 
 // tag::content[]
 // animals.hpp
@@ -16,6 +23,23 @@
 struct Animal { virtual ~Animal() {} };
 struct Herbivore : Animal {};
 struct Carnivore : Animal {};
+
+struct BOOST_OPENMETHOD_ID(meet);
+
+namespace boost::openmethod {
+template<>
+struct declspec<
+    method<
+        BOOST_OPENMETHOD_ID(meet),
+        std::string(virtual_ptr<Animal>, virtual_ptr<Animal>),
+        void>> :
+#ifdef _WINDLL
+    declspec_import
+#else
+    declspec_export
+#endif
+    {};
+}
 
 BOOST_OPENMETHOD(
     meet, (

@@ -2096,9 +2096,10 @@ struct validate_method_parameter<
 //! @tparam Id A type
 //! @tparam Fn A function type
 //! @tparam Registry The registry in which the method is defined
+
 template<
     typename Id, typename Fn,
-    class Registry = BOOST_OPENMETHOD_DEFAULT_REGISTRY>
+    class Registry = BOOST_OPENMETHOD_DEFAULT_REGISTRY, typename = void>
 class method;
 
 //! Method with a specific id, signature and return type
@@ -2118,8 +2119,8 @@ class method;
 //! @tparam Parameters The types of the parameters
 //! @tparam Registry The registry of the method
 template<
-    typename Id, typename... Parameters, typename ReturnType, class Registry>
-class method<Id, ReturnType(Parameters...), Registry>
+    typename Id, typename... Parameters, typename ReturnType, class Registry, typename Declspec>
+class method<Id, ReturnType(Parameters...), Registry, Declspec>
     : public detail::method_base<Registry> {
     template<auto Function, typename FunctionType>
     struct override_aux;
@@ -2142,7 +2143,7 @@ class method<Id, ReturnType(Parameters...), Registry>
     //!
     //! The only instance of `method`. Its `operator()` is used to call
     //! the method.
-    static method fn;
+    static DECLSPEC method fn;
 
     //! Call the method
     //!
@@ -2322,38 +2323,48 @@ class method<Id, ReturnType(Parameters...), Registry>
     };
 };
 
-#ifndef BOOST_OPENMETHOD_IMPORT
+struct declspec_import {};
+struct declspec_export {};
+struct declspec_none {};
+
+template<class Method>
+struct declspec : declspec_none {};
+
+// template<
+//     typename Id, typename... Parameters, typename ReturnType, class Registry>
+// method<Id, ReturnType(Parameters...), Registry, void> DECLSPEC
+//     method<Id, ReturnType(Parameters...), Registry,
+//         std::enable_if_t<!std::is_base_of_v<declspec_import, declspec<
+//             method<Id, ReturnType(Parameters...), Registry, void>>>>>::fn;
 
 template<
     typename Id, typename... Parameters, typename ReturnType, class Registry>
-method<Id, ReturnType(Parameters...), Registry>
-    method<Id, ReturnType(Parameters...), Registry>::fn;
+method<Id, ReturnType(Parameters...), Registry, void> DECLSPEC
+    method<Id, ReturnType(Parameters...), Registry, void>::fn;
 
 template<
-    typename Id, typename... Parameters, typename ReturnType, class Registry>
+    typename Id, typename... Parameters, typename ReturnType, class Registry, class Declspec>
 template<auto Fn>
-typename method<Id, ReturnType(Parameters...), Registry>::FunctionPointer
-    method<Id, ReturnType(Parameters...), Registry>::next;
+typename method<Id, ReturnType(Parameters...), Registry, Declspec>::FunctionPointer
+    method<Id, ReturnType(Parameters...), Registry, Declspec>::next;
 
 template<
-    typename Id, typename... Parameters, typename ReturnType, class Registry>
+    typename Id, typename... Parameters, typename ReturnType, class Registry, class Declspec>
 template<auto Function, typename FnReturnType>
-type_id method<Id, ReturnType(Parameters...), Registry>::override_impl<
+type_id method<Id, ReturnType(Parameters...), Registry, Declspec>::override_impl<
     Function, FnReturnType>::vp_type_ids[Arity];
 
 template<
-    typename Id, typename... Parameters, typename ReturnType, class Registry>
+    typename Id, typename... Parameters, typename ReturnType, class Registry, class Declspec>
 template<auto Function, typename FnReturnType, typename... FnParameters>
-typename method<Id, ReturnType(Parameters...), Registry>::
+typename method<Id, ReturnType(Parameters...), Registry, Declspec>::
     template override_impl<Function, FnReturnType>
-        method<Id, ReturnType(Parameters...), Registry>::override_aux<
+        method<Id, ReturnType(Parameters...), Registry, Declspec>::override_aux<
             Function, FnReturnType (*)(FnParameters...)>::impl;
 
-#endif
-
 template<
-    typename Id, typename... Parameters, typename ReturnType, class Registry>
-method<Id, ReturnType(Parameters...), Registry>::method() {
+    typename Id, typename... Parameters, typename ReturnType, class Registry, class Declspec>
+method<Id, ReturnType(Parameters...), Registry, Declspec>::method() {
     using namespace policies;
 
     this->slots_strides_ptr = slots_strides;
@@ -2371,8 +2382,8 @@ method<Id, ReturnType(Parameters...), Registry>::method() {
 }
 
 template<
-    typename Id, typename... Parameters, typename ReturnType, class Registry>
-void method<Id, ReturnType(Parameters...), Registry>::resolve_type_ids() {
+    typename Id, typename... Parameters, typename ReturnType, class Registry, class Declspec>
+void method<Id, ReturnType(Parameters...), Registry, Declspec>::resolve_type_ids() {
     using namespace detail;
     this->method_type_id = rtti::template static_type<method>();
     this->return_type_id =
@@ -2385,8 +2396,8 @@ void method<Id, ReturnType(Parameters...), Registry>::resolve_type_ids() {
 }
 
 template<
-    typename Id, typename... Parameters, typename ReturnType, class Registry>
-method<Id, ReturnType(Parameters...), Registry>::~method() {
+    typename Id, typename... Parameters, typename ReturnType, class Registry, class Declspec>
+method<Id, ReturnType(Parameters...), Registry, Declspec>::~method() {
     Registry::methods.remove(*this);
 }
 
@@ -2394,9 +2405,9 @@ method<Id, ReturnType(Parameters...), Registry>::~method() {
 // method dispatch
 
 template<
-    typename Id, typename... Parameters, typename ReturnType, class Registry>
+    typename Id, typename... Parameters, typename ReturnType, class Registry, class Declspec>
 BOOST_FORCEINLINE auto
-method<Id, ReturnType(Parameters...), Registry>::operator()(
+method<Id, ReturnType(Parameters...), Registry, Declspec>::operator()(
     typename BOOST_OPENMETHOD_DETAIL_UNLESS_MRDOCS
         StripVirtualDecorator<Parameters>::type... args) const -> ReturnType {
     using namespace detail;
@@ -2407,11 +2418,11 @@ method<Id, ReturnType(Parameters...), Registry>::operator()(
 }
 
 template<
-    typename Id, typename... Parameters, typename ReturnType, class Registry>
+    typename Id, typename... Parameters, typename ReturnType, class Registry, class Declspec>
 template<typename... ArgType>
 BOOST_FORCEINLINE
-    typename method<Id, ReturnType(Parameters...), Registry>::FunctionPointer
-    method<Id, ReturnType(Parameters...), Registry>::resolve(
+    typename method<Id, ReturnType(Parameters...), Registry, Declspec>::FunctionPointer
+    method<Id, ReturnType(Parameters...), Registry, Declspec>::resolve(
         const ArgType&... args) const {
     using namespace detail;
 
@@ -2431,9 +2442,9 @@ BOOST_FORCEINLINE
 }
 
 template<
-    typename Id, typename... Parameters, typename ReturnType, class Registry>
+    typename Id, typename... Parameters, typename ReturnType, class Registry, class Declspec>
 template<typename ArgType>
-BOOST_FORCEINLINE auto method<Id, ReturnType(Parameters...), Registry>::vptr(
+BOOST_FORCEINLINE auto method<Id, ReturnType(Parameters...), Registry, Declspec>::vptr(
     const ArgType& arg) const -> vptr_type {
     if constexpr (detail::is_virtual_ptr<ArgType>) {
         return arg.vptr();
@@ -2443,10 +2454,10 @@ BOOST_FORCEINLINE auto method<Id, ReturnType(Parameters...), Registry>::vptr(
 }
 
 template<
-    typename Id, typename... Parameters, typename ReturnType, class Registry>
+    typename Id, typename... Parameters, typename ReturnType, class Registry, class Declspec>
 template<typename MethodArgList, typename ArgType, typename... MoreArgTypes>
 BOOST_FORCEINLINE auto
-method<Id, ReturnType(Parameters...), Registry>::resolve_uni(
+method<Id, ReturnType(Parameters...), Registry, Declspec>::resolve_uni(
     const ArgType& arg,
     const MoreArgTypes&... more_args) const -> detail::word {
 
@@ -2463,10 +2474,10 @@ method<Id, ReturnType(Parameters...), Registry>::resolve_uni(
 }
 
 template<
-    typename Id, typename... Parameters, typename ReturnType, class Registry>
+    typename Id, typename... Parameters, typename ReturnType, class Registry, class Declspec>
 template<typename MethodArgList, typename ArgType, typename... MoreArgTypes>
 BOOST_FORCEINLINE auto
-method<Id, ReturnType(Parameters...), Registry>::resolve_multi_first(
+method<Id, ReturnType(Parameters...), Registry, Declspec>::resolve_multi_first(
     const ArgType& arg,
     const MoreArgTypes&... more_args) const -> detail::word {
 
@@ -2491,12 +2502,12 @@ method<Id, ReturnType(Parameters...), Registry>::resolve_multi_first(
 }
 
 template<
-    typename Id, typename... Parameters, typename ReturnType, class Registry>
+    typename Id, typename... Parameters, typename ReturnType, class Registry, class Declspec>
 template<
     std::size_t VirtualArg, typename MethodArgList, typename ArgType,
     typename... MoreArgTypes>
 BOOST_FORCEINLINE auto
-method<Id, ReturnType(Parameters...), Registry>::resolve_multi_next(
+method<Id, ReturnType(Parameters...), Registry, Declspec>::resolve_multi_next(
     vptr_type dispatch, const ArgType& arg,
     const MoreArgTypes&... more_args) const -> detail::word {
 
@@ -2523,10 +2534,10 @@ method<Id, ReturnType(Parameters...), Registry>::resolve_multi_next(
 // Error handling
 
 template<
-    typename Id, typename... Parameters, typename ReturnType, class Registry>
+    typename Id, typename... Parameters, typename ReturnType, class Registry, class Declspec>
 template<auto Fn>
 inline auto
-method<Id, ReturnType(Parameters...), Registry>::has_next() -> bool {
+method<Id, ReturnType(Parameters...), Registry, Declspec>::has_next() -> bool {
     if (next<Fn> == fn_not_implemented) {
         return false;
     }
@@ -2539,9 +2550,9 @@ method<Id, ReturnType(Parameters...), Registry>::has_next() -> bool {
 }
 
 template<
-    typename Id, typename... Parameters, typename ReturnType, class Registry>
+    typename Id, typename... Parameters, typename ReturnType, class Registry, class Declspec>
 BOOST_NORETURN auto
-method<Id, ReturnType(Parameters...), Registry>::fn_not_implemented(
+method<Id, ReturnType(Parameters...), Registry, Declspec>::fn_not_implemented(
     detail::remove_virtual_<Parameters>... args) -> ReturnType {
     using namespace policies;
 
@@ -2557,9 +2568,9 @@ method<Id, ReturnType(Parameters...), Registry>::fn_not_implemented(
 }
 
 template<
-    typename Id, typename... Parameters, typename ReturnType, class Registry>
+    typename Id, typename... Parameters, typename ReturnType, class Registry, class Declspec>
 BOOST_NORETURN auto
-method<Id, ReturnType(Parameters...), Registry>::fn_ambiguous(
+method<Id, ReturnType(Parameters...), Registry, Declspec>::fn_ambiguous(
     detail::remove_virtual_<Parameters>... args) -> ReturnType {
     using namespace policies;
 
@@ -2647,11 +2658,11 @@ struct validate_overrider_parameter<
 } // namespace detail
 
 template<
-    typename Id, typename... Parameters, typename ReturnType, class Registry>
+    typename Id, typename... Parameters, typename ReturnType, class Registry, class Declspec>
 template<
     auto Overrider, typename OverriderReturn, typename... OverriderParameters>
-auto method<Id, ReturnType(Parameters...), Registry>::
-    thunk<Overrider, OverriderReturn (*)(OverriderParameters...)>::fn(
+auto method<Id, ReturnType(Parameters...), Registry, Declspec>::thunk<
+    Overrider, OverriderReturn (*)(OverriderParameters...)>::fn(
         detail::remove_virtual_<Parameters>... arg) -> ReturnType {
     using namespace detail;
     static_assert(
@@ -2665,9 +2676,9 @@ auto method<Id, ReturnType(Parameters...), Registry>::
 }
 
 template<
-    typename Id, typename... Parameters, typename ReturnType, class Registry>
+    typename Id, typename... Parameters, typename ReturnType, class Registry, class Declspec>
 template<auto Function, typename FnReturnType>
-method<Id, ReturnType(Parameters...), Registry>::override_impl<
+method<Id, ReturnType(Parameters...), Registry, Declspec>::override_impl<
     Function, FnReturnType>::override_impl(FunctionPointer* p_next) {
     using namespace detail;
 
@@ -2717,9 +2728,9 @@ method<Id, ReturnType(Parameters...), Registry>::override_impl<
 }
 
 template<
-    typename Id, typename... Parameters, typename ReturnType, class Registry>
+    typename Id, typename... Parameters, typename ReturnType, class Registry, class Declspec>
 template<auto Function, typename FnReturnType>
-void method<Id, ReturnType(Parameters...), Registry>::override_impl<
+void method<Id, ReturnType(Parameters...), Registry, Declspec>::override_impl<
     Function, FnReturnType>::resolve_type_ids() {
     using namespace detail;
 

@@ -5,16 +5,18 @@
 
 message(STATUS "Building dynamic_shared loading examples")
 
+set(CMAKE_VERBOSE_MAKEFILE ON)
+
 # ------------------------------------------------------------------------------
 # static linking
 
 add_library(shared SHARED overriders.cpp tiger.cpp)
-target_link_libraries(shared Boost::openmethod)
+target_link_libraries(shared Boost::openmethod dynamic)
 set_target_properties(shared PROPERTIES ENABLE_EXPORTS ON)
 
-add_executable(static static_main.cpp)
-target_link_libraries(static Boost::openmethod Boost::dll shared)
-add_test(NAME static_shared COMMAND static)
+# add_executable(static static_main.cpp)
+# target_link_libraries(static Boost::openmethod Boost::dll shared)
+# add_test(NAME static_shared COMMAND static)
 
 # ------------------------------------------------------------------------------
 # dynamic loading, direct virtual_ptrs
@@ -22,7 +24,7 @@ add_test(NAME static_shared COMMAND static)
 add_executable(dynamic dynamic_main.cpp)
 set_target_properties(dynamic PROPERTIES ENABLE_EXPORTS ON)
 target_link_libraries(dynamic Boost::openmethod Boost::dll)
-add_dependencies(dynamic shared)
+#add_dependencies(dynamic shared)
 add_test(NAME dynamic_shared COMMAND dynamic)
 
 # ------------------------------------------------------------------------------

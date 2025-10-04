@@ -863,12 +863,13 @@ struct initialize_aux;
 //! @see @ref policies
 template<class... Policy>
 class registry : detail::registry_base {
+  public:
     static detail::class_catalog classes;
     static detail::method_catalog methods;
 
     template<class...>
     friend struct detail::use_class_aux;
-    template<typename Name, typename ReturnType, class Registry>
+    template<typename Name, typename ReturnType, class Registry, class Declspec>
     friend class method;
 
     static std::vector<detail::word> dispatch_data;
