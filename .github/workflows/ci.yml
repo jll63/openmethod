@@ -23,7 +23,7 @@ permissions:
 on:
   pull_request:
   push:
-    branches:
+    branches: 
       - master
       - develop
       - bugfix/**
