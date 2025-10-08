@@ -18,11 +18,25 @@ struct Animal { virtual ~Animal() {} };
 struct Herbivore : Animal {};
 struct Carnivore : Animal {};
 
+struct BOOST_OPENMETHOD_ID(meet);
+
+#ifdef LIBRARY_NAME
+#define STORAGE_CLASS boost::openmethod::dll_export
+#else
+#define STORAGE_CLASS boost::openmethod::dll_import
+#endif
+// boost_openmethod_storage_class(
+//     BOOST_OPENMETHOD_TYPE(
+//         meet, (
+//             boost::openmethod::virtual_ptr<Animal>,
+//             boost::openmethod::virtual_ptr<Animal>),
+//         std::string)&);
+
 BOOST_OPENMETHOD(
     meet, (
         boost::openmethod::virtual_ptr<Animal>,
         boost::openmethod::virtual_ptr<Animal>),
-    std::string);
+    std::string, STORAGE_CLASS);
 // end::content[]
 
 #endif

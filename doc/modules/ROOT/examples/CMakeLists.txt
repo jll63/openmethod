@@ -25,6 +25,8 @@ foreach (cpp ${cpp_files})
     add_dependencies(tests ${stem})
 endforeach()
 
+add_subdirectory(shared_libs)
+
 function(add_step_by_step dir)
   set(add_test "")
   if(ARGC GREATER 1)
@@ -58,7 +60,3 @@ add_step_by_step(ambiguities OFF)
 add_step_by_step(core_api)
 add_step_by_step(custom_rtti)
 add_step_by_step(virtual_ptr_alt)
-
-if (NOT WIN32)
-  add_subdirectory(shared_libs)
-endif()

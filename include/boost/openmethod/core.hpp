@@ -1854,8 +1854,8 @@ struct virtual_traits<virtual_ptr<Class, Registry>, Registry> {
     //! @return A lvalue reference to a `virtual_ptr` to the same object, cast
     //! to `Derived::element_type`.
     template<typename Derived>
-    static auto
-    cast(const virtual_ptr<Class, Registry>& ptr) -> decltype(auto) {
+    static auto cast(const virtual_ptr<Class, Registry>& ptr)
+        -> decltype(auto) {
         return ptr.template cast<typename Derived::element_type>();
     }
 
@@ -1900,8 +1900,8 @@ struct virtual_traits<const virtual_ptr<Class, Registry>&, Registry> {
     //! @return A lvalue reference to a `virtual_ptr` to the same object, cast
     //! to `Derived::element_type`.
     template<typename Derived>
-    static auto
-    cast(const virtual_ptr<Class, Registry>& ptr) -> decltype(auto) {
+    static auto cast(const virtual_ptr<Class, Registry>& ptr)
+        -> decltype(auto) {
         return ptr.template cast<
             typename std::remove_reference_t<Derived>::element_type>();
     }
@@ -1909,8 +1909,43 @@ struct virtual_traits<const virtual_ptr<Class, Registry>&, Registry> {
 
 // =============================================================================
 // Method
+auto boost_openmethod_storage_class(...) -> storage_class_none;
 
 namespace detail {
+
+template<class Method>
+using storage_class =
+    decltype(boost_openmethod_storage_class(std::declval<Method&>()));
+
+template<class Method, typename = void>
+struct method_static_variables {
+    using storage_type = storage_class_none;
+    static Method fn;
+};
+
+template<class Method, typename Sfinae>
+Method method_static_variables<Method, Sfinae>::fn;
+
+template<class Method>
+struct method_static_variables<
+    Method,
+    std::enable_if_t<std::is_same_v<storage_class<Method>, dll_export>>> {
+    using storage_type = dll_export;
+    static __declspec(dllexport) Method fn;
+};
+
+template<class Method>
+Method method_static_variables<
+    Method,
+    std::enable_if_t<std::is_same_v<storage_class<Method>, dll_export>>>::fn;
+
+template<class Method>
+struct method_static_variables<
+    Method,
+    std::enable_if_t<std::is_same_v<storage_class<Method>, dll_import>>> {
+    using storage_type = dll_import;
+    static __declspec(dllimport) Method fn;
+};
 
 template<typename P, typename Q, class Registry>
 struct select_overrider_virtual_type_aux {
@@ -2144,9 +2179,13 @@ class method;
 template<
     typename Id, typename... Parameters, typename ReturnType, class Registry>
 class method<Id, ReturnType(Parameters...), Registry>
-    : public detail::method_base<Registry> {
+    : public detail::method_base<Registry>,
+      public detail::method_static_variables<
+          method<Id, ReturnType(Parameters...), Registry>> {
     template<auto Function, typename FunctionType>
     struct override_aux;
+
+    friend struct detail::method_static_variables<method>;
 
     // Aliases used in implementation only. Everything extracted from template
     // arguments is capitalized like the arguments themselves.
@@ -2159,14 +2198,16 @@ class method<Id, ReturnType(Parameters...), Registry>
         typename detail::virtual_types<DeclaredParameters>;
     using Signature = auto(Parameters...) -> ReturnType;
     using FunctionPointer = auto (*)(detail::remove_virtual_<Parameters>...)
-        -> ReturnType;
+                                -> ReturnType;
 
   public:
     //! Method singleton
     //!
     //! The only instance of `method`. Its `operator()` is used to call
     //! the method.
-    static method fn;
+    //static method fn;
+    // `fn` cannot be `inline static` becaused of MSVC (19.43) bug causing
+    // a "no appropriate default constructor available".
 
     //! Call the method
     //!
@@ -2269,6 +2310,9 @@ class method<Id, ReturnType(Parameters...), Registry>
     // the dispatch table, followed by the offset of the second argument and
     // the stride in the second dimension, etc.
 
+    friend storage_class_none::method_fn<
+        method<Id, ReturnType(Parameters...), Registry>>;
+
     void resolve_type_ids();
 
     template<typename ArgType>
@@ -2280,8 +2324,8 @@ class method<Id, ReturnType(Parameters...), Registry>
 
     template<typename MethodArgList, typename ArgType, typename... MoreArgTypes>
     auto resolve_multi_first(
-        const ArgType& arg,
-        const MoreArgTypes&... more_args) const -> detail::word;
+        const ArgType& arg, const MoreArgTypes&... more_args) const
+        -> detail::word;
 
     template<
         std::size_t VirtualArg, typename MethodArgList, typename ArgType,
@@ -2306,8 +2350,9 @@ class method<Id, ReturnType(Parameters...), Registry>
 
     void resolve(); // virtual if Registry contains has_deferred_static_rtti
 
-    static BOOST_NORETURN auto fn_not_implemented(
-        detail::remove_virtual_<Parameters>... args) -> ReturnType;
+    static BOOST_NORETURN auto
+    fn_not_implemented(detail::remove_virtual_<Parameters>... args)
+        -> ReturnType;
     static BOOST_NORETURN auto
     fn_ambiguous(detail::remove_virtual_<Parameters>... args) -> ReturnType;
 
@@ -2315,8 +2360,8 @@ class method<Id, ReturnType(Parameters...), Registry>
         auto Overrider, typename OverriderReturn,
         typename... OverriderParameters>
     struct thunk<Overrider, OverriderReturn (*)(OverriderParameters...)> {
-        static auto
-        fn(detail::remove_virtual_<Parameters>... arg) -> ReturnType;
+        static auto fn(detail::remove_virtual_<Parameters>... arg)
+            -> ReturnType;
         using OverriderVirtualParameters = detail::overrider_virtual_types<
             DeclaredParameters, mp11::mp_list<OverriderParameters...>,
             Registry>;
@@ -2348,14 +2393,14 @@ class method<Id, ReturnType(Parameters...), Registry>
 
 template<
     typename Id, typename... Parameters, typename ReturnType, class Registry>
-method<Id, ReturnType(Parameters...), Registry>
-    method<Id, ReturnType(Parameters...), Registry>::fn;
-
-template<
-    typename Id, typename... Parameters, typename ReturnType, class Registry>
 template<auto Fn>
 typename method<Id, ReturnType(Parameters...), Registry>::FunctionPointer
     method<Id, ReturnType(Parameters...), Registry>::next;
+
+// template<
+//     typename Id, typename... Parameters, typename ReturnType, class Registry>
+// method<Id, ReturnType(Parameters...), Registry>
+//     method<Id, ReturnType(Parameters...), Registry>::fn;
 
 template<
     typename Id, typename... Parameters, typename ReturnType, class Registry>
@@ -2453,8 +2498,9 @@ BOOST_FORCEINLINE
 template<
     typename Id, typename... Parameters, typename ReturnType, class Registry>
 template<typename ArgType>
-BOOST_FORCEINLINE auto method<Id, ReturnType(Parameters...), Registry>::vptr(
-    const ArgType& arg) const -> vptr_type {
+BOOST_FORCEINLINE auto
+method<Id, ReturnType(Parameters...), Registry>::vptr(const ArgType& arg) const
+    -> vptr_type {
     if constexpr (detail::is_virtual_ptr<ArgType>) {
         return arg.vptr();
     } else {
@@ -2467,8 +2513,8 @@ template<
 template<typename MethodArgList, typename ArgType, typename... MoreArgTypes>
 BOOST_FORCEINLINE auto
 method<Id, ReturnType(Parameters...), Registry>::resolve_uni(
-    const ArgType& arg,
-    const MoreArgTypes&... more_args) const -> detail::word {
+    const ArgType& arg, const MoreArgTypes&... more_args) const
+    -> detail::word {
 
     using namespace detail;
     using namespace policies;
@@ -2487,8 +2533,8 @@ template<
 template<typename MethodArgList, typename ArgType, typename... MoreArgTypes>
 BOOST_FORCEINLINE auto
 method<Id, ReturnType(Parameters...), Registry>::resolve_multi_first(
-    const ArgType& arg,
-    const MoreArgTypes&... more_args) const -> detail::word {
+    const ArgType& arg, const MoreArgTypes&... more_args) const
+    -> detail::word {
 
     using namespace detail;
     using namespace boost::mp11;
@@ -2545,8 +2591,8 @@ method<Id, ReturnType(Parameters...), Registry>::resolve_multi_next(
 template<
     typename Id, typename... Parameters, typename ReturnType, class Registry>
 template<auto Fn>
-inline auto
-method<Id, ReturnType(Parameters...), Registry>::has_next() -> bool {
+inline auto method<Id, ReturnType(Parameters...), Registry>::has_next()
+    -> bool {
     if (next<Fn> == fn_not_implemented) {
         return false;
     }
@@ -2732,7 +2778,7 @@ method<Id, ReturnType(Parameters...), Registry>::override_impl<
     // zero-initalized static variable
     // coverity[uninit_use:FALSE]
     if (overrider_info::method) {
-        BOOST_ASSERT(overrider_info::method == &fn);
+        BOOST_ASSERT(overrider_info::method == &method::fn);
         return;
     }
 
@@ -2744,7 +2790,7 @@ method<Id, ReturnType(Parameters...), Registry>::override_impl<
 #pragma GCC diagnostic pop
 #endif
 
-    overrider_info::method = &fn;
+    overrider_info::method = &method::fn;
 
     if constexpr (!Registry::has_deferred_static_rtti) {
         resolve_type_ids();
@@ -2759,7 +2805,7 @@ method<Id, ReturnType(Parameters...), Registry>::override_impl<
     this->vp_begin = vp_type_ids;
     this->vp_end = vp_type_ids + Arity;
 
-    fn.overriders.push_back(*this);
+    method::fn.overriders.push_back(*this);
 }
 
 template<

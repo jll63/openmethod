@@ -25,6 +25,38 @@
 
 using namespace boost::openmethod::aliases;
 
+// decltype(boost_openmethod_storage_class(
+//     std::declval<BOOST_OPENMETHOD_ID(meet)&>(),
+//     std::declval<boost::openmethod::virtual_ptr<Animal>>(),
+//     std::declval<boost::openmethod::virtual_ptr<Animal>>(),
+//     std::declval<std::string>()
+// )) x = 1;
+
+// static_assert(
+//     std::is_same_v<
+//         boost::openmethod::detail::storage_class<
+//             BOOST_OPENMETHOD_TYPE(
+//                 meet, (
+//                     boost::openmethod::virtual_ptr<Animal>,
+//                     boost::openmethod::virtual_ptr<Animal>),
+//                 std::string)>,
+//     boost::openmethod::dll_export>);
+
+// BOOST_OPENMETHOD_TYPE(
+//     meet,
+//     (boost::openmethod::virtual_ptr<Animal>,
+//     boost::openmethod::virtual_ptr<Animal>),
+//     std::string
+// )::storage_type x = 1;
+
+static_assert(std::is_same_v<
+              BOOST_OPENMETHOD_TYPE(
+                  meet,
+                  (boost::openmethod::virtual_ptr<Animal>,
+                   boost::openmethod::virtual_ptr<Animal>),
+                  std::string)::storage_type,
+              boost::openmethod::dll_export>);
+
 struct Cow : Herbivore {};
 struct Wolf : Carnivore {};
 
@@ -69,13 +101,15 @@ int main() {
               << meet(*std::make_unique<Wolf>(), *std::make_unique<Cow>())
               << "\n"; // hunt
 
+#ifndef _MSC_VER
     auto make_tiger = lib.get<Animal*()>("make_tiger");
     std::cout << "cow meets tiger -> "
               << meet(
                      *std::make_unique<Cow>(),
                      *std::unique_ptr<Animal>(make_tiger()))
               << "\n"; // hunt
-                       // end::load[]
+#endif
+    // end::load[]
 
     // tag::unload[]
     // ...
