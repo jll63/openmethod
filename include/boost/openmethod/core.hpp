@@ -1888,7 +1888,14 @@ struct virtual_traits<const virtual_ptr<Class, Registry>&, Registry> {
 // =============================================================================
 // Method
 
+auto boost_openmethod_storage_class(...) -> storage_class_none;
+
 namespace detail {
+
+template<class Method>
+using method_storage_class_base =
+    typename decltype(boost_openmethod_storage_class(
+        std::declval<Method>()))::template method_fn<Method>;
 
 template<typename P, typename Q, class Registry>
 struct select_overrider_virtual_type_aux {
@@ -2123,7 +2130,7 @@ template<
     typename Id, typename... Parameters, typename ReturnType, class Registry>
 class method<Id, ReturnType(Parameters...), Registry>
     : public detail::method_base<Registry>,
-      public storage_class_none::method_fn<
+      public detail::method_storage_class_base<
           method<Id, ReturnType(Parameters...), Registry>> {
     template<auto Function, typename FunctionType>
     struct override_aux;
@@ -2250,7 +2257,7 @@ class method<Id, ReturnType(Parameters...), Registry>
     // the dispatch table, followed by the offset of the second argument and
     // the stride in the second dimension, etc.
 
-    friend storage_class_none::method_fn<
+    friend detail::method_storage_class_base<
         method<Id, ReturnType(Parameters...), Registry>>;
 
     void resolve_type_ids();
