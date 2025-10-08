@@ -803,6 +803,35 @@ struct initialize_aux;
 
 } // namespace detail
 
+struct storage_class {};
+
+struct storage_class_none {
+    template<class Method>
+    struct method_fn {
+        static Method fn;
+    };
+};
+
+template<class Method>
+Method storage_class_none::method_fn<Method>::fn;
+
+struct dll_export : storage_class {
+    template<class Method>
+    struct method {
+        static __declspec(dllexport) Method fn;
+    };
+};
+
+template<class Method>
+Method dll_export::method<Method>::fn;
+
+struct dll_import : storage_class {
+    template<class Method>
+    struct method {
+        static __declspec(dllimport) Method fn;
+    };
+};
+
 //! Methods, classes and policies.
 //!
 //! Methods exist in the context of a registry. Any class used as a method or
