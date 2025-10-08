@@ -1888,14 +1888,7 @@ struct virtual_traits<const virtual_ptr<Class, Registry>&, Registry> {
 // =============================================================================
 // Method
 
-auto boost_openmethod_storage_class(...) -> storage_class_none;
-
 namespace detail {
-
-template<class Method>
-using method_storage_class_base =
-    typename decltype(boost_openmethod_storage_class(
-        std::declval<Method>()))::template method_fn<Method>;
 
 template<typename P, typename Q, class Registry>
 struct select_overrider_virtual_type_aux {
@@ -2130,7 +2123,7 @@ template<
     typename Id, typename... Parameters, typename ReturnType, class Registry>
 class method<Id, ReturnType(Parameters...), Registry>
     : public detail::method_base<Registry>,
-      public detail::method_storage_class_base<
+      public storage_class_none::method_fn<
           method<Id, ReturnType(Parameters...), Registry>> {
     template<auto Function, typename FunctionType>
     struct override_aux;
@@ -2257,7 +2250,7 @@ class method<Id, ReturnType(Parameters...), Registry>
     // the dispatch table, followed by the offset of the second argument and
     // the stride in the second dimension, etc.
 
-    friend detail::method_storage_class_base<
+    friend storage_class_none::method_fn<
         method<Id, ReturnType(Parameters...), Registry>>;
 
     void resolve_type_ids();
@@ -2338,13 +2331,6 @@ class method<Id, ReturnType(Parameters...), Registry>
     };
 };
 
-#ifndef BOOST_OPENMETHOD_IMPORT
-
-template<
-    typename Id, typename... Parameters, typename ReturnType, class Registry>
-method<Id, ReturnType(Parameters...), Registry>
-    method<Id, ReturnType(Parameters...), Registry>::fn;
-
 template<
     typename Id, typename... Parameters, typename ReturnType, class Registry>
 template<auto Fn>
@@ -2364,8 +2350,6 @@ typename method<Id, ReturnType(Parameters...), Registry>::
     template override_impl<Function, FnReturnType>
         method<Id, ReturnType(Parameters...), Registry>::override_aux<
             Function, FnReturnType (*)(FnParameters...)>::impl;
-
-#endif
 
 template<
     typename Id, typename... Parameters, typename ReturnType, class Registry>
@@ -2727,7 +2711,7 @@ method<Id, ReturnType(Parameters...), Registry>::override_impl<
 #endif
 
     if (overrider_info::method) {
-        BOOST_ASSERT(overrider_info::method == &fn);
+        BOOST_ASSERT(overrider_info::method == &method::fn);
         return;
     }
 
@@ -2739,7 +2723,7 @@ method<Id, ReturnType(Parameters...), Registry>::override_impl<
 #pragma GCC diagnostic pop
 #endif
 
-    overrider_info::method = &fn;
+    overrider_info::method = &method::fn;
 
     if constexpr (!Registry::has_deferred_static_rtti) {
         resolve_type_ids();
@@ -2754,7 +2738,7 @@ method<Id, ReturnType(Parameters...), Registry>::override_impl<
     this->vp_begin = vp_type_ids;
     this->vp_end = vp_type_ids + Arity;
 
-    fn.overriders.push_back(*this);
+    method::fn.overriders.push_back(*this);
 }
 
 template<
