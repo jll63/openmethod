@@ -9,15 +9,14 @@
 
 using namespace boost::openmethod::aliases;
 
-
 static_assert(
     std::is_same_v<
-        boost::openmethod::detail::method_storage_class_base<
-            BOOST_OPENMETHOD_ID(meet),
-            boost::openmethod::virtual_ptr<Animal>,
-            boost::openmethod::virtual_ptr<Animal>,
-            std::string>,
-    boost::openmethod::dll_import>);
+        BOOST_OPENMETHOD_TYPE(
+            meet,
+            (boost::openmethod::virtual_ptr<Animal>,
+            boost::openmethod::virtual_ptr<Animal>),
+            std::string
+        )::storage_type, boost::openmethod::dll_import>);
 
 BOOST_OPENMETHOD_OVERRIDE(
     meet, (virtual_ptr<Herbivore>, virtual_ptr<Carnivore>), std::string) {

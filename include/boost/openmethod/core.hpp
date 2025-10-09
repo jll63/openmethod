@@ -1891,9 +1891,36 @@ auto boost_openmethod_storage_class(...) -> storage_class_none;
 
 namespace detail {
 
-template<class Method, typename... T>
-using method_storage_class_base =
-    decltype(boost_openmethod_storage_class(std::declval<Method&>(), std::declval<T>()...));
+template<class Method>
+using storage_class =
+    decltype(boost_openmethod_storage_class(std::declval<Method&>()));
+
+template<class Method, typename = void>
+struct method_static_variables {
+    using storage_type = storage_class_none;
+    static Method fn;
+};
+
+template<class Method, typename Sfinae>
+Method method_static_variables<Method, Sfinae>::fn;
+
+template<class Method>
+struct method_static_variables<Method, std::enable_if_t<
+    std::is_same_v<storage_class<Method>, dll_export>> > {
+    using storage_type = dll_export;
+    static __declspec(dllexport) Method fn;
+};
+
+template<class Method>
+Method method_static_variables<Method, std::enable_if_t<
+    std::is_same_v<storage_class<Method>, dll_export>>>::fn;
+
+template<class Method>
+struct method_static_variables<Method, std::enable_if_t<
+    std::is_same_v<storage_class<Method>, dll_import>> > {
+    using storage_type = dll_import;
+    static __declspec(dllimport) Method fn;
+};
 
 template<typename P, typename Q, class Registry>
 struct select_overrider_virtual_type_aux {
@@ -2127,10 +2154,12 @@ class method;
 template<
     typename Id, typename... Parameters, typename ReturnType, class Registry>
 class method<Id, ReturnType(Parameters...), Registry>
-    : public detail::method_base<Registry>
-       {
+    : public detail::method_base<Registry>,
+      public detail::method_static_variables<method<Id, ReturnType(Parameters...), Registry>> {
     template<auto Function, typename FunctionType>
     struct override_aux;
+
+    friend struct detail::method_static_variables<method>;
 
     // Aliases used in implementation only. Everything extracted from template
     // arguments is capitalized like the arguments themselves.
@@ -2150,7 +2179,7 @@ class method<Id, ReturnType(Parameters...), Registry>
     //!
     //! The only instance of `method`. Its `operator()` is used to call
     //! the method.
-    static method fn;
+    //static method fn;
     // `fn` cannot be `inline static` becaused of MSVC (19.43) bug causing
     // a "no appropriate default constructor available".
 
@@ -2341,10 +2370,10 @@ template<auto Fn>
 typename method<Id, ReturnType(Parameters...), Registry>::FunctionPointer
     method<Id, ReturnType(Parameters...), Registry>::next;
 
-template<
-    typename Id, typename... Parameters, typename ReturnType, class Registry>
-method<Id, ReturnType(Parameters...), Registry>
-    method<Id, ReturnType(Parameters...), Registry>::fn;
+// template<
+//     typename Id, typename... Parameters, typename ReturnType, class Registry>
+// method<Id, ReturnType(Parameters...), Registry>
+//     method<Id, ReturnType(Parameters...), Registry>::fn;
 
 template<
     typename Id, typename... Parameters, typename ReturnType, class Registry>
