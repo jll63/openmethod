@@ -803,9 +803,9 @@ struct initialize_aux;
 
 } // namespace detail
 
-struct storage_class {};
+struct storage_class_base {};
 
-struct storage_class_none {
+struct storage_class_none : storage_class_base {
     template<class Method>
     struct method_fn {
         static Method fn;
@@ -815,7 +815,7 @@ struct storage_class_none {
 template<class Method>
 Method storage_class_none::method_fn<Method>::fn;
 
-struct dll_export : storage_class {
+struct dll_export : storage_class_base {
     template<class Method>
     struct method_fn {
     };
@@ -824,7 +824,7 @@ struct dll_export : storage_class {
 // template<class Method>
 // Method __declspec(dllexport) dll_export::method_fn<Method>::fn;
 
-struct dll_import : storage_class {
+struct dll_import : storage_class_base {
     template<class Method>
     struct method_fn {
     };

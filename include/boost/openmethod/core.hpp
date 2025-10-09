@@ -1905,19 +1905,22 @@ template<class Method, typename Sfinae>
 Method method_static_variables<Method, Sfinae>::fn;
 
 template<class Method>
-struct method_static_variables<Method, std::enable_if_t<
-    std::is_same_v<storage_class<Method>, dll_export>> > {
+struct method_static_variables<
+    Method,
+    std::enable_if_t<std::is_same_v<storage_class<Method>, dll_export>>> {
     using storage_type = dll_export;
     static __declspec(dllexport) Method fn;
 };
 
 template<class Method>
-Method method_static_variables<Method, std::enable_if_t<
-    std::is_same_v<storage_class<Method>, dll_export>>>::fn;
+Method method_static_variables<
+    Method,
+    std::enable_if_t<std::is_same_v<storage_class<Method>, dll_export>>>::fn;
 
 template<class Method>
-struct method_static_variables<Method, std::enable_if_t<
-    std::is_same_v<storage_class<Method>, dll_import>> > {
+struct method_static_variables<
+    Method,
+    std::enable_if_t<std::is_same_v<storage_class<Method>, dll_import>>> {
     using storage_type = dll_import;
     static __declspec(dllimport) Method fn;
 };
@@ -2155,7 +2158,8 @@ template<
     typename Id, typename... Parameters, typename ReturnType, class Registry>
 class method<Id, ReturnType(Parameters...), Registry>
     : public detail::method_base<Registry>,
-      public detail::method_static_variables<method<Id, ReturnType(Parameters...), Registry>> {
+      public detail::method_static_variables<
+          method<Id, ReturnType(Parameters...), Registry>> {
     template<auto Function, typename FunctionType>
     struct override_aux;
 
