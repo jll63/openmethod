@@ -8,26 +8,28 @@ message(STATUS "Building shared library examples")
 add_compile_definitions(BOOST_OPENMETHOD_ENABLE_RUNTIME_CHECKS)
 
 # ------------------------------------------------------------------------------
-# static linking
-
-add_library(shared SHARED extensions.cpp)
-target_link_libraries(shared Boost::openmethod)
-set_target_properties(shared PROPERTIES ENABLE_EXPORTS ON)
-
-add_executable(static static_main.cpp)
-target_link_libraries(static Boost::openmethod Boost::dll shared)
-add_test(NAME static_shared COMMAND static)
-
-# ------------------------------------------------------------------------------
 # dynamic loading, direct virtual_ptrs
 
 add_executable(dynamic dynamic_main.cpp)
 set_target_properties(dynamic PROPERTIES ENABLE_EXPORTS ON)
 target_link_libraries(dynamic Boost::openmethod Boost::dll)
-add_dependencies(dynamic shared)
-if (NOT WIN32)
-    add_test(NAME dynamic_shared COMMAND dynamic)
-endif()
+#add_dependencies(dynamic shared)
+add_test(NAME dynamic_shared COMMAND dynamic)
+
+add_library(shared SHARED extensions.cpp)
+target_link_libraries(shared PRIVATE Boost::openmethod dynamic)
+set_target_properties(shared PROPERTIES ENABLE_EXPORTS ON)
+
+# ------------------------------------------------------------------------------
+# static linking
+
+# add_library(shared SHARED extensions.cpp)
+# target_link_libraries(shared Boost::openmethod)
+# set_target_properties(shared PROPERTIES ENABLE_EXPORTS ON)
+
+# add_executable(static static_main.cpp)
+# target_link_libraries(static Boost::openmethod Boost::dll shared)
+# add_test(NAME static_shared COMMAND static)
 
 # ------------------------------------------------------------------------------
 # dynamic loading, indirect virtual_ptrs

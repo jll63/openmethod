@@ -1887,8 +1887,13 @@ struct virtual_traits<const virtual_ptr<Class, Registry>&, Registry> {
 
 // =============================================================================
 // Method
+auto boost_openmethod_storage_class(...) -> storage_class_none;
 
 namespace detail {
+
+template<class Method, typename... T>
+using method_storage_class_base =
+    decltype(boost_openmethod_storage_class(std::declval<Method&>(), std::declval<T>()...));
 
 template<typename P, typename Q, class Registry>
 struct select_overrider_virtual_type_aux {
@@ -2122,9 +2127,8 @@ class method;
 template<
     typename Id, typename... Parameters, typename ReturnType, class Registry>
 class method<Id, ReturnType(Parameters...), Registry>
-    : public detail::method_base<Registry>,
-      public storage_class_none::method_fn<
-          method<Id, ReturnType(Parameters...), Registry>> {
+    : public detail::method_base<Registry>
+       {
     template<auto Function, typename FunctionType>
     struct override_aux;
 
@@ -2139,14 +2143,14 @@ class method<Id, ReturnType(Parameters...), Registry>
         typename detail::virtual_types<DeclaredParameters>;
     using Signature = auto(Parameters...) -> ReturnType;
     using FunctionPointer = auto (*)(detail::remove_virtual_<Parameters>...)
-        -> ReturnType;
+                                -> ReturnType;
 
   public:
     //! Method singleton
     //!
     //! The only instance of `method`. Its `operator()` is used to call
     //! the method.
-    //static method fn;
+    static method fn;
     // `fn` cannot be `inline static` becaused of MSVC (19.43) bug causing
     // a "no appropriate default constructor available".
 
@@ -2336,6 +2340,11 @@ template<
 template<auto Fn>
 typename method<Id, ReturnType(Parameters...), Registry>::FunctionPointer
     method<Id, ReturnType(Parameters...), Registry>::next;
+
+template<
+    typename Id, typename... Parameters, typename ReturnType, class Registry>
+method<Id, ReturnType(Parameters...), Registry>
+    method<Id, ReturnType(Parameters...), Registry>::fn;
 
 template<
     typename Id, typename... Parameters, typename ReturnType, class Registry>

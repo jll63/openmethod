@@ -817,18 +817,16 @@ Method storage_class_none::method_fn<Method>::fn;
 
 struct dll_export : storage_class {
     template<class Method>
-    struct method {
-        static __declspec(dllexport) Method fn;
+    struct method_fn {
     };
 };
 
-template<class Method>
-Method dll_export::method<Method>::fn;
+// template<class Method>
+// Method __declspec(dllexport) dll_export::method_fn<Method>::fn;
 
 struct dll_import : storage_class {
     template<class Method>
-    struct method {
-        static __declspec(dllimport) Method fn;
+    struct method_fn {
     };
 };
 

@@ -26,9 +26,7 @@ foreach (cpp ${cpp_files})
     add_dependencies(tests ${stem})
 endforeach()
 
-if (NOT WIN32)
-  add_subdirectory(shared_libs)
-endif()
+add_subdirectory(shared_libs)
 
 function(add_step_by_step dir)
   set(add_test "")
