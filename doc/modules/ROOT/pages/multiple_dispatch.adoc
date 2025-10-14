@@ -1,20 +1,30 @@
+:example: ../examples/rolex
 
 ## Multiple Dispatch
 
-A method can have more than one `virtual_ptr` parameter. For example:
+A method can have more than one virtual parameter. This is often called
+"multi-methods" or "multiple dispatch". All the virtual parameters participate
+equally in overrider selection, following the same rules as those governing
+overload resolution - except that the selection happens at runtime, and takes
+into account the argument's dynamic types.
+
+Multiple dispatch is occasionally useful, and, when it is needed, it can be
+difficult to implement correctly and efficiently by hand. For example, given the following classes:
 
 [source,c++]
 ----
-include::example$hello_world.cpp[tag=multi]
+include::{example}/7/main.cpp[tag=classes]
 ----
+
+We want to implement an `approve` method that determines who can make what kind
+of expenses. Employees can take any public transportation; managers can also
+take a taxi, for a ride cost up to $100.00; and founders can take any
+transportation, including a private jet. This can be expressed like so:
 
 [source,c++]
 ----
-include::example$hello_world.cpp[tag=multi_call,indent=0]
+include::{example}/7/main.cpp[tag=approve]
 ----
 
-The appropriate overrider is selected using a process similar to overload
-resolution, with fallback options. If one overrider is more specialized than all
-the others, call it. Otherwise, the return type is used as a tie-breaker, _if_
-it is covariant with the return type of the base method. If there is still no
-unique best overrider, one of the best overriders is chosen arbitrarily.
+Note that `approve` takes advantage of inheritance to avoid listing all possible
+cases explicitly. This is important, because the number of cases grows

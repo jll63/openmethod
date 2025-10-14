@@ -43,7 +43,7 @@ BOOST_OPENMETHOD(poke, (std::ostream&, virtual_ptr<Animal>), void);
 namespace pets {
 struct Cat;
 struct Dog;
-template<typename> struct BOOST_OPENMETHOD_OVERRIDERS(poke);
+template<typename...> struct BOOST_OPENMETHOD_OVERRIDERS(poke);
 } // namespace pets
 
 namespace core {

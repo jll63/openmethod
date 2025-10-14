@@ -29,6 +29,12 @@ struct Times : Node {
     const Node& left; const Node& right;
 };
 
+// ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+// library code
+// =============================================================================
+// application code
+// vvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvvv
+
 #include <boost/openmethod.hpp>
 #include <boost/openmethod/initialize.hpp>
 #include <iostream>
@@ -67,6 +73,7 @@ int main() {
     postfix(e, std::cout);
     std::cout << " = " << e.value() << "\n"; // 2 3 + 4 * = 20
 }
+// end::content[]
 
 void call_via_ref(const Node& node, std::ostream& os) {
     postfix(node, os);

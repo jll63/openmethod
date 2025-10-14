@@ -22,14 +22,34 @@ counterparts - e.g. from `virtual_ptr<std::unique_ptr<const Node>>` to
 `virtual_ptr<const Node>`. Methods and overriders typically use plain
 `virtual_ptr`{empty}'s, although it is not always the case. For example,
 consider a `transpose` method for matrices. If the matrix is symmetric, the
-overrider should return its argument. This can be implemented by passing a `virtual_ptr<std::shared_ptr<const Matrix>>` to the method.
+overrider should return its argument. This can be implemented by passing a
+`virtual_ptr<std::shared_ptr<const Matrix>>` to the method.
 
-The reverse conversion, from plain to smart, does not exist, because it would be
+The reverse conversion, from plain to smart, does not exist, because it is
 unsafe.
 
 A smart `virtual_ptr` can be constructed from a corresponding smart pointer, but
 not directly from a plain reference or pointer, because it has the potential to
 accidentally create smart pointers.
+
+The library provides aliases for standard smart pointers:
+
+- `unique_virtual_ptr<Class>` is an alias for `virtual_ptr<std::unique_ptr<Class>>`
+
+- `shared_virtual_ptr<Class>` is an alias for `virtual_ptr<std::shared_ptr<Class>>`
+
+The standard library provides `std::make_unique` and `std::make_shared` to
+create smart pointers. They are convenient, robust, and, in the case of
+`std::shared_ptr`, more efficient. OpenMethod provides counterparts:
+
+- `make_unique_virtual_ptr<Class>(...)`
+
+- `make_shared_virtual_ptr<Class>(...)`
+
+Since these functions create the object, they know its exact type with
+certainty. Thus they don't need to perform a hash table lookup to find the
+appropriate v-table; they simply read it from a static variable. As a
+consequence, they don't even require `Class` to be polymorphic.
 
 Here is a variation of the AST example that uses dynamic allocation and unique
 pointers:

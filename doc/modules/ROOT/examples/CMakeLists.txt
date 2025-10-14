@@ -26,8 +26,17 @@ foreach (cpp ${cpp_files})
     add_dependencies(tests ${stem})
 endforeach()
 
-add_subdirectory(headers_namespaces)
-
 if (NOT WIN32)
   add_subdirectory(shared_libs)
 endif()
+
+file(GLOB subdirs "rolex/*")
+
+foreach (subdir ${subdirs})
+  string(REGEX REPLACE ".*/" "" subex ${subdir})
+  file(GLOB cpp_files "${subdir}/*.cpp")
+  add_executable("rolex_${subex}" ${cpp_files})
+  target_link_libraries("rolex_${subex}" PUBLIC Boost::openmethod)
+  add_test(NAME "rolex_${subex}" COMMAND "rolex_${subex}")
+  add_dependencies(tests "rolex_${subex}")
+endforeach()

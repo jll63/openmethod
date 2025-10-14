@@ -64,7 +64,7 @@ Otherwise, there are serious problems with this approach.
 * Programs that use the Node classes get the overriders of
   `postfix`, even those that don't call `postfix` anywhere.
 
-* They also pull in `postfix`'s transitive dependencies, in this case
+* They also pull in `postfix`{empty}'s transitive dependencies, in this case
   `std::ostream`, locales, facets, exceptions, etc. Note that now we need to
   include `<iostream>` _before_ defining the classes.
 

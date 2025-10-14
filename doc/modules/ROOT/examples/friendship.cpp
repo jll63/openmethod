@@ -39,7 +39,7 @@ class Animal {
 class Cat;
 class Dog;
 
-template<typename> struct BOOST_OPENMETHOD_OVERRIDERS(poke);
+template<typename...> struct BOOST_OPENMETHOD_OVERRIDERS(poke);
 
 class Animal {
     // ...

@@ -11,9 +11,6 @@
 
 using namespace boost::openmethod::aliases;
 
-// NOTE: unique_virtual_ptr<Class> is an alias for
-// virtual_ptr<std::unique_ptr<Class>>
-
 struct Node {
     virtual ~Node() {}
     virtual int value() const = 0;
@@ -70,11 +67,13 @@ BOOST_OPENMETHOD_CLASSES(Node, Variable, Plus, Times);
 
 int main() {
     boost::openmethod::initialize();
+
     auto a = std::make_unique<Variable>(2);
     auto b = std::make_unique<Variable>(3);
     auto c = std::make_unique<Variable>(4);
     auto d = make_unique_virtual<Plus>(std::move(a), std::move(b));
     auto e = make_unique_virtual<Times>(std::move(d), std::move(c));
+
     postfix(e, std::cout);
     std::cout << " = " << e->value() << "\n"; // 2 3 + 4 * = 20
 }

@@ -2,7 +2,8 @@
 * xref:basics.adoc[Basics]
 * xref:performance.adoc[Performance]
 * xref:smart_pointers.adoc[Smart Pointers]
-* xref:headers_namespaces.adoc[Headers and Namespaces]
+* xref:headers.adoc[Headers]
+* xref:namespaces.adoc[Namespaces]
 * xref:friendship.adoc[Friendship]
 * xref:multiple_dispatch.adoc[Multiple Dispatch]
 * Advanced Features
@@ -13,6 +14,6 @@
 ** xref:custom_rtti.adoc[Custom RTTI]
 ** xref:shared_libraries.adoc[Shared Libraries]
 * Reference
-** xref:headers.adoc[Headers]
-** xref:macros.adoc[Macros]
+** xref:ref_headers.adoc[Headers]
+** xref:ref_macros.adoc[Macros]
 ** xref:reference:boost/openmethod.adoc[Namespace boost::openmethod]

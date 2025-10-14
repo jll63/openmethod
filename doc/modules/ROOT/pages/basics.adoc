@@ -3,8 +3,8 @@
 ## Basics
 
 An _open-method_ is a free-standing function that takes one or more _virtual_
-_parameters_. When it is called, it forwards to an _overrider_ selected by
-examining the dynamic type of the virtual parameters.
+_parameters_. When it is called, it forwards to an _overrider_ selected from a
+set by examining the dynamic type of the virtual parameters.
 
 If this sounds like a virtual function, that's because because an open-method
 with one virtual parameter is equivalent to a virtual function - with a big
@@ -69,8 +69,8 @@ constructors from plain references or pointers to an object, or from other
 
 There are two more things we need to do.
 
-OpenMethod is a library, not a compiler. It needs to be aware of all the classes
-that may be used as virtual parameters, and in method calls, and their
+OpenMethod is a library, not a compiler. It needs to be made aware of all the
+classes that may be used as virtual parameters, and in method calls, and their
 inheritance relationships. We do this using the
 xref:BOOST_OPENMETHOD_CLASSES.adoc[BOOST_OPENMETHOD_CLASSES] macro:
 
@@ -83,9 +83,9 @@ direct base of a class must appear together with it in at least one call to
 `BOOST_OPENMETHOD_CLASSES`. This enables the library to deduce the complete
 inheritance lattice.
 
-The constructs used in this example require the classes need to be polymorphic,
-in the standard C++ sense, i.e. have at least one virtual function. The library
-can also be used with non-polymorphic classes, with some restrictions.
+The constructs used in this example require the classes to be polymorphic, in
+the standard C++ sense, i.e. have at least one virtual function. The library can
+also be used with non-polymorphic classes, with some restrictions.
 
 Finally, we need to call `boost::openmethod::initialize()` before the first call
 to an open-method. This builds the dispatch tables used during method calls. It

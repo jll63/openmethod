@@ -1813,7 +1813,8 @@ auto operator!=(
 template<class Class, class Registry>
 struct virtual_traits<virtual_ptr<Class, Registry>, Registry> {
     //! `Class`, stripped from cv-qualifiers.
-    using virtual_type = typename virtual_ptr<Class, Registry>::element_type;
+    using virtual_type =
+        std::remove_cv_t<typename virtual_ptr<Class, Registry>::element_type>;
 
     //! Return a reference to a non-modifiable `Class` object.
     //! @param arg A reference to a non-modifiable `Class` object.
@@ -1858,7 +1859,8 @@ struct virtual_traits<virtual_ptr<Class, Registry>, Registry> {
 template<class Class, class Registry>
 struct virtual_traits<const virtual_ptr<Class, Registry>&, Registry> {
     //! `Class`, stripped from cv-qualifiers.
-    using virtual_type = typename virtual_ptr<Class, Registry>::element_type;
+    using virtual_type =
+        std::remove_cv_t<typename virtual_ptr<Class, Registry>::element_type>;
 
     //! Return a reference to a non-modifiable `Class` object.
     //! @param arg A reference to a non-modifiable `Class` object.
@@ -2317,8 +2319,7 @@ class method<Id, ReturnType(Parameters...), Registry>
             (void)&impl;
         }
 
-        static override_impl<Function, FnReturnType>
-            impl;
+        static override_impl<Function, FnReturnType> impl;
     };
 };
 
@@ -2628,21 +2629,45 @@ template<class T, class R>
 struct validate_overrider_parameter<virtual_ptr<T, R>, virtual_ptr<T, R>, void>
     : std::true_type {};
 
-template<class T1, class R1, class T2, class R2>
+template<class T1, class R, class T2, class R2>
 struct validate_overrider_parameter<
-    virtual_ptr<T1, R1>, virtual_ptr<T2, R2>, void> : std::is_same<R1, R2> {
-    static_assert(validate_overrider_parameter::value, "registry mismatch");
+    virtual_ptr<T1, R>, virtual_ptr<T2, R2>, void> : std::true_type {
+    static_assert(std::is_same_v<R, R2>, "registry mismatch");
+    using C1 = virtual_type<virtual_ptr<T1, R>, R>;
+    using C2 = virtual_type<virtual_ptr<T2, R>, R>;
+    static_assert(
+        std::is_base_of_v<C1, C2> &&
+            std::is_convertible_v<virtual_ptr<T2, R>, virtual_ptr<T1, R>>,
+        "method parameter must be an unambiguous accessible base "
+        "of corresponding overrider parameter");
 };
 
-template<class T1, class R1, class T2, class R2>
+template<class T1, class R, class T2, class R2>
 struct validate_overrider_parameter<
-    const virtual_ptr<T1, R1>&, const virtual_ptr<T2, R2>&, void>
-    : validate_overrider_parameter<virtual_ptr<T1, R1>, virtual_ptr<T2, R2>> {};
+    const virtual_ptr<T1, R>&, const virtual_ptr<T2, R2>&, void>
+    : std::true_type {
+    static_assert(std::is_same_v<R, R2>, "registry mismatch");
+    using C1 = virtual_type<const virtual_ptr<T1, R>&, R>;
+    using C2 = virtual_type<const virtual_ptr<T2, R>&, R>;
+    static_assert(
+        std::is_base_of_v<C1, C2> &&
+            std::is_convertible_v<virtual_ptr<T2, R>, virtual_ptr<T1, R>>,
+        "method parameter must be an unambiguous accessible base "
+        "of corresponding overrider parameter");
+};
 
-template<class T1, class R1, class T2, class R2>
+template<class T1, class R, class T2, class R2>
 struct validate_overrider_parameter<
-    virtual_ptr<T1, R1>&&, virtual_ptr<T2, R2>&&, void>
-    : validate_overrider_parameter<virtual_ptr<T1, R1>, virtual_ptr<T2, R2>> {};
+    virtual_ptr<T1, R>&&, virtual_ptr<T2, R2>&&, void> : std::true_type {
+    static_assert(std::is_same_v<R, R2>, "registry mismatch");
+    using C1 = virtual_type<virtual_ptr<T1, R>&&, R>;
+    using C2 = virtual_type<virtual_ptr<T2, R>&&, R>;
+    static_assert(
+        std::is_base_of_v<C1, C2> &&
+            std::is_convertible_v<virtual_ptr<T2, R>, virtual_ptr<T1, R>>,
+        "method parameter must be an unambiguous accessible base "
+        "of corresponding overrider parameter");
+};
 
 } // namespace detail
 
