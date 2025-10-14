@@ -95,3 +95,7 @@ openmethod_compile_fail_test(
     compile_fail_virtual_ptr_shared_not_const "std::shared_ptr cannot be passed by non-const lvalue reference")
 openmethod_compile_fail_test(
     compile_fail_virtual_ptr_value_to_ref "different virtual_ptr<> reference categories")
+openmethod_compile_fail_test(
+    compile_fail_virtual_parameter_private_base_macros "error")
+openmethod_compile_fail_test(
+    compile_fail_virtual_parameter_private_base_core "must be an unambiguous accessible base")
