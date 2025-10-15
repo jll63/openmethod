@@ -27,11 +27,12 @@ struct Public : Expense {};
 struct Bus : Public {};
 struct Metro : Public {};
 struct Taxi : Expense {};
-struct Jet : Expense {};
+struct PrivateJet : Expense {};
 // end::classes[]
 
 BOOST_OPENMETHOD_CLASSES(
-    Role, Employee, Manager, Founder, Expense, Public, Bus, Metro, Taxi, Jet);
+    Role, Employee, Manager, Founder, Expense, Public, Bus, Metro, Taxi,
+    PrivateJet);
 
 // tag::approve[]
 using boost::openmethod::virtual_ptr;
@@ -75,7 +76,7 @@ int main() {
 
     Bus bus;
     Taxi taxi;
-    Jet jet;
+    PrivateJet jet;
 
     std::cout << std::boolalpha;
     std::cout << approve(bill, bus, 4.0) << "\n";        // true

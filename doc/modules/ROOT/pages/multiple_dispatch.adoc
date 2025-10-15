@@ -1,4 +1,4 @@
-:example: ../examples/rolex
+:example: ../examples
 
 ## Multiple Dispatch
 
@@ -8,23 +8,60 @@ equally in overrider selection, following the same rules as those governing
 overload resolution - except that the selection happens at runtime, and takes
 into account the argument's dynamic types.
 
-Multiple dispatch is occasionally useful, and, when it is needed, it can be
-difficult to implement correctly and efficiently by hand. For example, given the following classes:
+Multiple dispatch is occasionally useful. When it is needed, it can be difficult
+to implement correctly and efficiently by hand. For example, given the following
+classes:
 
 [source,c++]
 ----
-include::{example}/7/main.cpp[tag=classes]
+include::{example}/rolex/7/main.cpp[tag=classes]
 ----
 
-We want to implement an `approve` method that determines who can make what kind
-of expenses. Employees can take any public transportation; managers can also
-take a taxi, for a ride cost up to $100.00; and founders can take any
-transportation, including a private jet. This can be expressed like so:
+We want to implement a function - `approve` - that determines who can make what
+kind of expenses. The rules are:
+
+- By default, an expense is rejected.
+
+- Employees can take any public transportation.
+
+- Managers can also take a taxi, for a ride cost up to $100.
+
+- Founders can take any transportation, including a private jet.
+
+This is a case of multiple dispatch: the outcome depends on two parameters. It
+can be implemented as a method with two virtual arguments. The four rules can be
+expressed as four overriders:
 
 [source,c++]
 ----
-include::{example}/7/main.cpp[tag=approve]
+include::{example}/rolex/7/main.cpp[tag=approve]
 ----
 
-Note that `approve` takes advantage of inheritance to avoid listing all possible
-cases explicitly. This is important, because the number of cases grows
+### Ambiguities
+
+Because `approve` understands inheritance, we don't have to specify an overrider
+for every combination (5 role classes x 6 expense classes = 30 combinations).
+
+Just like with overload resolution, ambiguities can arise. Let's look at another
+example - matrix addition:
+
+[source,c++]
+----
+include::{example}/ambiguities/1/main.cpp[tag=content]
+----
+
+The programs terminates with the following error message:
+
+```
+ambiguous
+Aborted (core dumped)
+```
+
+This is because the call to `add(a, b)` is ambiguous: both overriders are equally
+good matches. The solution is to add an overrider for the case where both
+arguments are `SparseMatrix`:
+
+[source,c++]
+----
+include::{example}/ambiguities/2/main.cpp[tag=content]
+----

@@ -32,10 +32,10 @@ struct Public : Expense {};
 struct Bus : Public {};
 struct Metro : Public {};
 struct Taxi : Expense {};
-struct Jet : Expense {};
+struct PrivateJet : Expense {};
 
 BOOST_OPENMETHOD_CLASSES(
-    Role, Employee, Manager, Founder, Expense, Public, Bus, Metro, Taxi, Jet);
+    Role, Employee, Manager, Founder, Expense, Public, Bus, Metro, Taxi, PrivateJet);
 
 BOOST_OPENMETHOD(pay, (virtual_ptr<Employee>), double);
 BOOST_OPENMETHOD(
