@@ -89,7 +89,7 @@ BOOST_AUTO_TEST_CASE(no_initialization) {
         try {
             registry::require_initialized();
         } catch (not_initialized&) {
-            BOOST_TEST_FAIL("should have not thrown in release variant");
+            BOOST_TEST_FAIL("should not have thrown in release variant");
         }
     }
 }
@@ -155,14 +155,22 @@ using registry = errors_<__COUNTER__>;
 BOOST_OPENMETHOD_CLASSES(matrix, dense_matrix, diagonal_matrix, registry);
 
 BOOST_OPENMETHOD(
-    times, (virtual_<const matrix&>, virtual_<const matrix&>), void, registry);
+    times,
+    (virtual_ptr<const matrix, registry>, virtual_ptr<const matrix, registry>),
+    void, registry);
 
 BOOST_OPENMETHOD_OVERRIDE(
-    times, (const matrix&, const diagonal_matrix&), void) {
+    times,
+    (virtual_ptr<const matrix, registry>,
+     virtual_ptr<const diagonal_matrix, registry>),
+    void) {
 }
 
 BOOST_OPENMETHOD_OVERRIDE(
-    times, (const diagonal_matrix&, const matrix&), void) {
+    times,
+    (virtual_ptr<const diagonal_matrix, registry>,
+     virtual_ptr<const matrix, registry>),
+    void) {
 }
 
 BOOST_AUTO_TEST_CASE(bad_call) {
@@ -172,15 +180,33 @@ BOOST_AUTO_TEST_CASE(bad_call) {
 
     {
         registry::capture capture;
-        BOOST_CHECK_THROW(times(matrix(), matrix()), no_overrider);
+        matrix a, b;
+        BOOST_CHECK_THROW(times(a, b), no_overrider);
         BOOST_TEST(capture().find("not implemented") != std::string::npos);
     }
 
     {
         registry::capture capture;
-        BOOST_CHECK_THROW(
-            times(diagonal_matrix(), diagonal_matrix()), ambiguous_call);
+        diagonal_matrix a, b;
+        BOOST_CHECK_THROW(times(a, b), ambiguous_call);
         BOOST_TEST(capture().find("ambiguous") != std::string::npos);
+    }
+}
+
+BOOST_AUTO_TEST_CASE(bad_call_type_ids) {
+    auto report = initialize<registry>().report;
+    registry::capture capture;
+
+    try {
+        diagonal_matrix a, b;
+        times(a, b);
+        BOOST_FAIL("should have thrown");
+    } catch (const ambiguous_call& error) {
+        BOOST_TEST(error.arity == 2u);
+        BOOST_TEST(error.types[0] == &typeid(diagonal_matrix));
+        BOOST_TEST(error.types[1] == &typeid(diagonal_matrix));
+    } catch (...) {
+        BOOST_FAIL("wrong exception");
     }
 }
 
