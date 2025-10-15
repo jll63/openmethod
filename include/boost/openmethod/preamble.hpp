@@ -80,7 +80,7 @@ struct odr_violation : openmethod_error {
     //! @tparam Registry The registry containing this policy.
     //! @param stream The stream to write to.
     template<class Registry, class Stream>
-    auto write(Stream& stream) const -> void {
+    auto write(Stream& stream) const {
         stream << "conflicting definitions of ";
         Registry::rtti::type_name(
             Registry::rtti::template static_type<Registry>(), stream);
@@ -114,7 +114,7 @@ struct not_initialized : openmethod_error {
     //! @tparam Registry The registry
     //! @tparam Stream A @ref LightweightOutputStream
     template<class Registry, class Stream>
-    auto write(Stream& os) const -> void {
+    auto write(Stream& os) const {
         os << "not initialized";
     }
 };
@@ -171,7 +171,7 @@ struct missing_class : openmethod_error {
     //! @tparam Registry The registry
     //! @tparam Stream A @ref LightweightOutputStream
     template<class Registry, class Stream>
-    auto write(Stream& os) const -> void;
+    auto write(Stream& os) const;
 };
 
 //! Missing base.
@@ -212,7 +212,7 @@ struct missing_base : openmethod_error {
     //! @tparam Registry The registry
     //! @tparam Stream A @ref LightweightOutputStream
     template<class Registry, class Stream>
-    auto write(Stream& os) const -> void;
+    auto write(Stream& os) const;
 };
 
 //! No valid overrider
@@ -225,10 +225,6 @@ struct bad_call : openmethod_error {
     static constexpr std::size_t max_types = 16;
     //! The type_ids of the arguments.
     type_id types[max_types];
-
-  protected:
-    template<class Registry, class Stream>
-    auto write_aux(Stream& os, const char* subtype) const -> void;
 };
 
 //! No overrider for virtual tuple
@@ -240,8 +236,8 @@ struct no_overrider : bad_call {
     //! @tparam Registry The registry
     //! @tparam Stream A @ref LightweightOutputStream
     template<class Registry, class Stream>
-    auto write(Stream& os) const -> void {
-        write_aux<Registry>(os, "not implemented");
+    auto write(Stream& os) const {
+        os << "not implemented";
     }
 };
 
@@ -254,8 +250,8 @@ struct ambiguous_call : bad_call {
     //! @tparam Registry The registry
     //! @tparam Stream A @ref LightweightOutputStream
     template<class Registry, class Stream>
-    auto write(Stream& os) const -> void {
-        write_aux<Registry>(os, "ambiguous");
+    auto write(Stream& os) const {
+        os << "ambiguous";
     }
 };
 
@@ -275,7 +271,7 @@ struct final_error : openmethod_error {
     //! @tparam Registry The registry
     //! @tparam Stream A @ref LightweightOutputStream
     template<class Registry, class Stream>
-    auto write(Stream& os) const -> void;
+    auto write(Stream& os) const;
 };
 
 namespace detail {
@@ -485,7 +481,7 @@ struct RttiFn {
     //! @param type The `type_id` to write.
     //! @param stream The stream to write to.
     template<typename Stream>
-    static auto type_name(type_id type, Stream& stream) -> void;
+    static auto type_name(type_id type, Stream& stream);
 
     //! Returns a key that uniquely identifies a class.
     //!
@@ -1020,32 +1016,13 @@ void registry<Policies...>::require_initialized() {
 }
 
 template<class Registry, class Stream>
-auto bad_call::write_aux(Stream& os, const char* subtype) const -> void {
-    using namespace detail;
-    using namespace policies;
-
-    os << "invalid call to ";
-    Registry::template policy<rtti>::type_name(method, os);
-    os << "(";
-    auto comma = "";
-
-    for (auto ti : range{types, types + arity}) {
-        os << comma;
-        Registry::template policy<rtti>::type_name(ti, os);
-        comma = ", ";
-    }
-
-    os << "): " << subtype;
-}
-
-template<class Registry, class Stream>
-auto missing_class::write(Stream& os) const -> void {
+auto missing_class::write(Stream& os) const {
     os << "unknown class ";
     Registry::rtti::type_name(type, os);
 }
 
 template<class Registry, class Stream>
-auto missing_base::write(Stream& os) const -> void {
+auto missing_base::write(Stream& os) const {
     os << "missing base ";
     Registry::rtti::type_name(base, os);
     os << " -<| ";
@@ -1053,7 +1030,7 @@ auto missing_base::write(Stream& os) const -> void {
 }
 
 template<class Registry, class Stream>
-auto final_error::write(Stream& os) const -> void {
+auto final_error::write(Stream& os) const {
     os << "invalid call to final construct: static type = ";
     Registry::rtti::type_name(static_type, os);
     os << ", dynamic type = ";

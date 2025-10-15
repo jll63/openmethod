@@ -1939,9 +1939,9 @@ struct init_bad_call {
         type_id arg_type_id;
 
         if constexpr (is_virtual_ptr<Arg>) {
-            arg_type_id = Rtti::template dynamic_type(*arg);
+            arg_type_id = Rtti::dynamic_type(*arg);
         } else {
-            arg_type_id = Rtti::template dynamic_type(arg);
+            arg_type_id = Rtti::dynamic_type(arg);
         }
 
         error.types[Index] = arg_type_id;
