@@ -28,9 +28,9 @@ overriders to an existing registry. `initialize` must be called to rebuild the
 dispatch tables after loading or unloading a shared library.
 
 Dynamic linking on Linux and POSIX-like platforms fulfills the unicity
-requirement with very little effort from the programmer. On Linux, it is just a
-matter of tossing `-rdynamic` in the linker options, or adding `ENABLE_EXPORTS
-ON` to the library's target properties if using `cmake`.
+requirement with little effort from the programmer. On Linux, it is just a
+matter of tossing in `-rdynamic`, or adding `ENABLE_EXPORTS ON` to the library's
+target properties if using `cmake`.
 
 If a library only uses its own registries, for example, if using open-methods as
 an implementation detail, it has its own global data, and there is no need to
@@ -79,7 +79,7 @@ include::{shared}/dynamic_main.cpp[tag=unload]
 
 ### Windows
 
-If we try this example on Windows, the result is disappointing:
+If we try the aboveexample on Windows, the result is disappointing:
 
 ```
 Before loading the shared library.

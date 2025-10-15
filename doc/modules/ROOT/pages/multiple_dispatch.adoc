@@ -37,10 +37,10 @@ expressed as four overriders:
 include::{example}/rolex/7/main.cpp[tag=approve]
 ----
 
-### Ambiguities
-
 Because `approve` understands inheritance, we don't have to specify an overrider
 for every combination (5 role classes x 6 expense classes = 30 combinations).
+
+### Ambiguities
 
 Just like with overload resolution, ambiguities can arise. Let's look at another
 example - matrix addition:

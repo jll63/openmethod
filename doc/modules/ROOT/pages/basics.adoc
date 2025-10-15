@@ -4,14 +4,14 @@
 
 An _open-method_ is a free-standing function that takes one or more _virtual_
 _parameters_. When it is called, it forwards to an _overrider_ selected from a
-set by examining the dynamic type of the virtual parameters.
+set by examining the dynamic types of the virtual parameters.
 
 If this sounds like a virtual function, that's because because an open-method
-with one virtual parameter is equivalent to a virtual function - with a big
+with one virtual parameter is equivalent to a virtual function - with one big
 difference: it exists outside of classes.
 
-A virtual parameter is in the form `virtual_ptr<C>`. It is a pointer-like class
-that points to an instance of class `C`.
+A virtual parameter is in the form `virtual_ptr<Class>`. It is a pointer-like
+class that points to an instance of `Class`.
 
 To create an open-method that implements the `postfix` operation, we use the
 xref:BOOST_OPENMETHOD.adoc[BOOST_OPENMETHOD] macro:
@@ -33,12 +33,11 @@ inline auto postfix(virtual_ptr<const Node> node, std::ostream& os) -> void {
 }
 ```
 
-Before we can call the method, we need to define overriders. For this we use the
+Before we can call the method, we need to define overriders. For that we use the
 xref:BOOST_OPENMETHOD_OVERRIDE.adoc[BOOST_OPENMETHOD_OVERRIDE] macro:
 
 ```c++
-BOOST_OPENMETHOD_OVERRIDE(
-    postfix, (virtual_ptr<const Variable> var, std::ostream& os), void) {
+BOOST_OPENMETHOD_OVERRIDE(postfix, (virtual_ptr<const Variable> var, std::ostream& os), void) {
     os << var->v;
 }
 ```
@@ -51,8 +50,7 @@ method.
 Let's look at another overrider:
 
 ```c++
-BOOST_OPENMETHOD_OVERRIDE(
-    postfix, (virtual_ptr<const Plus> plus, std::ostream& os), void) {
+BOOST_OPENMETHOD_OVERRIDE(postfix, (virtual_ptr<const Plus> plus, std::ostream& os), void) {
     postfix(plus->left, os);
     os << ' ';
     postfix(plus->right, os);
