@@ -26,10 +26,6 @@ foreach (cpp ${cpp_files})
     add_dependencies(tests ${stem})
 endforeach()
 
-if (NOT WIN32)
-  add_subdirectory(shared_libs)
-endif()
-
 function(add_step_by_step dir)
   set(add_test "")
   if(ARGC GREATER 1)
@@ -51,5 +47,10 @@ function(add_step_by_step dir)
   endforeach()
 endfunction()
 
+add_step_by_step(core_api)
 add_step_by_step(rolex)
 add_step_by_step(ambiguities OFF)
+
+if (NOT WIN32)
+  add_subdirectory(shared_libs)
+endif()
