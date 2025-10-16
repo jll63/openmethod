@@ -380,6 +380,22 @@ struct LightweightOutputStream {
 
 namespace detail {
 
+template<class Target, class... Options>
+constexpr bool has_option =
+    mp11::mp_contains<mp11::mp_list<Options...>, Target>::value;
+
+template<class Target, class... Options>
+inline auto option(std::tuple<Options...> opts) {
+    constexpr auto index =
+        mp11::mp_find<mp11::mp_list<Options...>, Target>::value;
+
+    if constexpr (index == sizeof...(Options)) {
+        return Target();
+    } else {
+        return std::get<index>(opts);
+    }
+}
+
 struct option_base {};
 
 } // namespace detail
@@ -403,12 +419,10 @@ struct n2216 : detail::option_base {};
 
 //! Enable `initialize` tracing.
 //!
-//! If `trace` is present in @ref initialize\'s `Options`, tracing code is added
-//! to various parts of the initialization process (dispatch table construction,
-//! hash factors search, etc). The tracing code is executed only if
-//! @ref trace::on is set to `true`. The default value of `on` is `true` if
-//! environment variable `BOOST_OPENMETHOD_TRACE` is set to the string "1", and
-//! false otherwise.
+//! If `trace` is passed to @ref initialize, tracing code is added to various
+//! parts of the initialization process (dispatch table construction, hash
+//! factors search, etc). The tracing code is executed only if
+//! @ref trace::on is set to `true`.
 //!
 //! `trace` requires the registry being initialized to have an @ref output
 //! policy.
@@ -417,9 +431,31 @@ struct n2216 : detail::option_base {};
 //! It is comprehensive, and useful for troubleshooting missing class
 //! registrations, missing or ambiguous overriders, etc.
 struct trace : detail::option_base {
-    //! Enable trace.
-    static bool on;
+    //! Enable trace if `true`.
+    bool on = true;
+
+    trace(bool on = true) : on(on) {
+    }
+
+    //! Returns a `trace` object with `on` set to `true` if the environment
+    //! variable `BOOST_OPENMETHOD_TRACE` is set to the string "1", and false
+    //! otherwise.
+    static trace from_env();
 };
+
+inline trace trace::from_env() {
+#ifdef _MSC_VER
+    char* env;
+    std::size_t len;
+    auto result = _dupenv_s(&env, &len, "BOOST_OPENMETHOD_TRACE") == 0 && env &&
+        len == 2 && *env == '1';
+    free(env);
+    return trace(result);
+#else
+    auto env = getenv("BOOST_OPENMETHOD_TRACE");
+    return trace(env && *env++ == '1' && *env++ == 0);
+#endif
+}
 
 //! Namespace for the policies.
 //!
@@ -595,12 +631,17 @@ struct VptrFn {
     //! Called by @ref registry::initialize to let the policy store the v-table
     //! pointer associated to each `type_id`.
     //!
-    //! @tparam ForwardIterator An iterator to a range of @ref IdsToVptr
-    //! objects.
-    //! @param first The beginning of the range.
-    //! @param last The end of the range.
-    template<typename ForwardIterator>
-    static auto initialize(ForwardIterator first, ForwardIterator last);
+    //! @tparam ForwardIterator An iterator to a range of @ref
+    //! IdsToVptr objects.
+    //! @tparam Options... Zero or more option types, deduced from the
+    //! function arguments.
+    //! @param first An iterator to the beginning of the range.
+    //! @param last An iterator to the end of the range.
+    //! @param options Zero or more option objects.
+    template<typename ForwardIterator, class... Options>
+    static auto initialize(
+        ForwardIterator first, ForwardIterator last,
+        std::tuple<Options...> opts);
 
     //! Return a *reference* to a v-table pointer for an object.
     //!
@@ -610,9 +651,15 @@ struct VptrFn {
     template<class Class>
     static auto dynamic_vptr(const Class& arg) -> const vptr_type&;
 
-    //! Release the resources allocated by `initialize`. This function is
-    //! optional.
-    static auto finalize() -> void;
+    //! Release the resources allocated by `initialize`.
+    //!
+    //! This function is optional.
+    //!
+    //! @tparam Options... Zero or more option types, deduced from the
+    //! function arguments.
+    //! @param options Zero or more option objects.
+    template<class... Options>
+    static auto finalize(std::tuple<Options...> opts) -> void;
 };
 
 #endif
@@ -651,22 +698,32 @@ struct indirect_vptr final {
 template<class Registry>
 struct TypeHashFn {
     //! Initialize the hash table.
-    //! @tparam ForwardIterator An iterator to a range of const
-    //! @ref IdsToVptr objects.
-    //! @param first The beginning of the range.
-    //! @param last The end of the range.
+    //!
+    //! @tparam ForwardIterator An iterator to a range of @ref
+    //! IdsToVptr objects.
+    //! @tparam Options... Zero or more option types, deduced from the
+    //! function arguments.
+    //! @param first An iterator to the beginning of the range.
+    //! @param last An iterator to the end of the range.
+    //! @param options Zero or more option objects.
     //! @return A pair containing the minimum and maximum hash values.
     template<typename ForwardIterator>
     static auto initialize(ForwardIterator first, ForwardIterator last)
         -> std::pair<std::size_t, std::size_t>;
 
     //! Hash a `type_id`.
+    //!
     //! @param type A @ref type_id.
     //! @return A hash value for the given `type_id`.
     static auto hash(type_id type) -> std::size_t;
 
-    //! Release the resources allocated by `initialize`. This function is
-    //! optional.
+    //! Release the resources allocated by `initialize`.
+    //!
+    //! This function is optional.
+    //!
+    //! @tparam Options... Zero or more option types, deduced from the function
+    //! arguments.
+    //! @param options Zero or more option objects.
     static auto finalize() -> void;
 };
 #endif
@@ -865,15 +922,14 @@ class registry : detail::registry_base {
     static std::vector<detail::word> dispatch_data;
     static bool initialized;
 
-    template<class... Options>
-    struct compiler;
-
   public:
     //! The type of this registry.
     using registry_type = registry;
 
-    template<typename, class...>
-    friend struct detail::initialize_aux;
+    template<class... Options>
+    struct compiler;
+    // template<class Registry, typename... Options>
+    // friend compiler<Options...> initialize(Options...);
 
     //! Check that the registry is initialized.
     //!
@@ -893,7 +949,10 @@ class registry : detail::registry_base {
     //! @note
     //! A translation unit that contains a call to `finalize` must include the
     //! `<boost/openmethod/initialize.hpp>` header.
-    static void finalize();
+    //!
+    //! @tparam Options A registry.
+    template<class... Options>
+    static void finalize(Options... opts);
 
     //! A pointer to the virtual table for a registered class.
     //!

@@ -83,7 +83,7 @@ struct fast_perfect_hash : type_hash {
         template<class ForwardIterator, class... Options>
         static void initialize(
             ForwardIterator first, ForwardIterator last,
-            std::vector<type_id>& buckets);
+            std::vector<type_id>& buckets, std::tuple<Options...> options);
 
       public:
         //! Find the hash factors
@@ -95,18 +95,25 @@ struct fast_perfect_hash : type_hash {
         //! If no suitable values are found, calls the error handler with
         //! a @ref hash_error object then calls `abort`.
         //!
-        //! @tparam ForwardIterator A forward iterator yielding
-        //! @ref IdsToVptr objects
-        //! @param first Beginning of the range
-        //! @param last End of the range
+        //! @tparam ForwardIterator An iterator to a range of @ref
+        //! IdsToVptr objects.
+        //! @tparam Options... Zero or more option types, deduced from the
+        //! function arguments.
+        //! @param first An iterator to the beginning of the range.
+        //! @param last An iterator to the end of the range.
+        //! @param options Zero or more option objects.
+        //! @return A pair containing the minimum and maximum hash values.
         template<class ForwardIterator, class... Options>
-        static auto initialize(ForwardIterator first, ForwardIterator last) {
+        static auto initialize(
+            ForwardIterator first, ForwardIterator last,
+            std::tuple<Options...> options) {
             if constexpr (Registry::has_runtime_checks) {
                 initialize(
-                    first, last, detail::fast_perfect_hash_control<Registry>);
+                    first, last, detail::fast_perfect_hash_control<Registry>,
+                    options);
             } else {
                 std::vector<type_id> buckets;
-                initialize(first, last, buckets);
+                initialize(first, last, buckets, options);
             }
 
             return std::pair{min_value, max_value};
@@ -138,7 +145,12 @@ struct fast_perfect_hash : type_hash {
         }
 
         //! Releases the memory allocated by `initialize`.
-        static auto finalize() -> void {
+        //!
+        //! @tparam Options... Zero or more option types, deduced from the function
+        //! arguments.
+        //! @param options Zero or more option objects.
+        template<class... Options>
+        static auto finalize(std::tuple<Options...> opts) -> void {
             detail::fast_perfect_hash_control<Registry>.clear();
         }
     };
@@ -161,16 +173,15 @@ std::size_t fast_perfect_hash::fn<Registry>::max_value;
 template<class Registry>
 template<class ForwardIterator, class... Options>
 void fast_perfect_hash::fn<Registry>::initialize(
-    ForwardIterator first, ForwardIterator last,
-    std::vector<type_id>& buckets) {
+    ForwardIterator first, ForwardIterator last, std::vector<type_id>& buckets,
+    std::tuple<Options...> opts) {
     using namespace policies;
 
     const auto N = std::distance(first, last);
 
     if constexpr (
-        mp11::mp_contains<mp11::mp_list<Options...>, trace>::value &&
-        Registry::has_output) {
-        if (trace::on) {
+        detail::has_option<trace, Options...> && Registry::has_output) {
+        if (detail::option<trace>(opts).on) {
             Registry::output::os << "Finding hash factor for " << N
                                  << " types\n";
         }
@@ -195,7 +206,7 @@ void fast_perfect_hash::fn<Registry>::initialize(
         if constexpr (
             mp11::mp_contains<mp11::mp_list<Options...>, trace>::value &&
             Registry::has_output) {
-            if (Registry::trace::on) {
+            if (detail::option<trace>(opts).on) {
                 Registry::output::os << "  trying with M = " << M << ", "
                                      << hash_size << " buckets\n";
             }
@@ -231,7 +242,7 @@ void fast_perfect_hash::fn<Registry>::initialize(
             if constexpr (
                 mp11::mp_contains<mp11::mp_list<Options...>, trace>::value &&
                 Registry::has_output) {
-                if (Registry::trace::on) {
+                if (detail::option<trace>(opts).on) {
                     Registry::output::os
                         << "  found " << mult << " after " << total_attempts
                         << " attempts; span = [" << min_value << ", "

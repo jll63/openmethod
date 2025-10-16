@@ -190,11 +190,15 @@ struct generic_compiler {
 
 template<class Compiler>
 struct trace_stream {
+    trace_stream(bool trace) : trace(trace) {
+    }
+
+    bool trace;
     std::size_t indentation_level{0};
 
     auto operator++() -> trace_stream& {
         if constexpr (Compiler::has_trace) {
-            if (trace::on) {
+            if (trace) {
                 for (std::size_t i = 0; i < indentation_level; ++i) {
                     Compiler::Registry::output::os << "  ";
                 }
@@ -292,7 +296,7 @@ struct range;
 template<class Compiler, typename T, typename F>
 auto write_range(trace_stream<Compiler>& tr, range<T> range, F fn) -> auto& {
     if constexpr (Compiler::has_trace) {
-        if (trace::on) {
+        if (tr.trace) {
             tr << "(";
             const char* sep = "";
             for (auto value : range) {
@@ -310,7 +314,7 @@ auto write_range(trace_stream<Compiler>& tr, range<T> range, F fn) -> auto& {
 template<class Compiler, typename T>
 auto operator<<(trace_stream<Compiler>& tr, const T& value) -> auto& {
     if constexpr (Compiler::has_trace) {
-        if (trace::on) {
+        if (tr.trace) {
             Compiler::Registry::output::os << value;
         }
     }
@@ -320,7 +324,7 @@ auto operator<<(trace_stream<Compiler>& tr, const T& value) -> auto& {
 template<class Compiler>
 auto operator<<(trace_stream<Compiler>& tr, const rflush& rf) -> auto& {
     if constexpr (Compiler::has_trace) {
-        if (trace::on) {
+        if (tr.trace) {
             std::size_t digits = 1;
             auto tmp = rf.value / 10;
 
@@ -345,7 +349,7 @@ template<class Compiler>
 auto operator<<(trace_stream<Compiler>& tr, const boost::dynamic_bitset<>& bits)
     -> auto& {
     if constexpr (Compiler::has_trace) {
-        if (trace::on) {
+        if (tr.trace) {
             auto i = bits.size();
             while (i != 0) {
                 --i;
@@ -378,28 +382,11 @@ auto operator<<(trace_stream<Compiler>& tr, const type_name& manip) -> auto& {
 }
 } // namespace detail
 
-inline bool trace::on = []() {
-#ifdef _MSC_VER
-    char* env;
-    std::size_t len;
-    auto result = _dupenv_s(&env, &len, "BOOST_OPENMETHOD_TRACE") == 0 && env &&
-        len == 2 && *env == '1';
-    free(env);
-    return result;
-#else
-    auto env = getenv("BOOST_OPENMETHOD_TRACE");
-    return env && *env++ == '1' && *env++ == 0;
-#endif
-}();
-
 // Definition of the nested template struct outside the registry class
 template<class... Policies>
 template<class... Options>
 struct registry<Policies...>::compiler : detail::generic_compiler {
     using type_index_type = decltype(rtti::type_index(0));
-
-    static constexpr bool has_trace =
-        mp11::mp_contains<mp11::mp_list<Options...>, trace>::value;
 
     static constexpr bool use_n2216 =
         mp11::mp_contains<mp11::mp_list<Options...>, n2216>::value;
@@ -411,7 +398,7 @@ struct registry<Policies...>::compiler : detail::generic_compiler {
 
     using Registry = registry;
 
-    compiler();
+    compiler(Options... opts);
 
     auto compile();
     auto initialize();
@@ -434,10 +421,14 @@ struct registry<Policies...>::compiler : detail::generic_compiler {
     static void select_dominant_overriders(
         std::vector<overrider*>& dominants, std::size_t& pick,
         std::size_t& remaining);
-    static auto is_more_specific(const overrider* a, const overrider* b)
-        -> bool;
+    static auto
+    is_more_specific(const overrider* a, const overrider* b) -> bool;
     static auto is_base(const overrider* a, const overrider* b) -> bool;
 
+    std::tuple<Options...> opts;
+    static constexpr bool has_trace =
+        mp11::mp_contains<mp11::mp_list<Options...>, openmethod::trace>::value;
+    bool trace = false;
     mutable detail::trace_stream<compiler> tr;
     using indent = typename detail::trace_stream<compiler>::indent;
 };
@@ -481,7 +472,9 @@ auto registry<Policies...>::compiler<Options...>::initialize() {
 
 template<class... Policies>
 template<class... Options>
-registry<Policies...>::compiler<Options...>::compiler() {
+registry<Policies...>::compiler<Options...>::compiler(Options... opts)
+    : opts(opts...), trace(detail::option<openmethod::trace>(this->opts).on),
+      tr(trace) {
 }
 
 template<class... Policies>
@@ -1292,8 +1285,8 @@ void registry<Policies...>::compiler<Options...>::write_global_data() {
             std::copy(m.strides.begin(), m.strides.end(), strides_iter);
 
             if constexpr (has_trace) {
-                ++tr << rflush(4, dispatch_data_size) << " "
-                     << " method #" << m.dispatch_table[0]->method_index << " "
+                ++tr << rflush(4, dispatch_data_size) << " " << " method #"
+                     << m.dispatch_table[0]->method_index << " "
                      << type_name(m.info->method_type_id) << "\n";
                 indent _(tr);
 
@@ -1315,8 +1308,7 @@ void registry<Policies...>::compiler<Options...>::write_global_data() {
 
     for (auto& m : methods) {
         indent _(tr);
-        ++tr << "method #"
-             << " " << type_name(m.info->method_type_id) << "\n";
+        ++tr << "method #" << " " << type_name(m.info->method_type_id) << "\n";
 
         for (auto& overrider : m.overriders) {
             if (overrider.next) {
@@ -1379,8 +1371,7 @@ void registry<Policies...>::compiler<Options...>::write_global_data() {
     ++tr << rflush(4, dispatch_data_size) << " " << gv_iter << " end\n";
 
     if constexpr (has_vptr) {
-        vptr::template initialize<decltype(classes.begin()), Options...>(
-            classes.begin(), classes.end());
+        vptr::initialize(classes.begin(), classes.end(), opts);
     }
 
     new_dispatch_data.swap(dispatch_data);
@@ -1514,50 +1505,25 @@ void registry<Policies...>::compiler<Options...>::print(
        << " ambiguous\n";
 }
 
-namespace detail {
-template<typename T, class... Options>
-struct initialize_aux
-    : initialize_aux<T, BOOST_OPENMETHOD_DEFAULT_REGISTRY, Options...> {};
-
-template<class Registry, class... Options>
-struct initialize_aux<
-    std::void_t<typename Registry::registry_type>, Registry, Options...> {
-    static_assert(
-        (std::is_base_of_v<detail::option_base, Options> && ...),
-        "invalid option type");
-    static auto fn() {
-        if (odr_check<Registry>::count > 1) {
-            // Multiple definitions of default_registry detected.
-            // This indicates an ODR violation.
-            // Signal a final_error using the error handler, then abort.
-            if constexpr (Registry::has_error_handler) {
-                Registry::error_handler::error(odr_violation());
-            }
-
-            std::abort();
-        }
-
-        typename Registry::template compiler<Options...> comp;
-        comp.initialize();
-
-        return comp;
-    }
-};
-} // namespace detail
-
 //! Initialize a registry.
+//!
+//! Initialize the @ref registry  passed as an explicit function template
+//! argument, or @ref default_registry if the registry is not specified. The
+//! default can be changed by defining
+//! [BOOST_OPENMETHOD_DEFAULT_REGISTRY](../BOOST_OPENMETHOD_DEFAULT_REGISTRY.html).
+//! Option objects can be passed to change the behavior of the function.
+//! Currently two options exist:
+//! @li @ref trace Enable tracing of the initialization process.
+//! @li @ref n2216 Enable resolution of ambiguities according to the N2216
+//! paper.
 //!
 //! `initialize` must be called, typically at the beginning of `main`, before
 //! using any of the methods in a registry. It sets up the v-tables,
 //! multi-method dispatch tables, and any other data required by the policies.
 //!
-//! If the first template argument is a registry, initialize it. Otherwise,
-//! initialize the default registry. Additional template arguments, if any, must
-//! be option types (@ref n2216 or @ref trace).
-//!
 //! The function returns an object of an unspecified type that contains a
-//! `report` member, itself an object of an unspecified type, that
-//! provides information about the initialization process. Its members are:
+//! `report` member, itself an object of an unspecified type, thatcontains the
+//! following members:
 //! @li `std::size_t cells`: The number of cells in all multi-method dispatch
 //! tables.
 //! @li `std::size_t not_implemented`: The number of multi-method dispatch tables that
@@ -1566,12 +1532,13 @@ struct initialize_aux<
 //! least one ambiguous entry.
 //!
 //! @note
-//! A translation unit that contains a call to `initialize` must include the
+//! A translation unit that calls `initialize` must include the
 //! `<boost/openmethod/initialize.hpp>` header.
 //!
-//! @tparam Class... An optional @registry type followed by zero or more option
-//! types.
-//!
+//! @tparam Registry The registry to initialize.
+//! @tparam Options... Zero or more option types, deduced from the function
+//! arguments.
+//! @param options Zero or more option objects.
 //! @return An object of an unspecified type.
 //!
 //! @par Errors
@@ -1582,10 +1549,10 @@ struct initialize_aux<
 //!
 //! @par Example
 //!
-//! Initialize the default registry with tracing enabled, and exit
-//! with an error message if there were any possibility of a @reg bad_call
-//! error. User may run the program again with `BOOST_OPENMETHOD_TRACE=1` to
-//! troubleshoot.
+//! Initialize the default registry with tracing enabled, and exit with an error
+//! message if there were any possibility of a @reg bad_call error. User may run
+//! the program again after setting environment variable
+//! `BOOST_OPENMETHOD_TRACE` to `1` to troubleshoot.
 //!
 //! @code
 //! #include <iostream>
@@ -1595,7 +1562,7 @@ struct initialize_aux<
 //!
 //! int main() {
 //!     namespace bom = boost::openmethod;
-//!     auto report = bom::initialize<bom::trace>().report;
+//!     auto report = bom::initialize(bom::trace::from_env()).report;
 //!
 //!     if (report.not_implemented != 0 || report.ambiguous != 0) {
 //!         std::cerr << "missing overriders or ambiguous methods\n";
@@ -1605,28 +1572,51 @@ struct initialize_aux<
 //!     // ...
 //! }
 //! @endcode
-template<class... Class>
-inline auto initialize() {
-    return detail::initialize_aux<void, Class...>::fn();
+template<class Registry = BOOST_OPENMETHOD_DEFAULT_REGISTRY, class... Options>
+inline auto initialize(Options&&... options) {
+    static_assert(
+        (std::is_base_of_v<detail::option_base, Options> && ...),
+        "invalid option type");
+
+    if (odr_check<Registry>::count > 1) {
+        // Multiple definitions of default_registry detected.
+        // This indicates an ODR violation.
+        // Signal a final_error using the error handler, then abort.
+        if constexpr (Registry::has_error_handler) {
+            Registry::error_handler::error(odr_violation());
+        }
+
+        std::abort();
+    }
+
+    typename Registry::template compiler<Options...> comp(
+        std::forward<Options>(options)...);
+    comp.initialize();
+
+    return comp;
 }
 
 namespace detail {
 
-template<class Policy, typename = void>
+template<typename, class Policy, class... Options>
 struct has_finalize_aux : std::false_type {};
 
-template<class Policy>
-struct has_finalize_aux<Policy, std::void_t<decltype(Policy::finalize)>>
-    : std::true_type {};
+template<class Policy, class... Options>
+struct has_finalize_aux<
+    std::void_t<decltype(Policy::finalize(
+        std::declval<std::tuple<Options...>>()))>,
+    Policy, Options...> : std::true_type {};
 
 } // namespace detail
 
 template<class... Policies>
-auto registry<Policies...>::finalize() -> void {
-    mp11::mp_for_each<policy_list>([](auto policy) {
+template<class... Options>
+auto registry<Policies...>::finalize(Options... opts) -> void {
+    std::tuple<Options...> options(opts...); // gcc-8 doesn't like CTAD here
+    mp11::mp_for_each<policy_list>([&options](auto policy) {
         using fn = typename decltype(policy)::template fn<registry>;
-        if constexpr (detail::has_finalize_aux<fn>::value) {
-            fn::finalize();
+        if constexpr (detail::has_finalize_aux<void, fn, Options...>::value) {
+            fn::finalize(options);
         }
     });
 

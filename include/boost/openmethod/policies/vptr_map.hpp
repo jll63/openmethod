@@ -38,12 +38,17 @@ class vptr_map : public vptr {
       public:
         //! Stores the v-table pointers.
         //!
-        //! @tparam ForwardIterator A forward iterator yielding
-        //! @ref IdsToVptr objects.
-        //! @param first The beginning of the range.
-        //! @param last The end of the range.
+        //! @tparam ForwardIterator An iterator to a range of @ref
+        //! IdsToVptr objects.
+        //! @tparam Options... Zero or more option types, deduced from the
+        //! function arguments.
+        //! @param first An iterator to the beginning of the range.
+        //! @param last An iterator to the end of the range.
+        //! @param options Zero or more option objects.
         template<class ForwardIterator, class... Options>
-        static void initialize(ForwardIterator first, ForwardIterator last) {
+        static void initialize(
+            ForwardIterator first, ForwardIterator last,
+            std::tuple<Options...> opts) {
             decltype(vptrs) new_vptrs;
 
             for (auto iter = first; iter != last; ++iter) {
@@ -100,7 +105,12 @@ class vptr_map : public vptr {
         }
 
         //! Clears the map.
-        static auto finalize() -> void {
+        //!
+        //! @tparam Options... Zero or more option types, deduced from the
+        //! function arguments.
+        //! @param options Zero or more option objects.
+        template<class... Options>
+        static auto finalize(std::tuple<Options...>) -> void {
             vptrs.clear();
         }
     };

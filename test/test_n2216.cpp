@@ -49,7 +49,7 @@ static_assert(std::is_same_v<
               detail::virtual_type<std::unique_ptr<matrix>, test_registry>, matrix>);
 
 BOOST_AUTO_TEST_CASE(covariant_return_type) {
-    auto compiler = boost::openmethod::initialize<test_registry, n2216>();
+    auto compiler = boost::openmethod::initialize<test_registry>(n2216());
     BOOST_TEST(compiler.report.ambiguous == 0u);
 
     // test_registry: use covariant return types to resolve ambiguity.
@@ -87,7 +87,7 @@ BOOST_OPENMETHOD_OVERRIDE(
 }
 
 BOOST_AUTO_TEST_CASE(pick_any_ambiguous) {
-    auto compiler = boost::openmethod::initialize<test_registry, n2216>();
+    auto compiler = boost::openmethod::initialize<test_registry>(n2216());
     BOOST_TEST(compiler.report.ambiguous == 1u);
 
     // test_registry: use covariant return types to resolve ambiguity.

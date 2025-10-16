@@ -60,16 +60,20 @@ struct vptr_vector : vptr {
         //!
         //! @tparam ForwardIterator An iterator to a range of @ref
         //! IdsToVptr objects.
-        //! @param first The beginning of the range.
-        //! @param last The end of the range.
+        //! @tparam Options... Zero or more option types, deduced from the
+        //! function arguments.
+        //! @param first An iterator to the beginning of the range.
+        //! @param last An iterator to the end of the range.
+        //! @param options Zero or more option objects.
         template<class ForwardIterator, class... Options>
-        static auto
-        initialize(ForwardIterator first, ForwardIterator last) -> void {
+        static auto initialize(
+            ForwardIterator first, ForwardIterator last,
+            std::tuple<Options...> opts) -> void {
             std::size_t size;
             if constexpr (has_type_hash) {
                 auto [_, max_value] =
                     type_hash::template initialize<ForwardIterator, Options...>(
-                        first, last);
+                        first, last, opts);
                 size = max_value + 1;
             } else {
                 size = 0;
@@ -168,7 +172,12 @@ struct vptr_vector : vptr {
         }
 
         //! Clears the vector.
-        static auto finalize() -> void {
+        //!
+        //! @tparam Options... Zero or more option types, deduced from the
+        //! function arguments.
+        //! @param options Zero or more option objects.
+        template<class... Options>
+        static auto finalize(std::tuple<Options...>) -> void {
             using namespace policies;
 
             if constexpr (Registry::has_indirect_vptr) {
