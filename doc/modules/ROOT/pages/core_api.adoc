@@ -31,7 +31,6 @@ The class needs not be defined, only declared.
 Inventing identifier class names can get tedious, so OpenMethod provides a macro
 for that: xref:BOOST_OPENMETHOD_ID.adoc[BOOST_OPENMETHOD_ID]. Let's use it:
 
-
 [source,c++]
 ----
 include::{example}/core_api.cpp[tag=method]

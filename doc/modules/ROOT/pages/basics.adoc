@@ -42,10 +42,13 @@ BOOST_OPENMETHOD_OVERRIDE(postfix, (virtual_ptr<const Variable> var, std::ostrea
 }
 ```
 
-The overrider must have virtual parameters in the same position as in the
-method, and they must point to an object of the same class as in the method, or
-a class derived from it. The other parameters must have the same types as in the
-method.
+The overrider must have virtual parameters in the same positions as in the
+method. The classes in the method's virtual parameters must be accessible,
+non-ambiguous bases of the classes in the overrider. Note that this rules out
+repeated inheritance. Apart from this restriction, multiple and virtual
+inheritance are supported.
+
+The non-virtual parameters must have exactly the same types as in the method.
 
 Let's look at another overrider:
 

@@ -7,7 +7,7 @@ message(STATUS "Building examples")
 
 if (CMAKE_BUILD_TYPE STREQUAL "Release")
   if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    add_compile_options(-save-temps -masm=intel)
+    add_compile_options(-save-temps=obj -masm=intel)
   endif()
 endif()
 
@@ -38,16 +38,24 @@ function(add_step_by_step dir)
   foreach (subdir ${subdirs})
     string(REGEX REPLACE ".*/" "" subex ${subdir})
     file(GLOB cpp_files "${subdir}/*.cpp")
-    add_executable("${dir}_${subex}" ${cpp_files})
-    target_link_libraries("${dir}_${subex}" PUBLIC Boost::openmethod)
+    set(target "${dir}_${subex}")
+    add_executable(${target} ${cpp_files})
+    target_link_libraries(${target} PUBLIC Boost::openmethod)
+    set(output_dir "${CMAKE_BINARY_DIR}/${subdir}")
+    set_target_properties(${target} PROPERTIES
+      RUNTIME_OUTPUT_DIRECTORY "${output_dir}"
+      LIBRARY_OUTPUT_DIRECTORY "${output_dir}"
+      ARCHIVE_OUTPUT_DIRECTORY "${output_dir}"
+    )
     if(${add_test})
-      add_test(NAME "${dir}_${subex}" COMMAND "${dir}_${subex}")
+      add_test(NAME "${target}" COMMAND "${target}")
     endif()
-    add_dependencies(tests "${dir}_${subex}")
+    add_dependencies(tests "${target}")
   endforeach()
 endfunction()
 
 add_step_by_step(core_api)
+add_step_by_step(virtual_ptr_alt)
 add_step_by_step(rolex)
 add_step_by_step(ambiguities OFF)
 

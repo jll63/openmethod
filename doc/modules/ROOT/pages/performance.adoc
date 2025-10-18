@@ -89,7 +89,7 @@ A method call compiles to:
 
 [source,asm]
 ----
-mov	rax, qword ptr [rip + fn+88]
+mov	rax, qword ptr [rip + postfix::fn+88]
 mov	rax, qword ptr [rdi + 8*rax]
 jmp	rax                             # TAILCALL
 ----

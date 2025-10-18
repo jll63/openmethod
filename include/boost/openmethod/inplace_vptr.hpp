@@ -60,10 +60,11 @@ class inplace_vptr_base_tag {};
 
 //! Embed a v-table pointer in a class.
 //!
-//! `inplace_vptr_base` is a [mixin](https://en.wikipedia.org/wiki/Mixin) that
-//! embeds a v-table pointer at the root of a class hierarchy. It also declares
-//! a @ref boost_openmethod_vptr free function that returns the v-table pointer
-//! stored in the object.
+//! `inplace_vptr_base` is a [CRTP
+//! mixin](https://en.wikipedia.org/wiki/Curiously_recurring_template_pattern)
+//! that embeds a v-table pointer at the root of a class hierarchy. It also
+//! declares a @ref boost_openmethod_vptr free function that returns the v-table
+//! pointer stored in the object.
 //!
 //! `inplace_vptr_base` registers the class in `Registry`. It is not necessary
 //! to register the class with @ref use_class or
@@ -158,7 +159,8 @@ class inplace_vptr_base : protected detail::inplace_vptr_base_tag {
 #ifdef __MRDOCS__
 //! Adjust the v-table pointer embedded in a class.
 //!
-//! `inplace_vptr_derived` is a [mixin](https://en.wikipedia.org/wiki/Mixin)
+//! `inplace_vptr_derived` is a [CRTP
+//! mixin](https://en.wikipedia.org/wiki/Curiously_recurring_template_pattern)
 //! that adjusts the v-table pointer in a @ref inplace_vptr_base. It can be used
 //! only with classes that have @ref inplace_vptr_base as a direct or indirect
 //! base class.

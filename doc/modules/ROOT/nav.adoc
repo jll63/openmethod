@@ -8,8 +8,8 @@
 * xref:multiple_dispatch.adoc[Multiple Dispatch]
 * Advanced Features
 ** xref:core_api.adoc[Core API]
+** xref:registries_and_policies.adoc[Registries and Policies]
 ** xref:virtual_ptr_alt.adoc[Virtual Pointer Alternatives]
-** xref:policies.adoc[Registries and Policies]
 ** xref:error_handling.adoc[Error Handling]
 ** xref:custom_rtti.adoc[Custom RTTI]
 ** xref:shared_libraries.adoc[Shared Libraries]
