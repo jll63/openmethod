@@ -54,10 +54,11 @@ function(add_step_by_step dir)
   endforeach()
 endfunction()
 
-add_step_by_step(core_api)
-add_step_by_step(virtual_ptr_alt)
 add_step_by_step(rolex)
 add_step_by_step(ambiguities OFF)
+add_step_by_step(core_api)
+add_step_by_step(custom_rtti)
+add_step_by_step(virtual_ptr_alt)
 
 if (NOT WIN32)
   add_subdirectory(shared_libs)

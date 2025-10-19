@@ -37,8 +37,8 @@ namespace boost::openmethod {
 //! including those pulled from libraries.
 struct default_registry
     : registry<
-          policies::std_rtti, policies::fast_perfect_hash,
-          policies::vptr_vector, policies::default_error_handler,
+          policies::std_rtti, policies::vptr_vector,
+          policies::fast_perfect_hash, policies::default_error_handler,
           policies::stderr_output
 #ifdef BOOST_OPENMETHOD_ENABLE_RUNTIME_CHECKS
           ,
@@ -59,8 +59,7 @@ static odr_check<default_registry> default_registry_odr_check_instance;
 //! policies as @ref default_registry, plus the @ref indirect_vptr policy.
 //!
 //! @see indirect_vptr.
-struct indirect_registry
-    : default_registry::with<policies::indirect_vptr> {};
+struct indirect_registry : default_registry::with<policies::indirect_vptr> {};
 
 } // namespace boost::openmethod
 
