@@ -2740,6 +2740,8 @@ method<Id, ReturnType(Parameters...), Registry>::override_impl<
 #pragma GCC diagnostic ignored "-Wmaybe-uninitialized"
 #endif
 
+    // zero-initalized static variable
+    // coverity[uninit_use:FALSE]
     if (overrider_info::method) {
         BOOST_ASSERT(overrider_info::method == &fn);
         return;

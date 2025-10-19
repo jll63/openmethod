@@ -98,8 +98,11 @@ class vptr_map : public vptr {
             }
 
             if constexpr (Registry::has_indirect_vptr) {
+                // check for valid iterator is done if runtime_checks is enabled
+                // coverity[deref_iterator:SUPPRESS]
                 return *iter->second;
             } else {
+                // coverity[deref_iterator:SUPPRESS]
                 return iter->second;
             }
         }

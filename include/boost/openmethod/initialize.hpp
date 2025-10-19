@@ -401,7 +401,7 @@ struct registry<Policies...>::compiler : detail::generic_compiler {
     compiler(Options... opts);
 
     auto compile();
-    auto initialize();
+    void initialize();
     void install_global_tables();
 
     void augment_classes();
@@ -461,13 +461,10 @@ auto registry<Policies...>::compiler<Options...>::compile() {
 
 template<class... Policies>
 template<class... Options>
-auto registry<Policies...>::compiler<Options...>::initialize() {
+void registry<Policies...>::compiler<Options...>::initialize() {
     compile();
     install_global_tables();
-
     registry<Policies...>::initialized = true;
-
-    return *this;
 }
 
 template<class... Policies>

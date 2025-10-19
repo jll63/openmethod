@@ -96,7 +96,7 @@ struct default_error_handler : error_handler {
         //! @return The previous function.
         static auto set(function_type new_handler) -> function_type {
             auto prev = handler;
-            handler = new_handler;
+            handler = std::move(new_handler);
 
             return prev;
         }
