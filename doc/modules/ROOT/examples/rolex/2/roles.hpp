@@ -22,6 +22,5 @@ BOOST_OPENMETHOD(pay, (boost::openmethod::virtual_ptr<const Employee>), double);
 BOOST_OPENMETHOD_DECLARE_OVERRIDER(
     pay, (boost::openmethod::virtual_ptr<const Employee>), double);
 
-
 #endif // ROLES_HPP
 // end::content[]

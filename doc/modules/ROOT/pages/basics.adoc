@@ -1,6 +1,6 @@
 :exampledir: ../example
 
-## Basics
+## Open-Methods 101
 
 An _open-method_ is a free-standing function that takes one or more _virtual_
 _parameters_. When it is called, it forwards to an _overrider_ selected from a
@@ -11,7 +11,8 @@ with one virtual parameter is equivalent to a virtual function - with one big
 difference: it exists outside of classes.
 
 A virtual parameter is in the form `virtual_ptr<Class>`. It is a pointer-like
-class that points to an instance of `Class`.
+class that points to an instance of `Class`. `virtual_ptr` is defined in the library's main namespace,
+`boost::openmethod`.
 
 To create an open-method that implements the `postfix` operation, we use the
 xref:BOOST_OPENMETHOD.adoc[BOOST_OPENMETHOD] macro:

@@ -2,30 +2,27 @@
 
 ## Headers
 
-Typically, `BOOST_OPENMETHOD` go in headers, while
-`BOOST_OPENMETHOD_CLASSES` and `BOOST_OPENMETHOD_OVERRIDE` go in
+Typically, `BOOST_OPENMETHOD` is used in headers, while
+`BOOST_OPENMETHOD_CLASSES` and `BOOST_OPENMETHOD_OVERRIDE` are used in
 implementation files.
 
-Let's use a payroll application as an example.
-We have two roles: `employee` and `salesman`, and a `pay` method that
-computes the monthly pay of an employee.
-We want to override and call `pay` from from multiple translation units, so
-we put it in a header:
+Let's use a payroll application as an example. We have two roles: `Employee` and
+`Salesman`, and a `pay` method that computes the monthly pay of an employee. We
+want to override and call `pay` from from multiple translation units, so we put
+it in a header:
 
 [source,c++]
 ----
 include::{example}/1/roles.hpp[tag=content]
 ----
 
-`BOOST_OPENMETHOD` _defines_ an inline function, so it can be called only
-once in a translation unit.
-The include guards see to this.
+`BOOST_OPENMETHOD` _defines_ an inline function, so it can be called only once
+in a translation unit. The include guards see to this.
 
 Let's write the override for "just" employees - they get a fixed salary.
-`BOOST_OPENMETHOD_OVERRIDE` _adds_ an overrider to the method.
-We don't want to add the same multiple times; that would create an
-ambiguity.
-Thus it should go in an implementation file:
+`BOOST_OPENMETHOD_OVERRIDE` _adds_ an overrider to the method. We don't want to
+add the same multiple times; that would create an ambiguity. Thus it should go
+in an implementation file:
 
 [source,c++]
 ----

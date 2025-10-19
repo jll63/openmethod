@@ -70,15 +70,19 @@ jmp	qword ptr [rax + 8*rcx]         # TAILCALL
 ### `inplace_vptr`
 
 cpp:inplace_vptr_base[] and cpp:inplace_vptr_derived[] automate the creation and
-management of embedded vptrs. They are both  are
+management of embedded vptrs. They are both
 https://en.wikipedia.org/wiki/Curiously_recurring_template_pattern[CRTP]
-classes.
+mixin classes.
 
 `inplace_vptr_base` is used at the root of a hierarchy. It defines a vptr member
 variable, and a `boost_openmethod_vptr` friend function that returns its value -
 just like in the previous example. `inplace_vptr_derived` is used in derived
 classes. Their constructors set the vptr member to point to v-table for the
 class.
+
+WARNING;; `inplace_vptr_derived` must be used at each level of the hierarchy,
+and reflect the actual inheritance relationships. Otherwise, the vptrs will not
+be set correctly, and the wrong overriders may be called.
 
 [source,c++]
 ----
@@ -95,6 +99,5 @@ can be listed after the class being defined.
 The destructor of `inplace_vptr_derived` set the bases' vptrs back to the
 v-table for the bases, just like what C++ does for its native vptrs.
 
-WARNING;; `inplace_vptr_derived` must be used at each level of the hierarchy,
-and reflect the actual inheritance relationships. Otherwise, the vptrs will not
-be set correctly, and the wrong overriders may be called.
+`inplace_vptr_base` and `inplace_vptr_derived` are aliased in `namespace
+boost::openmethod::aliases`.

@@ -4,6 +4,8 @@
 // or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 // tag::content[]
+// salesman.cpp
+
 #include "roles.hpp"
 #include <boost/openmethod.hpp>
 

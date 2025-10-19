@@ -50,7 +50,7 @@ struct std_rtti : rtti {
   This template is required.
 
 * `static_type` is called during class registration, by
-    `virtual_ptr`{empty}'s "final" constructs.
+    `virtual_ptr`{empty}s "final" constructs.
     It is also called to set `bad_call::method`.
     This function is required.
 

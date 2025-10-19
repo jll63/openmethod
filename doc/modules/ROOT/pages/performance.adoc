@@ -47,16 +47,15 @@ This compiles to (variable names are shortened for readability):
 	mov		rdx, rsi
 	mov		rcx, qword ptr [rip + vptr_vector_vptrs]
 	mov		rdi, qword ptr [rcx + 8*rdi]
-	mov		rcx, qword ptr [rip + fn+88]
+	mov		rcx, qword ptr [rip + postfix::fn+88]
 	mov		rcx, qword ptr [rdi + 8*rcx]
 	mov		rsi, rax
 	jmp		rcx                             # TAILCALL
 ----
 
 This is quite a few instructions more. Upon closer examination, we see that many
-are memory reads, independent of one another; they can be thus executed in
-parallel. For example, the first three instructions would execute simultaneously
-on a modern CPU.
+are memory reads, independent of one another; they can thus be executed in
+parallel. For example, the first three instructions can execute simultaneously.
 
 llvm-mca estimates a throughput of 4 cycles per dispatch. However, the
 difference is amortized by the time spent passing the arguments and returning
@@ -97,9 +96,9 @@ jmp	rax                             # TAILCALL
 `virtual_ptr` arguments are passed through the method call, to the overrider,
 which can use them to make further method calls.
 
-A program designed with open-methods in mind should use `virtual_ptr`{empty}'s
+A program designed with open-methods in mind should use `virtual_ptr`{empty}s
 in place of plain pointers or references, as much as possible. Here is the Node
-example, rewritten to use `virtual_ptr`{empty}'s thoughout:
+example, rewritten to use `virtual_ptr`{empty}s thoughout:
 
 [source,c++]
 ----

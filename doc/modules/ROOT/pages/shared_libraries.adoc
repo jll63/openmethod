@@ -113,7 +113,7 @@ across modules.
 ### Indirect Vptrs
 
 `initialize` rebuilds the v-tables in the registry. This invalidates all the
-`virtual_ptr`{empty}'s, and also the v-table pointers stored in objects by
+`virtual_ptr`{empty}s, and also the v-table pointers stored in objects by
 cpp:inplace_vptr_base[], related to that registry. This is seldom an issue, as
 most programs that dynamically load shared libraries do so at the very beginning
 of their execution.
@@ -125,7 +125,7 @@ that has the same policies as `default_registry`, plus `indirect_vptr`. We can
 use it to override the default registry, for example using a compiler
 command-line switch (`-DBOOST_OPENMETHOD_DEFAULT_REGISTRY=indirect_registry`).
 
-Here is an example of a program that carries `virtual_ptr`{empty}'s across
+Here is an example of a program that carries `virtual_ptr`{empty}s across
 `initialize` calls:
 
 [source,c++]

@@ -22,7 +22,7 @@ parameters:
 * xref:#std_unique_ptr[`boost/openmethod/interop/std_unique_ptr.hpp`] to use
 `std::unique_ptr` in virtual parameters.
 
-*The remaining headers are for advanced use*.
+*The headers below are for advanced use*.
 
 ## Pre-Core Headers
 
