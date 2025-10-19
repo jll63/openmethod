@@ -99,6 +99,15 @@ struct init_type_ids<Registry, mp11::mp_list<Class...>> {
     }
 };
 
+template<class Base, class Derived>
+struct is_unambiguous_accessible_base_of : std::is_base_of<Base, Derived> {
+    static_assert(
+        std::is_base_of_v<Base, Derived> ==
+            std::is_convertible_v<Derived&, Base&>,
+        "class must be an accessible unambiguous base, repeated inheritance is not "
+        "supported");
+};
+
 // Collect the base classes of a list of classes. The result is a mp11 map that
 // associates each class to a list starting with the class itself, followed by
 // all its bases, as per std::is_base_of. Thus the list includes the class
@@ -108,7 +117,8 @@ struct init_type_ids<Registry, mp11::mp_list<Class...>> {
 template<typename... Cs>
 using inheritance_map = mp11::mp_list<boost::mp11::mp_push_front<
     boost::mp11::mp_filter_q<
-        boost::mp11::mp_bind_back<std::is_base_of, Cs>, mp11::mp_list<Cs...>>,
+        boost::mp11::mp_bind_back<is_unambiguous_accessible_base_of, Cs>,
+        mp11::mp_list<Cs...>>,
     Cs>...>;
 
 // =============================================================================

@@ -99,3 +99,5 @@ openmethod_compile_fail_test(
     compile_fail_virtual_parameter_private_base_macros "error")
 openmethod_compile_fail_test(
     compile_fail_virtual_parameter_private_base_core "must be an unambiguous accessible base")
+openmethod_compile_fail_test(
+    compile_fail_repeated_inheritance "repeated inheritance")
