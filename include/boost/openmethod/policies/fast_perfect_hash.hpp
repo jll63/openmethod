@@ -37,7 +37,7 @@ std::vector<type_id> fast_perfect_hash_control;
 
 namespace policies {
 
-//! Hash a @ref type_id using a fast, perfect hash function
+//! Hash type ids using a fast, perfect hash function.
 //!
 //! `fast_perfect_hash` implements the @ref type_hash policy using a hash
 //! function in the form `H(x)=(M*x)>>S`. It attempts to determine values for
@@ -68,7 +68,7 @@ struct fast_perfect_hash : type_hash {
 
     using errors = std::variant<search_error>;
 
-    //! A model of @ref type_hash::fn.
+    //! A TypeHashFn metafunction.
     //!
     //! @tparam Registry The registry containing this policy
     template<class Registry>

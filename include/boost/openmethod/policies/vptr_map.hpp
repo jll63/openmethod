@@ -21,12 +21,12 @@ namespace policies {
 //! If the registry contains the @ref indirect_vptr policy, `vptr_map` stores
 //! pointers to pointers to v-tables.
 //!
-//! @tparam MapFn A mp11 quoted meta-function that takes a key type and a
+//! @tparam MapFn A mp11 quoted metafunction that takes a key type and a
 //! value type, and returns an @ref AssociativeContainer.
 template<class MapFn = mp11::mp_quote<std::unordered_map>>
 class vptr_map : public vptr {
   public:
-    //! A model of @ref vptr::fn.
+    //! A VptrFn metafunction.
     //!
     //! @tparam Registry The registry containing this policy.
     template<class Registry>

@@ -23,7 +23,7 @@ namespace boost::openmethod::policies {
 //! TODO
 //! include::example$static_rtti.cpp[tag=all]
 struct static_rtti : rtti {
-    //! A (partial) model of @ref rtti::fn.
+    //! A RttiFn metafunction.
     //!
     //! @tparam Registry The registry containing this policy.
     template<class Registry>

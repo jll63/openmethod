@@ -14,5 +14,5 @@ struct abstract_policy {};
 ### Description
 
 `abstract_policy` is a required base class for a policy. It makes it possible
-for meta-functions such as `use_classes` to discriminate between user classes
+for metafunctions such as `use_classes` to discriminate between user classes
 and the (optional) policy class.

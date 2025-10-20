@@ -457,9 +457,14 @@ inline trace trace::from_env() {
 #endif
 }
 
-//! Namespace for the policies.
+//! Namespace for policies.
 //!
-//! @see @ref registry for an explanation of policies.
+//! Classes with snake case names are "blueprints", i.e. exposition-only classes
+//! that describe the requirements for policies of a given category. Classes
+//! implementing these blueprints must provide a `fn<Registry>` metafunction
+//! that conforms to the blueprint's requirements.
+//!
+//! @see @ref registry for a complete explanation of registries and policies.
 
 namespace policies {
 
@@ -483,7 +488,7 @@ struct IdsToVptr {
 
 #ifdef __MRDOCS__
 
-//! Blueprint for `rtti` meta-functions (exposition only).
+//! Blueprint for @ref rtti metafunctions (exposition only).
 template<class Registry>
 struct RttiFn {
     //! Tests if a class is polymorphic.
@@ -537,7 +542,7 @@ struct RttiFn {
 
 #endif
 
-//! Policy for type information.
+//! Policy for manipulating type information.
 //!
 //! `rtti` policies are responsible for type information acquisition and dynamic
 //! casting.
@@ -546,7 +551,7 @@ struct RttiFn {
 //!
 //! Classes implementing this policy must:
 //! @li derive from `rtti`.
-//! @li provide a `fn<Registry>` meta-function that conforms to the @ref RttiFn
+//! @li provide a `fn<Registry>` metafunction that conforms to the @ref RttiFn
 //! blueprint.
 struct rtti {
     // Policy category.
@@ -591,7 +596,7 @@ struct static_rtti;
 struct deferred_static_rtti : rtti {};
 
 #ifdef __MRDOCS__
-//! Blueprint for `error_handler` meta-functions (exposition only).
+//! Blueprint for @ref error_handler metafunctions (exposition only).
 template<class Registry>
 struct ErrorHandlerFn {
     //! Called when an error is detected.
@@ -612,7 +617,7 @@ struct ErrorHandlerFn {
 //!
 //! Classes implementing this policy must:
 //! @li derive from `error_handler`.
-//! @li provide a `fn<Registry>` meta-function that conforms to the @ref
+//! @li provide a `fn<Registry>` metafunction that conforms to the @ref
 //! ErrorHandlerFn blueprint.
 struct error_handler {
     // Policy category.
@@ -621,7 +626,7 @@ struct error_handler {
 
 #ifdef __MRDOCS__
 
-//! Blueprint for `vptr` meta-functions (exposition only).
+//! Blueprint for `vptr` metafunctions (exposition only).
 //!
 //! @tparam Registry The registry containing the policy.
 template<class Registry>
@@ -670,7 +675,7 @@ struct VptrFn {
 //!
 //! Classes implementing this policy must:
 //! @li derive from `vptr`.
-//! @li provide a `fn<Registry>` meta-function that conforms to the @ref
+//! @li provide a `fn<Registry>` metafunction that conforms to the @ref
 //! VptrFn blueprint.
 struct vptr {
     // Policy category.
@@ -692,7 +697,7 @@ struct indirect_vptr final {
 };
 
 #ifdef __MRDOCS__
-//! Blueprint for `type_hash` meta-functions (exposition only).
+//! Blueprint for @ref type_hash metafunctions (exposition only).
 //!
 //! @tparam Registry The registry containing the policy.
 template<class Registry>
@@ -728,13 +733,13 @@ struct TypeHashFn {
 };
 #endif
 
-//! Policy hashing type ids.
+//! Policy for hashing type ids.
 //!
 //! @par Requirements
 //!
 //! Classes implementing this policy must:
 //! @li derive from `rtti`.
-//! @li provide a `fn<Registry>` meta-function that conforms to the @ref
+//! @li provide a `fn<Registry>` metafunction that conforms to the @ref
 //! TypeHashFn blueprint.
 struct type_hash {
     // Policy category.
@@ -743,7 +748,7 @@ struct type_hash {
 
 #ifdef __MRDOCS__
 
-//! Blueprint for @ref output meta-functions (exposition only).
+//! Blueprint for @ref output metafunctions (exposition only).
 //!
 //! @tparam Registry The registry containing the policy.
 template<class Registry>
@@ -764,7 +769,7 @@ struct OutputFn {
 //!
 //! Classes implementing this policy must:
 //! @li derive from `output`.
-//! @li provide a `fn<Registry>` meta-function that conforms to the @ref
+//! @li provide a `fn<Registry>` metafunction that conforms to the @ref
 //! OutputFn blueprint.
 struct output {
     // Policy category.
@@ -878,7 +883,7 @@ struct initialize_aux;
 //! information, implements dynamic casting, etc. It can be replaced to
 //! interface with custom RTII systems (like LLVM's).
 //!
-//! Policies are implemented as Boost.MP11 quoted meta-functions. A policy class
+//! Policies are implemented as Boost.MP11 quoted metafunctions. A policy class
 //! must contain a `fn<Registry>` template that provides a set of static
 //! members, specific to the responsibility of the policy. Registries
 //! instantiate policies by passing themselves to the nested `fn` class
@@ -906,7 +911,7 @@ struct initialize_aux;
 //! @li `Policy` must contain a `category` alias to its root base class. The
 //! registry may contain at most one policy per category.
 //!
-//! @li `Policy` must contain a `fn<Registry>` meta-function.
+//! @li `Policy` must contain a `fn<Registry>` metafunction.
 //!
 //! @see @ref policies
 template<class... Policy>
@@ -976,7 +981,7 @@ class registry : detail::registry_base {
     //!
     //! `policy` searches for a policy that derives from the specified @ref
     //! Category. If none is found, it aliases to `void`. Otherwise, it aliases
-    //! to the policy's `fn` meta-function, applied to the registry.
+    //! to the policy's `fn` metafunction, applied to the registry.
     //!
     //! @tparam A policy.
     template<class Category>

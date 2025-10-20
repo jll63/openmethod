@@ -17,7 +17,7 @@ namespace boost::openmethod::policies {
 //! Throws error as an exception.
 //!
 struct throw_error_handler : error_handler {
-    //! A model of @ref error_handler::fn.
+    //! A ErrorHandlerFn metafunction.
     //!
     //! @tparam Registry The registry containing this policy.
     template<class Registry>

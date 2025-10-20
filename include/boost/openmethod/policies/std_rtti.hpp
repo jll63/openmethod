@@ -21,7 +21,7 @@ namespace boost::openmethod::policies {
 //! `std_rtti` implements the `rtti` policy using the standard C++ RTTI system.
 //! It is the default RTTI policy.
 struct std_rtti : rtti {
-    //! A model of @ref rtti::fn.
+    //! A RttiFn metafunction.
     //!
     //! @tparam Registry The registry containing this policy.
     template<class Registry>

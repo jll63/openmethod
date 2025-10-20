@@ -35,7 +35,7 @@ namespace policies {
 //! pointers to v-tables in the vector.
 struct vptr_vector : vptr {
   public:
-    //! A model of @ref vptr::fn.
+    //! A VptrFn metafunction.
     //!
     //! Keeps track of v-table pointers using a `std::vector`.
     //!

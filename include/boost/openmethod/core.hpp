@@ -402,11 +402,8 @@ using use_classes_tuple_type = boost::mp11::mp_apply<
 //! such object per class. The only such case known to the author is when using
 //! Windows DLLs.
 //!
-//! Virtual and multiple inheritance are supported, as long as it is possible to
-//! cast the virtual arguments of a method call to the types required by the
-//! overriders. The registry's `rtti` policy defines which casts are possible.
-//! For the @ref policies::std_rtti (the default), some scenarios involving
-//! repeated inheritance may not allow the cast.
+//! Virtual and multiple inheritance are supported, with the exclusion of
+//! repeated inheritance.
 template<class... Classes>
 class use_classes {
     detail::use_classes_tuple_type<Classes...> tuple;
@@ -2084,7 +2081,7 @@ struct validate_method_parameter<
 //!    if it can be called with the arguments passed to the method.
 //!
 //! 2. If the set is empty, call the error handler (if present in the
-//!    policy), then terminate the program with `abort`.
+//!    registry), then terminate the program with `abort`.
 //!
 //! 3. Remove the overriders that are dominated by other overriders in the
 //!    set. Overrider A dominates overrider B if any of its virtual formal
@@ -2235,13 +2232,14 @@ class method<Id, ReturnType(Parameters...), Registry>
     //! @li Have the same number of formal parameters as the method.
     //!
     //! @li Each `virtual_ptr<T>` in the method's parameter list must have a
-    //! corresponding `virtual_ptr<U> in the same position in the overrider's
-    //! parameter list. The registry's `rtti` policy must have a
-    //! `dynamic_cast_ref` that can cast `virtual_ptr<T>` to `virtual_ptr<U>`.
+    //! corresponding `virtual_ptr<U>` parameter in the same position in the
+    //! overrider's parameter list, such that `U` is the same as `T`, or has
+    //! `T` as an accessible unambiguous base.
     //!
     //! @li Each `virtual_<T>` in the method's parameter list must have a
-    //! corresponding parameter `U` that the registry's `rtti` policy can cast
-    //! from `T` to `U`. Note: `U` must *not* be decorated with `virtual_<>`.
+    //! corresponding `U` parameter in the same position in the overrider's
+    //! parameter list, such that `U` is the same as `T`, or has `T` as an
+    //! accessible unambiguous base.
     //!
     //! @li All other formal parameters must have the same type as the method's
     //! corresponding parameters.
