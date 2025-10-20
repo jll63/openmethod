@@ -75,6 +75,11 @@ struct virtual_traits;
 //! Base class for all OpenMethod errors.
 struct openmethod_error {};
 
+//! One Definition Rule violation.
+//!
+//! This error is raised if the definition of @ref default_registry is
+//! inconsistent across translation units, due to misuse of
+//! [BOOST_OPENMETHOD_ENABLE_RUNTIME_CHECKS](../BOOST_OPENMETHOD_ENABLE_RUNTIME_CHECKS.html).
 struct odr_violation : openmethod_error {
     //! Write a description of the error to a stream.
     //! @tparam Registry The registry containing this policy.
@@ -87,6 +92,8 @@ struct odr_violation : openmethod_error {
     }
 };
 
+namespace detail {
+
 template<class Registry>
 struct odr_check {
     static std::size_t count;
@@ -98,14 +105,14 @@ struct odr_check {
     }
 };
 
-#ifndef BOOST_OPENMETHOD_IMPORT
 template<class Registry>
 std::size_t odr_check<Registry>::count;
 
 template<class Registry>
 template<class R>
 std::size_t odr_check<Registry>::inc = count++;
-#endif
+
+}
 
 //! Registry not initialized
 struct not_initialized : openmethod_error {
@@ -1048,7 +1055,6 @@ class registry : detail::registry_base {
         !std::is_same_v<policy<policies::indirect_vptr>, void>;
 };
 
-#ifndef BOOST_OPENMETHOD_IMPORT
 template<class... Policies>
 detail::class_catalog registry<Policies...>::classes;
 
@@ -1064,7 +1070,6 @@ bool registry<Policies...>::initialized;
 template<class... Policies>
 template<class Class>
 vptr_type registry<Policies...>::static_vptr;
-#endif
 
 template<class... Policies>
 void registry<Policies...>::require_initialized() {

@@ -1575,7 +1575,7 @@ inline auto initialize(Options&&... options) {
         (std::is_base_of_v<detail::option_base, Options> && ...),
         "invalid option type");
 
-    if (odr_check<Registry>::count > 1) {
+    if (detail::odr_check<Registry>::count > 1) {
         // Multiple definitions of default_registry detected.
         // This indicates an ODR violation.
         // Signal a final_error using the error handler, then abort.

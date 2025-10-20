@@ -45,7 +45,7 @@ For each virtual argument `arg`, the dispatch mechanism calls
 1. If `result` is a `virtual_ptr`, get the pointer to the v-table from it.
 2. If `boost_openmethod_vptr` can be called with `result` and a `Registry*`,
    and it returns a `vptr_type`, call it.
-3. Call `Registry::rtti::dynamic_vptr(result)`.
+3. Call `Registry::vptr::dynamic_vptr(result)`.
 
 
 The macro creates an ordinary inline function in the current scope, with the
