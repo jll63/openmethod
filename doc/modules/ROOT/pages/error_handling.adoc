@@ -1,12 +1,12 @@
 
 ## Error Handling
 
-Errors can occur during @ref initialize, or during method dispatch, if the
-method's registry contains the @ref runtime_checks policy. If the registry
-contains an @ref error_handler policy, its @ref error_handler::error member
+Errors can occur during `initialize`, or during method dispatch, if the
+method's registry contains the `runtime_checks` policy. If the registry
+contains an `error_handler` policy, its `error_handler::error` member
 function is called with a variant containing an error object, before terminating
-the program with a call to `abort`. @ref default_registry contains such a
-policy: @ref default_error_handler. It wraps the error object in a variant, and
+the program with a call to `abort`. `default_registry` contains such a
+policy: `default_error_handler`. It wraps the error object in a variant, and
 calls a handler via a `std::function`. By default, it prints a short description
 of the error to `stderr`, but this can be changed, for example, to throw an
 exception:
