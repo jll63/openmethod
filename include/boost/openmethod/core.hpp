@@ -2822,7 +2822,7 @@ struct VirtualTraits {
     //! etc.
     using virtual_type = detail::unspecified;
 
-    //! Return a reference to the object to use for dispatch.
+    //! Returns a reference to the object to use for dispatch.
     //!
     //! Return a reference to the object to use for dispatch. `arg` may not be
     //! copied, moved or altered in any way.
@@ -2831,13 +2831,14 @@ struct VirtualTraits {
     //! @return A reference to an object.
     static auto peek(T arg) -> const virtual_type&;
 
-    //! Cast virtual argument.
+    //! Casts a virtual argument.
     //!
-    //! Cast virtual argument to the type expected by the overrider.
+    //! Casts a virtual argument to the type expected by the overrider.
     //!
-    //! @tparam U The type to cast to.
-    //! @param arg An argument passed to the method call.
-    //! @return A reference to an object.
+    //! @tparam T The type of a virtual parameter of a method.
+    //! @tparam U The type of a virtual parameter of an overrider.
+    //! @param arg The argument passed to a method call.
+    //! @return A reference to the argument, cast to `U`.
     template<typename U>
     static auto cast(T arg) -> U;
 
@@ -2846,9 +2847,9 @@ struct VirtualTraits {
     //! If `T` is a smart pointer, `rebind<U>` is the same kind of smart
     //! pointer, but pointing to a `U`.
     //!
-    //! @note `rebind` must be implemented @em only for smart pointer types that
-    //! can be used as object pointers by @ref virtual_ptr in place of plain
-    //! pointers.
+    //! @note `rebind` must be implemented @em only for smart pointer classes
+    //! that can be used as object pointers by @ref virtual_ptr in place of
+    //! plain pointers.
     //!
     //! @tparam U The new element type.
     template<class U>
