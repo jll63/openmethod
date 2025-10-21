@@ -43,7 +43,9 @@ struct Pet : bom::inplace_vptr_base<Pet> {
     std::ostream& os;
 };
 
-struct DomesticCat : Cat, Pet, bom::inplace_vptr_derived<DomesticCat, Cat, Pet> {
+struct DomesticCat : Cat,
+                     Pet,
+                     bom::inplace_vptr_derived<DomesticCat, Cat, Pet> {
     explicit DomesticCat(std::ostream& os);
     ~DomesticCat();
 };

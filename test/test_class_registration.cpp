@@ -41,7 +41,6 @@ BOOST_AUTO_TEST_CASE(unknown_class_overrider) {
 
 } // namespace TEST_NS
 
-
 namespace TEST_NS {
 
 struct registry : test_registry_<__COUNTER__>::with<
@@ -61,7 +60,6 @@ BOOST_AUTO_TEST_CASE(missing_base_class) {
 }
 
 } // namespace TEST_NS
-
 
 namespace TEST_NS {
 

@@ -24,8 +24,8 @@ struct poke;
 auto poke_cat(virtual_ptr<Cat>) -> void {
 }
 
-BOOST_OPENMETHOD_REGISTER(method<poke, void(virtual_ptr<Animal>)>::override<poke_cat>);
-
+BOOST_OPENMETHOD_REGISTER(
+    method<poke, void(virtual_ptr<Animal>)>::override<poke_cat>);
 
 int main() {
 }

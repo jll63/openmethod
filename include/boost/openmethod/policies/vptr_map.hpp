@@ -48,7 +48,7 @@ class vptr_map : public vptr {
         template<class ForwardIterator, class... Options>
         static void initialize(
             ForwardIterator first, ForwardIterator last,
-            std::tuple<Options...> opts) {
+            std::tuple<Options...>) {
             decltype(vptrs) new_vptrs;
 
             for (auto iter = first; iter != last; ++iter) {

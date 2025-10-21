@@ -340,10 +340,9 @@ BOOST_AUTO_TEST_CASE(simple) {
         BOOST_TEST(
             !detail::vptr_vector_vptrs<test_registry::registry_type>.empty());
         test_registry::finalize();
-        static_assert(
-            detail::has_finalize_aux<
-                void,
-                test_registry::policy<policies::vptr>, std::tuple<>>::value);
+        static_assert(detail::has_finalize_aux<
+                      void, test_registry::policy<policies::vptr>,
+                      std::tuple<>>::value);
         BOOST_TEST(
             detail::vptr_vector_vptrs<test_registry::registry_type>.empty());
     }

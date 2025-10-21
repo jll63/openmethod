@@ -194,7 +194,7 @@ BOOST_AUTO_TEST_CASE(bad_call) {
 }
 
 BOOST_AUTO_TEST_CASE(bad_call_type_ids) {
-    auto report = initialize<registry>().report;
+    initialize<registry>();
     registry::capture capture;
 
     try {

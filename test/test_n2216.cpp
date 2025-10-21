@@ -45,8 +45,9 @@ BOOST_OPENMETHOD_OVERRIDE(
     return std::make_unique<matrix>();
 }
 
-static_assert(std::is_same_v<
-              detail::virtual_type<std::unique_ptr<matrix>, test_registry>, matrix>);
+static_assert(
+    std::is_same_v<
+        detail::virtual_type<std::unique_ptr<matrix>, test_registry>, matrix>);
 
 BOOST_AUTO_TEST_CASE(covariant_return_type) {
     auto compiler = boost::openmethod::initialize<test_registry>(n2216());

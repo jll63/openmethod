@@ -150,7 +150,7 @@ struct fast_perfect_hash : type_hash {
         //! arguments.
         //! @param options Zero or more option objects.
         template<class... Options>
-        static auto finalize(std::tuple<Options...> opts) -> void {
+        static auto finalize(std::tuple<Options...>) -> void {
             detail::fast_perfect_hash_control<Registry>.clear();
         }
     };

@@ -104,7 +104,8 @@ struct is_unambiguous_accessible_base_of : std::is_base_of<Base, Derived> {
     static_assert(
         std::is_base_of_v<Base, Derived> ==
             std::is_convertible_v<Derived&, Base&>,
-        "class must be an accessible unambiguous base, repeated inheritance is not "
+        "class must be an accessible unambiguous base, repeated inheritance is "
+        "not "
         "supported");
 };
 

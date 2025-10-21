@@ -10,6 +10,7 @@ struct Cat {};
 int main() {
     Cat felix;
     boost::openmethod::virtual_ptr<Cat> p(felix);
+    (void)p;
 
     return 0;
 }

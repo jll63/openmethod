@@ -37,8 +37,7 @@ namespace boost::openmethod {
 //! including those pulled from libraries.
 struct default_registry
     : registry<
-          policies::std_rtti, policies
-          ::vptr_vector,
+          policies::std_rtti, policies ::vptr_vector,
           policies::fast_perfect_hash, policies::default_error_handler,
           policies::stderr_output
 #ifdef BOOST_OPENMETHOD_ENABLE_RUNTIME_CHECKS

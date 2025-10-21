@@ -68,7 +68,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(
         BOOST_TEST(p.get() == snoopy.get());
         BOOST_TEST(p.vptr() == Registry::template static_vptr<Dog>);
 
-        p = p;
+        p = *&p;
         BOOST_TEST(p.get() == snoopy.get());
         BOOST_TEST(p.vptr() == Registry::template static_vptr<Dog>);
 
@@ -294,7 +294,7 @@ BOOST_AUTO_TEST_CASE(cast_shared_ptr_lvalue_reference) {
 
 bool cast_moves() {
     std::shared_ptr<Animal> animal = std::make_shared<Dog>();
-    std::static_pointer_cast<Dog>(animal);
+    (void) std::static_pointer_cast<Dog>(animal);
 
     return animal.get() == nullptr;
 }

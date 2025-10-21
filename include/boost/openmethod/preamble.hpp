@@ -112,7 +112,7 @@ template<class Registry>
 template<class R>
 std::size_t odr_check<Registry>::inc = count++;
 
-}
+} // namespace detail
 
 //! Registry not initialized
 struct not_initialized : openmethod_error {
