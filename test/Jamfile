@@ -14,7 +14,10 @@ import config : requires ;
 project
   : requirements
 
-    [ requires cxx11_variadic_templates cxx11_template_aliases cxx11_decltype cxx11_hdr_tuple ]
+    [ requires cxx17_auto_nontype_template_params cxx17_deduction_guides
+      cxx17_fold_expressions cxx17_hdr_charconv cxx17_hdr_string_view
+      cxx17_hdr_variant cxx17_if_constexpr cxx17_inline_variables
+      cxx17_structured_bindings ]
 
     <library>/boost/openmethod//boost_openmethod
 
