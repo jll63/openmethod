@@ -6,7 +6,7 @@
 * xref:namespaces.adoc[Namespaces]
 * xref:friendship.adoc[Friendship]
 * xref:multiple_dispatch.adoc[Multiple Dispatch]
-* xref:advanced_features.adoc[Advanced Features]
+* Advanced Features
 ** xref:core_api.adoc[Core API]
 ** xref:registries_and_policies.adoc[Registries and Policies]
 ** xref:custom_rtti.adoc[Custom RTTI]
