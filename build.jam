@@ -15,12 +15,12 @@ constant boost_dependencies
 
 project /boost/openmethod ;
 
-alias boost_open_method
+alias boost_openmethod
     : usage-requirements
       <include>include
       <library>$(boost_dependencies)
     ;
-alias all : boost_open_method test ;
+alias all : boost_openmethod test ;
 explicit all ;
 
 call-if : boost-library openmethod ;

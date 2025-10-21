@@ -16,7 +16,7 @@ project
 
     [ requires cxx11_variadic_templates cxx11_template_aliases cxx11_decltype cxx11_hdr_tuple ]
 
-    <library>/boost/open_method//boost_open_method
+    <library>/boost/openmethod//boost_openmethod
 
     <warnings>extra
 
