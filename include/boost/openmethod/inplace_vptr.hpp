@@ -1,5 +1,5 @@
-#ifndef BOOST_OPENMETHOD_inplace_vptr_HPP
-#define BOOST_OPENMETHOD_inplace_vptr_HPP
+#ifndef BOOST_OPENMETHOD_INPLACE_VPTR_HPP
+#define BOOST_OPENMETHOD_INPLACE_VPTR_HPP
 
 #include <boost/openmethod/core.hpp>
 
@@ -68,7 +68,7 @@ class inplace_vptr_base_tag {};
 //!
 //! `inplace_vptr_base` registers the class in `Registry`. It is not necessary
 //! to register the class with @ref use_class or
-//! [BOOST_OPENMETHOD_REGISTER](../BOOST_OPENMETHOD_REGISTER.html)
+//! {{BOOST_OPENMETHOD_REGISTER}}
 //!
 //! The v-table pointer is obtained directly from the `Registry`\'s @ref
 //! static_vptr variable. No hashing is involved. If all the classes in
@@ -81,7 +81,7 @@ class inplace_vptr_base_tag {};
 //! to @ref initialize.
 //!
 //! The default value of `Registry` can be changed by defining
-//! [BOOST_OPENMETHOD_DEFAULT_REGISTRY](../BOOST_OPENMETHOD_DEFAULT_REGISTRY.html)
+//! {{BOOST_OPENMETHOD_DEFAULT_REGISTRY}}
 //!
 //! @tparam Class The class in which to embed the v-table pointer.
 //! @tparam Registry The @ref registry in which `Class` and its derived classes
@@ -167,7 +167,7 @@ class inplace_vptr_base : protected detail::inplace_vptr_base_tag {
 //!
 //! `inplace_vptr_derived` registers the class and its bases in `Registry`. It
 //! is not necessary to register them with @ref use_class or
-//! [BOOST_OPENMETHOD_REGISTER](../BOOST_OPENMETHOD_REGISTER.html)
+//! {{BOOST_OPENMETHOD_REGISTER}}
 //!
 //! The v-table pointer is obtained directly from the `Registry`\'s @ref
 //! static_vptr variable. No hashing is involved. If all the classes in

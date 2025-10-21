@@ -1507,7 +1507,7 @@ void registry<Policies...>::compiler<Options...>::print(
 //! Initialize the @ref registry  passed as an explicit function template
 //! argument, or @ref default_registry if the registry is not specified. The
 //! default can be changed by defining
-//! [BOOST_OPENMETHOD_DEFAULT_REGISTRY](../BOOST_OPENMETHOD_DEFAULT_REGISTRY.html).
+//! {{BOOST_OPENMETHOD_DEFAULT_REGISTRY}}.
 //! Option objects can be passed to change the behavior of the function.
 //! Currently two options exist:
 //! @li @ref trace Enable tracing of the initialization process.

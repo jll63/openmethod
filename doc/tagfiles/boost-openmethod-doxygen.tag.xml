@@ -27,7 +27,6 @@
   <class kind="class">boost::openmethod::n2216</class>
   <class kind="class">boost::openmethod::no_overrider</class>
   <class kind="class">boost::openmethod::not_initialized</class>
-  <class kind="class">boost::openmethod::odr_check</class>
   <class kind="class">boost::openmethod::odr_violation</class>
   <class kind="class">boost::openmethod::openmethod_error</class>
   <class kind="class">boost::openmethod::registry</class>
@@ -590,17 +589,6 @@
   </member>
 </compound>
 <compound kind="class">
-  <name>boost::openmethod::odr_check</name>
-  <filename>boost/openmethod/odr_check.adoc</filename>
-  <member kind="function">
-    <type>void</type>
-    <name>odr_check</name>
-    <anchorfile>boost/openmethod/odr_check/2constructor.adoc</anchorfile>
-    <anchor/>
-    <arglist>()</arglist>
-  </member>
-</compound>
-<compound kind="class">
   <name>boost::openmethod::odr_violation</name>
   <filename>boost/openmethod/odr_violation.adoc</filename>
   <member kind="function">
@@ -617,18 +605,18 @@
 </compound>
 <compound kind="class">
   <name>boost::openmethod::registry</name>
-  <filename>boost/openmethod/registry-07.adoc</filename>
+  <filename>boost/openmethod/registry-07c.adoc</filename>
   <member kind="function">
     <type>void</type>
     <name>require_initialized</name>
-    <anchorfile>boost/openmethod/registry-07/require_initialized.adoc</anchorfile>
+    <anchorfile>boost/openmethod/registry-07c/require_initialized.adoc</anchorfile>
     <anchor/>
     <arglist>()</arglist>
   </member>
   <member kind="function">
     <type>void</type>
     <name>finalize</name>
-    <anchorfile>boost/openmethod/registry-07/finalize.adoc</anchorfile>
+    <anchorfile>boost/openmethod/registry-07c/finalize.adoc</anchorfile>
     <anchor/>
     <arglist>(...Options opts)</arglist>
   </member>

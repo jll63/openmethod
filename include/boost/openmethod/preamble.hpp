@@ -79,7 +79,7 @@ struct openmethod_error {};
 //!
 //! This error is raised if the definition of @ref default_registry is
 //! inconsistent across translation units, due to misuse of
-//! [BOOST_OPENMETHOD_ENABLE_RUNTIME_CHECKS](../BOOST_OPENMETHOD_ENABLE_RUNTIME_CHECKS.html).
+//! {{BOOST_OPENMETHOD_ENABLE_RUNTIME_CHECKS}}.
 struct odr_violation : openmethod_error {
     //! Write a description of the error to a stream.
     //! @tparam Registry The registry containing this policy.

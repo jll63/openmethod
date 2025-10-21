@@ -18,7 +18,7 @@ namespace boost::openmethod {
 //! Default registry.
 //!
 //! `default_registry` is a predefined @ref registry, and the default value of
-//! [BOOST_OPENMETHOD_DEFAULT_REGISTRY](../BOOST_OPENMETHOD_DEFAULT_REGISTRY.html).
+//! {{BOOST_OPENMETHOD_DEFAULT_REGISTRY}}.
 //! It contains the following policies:
 //! @li @ref policies::std_rtti: Use standard RTTI.
 //! @li @ref policies::fast_perfect_hash: Use a fast perfect hash function to
@@ -28,7 +28,7 @@ namespace boost::openmethod {
 //! @li @ref policies::stderr_output: Write messages to `stderr`.
 //!
 //! If
-//! [BOOST_OPENMETHOD_ENABLE_RUNTIME_CHECKS](../BOOST_OPENMETHOD_ENABLE_RUNTIME_CHECKS.html)
+//! {{BOOST_OPENMETHOD_ENABLE_RUNTIME_CHECKS}}
 //! is defined, `default_registry` also includes the @ref runtime_checks policy.
 //!
 //! @note Use `BOOST_OPENMETHOD_ENABLE_RUNTIME_CHECKS` with caution, as
