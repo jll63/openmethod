@@ -37,11 +37,10 @@ inline auto postfix(virtual_ptr<const Node> node, std::ostream& os) -> void {
 Before we can call the method, we need to define overriders. For that we use the
 xref:BOOST_OPENMETHOD_OVERRIDE.adoc[BOOST_OPENMETHOD_OVERRIDE] macro:
 
-```c++
-BOOST_OPENMETHOD_OVERRIDE(postfix, (virtual_ptr<const Variable> var, std::ostream& os), void) {
-    os << var->v;
-}
-```
+[source,cpp]
+----
+include::{examplesdir}/ast.cpp[tag=variable_overrider]
+----
 
 The overrider must have virtual parameters in the same positions as in the
 method. The classes in the method's virtual parameters must be accessible,
@@ -53,13 +52,10 @@ The non-virtual parameters must have exactly the same types as in the method.
 
 Let's look at another overrider:
 
-```c++
-BOOST_OPENMETHOD_OVERRIDE(postfix, (virtual_ptr<const Plus> plus, std::ostream& os), void) {
-    postfix(plus->left, os);
-    os << ' ';
-    postfix(plus->right, os);
-}
-```
+[source,cpp]
+----
+include::{examplesdir}/ast.cpp[tag=plus_overrider]
+----
 
 This one calls `postfix` recursively to print the left and right
 sub-expressions. Note that we call the method just like an ordinary function.
@@ -67,18 +63,20 @@ sub-expressions. Note that we call the method just like an ordinary function.
 `postfix` expects a `virtual_ptr<const Node>`, and we are passing it a _plain_
 _reference_ to a `Plus` object. This works because `virtual_ptr` has conversion
 constructors from plain references or pointers to an object, or from other
-`virtual_ptr` to compatible classes.
+`virtual_ptr`{empty}s to compatible classes.
 
 There are two more things we need to do.
 
 OpenMethod is a library, not a compiler. It needs to be made aware of all the
 classes that may be used as virtual parameters, and in method calls, and their
-inheritance relationships. We do this using the
+inheritance relationships. We do this with the
 xref:BOOST_OPENMETHOD_CLASSES.adoc[BOOST_OPENMETHOD_CLASSES] macro:
 
-```c++
-BOOST_OPENMETHOD_CLASSES(Node, Variable, Plus, Times);
-```
+
+[source,cpp]
+----
+include::{examplesdir}/ast.cpp[tag=class_registration]
+----
 
 Classes can be registered multiple times, in any order, and incrementally. Every
 direct base of a class must appear together with it in at least one call to

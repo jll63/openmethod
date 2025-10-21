@@ -43,11 +43,14 @@ using boost::openmethod::virtual_ptr;
 
 BOOST_OPENMETHOD(postfix, (virtual_ptr<const Node> node, std::ostream& os), void);
 
+// tag::variable_overrider[]
 BOOST_OPENMETHOD_OVERRIDE(
     postfix, (virtual_ptr<const Variable> var, std::ostream& os), void) {
     os << var->v;
 }
+// end::variable_overrider[]
 
+// tag::plus_overrider[]
 BOOST_OPENMETHOD_OVERRIDE(
     postfix, (virtual_ptr<const Plus> plus, std::ostream& os), void) {
     postfix(plus->left, os);
@@ -55,6 +58,7 @@ BOOST_OPENMETHOD_OVERRIDE(
     postfix(plus->right, os);
     os << " +";
 }
+// end::plus_overrider[]
 
 BOOST_OPENMETHOD_OVERRIDE(
     postfix, (virtual_ptr<const Times> times, std::ostream& os), void) {
@@ -64,7 +68,9 @@ BOOST_OPENMETHOD_OVERRIDE(
     os << " *";
 }
 
+// tag::class_registration[]
 BOOST_OPENMETHOD_CLASSES(Node, Variable, Plus, Times);
+// end::class_registration[]
 
 int main() {
     boost::openmethod::initialize();
