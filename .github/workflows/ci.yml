@@ -23,7 +23,7 @@ permissions:
 on:
   pull_request:
   push:
-    branches: 
+    branches:
       - master
       - develop
       - bugfix/**
@@ -52,6 +52,7 @@ jobs:
       COVERITY_SCAN_TOKEN: ${{ secrets.COVERITY_SCAN_TOKEN }}
 
   antora:
+    if: ${{ (github.repository_owner == 'boostorg' && github.ref_name == 'master') || (github.repository_owner == 'jll63' && github.ref_name == 'feature/doc') }}
     name: Antora Docs
     runs-on: ubuntu-latest
     defaults:
