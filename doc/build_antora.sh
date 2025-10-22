@@ -19,6 +19,9 @@ if [ $# -eq 0 ]
     PLAYBOOK=$1
 fi
 
+SCRIPT_DIR=$( cd -- "$( dirname -- "${BASH_SOURCE[0]}" )" &> /dev/null && pwd )
+cd "$SCRIPT_DIR"
+
 echo "Building documentation with Antora..."
 echo "Installing npm dependencies..."
 npm ci
