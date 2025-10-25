@@ -123,11 +123,9 @@ struct default_error_handler : error_handler {
     };
 };
 
-#ifndef BOOST_OPENMETHOD_IMPORT
 template<class Registry>
 typename default_error_handler::fn<Registry>::function_type
     default_error_handler::fn<Registry>::handler = default_handler;
-#endif
 
 } // namespace boost::openmethod::policies
 

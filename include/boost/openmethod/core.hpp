@@ -366,11 +366,9 @@ struct use_class_aux<Registry, mp11::mp_list<Class, Bases...>>
     }
 };
 
-#ifndef BOOST_OPENMETHOD_IMPORT
 template<class Registry, class Class, typename... Bases>
 type_id use_class_aux<
     Registry, mp11::mp_list<Class, Bases...>>::bases[sizeof...(Bases)];
-#endif
 
 template<class... Classes>
 using use_classes_tuple_type = boost::mp11::mp_apply<
@@ -2348,8 +2346,6 @@ class method<Id, ReturnType(Parameters...), Registry>
     };
 };
 
-#ifndef BOOST_OPENMETHOD_IMPORT
-
 template<
     typename Id, typename... Parameters, typename ReturnType, class Registry>
 method<Id, ReturnType(Parameters...), Registry>
@@ -2374,8 +2370,6 @@ typename method<Id, ReturnType(Parameters...), Registry>::
     template override_impl<Function, FnReturnType>
         method<Id, ReturnType(Parameters...), Registry>::override_aux<
             Function, FnReturnType (*)(FnParameters...)>::impl;
-
-#endif
 
 template<
     typename Id, typename... Parameters, typename ReturnType, class Registry>

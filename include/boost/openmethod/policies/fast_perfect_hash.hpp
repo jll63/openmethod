@@ -156,7 +156,6 @@ struct fast_perfect_hash : type_hash {
     };
 };
 
-#ifndef BOOST_OPENMETHOD_IMPORT
 template<class Registry>
 std::size_t fast_perfect_hash::fn<Registry>::mult;
 
@@ -168,7 +167,6 @@ std::size_t fast_perfect_hash::fn<Registry>::min_value;
 
 template<class Registry>
 std::size_t fast_perfect_hash::fn<Registry>::max_value;
-#endif
 
 template<class Registry>
 template<class ForwardIterator, class... Options>

@@ -23,12 +23,8 @@ struct stderr_output : output {
     };
 };
 
-#ifndef BOOST_OPENMETHOD_IMPORT
-
 template<class Registry>
 detail::ostderr stderr_output::fn<Registry>::os;
-
-#endif
 
 } // namespace boost::openmethod::policies
 
