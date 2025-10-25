@@ -41,7 +41,7 @@ function(add_step_by_step dir)
     set(target "${dir}_${subex}")
     add_executable(${target} ${cpp_files})
     target_link_libraries(${target} PUBLIC Boost::openmethod)
-    set(output_dir "${CMAKE_BINARY_DIR}/${subdir}")
+    set(output_dir "${subdir}")
     set_target_properties(${target} PROPERTIES
       RUNTIME_OUTPUT_DIRECTORY "${output_dir}"
       LIBRARY_OUTPUT_DIRECTORY "${output_dir}"
