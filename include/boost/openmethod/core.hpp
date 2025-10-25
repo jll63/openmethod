@@ -2810,10 +2810,10 @@ template<typename T, class Registry>
 struct VirtualTraits {
     //! Class to use for dispatch.
     //!
-    //! This is the class that is used during method dispatch to determine which
-    //! overrider to select, and which type_id to use for error reporting.
-    //! `virtual_type` aliases to `Class` if `T` is `Class&`, `const
-    //! Class&`, `Class\*`, `const Class\*`, `virtual_ptr<Class>`,
+    //! Aliases to the class to be considered during method dispatch to determine
+    //! which overrider to select, and which type_id to use for error reporting.
+    //! `virtual_traits<T>::virtual_type` aliases to `Class` if `T` is `Class&`,
+    //! `const Class&`, `Class*`, `const Class*`, `virtual_ptr<Class>`,
     //! `virtual_ptr<const Class>`, `std::shared_ptr<Class>`,
     //! `std::shared_ptr<const Class>`, `virtual_ptr<std::shared_ptr<Class>>`,
     //! etc.
