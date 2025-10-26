@@ -294,7 +294,7 @@ BOOST_AUTO_TEST_CASE(cast_shared_ptr_lvalue_reference) {
 
 bool cast_moves() {
     std::shared_ptr<Animal> animal = std::make_shared<Dog>();
-    (void) std::static_pointer_cast<Dog>(animal);
+    (void)std::static_pointer_cast<Dog>(animal);
 
     return animal.get() == nullptr;
 }

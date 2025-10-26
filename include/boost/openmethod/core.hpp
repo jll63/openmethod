@@ -2792,10 +2792,6 @@ using boost::openmethod::virtual_ptr;
 
 #ifdef __MRDOCS__
 
-namespace detail {
-struct unspecified;
-}
-
 //! Blueprint for a specialization of @ref virtual_traits (exposition only).
 //!
 //! Specializations of @ref virtual_traits must implement the members listed

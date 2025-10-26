@@ -182,7 +182,17 @@ struct generic_compiler {
 
         return nullptr;
     }
+
     std::deque<class_> classes;
+
+    auto classes_begin() const {
+        return classes.begin();
+    }
+
+    auto classes_end() const {
+        return classes.end();
+    }
+
     std::vector<method> methods;
     std::size_t class_mark = 0;
     bool compilation_done = false;
@@ -190,15 +200,12 @@ struct generic_compiler {
 
 template<class Compiler>
 struct trace_stream {
-    trace_stream(bool trace) : trace(trace) {
-    }
-
-    bool trace;
+    bool on = false;
     std::size_t indentation_level{0};
 
     auto operator++() -> trace_stream& {
         if constexpr (Compiler::has_trace) {
-            if (trace) {
+            if (on) {
                 for (std::size_t i = 0; i < indentation_level; ++i) {
                     Compiler::Registry::output::os << "  ";
                 }
@@ -296,7 +303,7 @@ struct range;
 template<class Compiler, typename T, typename F>
 auto write_range(trace_stream<Compiler>& tr, range<T> range, F fn) -> auto& {
     if constexpr (Compiler::has_trace) {
-        if (tr.trace) {
+        if (tr.on) {
             tr << "(";
             const char* sep = "";
             for (auto value : range) {
@@ -314,7 +321,7 @@ auto write_range(trace_stream<Compiler>& tr, range<T> range, F fn) -> auto& {
 template<class Compiler, typename T>
 auto operator<<(trace_stream<Compiler>& tr, const T& value) -> auto& {
     if constexpr (Compiler::has_trace) {
-        if (tr.trace) {
+        if (tr.on) {
             Compiler::Registry::output::os << value;
         }
     }
@@ -324,7 +331,7 @@ auto operator<<(trace_stream<Compiler>& tr, const T& value) -> auto& {
 template<class Compiler>
 auto operator<<(trace_stream<Compiler>& tr, const rflush& rf) -> auto& {
     if constexpr (Compiler::has_trace) {
-        if (tr.trace) {
+        if (tr.on) {
             std::size_t digits = 1;
             auto tmp = rf.value / 10;
 
@@ -349,7 +356,7 @@ template<class Compiler>
 auto operator<<(trace_stream<Compiler>& tr, const boost::dynamic_bitset<>& bits)
     -> auto& {
     if constexpr (Compiler::has_trace) {
-        if (tr.trace) {
+        if (tr.on) {
             auto i = bits.size();
             while (i != 0) {
                 --i;
@@ -388,9 +395,6 @@ template<class... Options>
 struct registry<Policies...>::compiler : detail::generic_compiler {
     using type_index_type = decltype(rtti::type_index(0));
 
-    static constexpr bool use_n2216 =
-        mp11::mp_contains<mp11::mp_list<Options...>, n2216>::value;
-
     typename detail::aggregate_reports<mp11::mp_list<report>, policy_list>::type
         report;
 
@@ -425,10 +429,15 @@ struct registry<Policies...>::compiler : detail::generic_compiler {
     is_more_specific(const overrider* a, const overrider* b) -> bool;
     static auto is_base(const overrider* a, const overrider* b) -> bool;
 
-    std::tuple<Options...> opts;
-    static constexpr bool has_trace =
-        mp11::mp_contains<mp11::mp_list<Options...>, openmethod::trace>::value;
-    bool trace = false;
+    std::tuple<Options...> options;
+
+    template<class Option>
+    static constexpr bool has_option =
+        mp11::mp_contains<mp11::mp_list<Options...>, Option>::value;
+
+    static constexpr bool has_trace = has_option<trace>;
+    static constexpr bool has_n2216 = has_option<n2216>;
+
     mutable detail::trace_stream<compiler> tr;
     using indent = typename detail::trace_stream<compiler>::indent;
 };
@@ -467,11 +476,42 @@ void registry<Policies...>::compiler<Options...>::initialize() {
     registry<Policies...>::initialized = true;
 }
 
+#ifdef _MSC_VER
+namespace detail {
+
+template<bool HasTrace, typename T>
+struct msvc_tuple_get;
+
+template<typename T>
+struct msvc_tuple_get<true, T> {
+    template<class Tuple>
+    static decltype(auto) fn(const Tuple& t) {
+        return std::get<T>(t);
+    }
+};
+
+template<typename T>
+struct msvc_tuple_get<false, T> {
+    template<class Tuple>
+    static decltype(auto) fn(const Tuple&) {
+        return T();
+    }
+};
+} // namespace detail
+#endif
+
 template<class... Policies>
 template<class... Options>
 registry<Policies...>::compiler<Options...>::compiler(Options... opts)
-    : opts(opts...), trace(detail::option<openmethod::trace>(this->opts).on),
-      tr(trace) {
+    : options(opts...) {
+    if constexpr (has_trace) {
+#ifdef _MSC_VER
+        tr.on = detail::msvc_tuple_get<has_trace, trace>::fn(options).on;
+#else
+        // Even with the constexpr has_trace guard, msvc errors on this.
+        tr.on = std::get<trace>(options).on;
+#endif
+    }
 }
 
 template<class... Policies>
@@ -1148,7 +1188,7 @@ void registry<Policies...>::compiler<Options...>::build_dispatch_table(
                 m.dispatch_table.push_back(&m.not_implemented);
                 ++m.report.not_implemented;
             } else {
-                if constexpr (!use_n2216) {
+                if constexpr (!has_option<n2216>) {
                     if (remaining > 1) {
                         ++tr << "ambiguous\n";
                         m.dispatch_table.push_back(&m.ambiguous);
@@ -1209,7 +1249,7 @@ void registry<Policies...>::compiler<Options...>::build_dispatch_table(
 
                     select_dominant_overriders(overriders, pick, remaining);
 
-                    if constexpr (!use_n2216) {
+                    if constexpr (!has_option<n2216>) {
                         if (remaining > 1) {
                             ++tr << "ambiguous 'next'\n";
                             overrider->next = &m.ambiguous;
@@ -1368,7 +1408,7 @@ void registry<Policies...>::compiler<Options...>::write_global_data() {
     ++tr << rflush(4, dispatch_data_size) << " " << gv_iter << " end\n";
 
     if constexpr (has_vptr) {
-        vptr::initialize(classes.begin(), classes.end(), opts);
+        vptr::initialize(*this, options);
     }
 
     new_dispatch_data.swap(dispatch_data);
@@ -1407,7 +1447,7 @@ void registry<Policies...>::compiler<Options...>::select_dominant_overriders(
         return;
     }
 
-    if constexpr (use_n2216) {
+    if constexpr (has_option<n2216>) {
         if (!candidates[pick]->covariant_return_type) {
             return;
         }
@@ -1571,10 +1611,6 @@ void registry<Policies...>::compiler<Options...>::print(
 //! @endcode
 template<class Registry = BOOST_OPENMETHOD_DEFAULT_REGISTRY, class... Options>
 inline auto initialize(Options&&... options) {
-    static_assert(
-        (std::is_base_of_v<detail::option_base, Options> && ...),
-        "invalid option type");
-
     if (detail::odr_check<Registry>::count > 1) {
         // Multiple definitions of default_registry detected.
         // This indicates an ODR violation.

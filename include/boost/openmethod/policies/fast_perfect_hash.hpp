@@ -80,10 +80,10 @@ struct fast_perfect_hash : type_hash {
 
         static void check(std::size_t index, type_id type);
 
-        template<class ForwardIterator, class... Options>
+        template<class InitializeContext, class... Options>
         static void initialize(
-            ForwardIterator first, ForwardIterator last,
-            std::vector<type_id>& buckets, std::tuple<Options...> options);
+            const InitializeContext& ctx, std::vector<type_id>& buckets,
+            const std::tuple<Options...>& options);
 
       public:
         //! Find the hash factors
@@ -95,25 +95,18 @@ struct fast_perfect_hash : type_hash {
         //! If no suitable values are found, calls the error handler with
         //! a @ref hash_error object then calls `abort`.
         //!
-        //! @tparam ForwardIterator An iterator to a range of @ref
-        //! IdsToVptr objects.
-        //! @tparam Options... Zero or more option types, deduced from the
-        //! function arguments.
-        //! @param first An iterator to the beginning of the range.
-        //! @param last An iterator to the end of the range.
-        //! @param options Zero or more option objects.
+        //! @tparam Context An @ref InitializeContext.
+        //! @param ctx A Context object.
         //! @return A pair containing the minimum and maximum hash values.
-        template<class ForwardIterator, class... Options>
-        static auto initialize(
-            ForwardIterator first, ForwardIterator last,
-            std::tuple<Options...> options) {
+        template<class Context, class... Options>
+        static auto
+        initialize(const Context& ctx, const std::tuple<Options...>& options) {
             if constexpr (Registry::has_runtime_checks) {
                 initialize(
-                    first, last, detail::fast_perfect_hash_control<Registry>,
-                    options);
+                    ctx, detail::fast_perfect_hash_control<Registry>, options);
             } else {
                 std::vector<type_id> buckets;
-                initialize(first, last, buckets, options);
+                initialize(ctx, buckets, options);
             }
 
             return std::pair{min_value, max_value};
@@ -150,7 +143,7 @@ struct fast_perfect_hash : type_hash {
         //! arguments.
         //! @param options Zero or more option objects.
         template<class... Options>
-        static auto finalize(std::tuple<Options...>) -> void {
+        static auto finalize(const std::tuple<Options...>&) -> void {
             detail::fast_perfect_hash_control<Registry>.clear();
         }
     };
@@ -169,21 +162,16 @@ template<class Registry>
 std::size_t fast_perfect_hash::fn<Registry>::max_value;
 
 template<class Registry>
-template<class ForwardIterator, class... Options>
+template<class InitializeContext, class... Options>
 void fast_perfect_hash::fn<Registry>::initialize(
-    ForwardIterator first, ForwardIterator last, std::vector<type_id>& buckets,
-    std::tuple<Options...> opts) {
-    using namespace policies;
+    const InitializeContext& ctx, std::vector<type_id>& buckets,
+    const std::tuple<Options...>& options) {
+    (void)options;
 
-    const auto N = std::distance(first, last);
-    (void)opts;
+    const auto N = std::distance(ctx.classes_begin(), ctx.classes_end());
 
-    if constexpr (
-        detail::has_option<trace, Options...> && Registry::has_output) {
-        if (detail::option<trace>(opts).on) {
-            Registry::output::os << "Finding hash factor for " << N
-                                 << " types\n";
-        }
+    if constexpr (mp11::mp_contains<mp11::mp_list<Options...>, trace>::value) {
+        Registry::output::os << "Finding hash factor for " << N << " types\n";
     }
 
     std::default_random_engine rnd(13081963);
@@ -202,13 +190,9 @@ void fast_perfect_hash::fn<Registry>::initialize(
         min_value = (std::numeric_limits<std::size_t>::max)();
         max_value = (std::numeric_limits<std::size_t>::min)();
 
-        if constexpr (
-            mp11::mp_contains<mp11::mp_list<Options...>, trace>::value &&
-            Registry::has_output) {
-            if (detail::option<trace>(opts).on) {
-                Registry::output::os << "  trying with M = " << M << ", "
-                                     << hash_size << " buckets\n";
-            }
+        if constexpr (InitializeContext::template has_option<trace>) {
+            ctx.tr << "  trying with M = " << M << ", " << hash_size
+                   << " buckets\n";
         }
 
         std::size_t attempts = 0;
@@ -221,7 +205,8 @@ void fast_perfect_hash::fn<Registry>::initialize(
             ++total_attempts;
             mult = uniform_dist(rnd) | 1;
 
-            for (auto iter = first; iter != last; ++iter) {
+            for (auto iter = ctx.classes_begin(); iter != ctx.classes_end();
+                 ++iter) {
                 for (auto type_iter = iter->type_id_begin();
                      type_iter != iter->type_id_end(); ++type_iter) {
                     auto type = *type_iter;
@@ -238,15 +223,10 @@ void fast_perfect_hash::fn<Registry>::initialize(
                 }
             }
 
-            if constexpr (
-                mp11::mp_contains<mp11::mp_list<Options...>, trace>::value &&
-                Registry::has_output) {
-                if (detail::option<trace>(opts).on) {
-                    Registry::output::os
-                        << "  found " << mult << " after " << total_attempts
-                        << " attempts; span = [" << min_value << ", "
-                        << max_value << "]\n";
-                }
+            if constexpr (InitializeContext::template has_option<trace>) {
+                ctx.tr << "  found " << mult << " after " << total_attempts
+                       << " attempts; span = [" << min_value << ", "
+                       << max_value << "]\n";
             }
 
             return;

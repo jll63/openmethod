@@ -58,29 +58,24 @@ struct vptr_vector : vptr {
         //! function is called. Its result determines the size of the vector.
         //! The v-table pointers are copied into the vector.
         //!
-        //! @tparam ForwardIterator An iterator to a range of @ref
-        //! IdsToVptr objects.
-        //! @tparam Options... Zero or more option types, deduced from the
-        //! function arguments.
-        //! @param first An iterator to the beginning of the range.
-        //! @param last An iterator to the end of the range.
-        //! @param options Zero or more option objects.
-        template<class ForwardIterator, class... Options>
+        //! @tparam Context An @ref InitializeContext.
+        //! @tparam Options... Zero or more option types.
+        //! @param ctx A Context object.
+        //! @param options A tuple of option objects.
+        template<class Context, class... Options>
         static auto initialize(
-            ForwardIterator first, ForwardIterator last,
-            std::tuple<Options...> opts) -> void {
-            (void)opts;
+            const Context& ctx, const std::tuple<Options...>& options) -> void {
             std::size_t size;
+            (void)options;
 
             if constexpr (has_type_hash) {
-                auto [_, max_value] =
-                    type_hash::template initialize<ForwardIterator, Options...>(
-                        first, last, opts);
+                auto [_, max_value] = type_hash::initialize(ctx, options);
                 size = max_value + 1;
             } else {
                 size = 0;
 
-                for (auto iter = first; iter != last; ++iter) {
+                for (auto iter = ctx.classes_begin(); iter != ctx.classes_end();
+                     ++iter) {
                     for (auto type_iter = iter->type_id_begin();
                          type_iter != iter->type_id_end(); ++type_iter) {
                         size = (std::max)(size, std::size_t(*type_iter));
@@ -96,7 +91,8 @@ struct vptr_vector : vptr {
                 detail::vptr_vector_vptrs<Registry>.resize(size);
             }
 
-            for (auto iter = first; iter != last; ++iter) {
+            for (auto iter = ctx.classes_begin(); iter != ctx.classes_end();
+                 ++iter) {
                 for (auto type_iter = iter->type_id_begin();
                      type_iter != iter->type_id_end(); ++type_iter) {
                     std::size_t index;
@@ -173,13 +169,13 @@ struct vptr_vector : vptr {
             }
         }
 
-        //! Clears the vector.
+        //! Releases the memory allocated by `initialize`.
         //!
-        //! @tparam Options... Zero or more option types, deduced from the
-        //! function arguments.
+        //! @tparam Options... Zero or more option types, deduced from the function
+        //! arguments.
         //! @param options Zero or more option objects.
         template<class... Options>
-        static auto finalize(std::tuple<Options...>) -> void {
+        static auto finalize(const std::tuple<Options...>&) -> void {
             using namespace policies;
 
             if constexpr (Registry::has_indirect_vptr) {

@@ -38,20 +38,17 @@ class vptr_map : public vptr {
       public:
         //! Stores the v-table pointers.
         //!
-        //! @tparam ForwardIterator An iterator to a range of @ref
-        //! IdsToVptr objects.
-        //! @tparam Options... Zero or more option types, deduced from the
-        //! function arguments.
-        //! @param first An iterator to the beginning of the range.
-        //! @param last An iterator to the end of the range.
-        //! @param options Zero or more option objects.
-        template<class ForwardIterator, class... Options>
-        static void initialize(
-            ForwardIterator first, ForwardIterator last,
-            std::tuple<Options...>) {
+        //! @tparam Context An @ref InitializeContext.
+        //! @tparam Options... Zero or more option types.
+        //! @param ctx A Context object.
+        //! @param options A tuple of option objects.
+        template<class Context, class... Options>
+        static void
+        initialize(const Context& ctx, const std::tuple<Options...>&) {
             decltype(vptrs) new_vptrs;
 
-            for (auto iter = first; iter != last; ++iter) {
+            for (auto iter = ctx.classes_begin(); iter != ctx.classes_end();
+                 ++iter) {
                 for (auto type_iter = iter->type_id_begin();
                      type_iter != iter->type_id_end(); ++type_iter) {
 
@@ -109,11 +106,11 @@ class vptr_map : public vptr {
 
         //! Clears the map.
         //!
-        //! @tparam Options... Zero or more option types, deduced from the
-        //! function arguments.
-        //! @param options Zero or more option objects.
+        //! @tparam Options... Zero or more option types.
+        //! @param ctx A Context object.
+        //! @param options A tuple of option objects.
         template<class... Options>
-        static auto finalize(std::tuple<Options...>) -> void {
+        static auto finalize(const std::tuple<Options...>&) -> void {
             vptrs.clear();
         }
     };

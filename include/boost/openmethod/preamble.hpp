@@ -368,6 +368,8 @@ struct deferred_overrider_info : overrider_info {
     virtual void resolve_type_ids() = 0;
 };
 
+struct unspecified {};
+
 } // namespace detail
 
 #ifdef __MRDOCS__
@@ -385,28 +387,6 @@ struct LightweightOutputStream {
 
 #endif
 
-namespace detail {
-
-template<class Target, class... Options>
-constexpr bool has_option =
-    mp11::mp_contains<mp11::mp_list<Options...>, Target>::value;
-
-template<class Target, class... Options>
-inline auto option(std::tuple<Options...> opts) {
-    constexpr auto index =
-        mp11::mp_find<mp11::mp_list<Options...>, Target>::value;
-
-    if constexpr (index == sizeof...(Options)) {
-        return Target();
-    } else {
-        return std::get<index>(opts);
-    }
-}
-
-struct option_base {};
-
-} // namespace detail
-
 //! N2216 ambiguity resolution.
 //!
 //! If `n2216` is present in @ref initialize\'s `Options`, additional steps are
@@ -422,7 +402,7 @@ struct option_base {};
 //! - Otherwise, pick one of the overriders. Which one is used is unspecified,
 //!   but remains the same throughtout the program, and across different runs of
 //!   the same program.
-struct n2216 : detail::option_base {};
+struct n2216 {};
 
 //! Enable `initialize` tracing.
 //!
@@ -437,7 +417,7 @@ struct n2216 : detail::option_base {};
 //! The content of the trace is neither specified, nor stable across versions.
 //! It is comprehensive, and useful for troubleshooting missing class
 //! registrations, missing or ambiguous overriders, etc.
-struct trace : detail::option_base {
+struct trace {
     //! Enable trace if `true`.
     bool on = true;
 
@@ -477,23 +457,48 @@ namespace policies {
 
 #ifdef __MRDOCS__
 
-//! Type ids and v-table pointers for a class (exposition only).
-struct IdsToVptr {
-    //! Returns an iterator to the beginning of a range of `type_id`s for a
-    //! single registered class.
-    auto type_id_begin() const;
+//! Class information for initializing a policy (exposition only).
+//!
+//! Provides the v-table pointer for a class, identified by one or more type
+//! ids, via the members described on this page.
+struct InitializeClass {
+    //! Beginning of a range of type ids for a class.
+    //!
+    //! @return A forward iterator to the beginning of a range of type ids for
+    //! a class.
+    auto type_id_begin() const -> detail::unspecified;
 
-    //! Returns an iterator to the end of a range of `type_id`s for a
-    //! single registered class.
-    auto type_id_end() const;
+    //! End of a range of type ids for a class.
+    //!
+    //! @return A forward iterator to the end of a range of type ids for a
+    //! class.
+    auto type_id_end() const -> detail::unspecified;
 
-    //! Returns a range of `type_id`s that this assignment applies to.
+    //! Reference to the v-table pointer for the class.
+    //!
+    //! @return A reference to the v-table pointer for the class.
     auto vptr() const -> const vptr_type&;
 };
 
-#endif
+//! Context for initializing a policy (exposition only).
+//!
+//! @ref initialize passes a "context" object, of unspecified type, to the
+//! `initialize` functions of the policies that have one. It provides the
+//! v-table pointer for the registered classes, via the members described on
+//! this page.
+struct InitializeContext {
+    //! Beginning of a range of `InitializeClass` objects.
+    //!
+    //! @return A forward iterator to the beginning of a range of @ref
+    //! InitializeClass objects.
+    detail::unspecified classes_begin() const;
 
-#ifdef __MRDOCS__
+    //! End of a range of `InitializeClass` objects.
+    //!
+    //! @return A forward iterator to the end of a range of @ref
+    //! InitializeClass objects.
+    detail::unspecified classes_end() const;
+};
 
 //! Blueprint for @ref rtti metafunctions (exposition only).
 template<class Registry>
@@ -588,11 +593,6 @@ struct rtti {
     };
 };
 
-#ifdef __MRDOCS__
-struct std_rtti;
-struct static_rtti;
-#endif
-
 //! Policy for deferred type id collection.
 //!
 //! Some custom RTTI systems rely on static constructors to assign type ids.
@@ -643,17 +643,10 @@ struct VptrFn {
     //! Called by @ref registry::initialize to let the policy store the v-table
     //! pointer associated to each `type_id`.
     //!
-    //! @tparam ForwardIterator An iterator to a range of @ref
-    //! IdsToVptr objects.
-    //! @tparam Options... Zero or more option types, deduced from the
-    //! function arguments.
-    //! @param first An iterator to the beginning of the range.
-    //! @param last An iterator to the end of the range.
-    //! @param options Zero or more option objects.
-    template<typename ForwardIterator, class... Options>
-    static auto initialize(
-        ForwardIterator first, ForwardIterator last,
-        std::tuple<Options...> opts);
+    //! @tparam Context A class that conforms to the @ref InitializeContext
+    //! blueprint.
+    template<class Context>
+    static auto initialize(const Context& ctx) -> void;
 
     //! Return a *reference* to a v-table pointer for an object.
     //!
@@ -712,7 +705,7 @@ struct TypeHashFn {
     //! Initialize the hash table.
     //!
     //! @tparam ForwardIterator An iterator to a range of @ref
-    //! IdsToVptr objects.
+    //! InitializeClass objects.
     //! @tparam Options... Zero or more option types, deduced from the
     //! function arguments.
     //! @param first An iterator to the beginning of the range.
