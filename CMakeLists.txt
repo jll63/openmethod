@@ -140,11 +140,17 @@ endif ()
 file(GLOB_RECURSE BOOST_OPENMETHOD_HEADERS CONFIGURE_DEPENDS include/boost/*.hpp)
 set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/include/boost PREFIX "" FILES ${BOOST_OPENMETHOD_HEADERS})
+
 function(boost_openmethod_setup_properties target)
     target_link_libraries(${target} INTERFACE ${BOOST_OPENMETHOD_DEPENDENCIES})
 endfunction()
 
-add_library(boost_openmethod INTERFACE ${BOOST_OPENMETHOD_HEADERS})
+add_library(boost_openmethod INTERFACE)
+
+if(CMAKE_VERSION VERSION_GREATER_EQUAL 3.19)
+  target_sources(boost_openmethod PRIVATE ${BOOST_OPENMETHOD_HEADERS})
+endif()
+
 add_library(Boost::openmethod ALIAS boost_openmethod)
 target_include_directories(boost_openmethod INTERFACE "${PROJECT_SOURCE_DIR}/include")
 boost_openmethod_setup_properties(boost_openmethod)
