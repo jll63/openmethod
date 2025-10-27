@@ -178,6 +178,9 @@ endif()
 if (BUILD_TESTING OR BOOST_OPENMETHOD_BUILD_TESTS)
     enable_testing()
     add_subdirectory(test)
+    if (BOOST_OPENMETHOD_IS_ROOT)
+        add_custom_target(all_with_tests ALL DEPENDS tests)
+    endif()
 endif ()
 
 #-------------------------------------------------

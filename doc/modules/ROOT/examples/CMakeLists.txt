@@ -3,7 +3,7 @@
 # See accompanying file LICENSE_1_0.txt
 # or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-message(STATUS "Building examples")
+message(STATUS "Boost.OpenMethod: building examples")
 
 if (CMAKE_BUILD_TYPE STREQUAL "Release")
   if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
@@ -18,10 +18,9 @@ endif()
 file(GLOB cpp_files "*.cpp")
 
 foreach (cpp ${cpp_files})
-    cmake_path(REMOVE_EXTENSION cpp LAST_ONLY OUTPUT_VARIABLE stem)
-    string(REGEX REPLACE ".*/" "" stem ${stem})
+    get_filename_component(stem ${cpp} NAME_WE)
     add_executable(${stem} ${cpp})
-    target_link_libraries(${stem} PUBLIC Boost::openmethod Boost::unit_test_framework)
+    target_link_libraries(${stem} PRIVATE Boost::openmethod Boost::unit_test_framework)
     add_test(NAME ${stem} COMMAND ${stem})
     add_dependencies(tests ${stem})
 endforeach()
@@ -40,8 +39,8 @@ function(add_step_by_step dir)
     file(GLOB cpp_files "${subdir}/*.cpp")
     set(target "${dir}_${subex}")
     add_executable(${target} ${cpp_files})
-    target_link_libraries(${target} PUBLIC Boost::openmethod)
-    set(output_dir "${subdir}")
+    target_link_libraries(${target} PRIVATE Boost::openmethod)
+    set(output_dir openmethod/${dir}/${subex})
     set_target_properties(${target} PROPERTIES
       RUNTIME_OUTPUT_DIRECTORY "${output_dir}"
       LIBRARY_OUTPUT_DIRECTORY "${output_dir}"

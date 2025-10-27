@@ -8,7 +8,7 @@
 # Official repository: https://github.com/boostorg/openmethod
 #
 
-message(STATUS "Building tests")
+message(STATUS "Boost.OpenMethod: building tests")
 
 if (CMAKE_BUILD_TYPE STREQUAL "Debug")
     add_compile_definitions(BOOST_OPENMETHOD_ENABLE_RUNTIME_CHECKS)
@@ -56,16 +56,15 @@ endif()
 file(GLOB test_cpp_files "test_*.cpp")
 
 foreach(test_cpp ${test_cpp_files})
-    cmake_path(REMOVE_EXTENSION test_cpp LAST_ONLY OUTPUT_VARIABLE test)
-    string(REGEX REPLACE ".*/" "" test ${test})
-    add_executable(${test} ${test_cpp})
-    target_link_libraries(${test} PUBLIC Boost::openmethod Boost::unit_test_framework)
+    get_filename_component(test ${test_cpp} NAME_WE)
+    add_executable(${test} EXCLUDE_FROM_ALL ${test_cpp})
+    target_link_libraries(${test} PRIVATE Boost::openmethod Boost::unit_test_framework)
     add_test(NAME ${test} COMMAND ${test})
     add_dependencies(tests ${test})
 endforeach()
 
-add_executable(test_mix_release_debug mix_release_debug/main.cpp mix_release_debug/lib.cpp)
-target_link_libraries(test_mix_release_debug Boost::openmethod Boost::unit_test_framework)
+add_executable(test_mix_release_debug EXCLUDE_FROM_ALL mix_release_debug/main.cpp mix_release_debug/lib.cpp)
+target_link_libraries(test_mix_release_debug PRIVATE Boost::openmethod Boost::unit_test_framework)
 add_test(NAME test_mix_release_debug COMMAND test_mix_release_debug)
 add_dependencies(tests test_mix_release_debug)
 

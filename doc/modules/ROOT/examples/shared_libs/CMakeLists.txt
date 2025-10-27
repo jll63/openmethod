@@ -3,7 +3,7 @@
 # See accompanying file LICENSE_1_0.txt
 # or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-message(STATUS "Building shared library examples")
+message(STATUS "Boost.OpenMethod: building shared library examples")
 
 add_compile_definitions(BOOST_OPENMETHOD_ENABLE_RUNTIME_CHECKS)
 
@@ -35,14 +35,14 @@ endif()
 add_library(indirect_shared SHARED indirect_extensions.cpp)
 target_compile_definitions(
     indirect_shared PUBLIC BOOST_OPENMETHOD_DEFAULT_REGISTRY=indirect_registry)
-target_link_libraries(indirect_shared Boost::openmethod Boost::dll)
+target_link_libraries(indirect_shared PRIVATE Boost::openmethod Boost::dll)
 set_target_properties(indirect_shared PROPERTIES ENABLE_EXPORTS ON)
 
 add_executable(indirect indirect_main.cpp)
 target_compile_definitions(
     indirect PUBLIC BOOST_OPENMETHOD_DEFAULT_REGISTRY=indirect_registry)
 set_target_properties(indirect PROPERTIES ENABLE_EXPORTS ON)
-target_link_libraries(indirect Boost::openmethod Boost::dll)
+target_link_libraries(indirect PRIVATE Boost::openmethod Boost::dll)
 add_dependencies(indirect indirect_shared)
 if (NOT WIN32)
   add_test(NAME indirect_shared COMMAND indirect)
