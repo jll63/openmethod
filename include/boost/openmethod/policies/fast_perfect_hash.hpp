@@ -176,6 +176,7 @@ void fast_perfect_hash::fn<Registry>::initialize(
     using namespace policies;
 
     const auto N = std::distance(first, last);
+    (void)opts;
 
     if constexpr (
         detail::has_option<trace, Options...> && Registry::has_output) {
