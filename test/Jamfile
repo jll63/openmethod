@@ -25,13 +25,13 @@ project
 
     <toolset>msvc:<warnings-as-errors>on
     <toolset>gcc:<warnings-as-errors>on
-    <toolset>clang,<os>!NT:<warnings-as-errors>on
-    # !NT because it causes errors when builting unit-test
+    <toolset>clang,<target-os>linux:<warnings-as-errors>on
+    <toolset>clang,<target-os>darwin:<warnings-as-errors>on
   ;
 
 alias unit_test_framework
     : # sources
-        /boost/test//boost_unit_test_framework
+        /boost/test//boost_unit_test_framework/<warnings>off
     ;
 
 for local src in [ glob test_*.cpp ]
