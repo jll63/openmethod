@@ -57,24 +57,26 @@ file(GLOB test_cpp_files "test_*.cpp")
 
 foreach(test_cpp ${test_cpp_files})
     get_filename_component(test ${test_cpp} NAME_WE)
-    add_executable(${test} EXCLUDE_FROM_ALL ${test_cpp})
-    target_link_libraries(${test} PRIVATE Boost::openmethod Boost::unit_test_framework)
-    add_test(NAME ${test} COMMAND ${test})
-    add_dependencies(tests ${test})
+    set(test_target "boost_openmethod-${test}")
+    add_executable(${test_target} EXCLUDE_FROM_ALL ${test_cpp})
+    target_link_libraries(${test_target} PRIVATE Boost::openmethod Boost::unit_test_framework)
+    add_test(NAME ${test_target} COMMAND ${test_target})
+    add_dependencies(tests ${test_target})
 endforeach()
 
-add_executable(test_mix_release_debug EXCLUDE_FROM_ALL mix_release_debug/main.cpp mix_release_debug/lib.cpp)
-target_link_libraries(test_mix_release_debug PRIVATE Boost::openmethod Boost::unit_test_framework)
-add_test(NAME test_mix_release_debug COMMAND test_mix_release_debug)
-add_dependencies(tests test_mix_release_debug)
+add_executable(boost_openmethod-test_mix_release_debug EXCLUDE_FROM_ALL mix_release_debug/main.cpp mix_release_debug/lib.cpp)
+target_link_libraries(boost_openmethod-test_mix_release_debug PRIVATE Boost::openmethod Boost::unit_test_framework)
+add_test(NAME boost_openmethod-test_mix_release_debug COMMAND boost_openmethod-test_mix_release_debug)
+add_dependencies(tests boost_openmethod-test_mix_release_debug)
 
 function(openmethod_compile_fail_test testname fail_regex)
-  add_library("compile-fail-${testname}" STATIC EXCLUDE_FROM_ALL "${testname}.cpp")
-  target_link_libraries("compile-fail-${testname}" PRIVATE Boost::openmethod)
-  add_test(
-    NAME "openmethod-${testname}"
-    COMMAND "${CMAKE_COMMAND}" --build ${CMAKE_BINARY_DIR} --target "compile-fail-${testname}" --config $<CONFIG>)
-  set_property(TEST "openmethod-${testname}" PROPERTY PASS_REGULAR_EXPRESSION "${fail_regex}")
+    set(test_target "boost_openmethod-${testname}")
+    add_library(${test_target} STATIC EXCLUDE_FROM_ALL "${testname}.cpp")
+    target_link_libraries(${test_target} PRIVATE Boost::openmethod)
+    add_test(
+        NAME "${test_target}"
+        COMMAND "${CMAKE_COMMAND}" --build ${CMAKE_BINARY_DIR} --target "${test_target}" --config $<CONFIG>)
+    set_property(TEST "${test_target}" PROPERTY PASS_REGULAR_EXPRESSION "${fail_regex}")
 endfunction()
 
 openmethod_compile_fail_test(
