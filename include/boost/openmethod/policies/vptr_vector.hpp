@@ -69,7 +69,9 @@ struct vptr_vector : vptr {
         static auto initialize(
             ForwardIterator first, ForwardIterator last,
             std::tuple<Options...> opts) -> void {
+            (void)opts;
             std::size_t size;
+
             if constexpr (has_type_hash) {
                 auto [_, max_value] =
                     type_hash::template initialize<ForwardIterator, Options...>(
