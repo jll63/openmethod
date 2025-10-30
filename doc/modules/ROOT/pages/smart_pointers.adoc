@@ -1,5 +1,5 @@
 
-## Smart Pointers
+[#smart_pointers]
 
 If we want maximum performance, we want to use `virtual_ptr`{empty}s in place of
 ordinary pointers or references. However, we may also want to use smart pointers
@@ -20,10 +20,10 @@ v-table pointer.
 Smart `virtual_ptr`{empty}s automatically convert to their non-smart, "plain"
 counterparts - e.g. from `virtual_ptr<std::unique_ptr<const Node>>` to
 `virtual_ptr<const Node>`. Methods and overriders typically use plain
-`virtual_ptr`{empty}s, although it is not always the case. For example,
+`virtual_ptr`{empty}s, although it is not always the case footnote:[For example,
 consider a `transpose` method for matrices. If the matrix is symmetric, the
 overrider should return its argument. This can be implemented by passing a
-`virtual_ptr<std::shared_ptr<const Matrix>>` to the method.
+`virtual_ptr<std::shared_ptr<const Matrix>>` to the method.].
 
 The reverse conversion, from plain to smart, does not exist, because it would
 have the potential to accidentally create smart pointers. Likewise, a smart

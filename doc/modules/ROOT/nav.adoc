@@ -2,7 +2,7 @@
 * xref:basics.adoc[Open-Methods 101]
 * xref:performance.adoc[Performance]
 * xref:smart_pointers.adoc[Smart Pointers]
-* xref:headers.adoc[Headers]
+* xref:headers.adoc[Headers and Implementation Files]
 * xref:namespaces.adoc[Namespaces]
 * xref:friendship.adoc[Friendship]
 * xref:multiple_dispatch.adoc[Multiple Dispatch]
