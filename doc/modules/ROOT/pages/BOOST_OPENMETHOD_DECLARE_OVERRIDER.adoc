@@ -1,7 +1,6 @@
+# BOOST_OPENMETHOD_DECLARE_OVERRIDER
 
-## BOOST_OPENMETHOD_DECLARE_OVERRIDER
-
-### Synopsis
+## Synopsis
 
 Defined in link:{{BASE_URL}}/include/boost/openmethod/macros.hpp[<boost/openmethod/macros.hpp>].
 
@@ -9,7 +8,7 @@ Defined in link:{{BASE_URL}}/include/boost/openmethod/macros.hpp[<boost/openmeth
 #define BOOST_OPENMETHOD_DECLARE_OVERRIDER(NAME, (PARAMETERS...), RETURN_TYPE)
 ```
 
-### Description
+## Description
 
 Declares an overrider for a method, but does not start its definition. This
 macro can be used in header files.
@@ -33,7 +32,7 @@ Each `virtual_<T>` in the method's parameter list must have a corresponding `U`
 parameter in the same position in the overrider's parameter list, such that `U`
 is the same as `T`, or has `T` as an accessible unambiguous base.
 
-### Implementation Notes
+## Implementation Notes
 
 The macro creates additional entities in the current scope.
 

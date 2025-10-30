@@ -1,5 +1,6 @@
 :example: ../examples/virtual_ptr_alt
 
+[#virtual_ptr_alt]
 ## Alternatives to virtual_ptr
 
 Virtual arguments can also be passed as plain references, plain pointers, or

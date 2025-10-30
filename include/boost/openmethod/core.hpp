@@ -192,7 +192,10 @@ using virtual_types = boost::mp11::mp_transform<
 
 BOOST_OPENMETHOD_OPEN_NAMESPACE_DETAIL_UNLESS_MRDOCS
 
-//! Remove virtual_<> decorator from a type (exposition only).
+//! Removes the virtual_<> decorator, if present (exposition only).
+//!
+//! Provides a nested `type` equal to `T`. The template is specialized for
+//! `virtual_<T>`.
 //!
 //! @tparam T A type.
 template<typename T>
@@ -201,7 +204,11 @@ struct StripVirtualDecorator {
     using type = T;
 };
 
-//! Remove virtual_<> decorator from a type (exposition only).
+//! Removes the virtual_<> decorator (exposition only).
+//!
+//! Provides a nested `type` equal to `T`.
+//!
+//! @tparam T A type.
 template<typename T>
 struct StripVirtualDecorator<virtual_<T>> {
     //! Same as `T`.
@@ -213,20 +220,20 @@ BOOST_OPENMETHOD_CLOSE_NAMESPACE_DETAIL_UNLESS_MRDOCS
 // =============================================================================
 // virtual_traits
 
-//! Traits for types that can be used as virtual arguments.
+//! Traits for types used as virtual parameters.
 //!
 //! `virtual_traits` must be specialized for each type that can be used as a
 //! virtual parameters. It enables methods to:
-//! @li find the type of the object the argument refers to (e.g. `Cat` from
-//! `Cat&`)
-//! @li obtain a non-modifiable reference to that object (e.g. a `const Cat&` from
-//! `Cat&`)
-//! @li cast the argument to another type (e.g. cast a `Animal&` to a `Cat&`)
-//!
+//! @li find the type of the object the argument refers to (e.g. `Node` from
+//! `Node&`)
+//! @li obtain a non-modifiable reference to that object (e.g. a `const Node&` from
+//! `Node&`)
+//! @li cast the argument to another type (e.g. cast a `Node&` to a `Plus&`)
 //!
 //! @par Requirements
-//! Specializations of `virtual_traits` must implement the members deswcribed to the @ref VirtualTraits
-//! blueprint.
+//!
+//! Specializations of `virtual_traits` must provide the members described to
+//! the @ref VirtualTraits blueprint.
 //!
 //! @tparam T A type referring (in the broad sense) to an instance of a class.
 //! @tparam Registry A @ref registry.
@@ -2067,20 +2074,19 @@ struct validate_method_parameter<
 //!
 //! `Registry` is an instantiation of class template @ref registry. Methods may
 //! use only classes that have been registered in the same registry as virtual
-//! parameters and arguments. The registry also policies that influence several
-//! aspects of the dispatch mechanism - for example, how to obtain a v-table
-//! pointer for an object, how to report errors, whether to perform sanity
-//! checks, etc.
+//! parameters and arguments. The registry also contains a set of policies that
+//! influence several aspects of the dispatch mechanism - for example, how to
+//! acquire a v-table pointer for an object, how to report errors, whether to
+//! perform sanity checks, etc.
 //!
-//! The default value of `Registry` is the preprocessor symbol
-//! `BOOST_OPENMETHOD_DEFAULT_REGISTRY`. It can be defined before including the
-//! `<boost/openmethod/core.hpp>` header to override the default registry.
-//! Setting this symbol after including `core.hpp` has no effect.
+//! The default value for `Registry` is @ref default_registry, but it can be
+//! overridden by defining the preprocessor symbol
+//! {{BOOST_OPENMETHOD_DEFAULT_REGISTRY}}, *before* including
+//! `<boost/openmethod/core.hpp>`. Setting the symbol afterwards has no effect.
 //!
 //! Specializations of `method` have a single instance: the static member `fn`,
-//! a function object whose `operator()` is used to call the method and forward
-//! to the appropriate overrider. It is selected in the same way as overloaded
-//! function resolution:
+//! which has an `operator()` that forwards to the appropriate overrider. It is
+//! selected in the same way as overloaded function resolution:
 //!
 //! 1. Form the set of all applicable overriders. An overrider is applicable
 //!    if it can be called with the arguments passed to the method.
@@ -2088,8 +2094,8 @@ struct validate_method_parameter<
 //! 2. If the set is empty, call the error handler (if present in the
 //!    registry), then terminate the program with `abort`.
 //!
-//! 3. Remove the overriders that are dominated by other overriders in the
-//!    set. Overrider A dominates overrider B if any of its virtual formal
+//! 3. Remove the overriders that are dominated by other overriders in the set.
+//!    Overrider A dominates overrider B if at least one of its virtual formal
 //!    parameters is more specialized than B's, and if none of B's virtual
 //!    parameters is more specialized than A's.
 //!
@@ -2806,6 +2812,9 @@ using boost::openmethod::virtual_ptr;
 //!
 //! Specializations of @ref virtual_traits must implement the members listed
 //! here.
+//!
+//! @tparam T The type of a virtual parameter of a method.
+//! @tparam Registry A @ref registry.
 template<typename T, class Registry>
 struct VirtualTraits {
     //! Class to use for dispatch.
@@ -2817,6 +2826,11 @@ struct VirtualTraits {
     //! `virtual_ptr<const Class>`, `std::shared_ptr<Class>`,
     //! `std::shared_ptr<const Class>`, `virtual_ptr<std::shared_ptr<Class>>`,
     //! etc.
+    //!
+    //! @par Requirements
+    //!
+    //! `virtual_type` must be an alias to an *unadorned* *class* type, *not*
+    //! cv-qualified.
     using virtual_type = detail::unspecified;
 
     //! Returns a reference to the object to use for dispatch.

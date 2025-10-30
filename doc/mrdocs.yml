@@ -17,16 +17,13 @@ implementation-defined:
   - 'boost::openmethod::detail'
 inaccessible-members: never
 inaccessible-bases: never
-# see-below:
-#   - 'boost::urls::format_arg'
-# implementation-defined:
-#   - 'boost::openmethod::detail::**'
 exclude-symbols:
   - 'boost::openmethod::registry::compiler'
   - 'boost::openmethod::registry::initialize'
   - 'boost::openmethod::registry::finalize'
   - 'boost::openmethod::boost_openmethod_bases'
   - 'boost::openmethod::boost_openmethod_registry'
+  - 'boost::openmethod::registry::compiler'
 
 sort-members: false
 # sort-namespace-members-by: location

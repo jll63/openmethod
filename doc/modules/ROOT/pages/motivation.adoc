@@ -1,5 +1,5 @@
 
-## Introduction
+[#motivation]
 
 Consider a class hierarchy that represents and evaluates arithmetic
 expressions:
@@ -84,9 +84,12 @@ Julia, Cecil, TADS, and others, have multi-methods.
 
 But wait! What do multi-methods have to do with our problem? There is no
 multiple dispatch going on here! The thing is, "multi-methods" is not a very
-good name. Even in languages that support them, multi-methods tend to use single
-dispatch only. For that reason, we prefer the term "open-methods", to emphasize
-the important feature: openness. Multiple dispatch is just a bonus.
+good name. Even in languages that support them, many "multi-methods" have a
+single virtual parameter - they are uni-methods
+footnote:[https://figshare.com/articles/thesis/Multiple_Dispatch_in_Practice/16959112[Multiple
+dispatch in practice], Radu Muschevici, 2008.]! For that reason, we prefer the
+term "open-methods", to emphasize the important feature: openness. Multiple
+dispatch is just a bonus.
 
 An open-method is like a virtual function, but it exists outside of a class, as
 a free-standing function. We can create all the open-methods we need, without

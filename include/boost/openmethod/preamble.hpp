@@ -376,12 +376,19 @@ struct unspecified {};
 
 //! Blueprint for a lightweight output stream (exposition only).
 //!
-//! Classes used as output streams in policies must provide the free functions
-//! described on this page.
+//! Classes used as output streams in policies must provide the operations
+//! described on this page, either as members or as free functions.
 struct LightweightOutputStream {
+    //! Writes a null-terminated string to the stream.
     LightweightOutputStream& operator<<(const char* str);
+
+    //! Writes a string view to the stream.
     LightweightOutputStream& operator<<(const std::string_view& view);
+
+    //! Writes a pointer value to the stream.
     LightweightOutputStream& operator<<(const void* value);
+
+    //! Writes a size_t value to the stream.
     LightweightOutputStream& operator<<(std::size_t value);
 };
 
@@ -662,9 +669,9 @@ struct VptrFn {
     //!
     //! @tparam Options... Zero or more option types, deduced from the
     //! function arguments.
-    //! @param options Zero or more option objects.
+    //! @param options A tuple of option objects.
     template<class... Options>
-    static auto finalize(std::tuple<Options...> opts) -> void;
+    static auto finalize(const std::tuple<Options...>& options) -> void;
 };
 
 #endif
@@ -704,17 +711,12 @@ template<class Registry>
 struct TypeHashFn {
     //! Initialize the hash table.
     //!
-    //! @tparam ForwardIterator An iterator to a range of @ref
-    //! InitializeClass objects.
-    //! @tparam Options... Zero or more option types, deduced from the
-    //! function arguments.
-    //! @param first An iterator to the beginning of the range.
-    //! @param last An iterator to the end of the range.
-    //! @param options Zero or more option objects.
+    //! @tparam Context A class that conforms to the @ref InitializeContext
+    //! blueprint.
     //! @return A pair containing the minimum and maximum hash values.
-    template<typename ForwardIterator>
-    static auto initialize(ForwardIterator first, ForwardIterator last)
-        -> std::pair<std::size_t, std::size_t>;
+    template<class Context>
+    static auto
+    initialize(const Context& ctx) -> std::pair<std::size_t, std::size_t>;
 
     //! Hash a `type_id`.
     //!
@@ -726,10 +728,11 @@ struct TypeHashFn {
     //!
     //! This function is optional.
     //!
-    //! @tparam Options... Zero or more option types, deduced from the function
-    //! arguments.
-    //! @param options Zero or more option objects.
-    static auto finalize() -> void;
+    //! @tparam Options... Zero or more option types, deduced from the
+    //! function arguments.
+    //! @param options A tuple of option objects.
+    template<class... Options>
+    static auto finalize(const std::tuple<Options...>& options) -> void;
 };
 #endif
 
@@ -933,9 +936,6 @@ class registry : detail::registry_base {
 
     template<class... Options>
     struct compiler;
-
-    // template<class Registry, typename... Options>
-    // friend compiler<Options...> initialize(Options...);
 
     //! Check that the registry is initialized.
     //!

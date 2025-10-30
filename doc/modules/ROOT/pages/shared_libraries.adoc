@@ -1,6 +1,6 @@
 :shared: ../examples/shared_libs
 
-## Shared Libraries
+[#shared_libraries]
 
 This section discusses how OpenMethod interoperates with shared libraries on
 Linux, other POSIX-like platforms, and Windows.

@@ -1,6 +1,6 @@
 :example: ../examples/core_api/1
 
-## Core API
+[#core_api]
 
 OpenMethod provides a macro-free interface: the core API. This is useful in
 certain situations, for example when combining open-methods and templates.
@@ -25,8 +25,8 @@ method, `prefix`, which writes expressions in prefix notation. It would have the
 same signature. Without the identifier argument, `prefix` and `postfix` would be the
 same method.
 
-The exact name of the identifier class does not matter, as long as it is unique enough.
-The class needs not be defined, only declared.
+The exact name of the identifier class does not matter. The class needs not be
+defined, only declared.
 
 Inventing identifier class names can get tedious, so OpenMethod provides a macro
 for that: xref:BOOST_OPENMETHOD_ID.adoc[BOOST_OPENMETHOD_ID]. Let's use it:
@@ -58,9 +58,12 @@ functions passed as template arguments to the method.
 include::{example}/core_api.cpp[tag=variable_overrider]
 ----
 
-Once again we find ourselves inventing a name that will not be used again. In
-C++26, we will probably have the Python-like `_` for this. In the meantime, we
-can use a small macro:
+Once again we find ourselves inventing a name for a single use. In C++26, we
+will probably have the Python-like `_` for this.
+
+We can also use a small macro:
+xref:BOOST_OPENMETHOD_REGISTER.adoc[BOOST_OPENMETHOD_REGISTER]. It takes a
+class, and instantiates a static object with an obfuscated name:
 
 [source,c++]
 ----
@@ -91,7 +94,7 @@ The primary purpose of the core API is to make open-methods inter-operate with
 templates.
 
 `Plus` and `Times` are obvious candidates for templatization. They only differ
-by the operation they perform, and we already have templates fore that in the
+by the operation they perform, and we already have templates for that in the
 standard library:
 
 [source,c++]
@@ -118,8 +121,8 @@ include::{example}/core_api.cpp[tag=postfix_binary]
 ----
 
 Macro xref:BOOST_OPENMETHOD_TYPE.adoc[BOOST_OPENMETHOD_TYPE] takes the same
-parameters as `BOOST_OPENMETHOD`, and expands to the core method type. That is
-how we access its nested `overrider` class template:
+parameters as `BOOST_OPENMETHOD`, and expands to the core cpp:method[method]
+instance. That is how we access its nested `overrider` class template:
 
 [source,c++]
 ----

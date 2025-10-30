@@ -1,12 +1,12 @@
 :example: ../examples
 
-## Multiple Dispatch
+[#multiple_dispatch]
 
 A method can have more than one virtual parameter. This is often called
-"multi-methods" or "multiple dispatch". All the virtual parameters participate
+"multi-method" or "multiple dispatch". All the virtual parameters participate
 equally in overrider selection, following the same rules as those governing
 overload resolution - except that the selection happens at runtime, and takes
-into account the argument's dynamic types.
+into account the arguments dynamic types.
 
 Multiple dispatch is occasionally useful. When it is needed, it can be difficult
 to implement correctly and efficiently by hand. For example, given the following

@@ -1,5 +1,5 @@
 
-## Error Handling
+[#error_handling]
 
 Errors can occur during `initialize`, or during method dispatch, if the
 method's registry contains the `runtime_checks` policy. If the registry

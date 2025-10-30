@@ -1,6 +1,6 @@
 :example: ../examples/rolex
 
-## Friendship
+[#friendship]
 
 Note;; This section uses overrider containers, described in the
 xref:headers.adoc[Headers] section.

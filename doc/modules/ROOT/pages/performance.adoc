@@ -1,5 +1,5 @@
 
-## Performance
+[#performance]
 
 Open-methods can be as fast as ordinary virtual member functions when
 compiled with optimization.
@@ -96,9 +96,10 @@ jmp	rax                             # TAILCALL
 `virtual_ptr` arguments are passed through the method call, to the overrider,
 which can use them to make further method calls.
 
-A program designed with open-methods in mind should use `virtual_ptr`{empty}s
-in place of plain pointers or references, as much as possible. Here is the Node
-example, rewritten to use `virtual_ptr`{empty}s thoughout:
+Code that incorporates open-methods in its design should use
+`virtual_ptr`{empty}s in place of plain pointers or references, as much as
+possible. Here is the Node example, rewritten to use `virtual_ptr`{empty}s
+thoughout:
 
 [source,c++]
 ----

@@ -1,9 +1,9 @@
 :example: ../examples/rolex
 
-## Namespaces
+[#namespaces]
 
 Note;; This section uses overrider containers, described in the
-xref:headers.adoc[Headers] section.
+xref:headers.adoc[Headers and Implementation Files] section.
 
 xref:BOOST_OPENMETHOD.adoc[BOOST_OPENMETHOD] defines a method in the current
 namespace. xref:BOOST_OPENMETHOD_OVERRIDE.adoc[BOOST_OPENMETHOD_OVERRIDE] works
@@ -13,9 +13,9 @@ called with the same arguments as the overrider, possibly located via argument
 dependant lookup.
 
 Overrider containers are added to the current namespace. It follows that the
-same method can have overriders in several different container, in different
-namespaces. This must be taken into account when calling an overrider
-explicitly. Let's put Employee and Salesman in their own namespaces:
+same method can have overriders in multiple containers, in different namespaces.
+This must be taken into account when calling an overrider explicitly. Let's put
+Employee and Salesman in their own namespaces:
 
 [source,c++]
 ----

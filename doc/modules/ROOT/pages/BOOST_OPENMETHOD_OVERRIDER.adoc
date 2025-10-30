@@ -1,7 +1,7 @@
 
-## BOOST_OPENMETHOD_OVERRIDER
+# BOOST_OPENMETHOD_OVERRIDER
 
-### Synopsis
+## Synopsis
 
 Defined in link:{{BASE_URL}}/include/boost/openmethod/macros.hpp[<boost/openmethod/macros.hpp>].
 
@@ -9,7 +9,7 @@ Defined in link:{{BASE_URL}}/include/boost/openmethod/macros.hpp[<boost/openmeth
 #define BOOST_OPENMETHOD_OVERRIDER(ID, (PARAMETERS...), RETURN_TYPE)
 ```
 
-### Description
+## Description
 
 Expands to the specialization of the class template that contains the overrider
 for with the given name, parameter list and return type.

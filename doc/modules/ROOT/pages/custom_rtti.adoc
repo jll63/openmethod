@@ -1,7 +1,7 @@
 
 :example: ../examples/custom_rtti
 
-## Custom RTTI
+[#custom_rtti]
 
 The original motivation for the policy mechanism is to make it possible to
 interface OpenMethod with custom RTTI systems.
@@ -106,25 +106,26 @@ still work.
 The policy is quite minimal. It does not support virtual inheritance, because it
 does not provide a `dynamic_cast_ref` function. It would not produce good error
 or trace messages, because it does not provide a `type_name` function. Instead,
-it relies on the `type_name` inherited from `rtti::default`. It renders types as
-adorned integers, e.g. "type_id(2)". All non-"polymorphic" types would be
-rendered the same way, as "type_id(0)".
+it relies on the `type_name` inherited from cpp:rtti::defaults[]. It
+renders types as adorned integers, e.g. "type_id(2)". All non-"polymorphic"
+types would be rendered the same way, as "type_id(0)".
 
-`rtti::default` also provides a default implementation for `type_index`, which
-simply returns its argument.
+cpp:rtti::defaults[] also provides a default implementation for `type_index`,
+which simply returns its argument.
 
 Now we need a policy to get a v-table pointer from an object. Our RTTI system
 has an interesting property: its type ids are monotonically allocated in a
-small, dense range. It means that we can use them as straight indexes in a
-vector. `vptr_vector` is perfect for that. So here is our registry:
+small, dense range. It means that we can use them as indexes in a vector.
+`vptr_vector` is perfect for that. So here is our registry:
 
 [source,c++]
 ----
 include::{example}/1/custom_rtti.cpp[tag=registry]
 ----
 
-Defining macro `BOOST_OPENMETHOD_DEFAULT_REGISTRY` sets the default registry
-used by all library components that need one.
+Defining macro
+xref:BOOST_OPENMETHOD_DEFAULT_REGISTRY.adoc[BOOST_OPENMETHOD_DEFAULT_REGISTRY]
+sets the default registry used by all library components that need one.
 
 Next, we include the main header.
 Because `BOOST_OPENMETHOD_DEFAULT_REGISTRY` is defined, its value is used

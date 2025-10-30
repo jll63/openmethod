@@ -46,7 +46,7 @@ effect as including `boost/openmethod.hpp`, which is shorter.
 Includes `core.hpp` and `macros.hpp`.
 
 [#initialize]
-### link:{{BASE_URL}}/include/boost/initialize.hpp[<boost/initialize.hpp>]
+### link:{{BASE_URL}}/include/boost/openmethod/initialize.hpp[<boost/initialize.hpp>]
 
 Provides the cpp:initialize[] and cpp:finalize[] functions. This header is
 typically included in the translation unit containing `main`. Translation units
