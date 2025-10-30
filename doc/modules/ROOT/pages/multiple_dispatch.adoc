@@ -1,6 +1,6 @@
 :example: ../examples
 
-## Multiple Dispatch
+[#multiple_dispatch]
 
 A method can have more than one virtual parameter. This is often called
 "multi-methods" or "multiple dispatch". All the virtual parameters participate

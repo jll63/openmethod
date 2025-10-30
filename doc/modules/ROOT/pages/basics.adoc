@@ -1,6 +1,6 @@
 :exampledir: ../example
 
-## Open-Methods 101
+[#basics]
 
 An _open-method_ is a free-standing function that takes one or more _virtual_
 _parameters_. When it is called, it forwards to an _overrider_ selected from a
@@ -22,7 +22,7 @@ BOOST_OPENMETHOD(
     postfix, (virtual_ptr<const Node> node, std::ostream& os), void);
 ```
 
-This method is called `postfix`. It takes one virtual parameter, `node`, and one
+`postfix` is the method's name. It takes one virtual parameter, `node`, and one
 non-virtual parameter, `os`. It returns `void`. The macro generates the
 following function:
 
@@ -61,15 +61,15 @@ This one calls `postfix` recursively to print the left and right
 sub-expressions. Note that we call the method just like an ordinary function.
 
 `postfix` expects a `virtual_ptr<const Node>`, and we are passing it a _plain_
-_reference_ to a `Plus` object. This works because `virtual_ptr` has conversion
-constructors from plain references or pointers to an object, or from other
-`virtual_ptr`{empty}s to compatible classes.
+_reference_ to a `Node` object. This works because `virtual_ptr` has conversion
+constructors from plain references or pointers to objects, or from other
+`virtual_ptr`{empty}s.
 
 There are two more things we need to do.
 
-OpenMethod is a library, not a compiler. It needs to be made aware of all the
+OpenMethod is a library, not a compiler. It needs to be informed of all the
 classes that may be used as virtual parameters, and in method calls, and their
-inheritance relationships. We do this with the
+inheritance relationships. We provide that information with the
 xref:BOOST_OPENMETHOD_CLASSES.adoc[BOOST_OPENMETHOD_CLASSES] macro:
 
 
@@ -84,8 +84,8 @@ direct base of a class must appear together with it in at least one call to
 inheritance lattice.
 
 The constructs used in this example require the classes to be polymorphic, in
-the standard C++ sense, i.e. have at least one virtual function. The library can
-also be used with non-polymorphic classes, with some restrictions.
+the standard C++ sense, i.e. they must have at least one virtual function. The
+library can also be used with non-polymorphic classes, with some restrictions.
 
 Finally, we need to call `boost::openmethod::initialize()` before the first call
 to an open-method. This builds the dispatch tables used during method calls. It

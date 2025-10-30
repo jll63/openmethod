@@ -1,9 +1,9 @@
 :example: ../examples/rolex
 
-## Namespaces
+[#namespaces]
 
 Note;; This section uses overrider containers, described in the
-xref:headers.adoc[Headers] section.
+xref:headers.adoc[Headers and Implementation Files] section.
 
 xref:BOOST_OPENMETHOD.adoc[BOOST_OPENMETHOD] defines a method in the current
 namespace. xref:BOOST_OPENMETHOD_OVERRIDE.adoc[BOOST_OPENMETHOD_OVERRIDE] works
