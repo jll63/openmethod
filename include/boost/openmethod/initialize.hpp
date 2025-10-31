@@ -476,13 +476,14 @@ void registry<Policies...>::compiler<Options...>::initialize() {
     registry<Policies...>::initialized = true;
 }
 
+#ifdef _MSC_VER
 namespace detail {
 
 template<bool HasTrace, typename T>
-struct tuple_get;
+struct msvc_tuple_get;
 
 template<typename T>
-struct tuple_get<true, T> {
+struct msvc_tuple_get<true, T> {
     template<class Tuple>
     static decltype(auto) fn(const Tuple& t) {
         return std::get<T>(t);
@@ -490,20 +491,26 @@ struct tuple_get<true, T> {
 };
 
 template<typename T>
-struct tuple_get<false, T> {
+struct msvc_tuple_get<false, T> {
     template<class Tuple>
     static decltype(auto) fn(const Tuple&) {
         return T();
     }
 };
 } // namespace detail
+#endif
 
 template<class... Policies>
 template<class... Options>
 registry<Policies...>::compiler<Options...>::compiler(Options... opts)
     : options(opts...) {
     if constexpr (has_trace) {
-        tr.on = detail::tuple_get<has_trace, trace>::fn(options).on;
+#ifdef _MSC_VER
+        tr.on = detail::msvc_tuple_get<has_trace, trace>::fn(options).on;
+#else
+        // Even with the constexpr has_trace guard, msvc errors on this.
+        tr.on = std::get<trace>(options).on;
+#endif
     }
 }
 
