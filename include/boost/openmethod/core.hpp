@@ -575,8 +575,8 @@ template<class Registry, typename Arg>
 inline auto final_virtual_ptr(Arg&& obj) {
     using namespace detail;
     using VirtualPtr = virtual_ptr<std::remove_reference_t<Arg>, Registry>;
-    using Class = typename VirtualPtr::element_type;
     using Traits = virtual_traits<Arg, Registry>;
+    using Class = typename Traits::virtual_type;
 
     if constexpr (
         Registry::has_runtime_checks &&

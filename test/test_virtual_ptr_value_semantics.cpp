@@ -132,6 +132,13 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(
         BOOST_TEST(p.vptr() == Registry::template static_vptr<Cat>);
     }
 
+    {
+        const Dog snoopy;
+        auto p = final_virtual_ptr<Registry>(snoopy);
+        BOOST_TEST(p.get() == &snoopy);
+        BOOST_TEST(p.vptr() == Registry::template static_vptr<Dog>);
+    }
+
     // virtual_ptr<Dog, Registry> p{Dog()};
     static_assert(!construct_assign_ok<virtual_ptr<Dog, Registry>, Dog&&>);
 

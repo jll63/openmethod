@@ -7,7 +7,7 @@
 #include <boost/openmethod/preamble.hpp>
 #include <boost/openmethod/policies/throw_error_handler.hpp>
 #include <boost/openmethod/initialize.hpp>
-#include <boost/openmethod/interop/std_unique_ptr.hpp>
+#include <boost/openmethod/interop/std_shared_ptr.hpp>
 
 #include "test_util.hpp"
 
@@ -72,8 +72,8 @@ BOOST_AUTO_TEST_CASE(no_initialization) {
         {
             registry::capture capture;
             BOOST_CHECK_THROW(
-                (unique_virtual_ptr<matrix, registry>{
-                    std::make_unique<diagonal_matrix>()}),
+                (shared_virtual_ptr<matrix, registry>{
+                    std::make_shared<diagonal_matrix>()}),
                 not_initialized);
             BOOST_TEST(capture() == "not initialized\n");
         }
@@ -82,7 +82,7 @@ BOOST_AUTO_TEST_CASE(no_initialization) {
         {
             registry::capture capture;
             BOOST_CHECK_THROW(
-                transpose(make_unique_virtual<diagonal_matrix, registry>()),
+                transpose(make_shared_virtual<diagonal_matrix, registry>()),
                 not_initialized);
         }
     } else {
@@ -202,6 +202,39 @@ BOOST_AUTO_TEST_CASE(bad_call_type_ids) {
         times(a, b);
         BOOST_FAIL("should have thrown");
     } catch (const ambiguous_call& error) {
+        BOOST_TEST(error.arity == 2u);
+        BOOST_TEST(error.types[0] == &typeid(diagonal_matrix));
+        BOOST_TEST(error.types[1] == &typeid(diagonal_matrix));
+    } catch (...) {
+        BOOST_FAIL("wrong exception");
+    }
+}
+
+} // namespace TEST_NS
+
+namespace TEST_NS {
+
+using namespace test_matrices;
+using registry = errors_<__COUNTER__>;
+
+BOOST_OPENMETHOD_CLASSES(matrix, dense_matrix, diagonal_matrix, registry);
+
+BOOST_OPENMETHOD(
+    times,
+    (shared_virtual_ptr<const matrix, registry>,
+     shared_virtual_ptr<const matrix, registry>),
+    void, registry);
+
+BOOST_AUTO_TEST_CASE(bad_call_type_ids_smart_ptr) {
+    initialize<registry>();
+    registry::capture capture;
+
+    try {
+        auto a = make_shared_virtual<const diagonal_matrix, registry>();
+        auto b = make_shared_virtual<const diagonal_matrix, registry>();
+        times(a, b);
+        BOOST_FAIL("should have thrown");
+    } catch (const no_overrider& error) {
         BOOST_TEST(error.arity == 2u);
         BOOST_TEST(error.types[0] == &typeid(diagonal_matrix));
         BOOST_TEST(error.types[1] == &typeid(diagonal_matrix));
