@@ -376,12 +376,19 @@ struct unspecified {};
 
 //! Blueprint for a lightweight output stream (exposition only).
 //!
-//! Classes used as output streams in policies must provide the free functions
-//! described on this page.
+//! Classes used as output streams in policies must provide the operations
+//! described on this page, either as members or as free functions.
 struct LightweightOutputStream {
+    //! Writes a null-terminated string to the stream.
     LightweightOutputStream& operator<<(const char* str);
+
+    //! Writes a string view to the stream.
     LightweightOutputStream& operator<<(const std::string_view& view);
+
+    //! Writes a pointer value to the stream.
     LightweightOutputStream& operator<<(const void* value);
+
+    //! Writes a size_t value to the stream.
     LightweightOutputStream& operator<<(std::size_t value);
 };
 

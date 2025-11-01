@@ -192,7 +192,10 @@ using virtual_types = boost::mp11::mp_transform<
 
 BOOST_OPENMETHOD_OPEN_NAMESPACE_DETAIL_UNLESS_MRDOCS
 
-//! Remove virtual_<> decorator from a type (exposition only).
+//! Removes the virtual_<> decorator, if present (exposition only).
+//!
+//! Provides a nested `type` equal to `T`. The template is specialized for
+//! `virtual_<T>`.
 //!
 //! @tparam T A type.
 template<typename T>
@@ -201,7 +204,11 @@ struct StripVirtualDecorator {
     using type = T;
 };
 
-//! Remove virtual_<> decorator from a type (exposition only).
+//! Removes the virtual_<> decorator (exposition only).
+//!
+//! Provides a nested `type` equal to `T`.
+//!
+//! @tparam T A type.
 template<typename T>
 struct StripVirtualDecorator<virtual_<T>> {
     //! Same as `T`.
@@ -213,20 +220,20 @@ BOOST_OPENMETHOD_CLOSE_NAMESPACE_DETAIL_UNLESS_MRDOCS
 // =============================================================================
 // virtual_traits
 
-//! Traits for types that can be used as virtual arguments.
+//! Traits for types used as virtual parameters.
 //!
 //! `virtual_traits` must be specialized for each type that can be used as a
 //! virtual parameters. It enables methods to:
-//! @li find the type of the object the argument refers to (e.g. `Cat` from
-//! `Cat&`)
-//! @li obtain a non-modifiable reference to that object (e.g. a `const Cat&` from
-//! `Cat&`)
-//! @li cast the argument to another type (e.g. cast a `Animal&` to a `Cat&`)
-//!
+//! @li find the type of the object the argument refers to (e.g. `Node` from
+//! `Node&`)
+//! @li obtain a non-modifiable reference to that object (e.g. a `const Node&` from
+//! `Node&`)
+//! @li cast the argument to another type (e.g. cast a `Node&` to a `Plus&`)
 //!
 //! @par Requirements
-//! Specializations of `virtual_traits` must implement the members deswcribed to the @ref VirtualTraits
-//! blueprint.
+//!
+//! Specializations of `virtual_traits` must provide the members described to
+//! the @ref VirtualTraits blueprint.
 //!
 //! @tparam T A type referring (in the broad sense) to an instance of a class.
 //! @tparam Registry A @ref registry.

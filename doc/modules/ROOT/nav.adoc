@@ -1,10 +1,10 @@
-* xref:introduction.adoc[Introduction]
-* xref:basics.adoc[Open-Methods 101]
+* xref:motivation.adoc[Motivation]
+* xref:basics.adoc[Basic Features]
 * xref:performance.adoc[Performance]
 * xref:smart_pointers.adoc[Smart Pointers]
 * xref:headers.adoc[Headers and Implementation Files]
 * xref:namespaces.adoc[Namespaces]
-* xref:friendship.adoc[Friendship]
+* xref:friends.adoc[Friends]
 * xref:multiple_dispatch.adoc[Multiple Dispatch]
 * Advanced Features
 ** xref:core_api.adoc[Core API]
