@@ -2813,6 +2813,9 @@ using boost::openmethod::virtual_ptr;
 //!
 //! Specializations of @ref virtual_traits must implement the members listed
 //! here.
+//!
+//! @tparam T The type of a virtual parameter of a method.
+//! @tparam Registry A @ref registry.
 template<typename T, class Registry>
 struct VirtualTraits {
     //! Class to use for dispatch.
@@ -2824,6 +2827,11 @@ struct VirtualTraits {
     //! `virtual_ptr<const Class>`, `std::shared_ptr<Class>`,
     //! `std::shared_ptr<const Class>`, `virtual_ptr<std::shared_ptr<Class>>`,
     //! etc.
+    //!
+    //! @par Requirements
+    //!
+    //! `virtual_type` must be an alias to an *unadorned* *class* type, *not*
+    //! cv-qualified.
     using virtual_type = detail::unspecified;
 
     //! Returns a reference to the object to use for dispatch.
