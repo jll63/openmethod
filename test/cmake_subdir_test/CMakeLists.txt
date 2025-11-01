@@ -39,6 +39,6 @@ add_executable(main main.cpp)
 target_link_libraries(main Boost::openmethod)
 
 enable_testing()
-add_test(main)
+add_test(NAME main COMMAND main)
 
 add_custom_target(check COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure -C $<CONFIG>)
