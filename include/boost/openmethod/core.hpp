@@ -2074,20 +2074,19 @@ struct validate_method_parameter<
 //!
 //! `Registry` is an instantiation of class template @ref registry. Methods may
 //! use only classes that have been registered in the same registry as virtual
-//! parameters and arguments. The registry also policies that influence several
-//! aspects of the dispatch mechanism - for example, how to obtain a v-table
-//! pointer for an object, how to report errors, whether to perform sanity
-//! checks, etc.
+//! parameters and arguments. The registry also contains a set of policies that
+//! influence several aspects of the dispatch mechanism - for example, how to
+//! acquire a v-table pointer for an object, how to report errors, whether to
+//! perform sanity checks, etc.
 //!
-//! The default value of `Registry` is the preprocessor symbol
-//! `BOOST_OPENMETHOD_DEFAULT_REGISTRY`. It can be defined before including the
-//! `<boost/openmethod/core.hpp>` header to override the default registry.
-//! Setting this symbol after including `core.hpp` has no effect.
+//! The default value for `Registry` is @ref default_registry, but it can be
+//! overridden by defining the preprocessor symbol
+//! {{BOOST_OPENMETHOD_DEFAULT_REGISTRY}}, *before* including
+//! `<boost/openmethod/core.hpp>`. Setting the symbol afterwards has no effect.
 //!
 //! Specializations of `method` have a single instance: the static member `fn`,
-//! a function object whose `operator()` is used to call the method and forward
-//! to the appropriate overrider. It is selected in the same way as overloaded
-//! function resolution:
+//! which has an `operator()` that forwards to the appropriate overrider. It is
+//! selected in the same way as overloaded function resolution:
 //!
 //! 1. Form the set of all applicable overriders. An overrider is applicable
 //!    if it can be called with the arguments passed to the method.
@@ -2095,8 +2094,8 @@ struct validate_method_parameter<
 //! 2. If the set is empty, call the error handler (if present in the
 //!    registry), then terminate the program with `abort`.
 //!
-//! 3. Remove the overriders that are dominated by other overriders in the
-//!    set. Overrider A dominates overrider B if any of its virtual formal
+//! 3. Remove the overriders that are dominated by other overriders in the set.
+//!    Overrider A dominates overrider B if at least one of its virtual formal
 //!    parameters is more specialized than B's, and if none of B's virtual
 //!    parameters is more specialized than A's.
 //!

@@ -940,8 +940,6 @@ class registry : detail::registry_base {
 
     template<class... Options>
     struct compiler;
-    // template<class Registry, typename... Options>
-    // friend compiler<Options...> initialize(Options...);
 
     //! Check that the registry is initialized.
     //!
