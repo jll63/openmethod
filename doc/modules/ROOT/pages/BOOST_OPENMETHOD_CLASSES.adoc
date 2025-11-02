@@ -5,7 +5,7 @@
 
 ### Synopsis
 
-Defined in <boost/openmethod/macros.hpp>.
+Defined in link:{{BASE_URL}}/include/boost/openmethod/macros.hpp[<boost/openmethod/macros.hpp>].
 
 ```c++
 BOOST_OPENMETHOD_CLASSES(CLASSES...[, REGISTRY]);

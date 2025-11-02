@@ -123,5 +123,5 @@ jobs:
           path: doc/html
 
       - name: Deploy to GitHub Pages (jll63)
-        if: matrix.os == 'ubuntu-latest' && github.repository_owner == 'jll63' && github.ref_name == 'feature/doc'
+        if: matrix.os == 'ubuntu-latest' && github.repository_owner == 'jll63'
         uses: actions/deploy-pages@v4
