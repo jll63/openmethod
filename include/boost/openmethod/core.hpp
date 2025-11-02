@@ -578,6 +578,13 @@ inline auto final_virtual_ptr(Arg&& obj) {
     using Traits = virtual_traits<Arg, Registry>;
     using Class = typename Traits::virtual_type;
 
+    static_assert(!std::is_const_v<Class>);
+    static_assert(!std::is_volatile_v<Class>);
+    static_assert(!std::is_reference_v<Class>);
+    static_assert(!std::is_pointer_v<Class>);
+
+    Registry::require_initialized();
+
     if constexpr (
         Registry::has_runtime_checks &&
         Registry::rtti::template is_polymorphic<Class>) {
@@ -598,10 +605,12 @@ inline auto final_virtual_ptr(Arg&& obj) {
         }
     }
 
+    const vptr_type& vptr = Registry::template static_vptr<Class>;
+    BOOST_ASSERT(vptr);
+
     return VirtualPtr(
         std::forward<Arg>(obj),
-        detail::box_vptr<VirtualPtr::use_indirect_vptrs>(
-            Registry::template static_vptr<Class>));
+        detail::box_vptr<VirtualPtr::use_indirect_vptrs>(vptr));
 }
 
 //! Create a `virtual_ptr` for an object of a known dynamic type.
@@ -610,12 +619,13 @@ inline auto final_virtual_ptr(Arg&& obj) {
 //! registry as the `Registry` template parameter.
 //!
 //! @see @ref final_virtual_ptr
+// We could give a default value to Registry in the main template, but gcc
+// doesn't like it.
 template<class Arg>
 inline auto final_virtual_ptr(Arg&& obj) {
     return final_virtual_ptr<BOOST_OPENMETHOD_DEFAULT_REGISTRY, Arg>(
         std::forward<Arg>(obj));
 }
-
 //! Wide pointer combining pointers to an object and its v-table
 //!
 //! A `virtual_ptr` is a wide pointer that combines pointers to an object and

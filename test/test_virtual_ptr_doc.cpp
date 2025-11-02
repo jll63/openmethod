@@ -12,14 +12,23 @@
 
 using namespace boost::openmethod;
 
-BOOST_AUTO_TEST_CASE(virtual_ptr_examples) {
+namespace polymorphic {
+
+struct Animal {
+    virtual ~Animal() {
+    }
+};
+struct Dog : Animal {};
+BOOST_OPENMETHOD_CLASSES(Animal, Dog);
+BOOST_OPENMETHOD(poke, (virtual_ptr<Animal>), void);
+
+void instiantiate_poke(virtual_ptr<Dog> snoopy) {
+    poke(snoopy);
+}
+
+BOOST_AUTO_TEST_CASE(virtual_ptr_examples_polymorphic) {
     {
-        // clang-format off
-        struct Animal { virtual ~Animal() { } }; // polymorphic
-        struct Dog : Animal {}; // polymorphic
-        BOOST_OPENMETHOD_CLASSES(Animal, Dog);
-        initialize();
-        // clang-format on
+        initialize(trace());
 
         {
             virtual_ptr<Dog> p{nullptr};
@@ -69,11 +78,122 @@ BOOST_AUTO_TEST_CASE(virtual_ptr_examples) {
             BOOST_TEST(p.vptr() == nullptr);
         }
     }
+}
+
+BOOST_AUTO_TEST_CASE(smart_virtual_ptr_examples) {
+    initialize();
 
     {
-        struct Animal {};       // polymorphic not required
-        struct Dog : Animal {}; // polymorphic not required
-        BOOST_OPENMETHOD_CLASSES(Animal, Dog);
+        virtual_ptr<std::shared_ptr<Dog>> p;
+        BOOST_TEST(p.get() == nullptr);
+        BOOST_TEST(p.vptr() == nullptr);
+    }
+
+    {
+        virtual_ptr<std::shared_ptr<Dog>> p{nullptr};
+        BOOST_TEST(p.get() == nullptr);
+        BOOST_TEST(p.vptr() == nullptr);
+    }
+
+    {
+        const std::shared_ptr<Dog> snoopy = std::make_shared<Dog>();
+        virtual_ptr<std::shared_ptr<Animal>> p = snoopy;
+
+        BOOST_TEST(p.get() == snoopy.get());
+        BOOST_TEST(p.vptr() == default_registry::static_vptr<Dog>);
+    }
+
+    {
+        std::shared_ptr<Dog> snoopy = std::make_shared<Dog>();
+        virtual_ptr<std::shared_ptr<Animal>> p = snoopy;
+
+        BOOST_TEST(p.get() == snoopy.get());
+        BOOST_TEST(p.vptr() == default_registry::static_vptr<Dog>);
+    }
+
+    {
+        std::shared_ptr<Dog> snoopy = std::make_shared<Dog>();
+        Dog* moving = snoopy.get();
+
+        virtual_ptr<std::shared_ptr<Animal>> p = std::move(snoopy);
+
+        BOOST_TEST(p.get() == moving);
+        BOOST_TEST(p.vptr() == default_registry::static_vptr<Dog>);
+        BOOST_TEST(snoopy.get() == nullptr);
+    }
+    {
+        const virtual_ptr<std::shared_ptr<Dog>> snoopy =
+            make_shared_virtual<Dog>();
+        virtual_ptr<std::shared_ptr<Animal>> p = std::move(snoopy);
+
+        BOOST_TEST(snoopy.get() != nullptr);
+        BOOST_TEST(p.get() == snoopy.get());
+        BOOST_TEST(p.vptr() == default_registry::static_vptr<Dog>);
+    }
+
+    {
+        virtual_ptr<std::shared_ptr<Dog>> snoopy = make_shared_virtual<Dog>();
+        Dog* moving = snoopy.get();
+
+        virtual_ptr<std::shared_ptr<Animal>> p = std::move(snoopy);
+
+        BOOST_TEST(p.get() == moving);
+        BOOST_TEST(p.vptr() == default_registry::static_vptr<Dog>);
+        BOOST_TEST(snoopy.get() == nullptr);
+        BOOST_TEST(snoopy.vptr() == nullptr);
+    }
+
+    {
+        virtual_ptr<std::shared_ptr<Dog>> p = make_shared_virtual<Dog>();
+
+        p = nullptr;
+
+        BOOST_TEST(p.get() == nullptr);
+        BOOST_TEST(p.vptr() == nullptr);
+        BOOST_TEST((p == virtual_ptr<std::shared_ptr<Dog>>()));
+    }
+
+    {
+        const virtual_ptr<std::shared_ptr<Dog>> snoopy =
+            make_shared_virtual<Dog>();
+        virtual_ptr<std::shared_ptr<Dog>> p;
+
+        p = snoopy;
+
+        BOOST_TEST(p.get() != nullptr);
+        BOOST_TEST(p.get() == snoopy.get());
+        BOOST_TEST(p.vptr() == default_registry::static_vptr<Dog>);
+        BOOST_TEST(snoopy.vptr() == default_registry::static_vptr<Dog>);
+    }
+
+    {
+        virtual_ptr<std::shared_ptr<Dog>> snoopy = make_shared_virtual<Dog>();
+        Dog* moving = snoopy.get();
+        virtual_ptr<std::shared_ptr<Dog>> p;
+
+        p = std::move(snoopy);
+
+        BOOST_TEST(p.get() == moving);
+        BOOST_TEST(p.vptr() == default_registry::static_vptr<Dog>);
+        BOOST_TEST(snoopy.get() == nullptr);
+        BOOST_TEST(snoopy.vptr() == nullptr);
+    }
+}
+} // namespace polymorphic
+
+namespace non_polymorphic {
+
+struct Animal {};       // polymorphic not required
+struct Dog : Animal {}; // polymorphic not required
+BOOST_OPENMETHOD_CLASSES(Animal, Dog);
+BOOST_OPENMETHOD(poke, (virtual_ptr<Animal>), void);
+
+void instiantiate_poke(virtual_ptr<Dog> snoopy) {
+    poke(snoopy);
+}
+
+BOOST_AUTO_TEST_CASE(virtual_ptr_examples_non_polymorphic) {
+    {
         initialize();
 
         {
@@ -126,120 +246,4 @@ BOOST_AUTO_TEST_CASE(virtual_ptr_examples) {
                 shared_virtual_ptr<Animal>&, virtual_ptr<Dog>> == false);
     }
 }
-
-BOOST_AUTO_TEST_CASE(smart_virtual_ptr_examples) {
-    {
-        // clang-format off
-        struct Animal { virtual ~Animal() { } }; // polymorphic
-        struct Dog : Animal {}; // polymorphic
-        BOOST_OPENMETHOD_CLASSES(Animal, Dog);
-        initialize();
-        // clang-format on
-
-        {
-            virtual_ptr<std::shared_ptr<Dog>> p;
-            BOOST_TEST(p.get() == nullptr);
-            BOOST_TEST(p.vptr() == nullptr);
-        }
-
-        {
-            virtual_ptr<std::shared_ptr<Dog>> p{nullptr};
-            BOOST_TEST(p.get() == nullptr);
-            BOOST_TEST(p.vptr() == nullptr);
-        }
-
-        {
-            const std::shared_ptr<Dog> snoopy = std::make_shared<Dog>();
-            virtual_ptr<std::shared_ptr<Animal>> p = snoopy;
-
-            BOOST_TEST(p.get() == snoopy.get());
-            BOOST_TEST(p.vptr() == default_registry::static_vptr<Dog>);
-        }
-
-        {
-            std::shared_ptr<Dog> snoopy = std::make_shared<Dog>();
-            virtual_ptr<std::shared_ptr<Animal>> p = snoopy;
-
-            BOOST_TEST(p.get() == snoopy.get());
-            BOOST_TEST(p.vptr() == default_registry::static_vptr<Dog>);
-        }
-
-        {
-            std::shared_ptr<Dog> snoopy = std::make_shared<Dog>();
-            Dog* moving = snoopy.get();
-
-            virtual_ptr<std::shared_ptr<Animal>> p = std::move(snoopy);
-
-            BOOST_TEST(p.get() == moving);
-            BOOST_TEST(p.vptr() == default_registry::static_vptr<Dog>);
-            BOOST_TEST(snoopy.get() == nullptr);
-        }
-    }
-
-    {
-        struct Animal {};       // polymorphic not required
-        struct Dog : Animal {}; // polymorphic not required
-        BOOST_OPENMETHOD_CLASSES(Animal, Dog);
-        initialize();
-
-        {
-            const virtual_ptr<std::shared_ptr<Dog>> snoopy =
-                make_shared_virtual<Dog>();
-            virtual_ptr<std::shared_ptr<Animal>> p = std::move(snoopy);
-
-            BOOST_TEST(snoopy.get() != nullptr);
-            BOOST_TEST(p.get() == snoopy.get());
-            BOOST_TEST(p.vptr() == default_registry::static_vptr<Dog>);
-        }
-
-        {
-            virtual_ptr<std::shared_ptr<Dog>> snoopy =
-                make_shared_virtual<Dog>();
-            Dog* moving = snoopy.get();
-
-            virtual_ptr<std::shared_ptr<Animal>> p = std::move(snoopy);
-
-            BOOST_TEST(p.get() == moving);
-            BOOST_TEST(p.vptr() == default_registry::static_vptr<Dog>);
-            BOOST_TEST(snoopy.get() == nullptr);
-            BOOST_TEST(snoopy.vptr() == nullptr);
-        }
-
-        {
-            virtual_ptr<std::shared_ptr<Dog>> p = make_shared_virtual<Dog>();
-
-            p = nullptr;
-
-            BOOST_TEST(p.get() == nullptr);
-            BOOST_TEST(p.vptr() == nullptr);
-            BOOST_TEST((p == virtual_ptr<std::shared_ptr<Dog>>()));
-        }
-
-        {
-            const virtual_ptr<std::shared_ptr<Dog>> snoopy =
-                make_shared_virtual<Dog>();
-            virtual_ptr<std::shared_ptr<Dog>> p;
-
-            p = snoopy;
-
-            BOOST_TEST(p.get() != nullptr);
-            BOOST_TEST(p.get() == snoopy.get());
-            BOOST_TEST(p.vptr() == default_registry::static_vptr<Dog>);
-            BOOST_TEST(snoopy.vptr() == default_registry::static_vptr<Dog>);
-        }
-
-        {
-            virtual_ptr<std::shared_ptr<Dog>> snoopy =
-                make_shared_virtual<Dog>();
-            Dog* moving = snoopy.get();
-            virtual_ptr<std::shared_ptr<Dog>> p;
-
-            p = std::move(snoopy);
-
-            BOOST_TEST(p.get() == moving);
-            BOOST_TEST(p.vptr() == default_registry::static_vptr<Dog>);
-            BOOST_TEST(snoopy.get() == nullptr);
-            BOOST_TEST(snoopy.vptr() == nullptr);
-        }
-    }
-}
+} // namespace non_polymorphic

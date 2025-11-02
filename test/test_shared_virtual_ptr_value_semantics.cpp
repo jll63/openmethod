@@ -258,14 +258,14 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(
     }
 
     {
-        auto p = make_shared_virtual<Dog>();
+        auto p = make_shared_virtual<Dog, Registry>();
         p = nullptr;
         BOOST_TEST(p.get() == nullptr);
         BOOST_TEST(p.vptr() == nullptr);
     }
 
     {
-        auto p = make_shared_virtual<Dog>();
+        auto p = make_shared_virtual<Dog, Registry>();
         p = std::shared_ptr<Dog>();
         BOOST_TEST(p.get() == nullptr);
         BOOST_TEST(p.vptr() == nullptr);
@@ -278,6 +278,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(
 }
 
 BOOST_AUTO_TEST_CASE(cast_shared_ptr_value) {
+    init_test<default_registry>();
+
     std::shared_ptr<Animal> animal = std::make_shared<Dog>();
     auto dog = virtual_traits<std::shared_ptr<Animal>, default_registry>::cast<
         std::shared_ptr<Dog>>(animal);
@@ -285,6 +287,8 @@ BOOST_AUTO_TEST_CASE(cast_shared_ptr_value) {
 }
 
 BOOST_AUTO_TEST_CASE(cast_shared_ptr_lvalue_reference) {
+    init_test<default_registry>();
+
     std::shared_ptr<Animal> animal = std::make_shared<Dog>();
     auto dog =
         virtual_traits<const std::shared_ptr<Animal>&, default_registry>::cast<
@@ -293,6 +297,8 @@ BOOST_AUTO_TEST_CASE(cast_shared_ptr_lvalue_reference) {
 }
 
 bool cast_moves() {
+    init_test<default_registry>();
+
     std::shared_ptr<Animal> animal = std::make_shared<Dog>();
     (void)std::static_pointer_cast<Dog>(animal);
 
@@ -300,6 +306,8 @@ bool cast_moves() {
 }
 
 BOOST_AUTO_TEST_CASE(cast_shared_ptr_xvalue_reference) {
+    init_test<default_registry>();
+
     std::shared_ptr<Animal> animal = std::make_shared<Dog>();
     auto p = animal.get();
     auto dog = virtual_traits<std::shared_ptr<Animal>, default_registry>::cast<
@@ -313,6 +321,8 @@ BOOST_AUTO_TEST_CASE(cast_shared_ptr_xvalue_reference) {
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(
     cast_shared_virtual_ptr_value, Class, test_classes) {
+    init_test<default_registry>();
+
     shared_virtual_ptr<Animal> base = make_shared_virtual<Class>();
     auto derived =
         virtual_traits<shared_virtual_ptr<Animal>, default_registry>::cast<
@@ -324,6 +334,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(
     cast_shared_virtual_ptr_lvalue_reference, Class, test_classes) {
+    init_test<default_registry>();
+
     shared_virtual_ptr<Animal> base = make_shared_virtual<Class>();
     auto derived =
         virtual_traits<const shared_virtual_ptr<Animal>&, default_registry>::
@@ -335,6 +347,8 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(
     cast_shared_virtual_ptr_xvalue_reference, Class, test_classes) {
+    init_test<default_registry>();
+
     shared_virtual_ptr<Animal> base = make_shared_virtual<Class>();
     auto p = base.get();
     auto derived =

@@ -260,13 +260,15 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(
     cast_unique_virtual_ptr_value, Class, test_classes) {
+    init_test<default_registry>();
+
     unique_virtual_ptr<Animal> base = make_unique_virtual<Class>();
     auto p = base.get();
     auto derived =
         virtual_traits<unique_virtual_ptr<Animal>, default_registry>::cast<
             unique_virtual_ptr<Class>>(std::move(base));
     BOOST_TEST(derived.get() == p);
-    BOOST_TEST(derived.vptr() == default_registry::static_vptr<Dog>);
+    BOOST_TEST(derived.vptr() == default_registry::static_vptr<Class>);
     BOOST_TEST(base.get() == nullptr);
 }
 

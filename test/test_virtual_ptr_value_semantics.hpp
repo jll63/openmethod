@@ -41,6 +41,7 @@ template<class Registry>
 void init_test() {
     BOOST_OPENMETHOD_REGISTER(use_classes<Animal, Cat, Dog, Registry>);
     struct id;
+    // without following line, no methods, no v-tables
     (void)&method<id, auto(virtual_ptr<Animal, Registry>)->void, Registry>::fn;
     initialize<Registry>();
 }
