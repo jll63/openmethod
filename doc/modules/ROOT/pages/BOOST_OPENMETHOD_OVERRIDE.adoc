@@ -1,9 +1,7 @@
 
-[#BOOST_OPENMETHOD_OVERRIDE]
+# BOOST_OPENMETHOD_OVERRIDE
 
-## BOOST_OPENMETHOD_OVERRIDE
-
-### Synopsis
+## Synopsis
 
 Defined in link:{{BASE_URL}}/include/boost/openmethod/macros.hpp[<boost/openmethod/macros.hpp>].
 
@@ -13,7 +11,7 @@ BOOST_OPENMETHOD_OVERRIDE(ID, (PARAMETERS...), RETURN_TYPE) {
 }
 ```
 
-### Description
+## Description
 
 `BOOST_OPENMETHOD_OVERRIDE` adds an overrider to a method.
 
@@ -48,7 +46,7 @@ and terminates the program.
 
 * `has_next()`: returns `true` if the next most specialized overrider exists.
 
-### Implementation Notes
+## Implementation Notes
 
 The macro creates additional entities in the current scope.
 

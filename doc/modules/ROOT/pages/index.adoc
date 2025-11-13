@@ -1,5 +1,6 @@
 :example: ../examples
 
+[#boost-openmethod]
 = Boost.OpenMethod
 
 Boost.OpenMethod implements open-(multi-)methods in C++17 and above.
@@ -72,17 +73,17 @@ manager.
 
 Thanks to the members of the Boost community who posted a formal review:
 
-* Joaquin M López Muñoz
+* Andrzej Krzemienski
 
 * Christian Mazakas
+
+* Joaquin M López Muñoz
+
+* Klemens Morgenstern
 
 * Ruben Perez
 
 * Yannick Le Goc
-
-* Klemens Morgenstern
-
-* Andrzej Krzemienski
 
 Also thanks to Steven Watanabe for his cogent feedback and advice, and all
 the people who posted remarks and suggestions.

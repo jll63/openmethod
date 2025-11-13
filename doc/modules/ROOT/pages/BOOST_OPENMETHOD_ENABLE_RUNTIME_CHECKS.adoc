@@ -1,13 +1,13 @@
 
-## BOOST_OPENMETHOD_ENABLE_RUNTIME_CHECKS
+# BOOST_OPENMETHOD_ENABLE_RUNTIME_CHECKS
 
 Enables runtime checks in cpp:default_registry[].
 
-### Synopsis
+## Synopsis
 
 May be defined by a program before including
 `<boost/openmethod/default_registry.hpp>` to enable runtime checks.
 
-### Description
+## Description
 
 See cpp:default_registry[] for details.

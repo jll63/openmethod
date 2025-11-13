@@ -1,9 +1,7 @@
 
-[#BOOST_OPENMETHOD_REGISTER]
+# BOOST_OPENMETHOD_REGISTER
 
-## BOOST_OPENMETHOD_REGISTER
-
-### Synopsis
+## Synopsis
 
 Defined in link:{{BASE_URL}}/include/boost/openmethod/macros.hpp[<boost/openmethod/macros.hpp>].
 
@@ -11,7 +9,7 @@ Defined in link:{{BASE_URL}}/include/boost/openmethod/macros.hpp[<boost/openmeth
 BOOST_OPENMETHOD_REGISTER(TYPE);
 ```
 
-### Description
+## Description
 
 Creates a registrar for `TYPE`, i.e. a static `TYPE` object with a unique
 generated name. At static initialization time, the object adds itself to a list:

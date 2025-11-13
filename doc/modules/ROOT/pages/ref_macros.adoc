@@ -1,6 +1,5 @@
-[#macros]
-= xref:macros.adoc[Macros]
-:mrdocs:
+[#ref_macros]
+= xref:ref_macros.adoc[Macros]
 
 The following macros - in particular the first three- are sufficient for most
 uses of the library.

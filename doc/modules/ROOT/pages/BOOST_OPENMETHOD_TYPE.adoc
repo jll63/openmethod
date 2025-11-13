@@ -1,7 +1,6 @@
+# BOOST_OPENMETHOD_TYPE
 
-= BOOST_OPENMETHOD_TYPE
-
-### Synopsis
+## Synopsis
 
 Defined in link:{{BASE_URL}}/include/boost/openmethod/macros.hpp[<boost/openmethod/macros.hpp>].
 
@@ -9,7 +8,7 @@ Defined in link:{{BASE_URL}}/include/boost/openmethod/macros.hpp[<boost/openmeth
 BOOST_OPENMETHOD_TYPE(ID, (PARAMETERS...), RETURN_TYPE [, REGISTRY]);
 ```
 
-### Description
+## Description
 
 Expands to the core cpp:method[`method`] specialization created by
 xref:BOOST_OPENMETHOD.adoc[BOOST_OPENMETHOD] called with the same arguments.

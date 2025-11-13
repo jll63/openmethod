@@ -1,7 +1,7 @@
 
-= BOOST_OPENMETHOD
+# BOOST_OPENMETHOD
 
-### Synopsis
+## Synopsis
 
 Defined in link:{{BASE_URL}}/include/boost/openmethod/macros.hpp[<boost/openmethod/macros.hpp>].
 
@@ -9,7 +9,7 @@ Defined in link:{{BASE_URL}}/include/boost/openmethod/macros.hpp[<boost/openmeth
 BOOST_OPENMETHOD(ID, (PARAMETERS...), RETURN_TYPE [, REGISTRY]);
 ```
 
-### Description
+## Description
 
 Declares a method, called `ID`, with the given `PARAMETERS` and `RETURN_TYPE`,
 and adds it to `REGISTRY`.
@@ -58,7 +58,7 @@ NOTE: The default value for `REGISTRY` is the value of
 `BOOST_OPENMETHOD_DEFAULT_REGISTRY` at the point `<boost/openmethod/core.hpp>` is
 included. Changing the value of this symbol has no effect after that point.
 
-### Implementation Notes
+## Implementation Notes
 
 The macro creates several additional constructs:
 
