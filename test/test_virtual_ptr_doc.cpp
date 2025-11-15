@@ -186,11 +186,14 @@ namespace non_polymorphic {
 struct Animal {};       // polymorphic not required
 struct Dog : Animal {}; // polymorphic not required
 BOOST_OPENMETHOD_CLASSES(Animal, Dog);
+
+// codecov:ignore:start
 BOOST_OPENMETHOD(poke, (virtual_ptr<Animal>), void);
 
-void instiantiate_poke(virtual_ptr<Dog> snoopy) {
+void instantiate_poke(virtual_ptr<Dog> snoopy) {
     poke(snoopy);
 }
+// codecov:ignore:end
 
 BOOST_AUTO_TEST_CASE(virtual_ptr_examples_non_polymorphic) {
     {
