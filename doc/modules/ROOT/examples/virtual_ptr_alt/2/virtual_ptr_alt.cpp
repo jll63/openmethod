@@ -22,7 +22,7 @@ struct Node {
 
 struct Variable : Node {
     Variable(int value) : v(value) {
-        vptr = boost::openmethod::default_registry::static_vptr<Variable>;
+        vptr = registry::static_vptr<Variable>;
     }
 
     int v;
@@ -30,7 +30,7 @@ struct Variable : Node {
 
 struct Plus : Node {
     Plus(const Node& left, const Node& right) : left(left), right(right) {
-        vptr = boost::openmethod::default_registry::static_vptr<Plus>;
+        vptr = registry::static_vptr<Plus>;
     }
 
     const Node& left;
@@ -39,7 +39,7 @@ struct Plus : Node {
 
 struct Times : Node {
     Times(const Node& left, const Node& right) : left(left), right(right) {
-        vptr = boost::openmethod::default_registry::static_vptr<Times>;
+        vptr = registry::static_vptr<Times>;
     }
 
     const Node& left;

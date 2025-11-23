@@ -8,8 +8,8 @@ implementation files.
 
 Let's use a payroll application as an example. We have two roles: `Employee` and
 `Salesman`, and a `pay` method that computes the monthly pay of an employee. We
-want to override and call `pay` from from multiple translation units, so we put
-it in a header:
+want to override and call `pay` from multiple translation units, so we put it in
+a header:
 
 [source,c++]
 ----

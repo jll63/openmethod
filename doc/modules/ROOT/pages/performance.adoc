@@ -67,7 +67,7 @@ than calling the equivalent virtual function, with an empty body and no other
 arguments. In most real programs, the overhead would be unnoticeable.
 
 *However*, `call_via_ref` does two things: it constructs a `virtual_ptr<Node>`
-from a `const Node&`; and then it calls the method.
+from a `const Node&`, then it calls the method.
 
 The construction of the `virtual_ptr` is the costly part. It performs a lookup
 in a perfect hash table, indexed by pointers to `std::type_info`, to find the

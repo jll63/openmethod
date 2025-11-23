@@ -79,7 +79,7 @@ include::{shared}/dynamic_main.cpp[tag=unload]
 
 ### Windows
 
-If we try the aboveexample on Windows, the result is disappointing:
+If we try the example on Windows, the result is disappointing:
 
 ```
 Before loading the shared library.
@@ -98,7 +98,7 @@ they add overriders to _their_ copy of the method (the `method::fn` static
 variable for the given name and signature). They are ignored when the main
 program calls `initialize`.
 
-Likewise, `BOOST_OPENMETHOD_CLASSES(Tiger, Carnivore);` in the DLL adds `Tiger`
+Likewise, `BOOST_OPENMETHOD_CLASSES(Tiger, Carnivore)` in the DLL adds `Tiger`
 to the DLL's copy of the registry. For the perspective of the program's
 registry, the class does not exist.
 

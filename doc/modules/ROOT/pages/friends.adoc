@@ -5,9 +5,9 @@
 Note;; This section uses overrider containers, described in the
 xref:headers.adoc[Headers] section.
 
-`friend` is a controversial feature. OpenMethod aims to interact well with
-all of C++, as much as feasible for a library, and leave the user the choice of
-using `friend`, or not.
+`friend` is a controversial feature. OpenMethod aims to interact well with all
+of C++, as much as feasible for a library, and leaves the choice of using
+`friend`, or not, to the user.
 
 Let's consider yet another variation of the `pay` example. This time, we want to
 update a `balance` variable in a `Payroll` class, when an employee is paid. Thus
