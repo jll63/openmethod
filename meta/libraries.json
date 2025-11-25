@@ -7,9 +7,9 @@
     "maintainers": [
         "Jean-Louis Leroy"
     ],
-    "description": "Open methods for C++17 and above.",
+    "description": "Open-methods for C++17 and above.",
     "category": [
-        "Programming"
+        "Emulation", "Programming"
     ],
     "cxxstd": "17"
 }
