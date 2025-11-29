@@ -3,6 +3,8 @@
 // See accompanying file LICENSE_1_0.txt
 // or copy at http://www.boost.org/LICENSE_1_0.txt)
 
+// up to: poke_boost_openmethod_guide
+
 // tag::content[]
 #include <boost/openmethod.hpp>
 

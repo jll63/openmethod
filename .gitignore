@@ -12,6 +12,7 @@ tests/benchmarks_parameters.hpp
 
 build/*
 __build__/*
+doc/html/*
 
 # ides
 .vscode/
