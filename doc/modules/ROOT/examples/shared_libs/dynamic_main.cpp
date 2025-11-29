@@ -38,7 +38,6 @@ BOOST_OPENMETHOD_OVERRIDE(
 // tag::load[]
 int main() {
     // end::load[]
-    // end::unload[]
     std::cout << "Before loading the shared library.\n";
 
     boost::openmethod::initialize();

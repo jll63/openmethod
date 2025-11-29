@@ -62,3 +62,4 @@ auto main() -> int {
 
     return 0;
 }
+// end::content[]
