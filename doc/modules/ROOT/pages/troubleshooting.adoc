@@ -1,6 +1,6 @@
 [#troubleshooting]
 
-:example: ../examples/troubleshooting
+:example: troubleshooting
 :tabs-sync-option:
 
 ### Compilation Errors
