@@ -1,5 +1,3 @@
-:exampledir: ../example
-
 [#basics]
 
 An _open-method_ is a free-standing function that has one or more _virtual_
