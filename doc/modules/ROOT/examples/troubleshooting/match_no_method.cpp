@@ -3,18 +3,20 @@
 // See accompanying file LICENSE_1_0.txt
 // or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-// up to: poke_boost_openmethod_guide
+// up to: postfix_boost_openmethod_guide
 
 // tag::content[]
 #include <boost/openmethod.hpp>
+#include <iostream>
 
-struct Animal {
-    virtual ~Animal() {
+struct Node {
+    virtual ~Node() {
     }
 };
 
-struct Cat : Animal {};
+struct Plus : Node {};
 
-BOOST_OPENMETHOD_OVERRIDE(poke, (boost::openmethod::virtual_ptr<Cat>&), void) {
+BOOST_OPENMETHOD_OVERRIDE(
+    postfix, (boost::openmethod::virtual_ptr<Plus>&, std::ostream& os), void) {
 }
 // end::content[]
