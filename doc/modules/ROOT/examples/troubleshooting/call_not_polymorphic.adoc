@@ -1,0 +1,16 @@
+[tabs]
+======
+clang::
++
+```
+example.cpp:26:5: error: no matching function for call to 'postfix'
+```
+
+gcc::
++
+```
+example.cpp: In function ‘int main()’:
+example.cpp:26:12: error: no matching function for call to ‘postfix(Plus&, std::ostream&)’
+```
+
+======

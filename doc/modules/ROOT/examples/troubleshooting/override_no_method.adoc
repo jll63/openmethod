@@ -1,0 +1,19 @@
+[tabs]
+======
+clang::
++
+```
+example.cpp:20:1: error: use of undeclared identifier 'postfix_boost_openmethod_guide'
+```
+
+gcc::
++
+```
+In file included from /home/jll/dev/boost/libs/openmethod/include/boost/openmethod.hpp:10,
+                 from example.cpp:9:
+example.cpp: In instantiation of ‘struct postfix_boost_openmethod_overriders<void(boost::openmethod::virtual_ptr<Plus, boost::openmethod::default_registry, void>, std::basic_ostream<char, std::char_traits<char> >&)>::boost_openmethod_detail_locate_method_aux<void(boost::openmethod::virtual_ptr<Plus>, std::basic_ostream<char>&)>’:
+example.cpp:20:1:   required from here
+/home/jll/dev/boost/libs/openmethod/include/boost/openmethod/macros.hpp:90:50: error: ‘postfix_boost_openmethod_guide’ was not declared in this scope; did you mean ‘postfix_boost_openmethod_overriders’?
+```
+
+======

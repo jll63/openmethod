@@ -75,17 +75,43 @@ rtti policy) for the conversion to exist.
 
 Classes involved in virtual parameters must be registered.
 
+Example:
 [source,c++]
 ----
 include::{examplesdir}/troubleshooting/use_classes_missing_class.cpp[tag=content]
 ----
 
+Error:
 include::{examplesdir}/troubleshooting/use_classes_missing_class.adoc[]
 
+All the direct bases of a class must appear in the same registration as the
+class itself.
 
+Example:
 [source,c++]
 ----
 include::{examplesdir}/troubleshooting/use_classes_missing_base.cpp[tag=content]
 ----
 
+Error:
 include::{examplesdir}/troubleshooting/use_classes_missing_base.adoc[]
+
+`initialize` deduces from the overrider that `Variable` derives from `Node`, but
+`Node` and `Variable` do not appear together in
+`BOOST_OPENMETHOD_REGISTER_CLASSES`.
+
+Classes that are used as virtual arguments must be registered as well as classes
+in virtual parameters. Failure to do so results in SEGV, or the wrong overrider
+may be called. Compiling with `BOOST_OPENMETHOD_ENABLE_RUNTIME_CHECKS` defined
+enables checks for this problem. This is recommended for debug builds.
+
+Example:
+[source,c++]
+----
+include::{examplesdir}/troubleshooting/use_classes_missing_class_call.cpp[tag=content]
+----
+
+Note that `Bulldog` is not registered.
+
+Error (with `BOOST_OPENMETHOD_ENABLE_RUNTIME_CHECKS` defined):
+include::{examplesdir}/troubleshooting/use_classes_missing_class_call.adoc[]

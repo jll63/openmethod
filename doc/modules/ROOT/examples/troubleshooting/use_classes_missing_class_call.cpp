@@ -10,28 +10,29 @@
 
 using namespace boost::openmethod::aliases;
 
-struct Node {
-    virtual ~Node() = default;
-};
-
-struct Variable : Node {
-    Variable(int value) : val(value) {
+class Animal {
+  public:
+    virtual ~Animal() {
     }
-    int val;
 };
 
-BOOST_OPENMETHOD(value, (virtual_ptr<Node>), int);
+class Dog : public Animal {};
+class Bulldog : public Dog {};
 
-BOOST_OPENMETHOD_OVERRIDE(value, (virtual_ptr<Variable> node), int) {
-    return node->val;
+BOOST_OPENMETHOD_CLASSES(Animal, Dog);
+
+BOOST_OPENMETHOD(poke, (virtual_ptr<Animal>, std::ostream&), void);
+
+BOOST_OPENMETHOD_OVERRIDE(
+    poke, (virtual_ptr<Dog> /*dog*/, std::ostream& os), void) {
+    os << "bark\n";
 }
-
-BOOST_OPENMETHOD_CLASSES(Node);
-BOOST_OPENMETHOD_CLASSES(Variable);
 
 int main() {
     boost::openmethod::initialize();
-    Variable var(42);
-    std::cout << value(var) << "\n";
+
+    std::unique_ptr<Animal> hector(new Bulldog());
+
+    poke(*hector, std::cout);
 }
 // end::content[]
