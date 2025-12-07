@@ -2,6 +2,17 @@
 Example:
 [source,c++]
 ----
+include::{examplesdir}/troubleshooting/use_classes_missing_class_call.cpp[tag=content]
+----
+
+Error:
+include::{examplesdir}/troubleshooting/use_classes_missing_class_call.adoc[]
+
+
+
+Example:
+[source,c++]
+----
 include::{examplesdir}/troubleshooting/call_not_polymorphic.cpp[tag=content]
 ----
 

@@ -21,7 +21,8 @@ if platform.system() == "Linux":
     def compile(compiler: str):
         def fn(cpp: Path, exe: Path):
             cp = subprocess.run(
-                f"{compiler} -I {repo_dir}/include {cpp} -o {exe} -std=c++17",
+                f"{compiler} -std=c++17 -DBOOST_OPENMETHOD_ENABLE_RUNTIME_CHECKS"
+                f" -I {repo_dir}/include {cpp} -o {exe}",
                 shell=True,
                 capture_output=True,
                 text=True,
@@ -40,7 +41,8 @@ else:
 
     def compile(cpp: Path, exe: Path):
         cp = subprocess.run(
-            f"cl /std:c++17 /EHsc /I {boost_dir} /I {repo_dir}\\include {cpp} /Fe{exe} /Fo{exe.with_suffix('.obj')}",
+            "cl /std:c++17 /EHsc /DBOOST_OPENMETHOD_ENABLE_RUNTIME_CHECKS"
+            f" /I {boost_dir} /I {repo_dir}\\include {cpp} /Fe{exe} /Fo{exe.with_suffix('.obj')}",
             shell=True,
             capture_output=True,
             text=True,
@@ -116,13 +118,17 @@ COMPILATION_ERRORS_TEMPLATE = r"""
 ```
 {errors}
 ```
-"""[1:]
+"""[
+    1:
+]
 
 RUNTIME_ERRORS_TEMPLATE = r"""
 ```
 {errors}
 ```
-"""[1:]
+"""[
+    1:
+]
 
 
 with open(script_dir / "fragments.adoc", "w", encoding="utf8") as fragments:
