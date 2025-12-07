@@ -27,6 +27,9 @@ BOOST_OPENMETHOD_OVERRIDE(value, (virtual_ptr<Variable> node), int) {
     return node->val;
 }
 
+BOOST_OPENMETHOD_CLASSES(Node);
+BOOST_OPENMETHOD_CLASSES(Variable);
+
 int main() {
     boost::openmethod::initialize();
     Variable var(42);
