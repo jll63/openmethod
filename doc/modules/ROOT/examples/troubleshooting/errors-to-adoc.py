@@ -19,7 +19,7 @@ repo_dir = subprocess.run(
 if platform.system() == "Linux":
 
     def compile(compiler: str):
-        def fn(cpp: Path, exe: str):
+        def fn(cpp: Path, exe: Path):
             cp = subprocess.run(
                 f"{compiler} -I {repo_dir}/include {cpp} -o {exe} -std=c++17",
                 shell=True,
@@ -38,9 +38,9 @@ else:
     boost_dir = sorted(boost_dirs)[-1]
     print("Using Boost from", boost_dir)
 
-    def compile(cpp: Path, exe: str):
+    def compile(cpp: Path, exe: Path):
         cp = subprocess.run(
-            f"cl /std:c++17 /EHsc /I {boost_dir} /I {repo_dir}\\include {cpp} /Fe{exe}",
+            f"cl /std:c++17 /EHsc /I {boost_dir} /I {repo_dir}\\include {cpp} /Fe{exe} /Fo{exe.with_suffix('.obj')}",
             shell=True,
             capture_output=True,
             text=True,
@@ -76,7 +76,7 @@ with tempfile.NamedTemporaryFile(
             error_map = {}
 
         for compiler, command in compilers.items():
-            if errors := command(cpp, exe.name):
+            if errors := command(cpp, Path(exe.name)):
                 for i, error in enumerate(errors):
                     errors[i] = error.replace(str(cpp), "example.cpp")
                     if up_to and up_to.search(error):
@@ -99,11 +99,13 @@ with tempfile.NamedTemporaryFile(
                 break
 
 EXAMPLE_TEMPLATE = r"""
+Example:
 [source,c++]
 ----
 include::{{examplesdir}}/troubleshooting/{example}.cpp[tag=content]
 ----
 
+Error:
 include::{{examplesdir}}/troubleshooting/{example}.adoc[]
 
 """
@@ -128,7 +130,7 @@ with open(script_dir / "fragments.adoc", "w", encoding="utf8") as fragments:
         print(EXAMPLE_TEMPLATE.format(example=f"{example}"), file=fragments)
         with open(script_dir / f"{example}.adoc", "w", encoding="utf8") as errors_adoc:
             if errors := error_map.get("runtime"):
-                assert len(error_map) == 1
+                assert len(error_map) == 1, f"invalid json file {example}.json"
                 print(
                     RUNTIME_ERRORS_TEMPLATE.format(errors="\n".join(errors)),
                     file=errors_adoc,

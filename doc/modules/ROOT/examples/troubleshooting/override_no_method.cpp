@@ -9,22 +9,15 @@
 #include <boost/openmethod.hpp>
 #include <iostream>
 
-namespace ast {
+using namespace boost::openmethod::aliases;
 
 struct Node {
-    virtual ~Node() {
-    }
+    virtual ~Node() = default;
 };
 
 struct Plus : Node {};
 
-BOOST_OPENMETHOD(
-    postfix, (boost::openmethod::virtual_ptr<Node>&, std::ostream& os), void);
-
-} // namespace ast
-
 BOOST_OPENMETHOD_OVERRIDE(
-    postfix, (boost::openmethod::virtual_ptr<ast::Plus>&, std::ostream& os),
-    void) {
+    postfix, (virtual_ptr<Plus>, std::ostream& os), void) {
 }
 // end::content[]

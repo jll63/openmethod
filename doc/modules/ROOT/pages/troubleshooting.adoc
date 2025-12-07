@@ -2,7 +2,10 @@
 
 :tabs-sync-option:
 
-### Compilation Errors
+// include::{examplesdir}/troubleshooting/fragments.adoc[]
+
+
+### Compilation errors
 
 OpenMethod is a library that emulates a language feature. Unfortunately, it
 cannot produce diagnostics as good as what a compiler can. Compilation errors
@@ -10,47 +13,65 @@ often take the form of template instantiation failures, which can be hard to
 decipher. However, most compilation errors can be traced back to a few common
 mistakes, which have their typical signature.
 
-#### BOOST_OPENMETHOD_OVERRIDE Fails to Match a Method
-
-`BOOST_OPENMETHOD_OVERRIDE` determines which method to add the overrider to. For
-that purpose, `BOOST_OPENMETHOD` generates a guide function named after the
-method. It takes the same parameters as the method, and returns the
-instantiation of template cpp:method[] for the method being defined.
-`BOOST_OPENMETHOD_OVERRIDE` attempts to call that function (in a non-evaluated
-context) with its own parameters to locate the method.
-
-Failure to locate the method causes a compilation error. It is characteriezed by
-the mention of a function with a `_boost_openmethod_guide` suffix.
-
-This can happen because the method simply doesn't exist:
-
-[source,c++]
-----
-include::{examplesdir}/troubleshooting/match_no_method.cpp[tag=content]
-----
-
-The error message is:
-
-include::{examplesdir}/troubleshooting/match_no_method.adoc[]
-
 Note;; Error outputs are clipped after the line that identifies the cause of the
 error.
 
-If the method exists, but it cannot be located, even via Argument-Dependent
-Lookup (ADL), the error message is similar:
+#### BOOST_OPENMETHOD_OVERRIDE fails to match a method
 
+`BOOST_OPENMETHOD_OVERRIDE` automatically determines which method the overrider
+if for. Failure to find a method results in an error message in the macro
+expansion. In contains a function named after the method, with a
+`_boost_openmethod_guide` suffix.
+
+Example:
 
 [source,c++]
 ----
-include::{examplesdir}/troubleshooting/match_method_not_visible.cpp[tag=content]
+include::{examplesdir}/troubleshooting/override_no_method.cpp[tag=content]
 ----
 
-include::{examplesdir}/troubleshooting/match_method_not_visible.adoc[]
+Error:
 
+include::{examplesdir}/troubleshooting/override_no_method.adoc[]
 
-### Runtime Errors
+The method does not exist.
 
-#### Missing or Incorrect Class Registrations
+Example:
+
+[source,c++]
+----
+include::{examplesdir}/troubleshooting/override_no_conversion.cpp[tag=content]
+----
+
+Error:
+
+include::{examplesdir}/troubleshooting/override_no_conversion.adoc[]
+
+`Plus` derives from `Node` _privately_. There is no conversion from
+`virtual_ptr<Plus>` to `virtual_ptr<Node>`. `postfix` cannot be called with a
+`virtual_ptr<Plus>`.
+
+#### Method cannot be called
+
+Virtual arguments can be passed to method calls as references or pointers. This
+relies on `virtual_ptr`{empty}'s conversion constructor. If its requirements are
+not met, the constructor does not exist.
+
+Example:
+[source,c++]
+----
+include::{examplesdir}/troubleshooting/call_not_polymorphic.cpp[tag=content]
+----
+
+Error:
+include::{examplesdir}/troubleshooting/call_not_polymorphic.adoc[]
+
+`virtual_ptr` requires the type to be polymorphic (according to the method's
+rtti policy) for the conversion to exist.
+
+### Runtime errors
+
+#### Missing or incorrect class registrations
 
 Classes involved in virtual parameters must be registered.
 
@@ -60,3 +81,11 @@ include::{examplesdir}/troubleshooting/use_classes_missing_class.cpp[tag=content
 ----
 
 include::{examplesdir}/troubleshooting/use_classes_missing_class.adoc[]
+
+
+[source,c++]
+----
+include::{examplesdir}/troubleshooting/use_classes_missing_base.cpp[tag=content]
+----
+
+include::{examplesdir}/troubleshooting/use_classes_missing_base.adoc[]
