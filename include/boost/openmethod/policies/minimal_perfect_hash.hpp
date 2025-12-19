@@ -65,7 +65,7 @@ struct minimal_perfect_hash : type_hash {
     //! Cannot find hash factors
     struct search_error : openmethod_error {
         //! Number of attempts to find hash factors
-        std::size_t passes;
+        std::size_t attempts;
         //! Number of buckets used in the last attempt
         std::size_t buckets;
 
@@ -88,7 +88,7 @@ struct minimal_perfect_hash : type_hash {
         static std::size_t shift;
         static std::size_t table_size; // N for minimal perfect hash
         static std::size_t num_groups;
-        static std::size_t group_mult; // Smaller type to avoid overflow
+        static std::size_t group_mult;
         static std::size_t group_shift;
 
         static void check(std::size_t index, type_id type);
@@ -143,9 +143,10 @@ struct minimal_perfect_hash : type_hash {
         //! @return The hash value
         BOOST_FORCEINLINE
         static auto hash(type_id type) -> std::size_t {
-            auto pilot = (mult * reinterpret_cast<uintptr>(type)) >> shift;
+            auto pilot = ((mult * reinterpret_cast<uintptr>(type)) >> shift) % table_size;
             auto group =
-                (group_mult * reinterpret_cast<uintptr>(type)) >> group_shift;
+                ((group_mult * reinterpret_cast<uintptr>(type)) >> group_shift) %
+                num_groups;
             auto index =
                 (pilot +
                  detail::minimal_perfect_hash_displacements<Registry>[group]) %
@@ -198,8 +199,7 @@ void minimal_perfect_hash::fn<Registry>::initialize(
 
     const auto N = std::distance(ctx.classes_begin(), ctx.classes_end());
 
-    // Detect if the options parameter pack contains a trace object
-    if constexpr (ctx.has_trace) {
+    if constexpr (InitializeContext::template has_option<trace>) {
         ctx.tr << "Finding minimal perfect hash using PtHash for " << N
                << " types\n";
     }
@@ -254,7 +254,8 @@ void minimal_perfect_hash::fn<Registry>::initialize(
     // Constants for PtHash algorithm
     constexpr std::size_t DEFAULT_RANDOM_SEED =
         13081963; // Same seed as fast_perfect_hash
-    constexpr std::size_t MAX_PASSES = 1'000'000;
+    constexpr std::size_t MAX_PASSES = 1'000;
+    constexpr std::size_t MAX_ATTEMPTS = 10'000'000;
     constexpr std::size_t DEFAULT_GROUP_DIVISOR =
         4; // N/4 groups for balance between memory and speed
     constexpr std::size_t DISTRIBUTION_FACTOR =
@@ -263,11 +264,10 @@ void minimal_perfect_hash::fn<Registry>::initialize(
 
     std::default_random_engine rnd(DEFAULT_RANDOM_SEED);
     std::uniform_int_distribution<std::size_t> uniform_dist;
+    std::size_t total_attempts = 0;
 
     // PtHash algorithm: partition keys into groups, then find displacements
-    // Number of groups: typically sqrt(N) to N/4 for good performance. Also we
-    // need at least 2 groups to ensure that group_shift is *not* equal to word
-    // size, as shifting an integer by the number of bits it has is UB.
+    // Number of groups: typically sqrt(N) to N/4 for good performance
     num_groups = (std::max)(std::size_t(2), table_size / DEFAULT_GROUP_DIVISOR);
     if (num_groups > table_size)
         num_groups = table_size;
@@ -287,11 +287,10 @@ void minimal_perfect_hash::fn<Registry>::initialize(
     }
 
     // Try different pilot hash parameters
-    std::size_t pass = 0;
-    for (; pass < MAX_PASSES; ++pass) {
+    for (std::size_t pass = 0;
+         pass < MAX_PASSES && total_attempts < MAX_ATTEMPTS; ++pass) {
         mult = uniform_dist(rnd) | 1;
-        std::uniform_int_distribution<std::size_t> group_dist;
-        group_mult = group_dist(rnd) | 1;
+        group_mult = uniform_dist(rnd) | 1;
 
         // Calculate M for pilot hash (number of bits for table_size range)
         std::size_t M = 0;
@@ -322,7 +321,6 @@ void minimal_perfect_hash::fn<Registry>::initialize(
         std::vector<std::size_t> group_order(num_groups);
         for (std::size_t i = 0; i < num_groups; ++i)
             group_order[i] = i;
-
         std::sort(
             group_order.begin(), group_order.end(),
             [&groups](std::size_t a, std::size_t b) {
@@ -334,10 +332,15 @@ void minimal_perfect_hash::fn<Registry>::initialize(
                 continue;
 
             // Try different displacement values
-            const auto max_disp = table_size * DISTRIBUTION_FACTOR;
-            std::size_t disp = 0;
+            bool found = false;
+            for (std::size_t disp = 0;
+                 disp < table_size * DISTRIBUTION_FACTOR && !found; ++disp) {
+                ++total_attempts;
+                if (total_attempts > MAX_ATTEMPTS) {
+                    success = false;
+                    break;
+                }
 
-            for (; disp < max_disp; ++disp) {
                 // Check if this displacement works for all keys in group
                 std::vector<std::size_t> positions;
                 positions.reserve(groups[g].size());
@@ -347,24 +350,25 @@ void minimal_perfect_hash::fn<Registry>::initialize(
                         (mult * reinterpret_cast<uintptr>(key)) >> shift;
                     auto pos = (pilot + disp) % table_size;
                     if (used[pos]) {
-                        goto next_displacement;
+                        valid = false;
+                        break;
                     }
                     positions.push_back(pos);
                 }
 
-                // Mark positions as used and store keys
-                detail::minimal_perfect_hash_displacements<Registry>[g] = disp;
-                for (std::size_t i = 0; i < groups[g].size(); ++i) {
-                    used[positions[i]] = true;
-                    buckets[positions[i]] = groups[g][i];
+                if (valid) {
+                    // Mark positions as used and store keys
+                    detail::minimal_perfect_hash_displacements<Registry>[g] =
+                        disp;
+                    for (std::size_t i = 0; i < groups[g].size(); ++i) {
+                        used[positions[i]] = true;
+                        buckets[positions[i]] = groups[g][i];
+                    }
+                    found = true;
                 }
-
-                break; // found valid displacement
-
-            next_displacement:;
             }
 
-            if (disp == max_disp) {
+            if (!found) {
                 success = false;
                 break;
             }
@@ -382,9 +386,9 @@ void minimal_perfect_hash::fn<Registry>::initialize(
             // Accept if we've placed all keys (allow up to 10% waste)
             if (used_count == keys.size()) {
                 if constexpr (InitializeContext::template has_option<trace>) {
-                    ctx.tr << "  Found minimal perfect hash after " << pass
-                           << " passes; " << used_count << "/" << table_size
-                           << " slots used\n";
+                    ctx.tr << "  Found minimal perfect hash after "
+                           << total_attempts << " attempts; " << used_count
+                           << "/" << table_size << " slots used\n";
                 }
                 return;
             }
@@ -393,7 +397,7 @@ void minimal_perfect_hash::fn<Registry>::initialize(
 
     // Failed to find minimal perfect hash
     search_error error;
-    error.passes = pass;
+    error.attempts = total_attempts;
     error.buckets = table_size;
 
     if constexpr (Registry::has_error_handler) {
@@ -406,12 +410,12 @@ void minimal_perfect_hash::fn<Registry>::initialize(
 template<class Registry>
 void minimal_perfect_hash::fn<Registry>::check(
     std::size_t index, type_id type) {
-    type_id control;
+    type_id stored_type = detail::minimal_perfect_hash_control<Registry>[index];
 
     if (index < table_size) {
-        control = detail::minimal_perfect_hash_control<Registry>[index];
+        stored_type = detail::minimal_perfect_hash_control<Registry>[index];
 
-        if (control == type) {
+        if (stored_type == type) {
             return;
         }
     }
@@ -427,8 +431,8 @@ void minimal_perfect_hash::fn<Registry>::check(
 
 template<class Registry, class Stream>
 auto minimal_perfect_hash::search_error::write(Stream& os) const -> void {
-    os << "could not find minimal perfect hash factors after " << passes
-       << " passes using " << buckets << " buckets\n";
+    os << "could not find minimal perfect hash factors after " << attempts
+       << " attempts using " << buckets << " buckets\n";
 }
 
 } // namespace policies
