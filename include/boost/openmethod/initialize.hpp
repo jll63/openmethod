@@ -8,6 +8,7 @@
 
 #include <boost/openmethod/core.hpp>
 #include <boost/openmethod/detail/ostdstream.hpp>
+#include <boost/openmethod/detail/trace.hpp>
 
 #include <algorithm>
 #include <cstdint>
@@ -307,75 +308,10 @@ struct generic_compiler {
 };
 
 template<class Compiler>
-struct trace_stream {
-    bool on = false;
-    std::size_t indentation_level{0};
-
-    auto operator++() -> trace_stream& {
-        if constexpr (Compiler::has_trace) {
-            if (on) {
-                for (std::size_t i = 0; i < indentation_level; ++i) {
-                    Compiler::Registry::output::os << "  ";
-                }
-            }
-        }
-
-        return *this;
-    }
-
-    struct indent {
-        trace_stream& trace;
-        int by;
-
-        explicit indent(trace_stream& trace, int by = 2)
-            : trace(trace), by(by) {
-            trace.indentation_level += by;
-        }
-
-        ~indent() {
-            trace.indentation_level -= by;
-        }
-    };
-};
-
-struct rflush {
-    std::size_t width;
-    std::size_t value;
-    explicit rflush(std::size_t width, std::size_t value)
-        : width(width), value(value) {
-    }
-};
-
-struct type_name {
-    type_name(type_id type) : type(type) {
-    }
-    type_id type;
-};
-
-template<class Compiler>
 auto operator<<(trace_stream<Compiler>& tr, const generic_compiler::class_& cls)
     -> trace_stream<Compiler>& {
     if constexpr (Compiler::has_trace) {
         tr << type_name(cls.type_ids[0]);
-    }
-
-    return tr;
-}
-
-template<class Compiler, template<typename...> class Container, typename... T>
-auto operator<<(
-    trace_stream<Compiler>& tr,
-    Container<generic_compiler::class_*, T...>& classes)
-    -> trace_stream<Compiler>& {
-    if constexpr (Compiler::has_trace) {
-        tr << "(";
-        const char* sep = "";
-        for (auto cls : classes) {
-            tr << sep << *cls;
-            sep = ", ";
-        }
-
-        tr << ")";
     }
 
     return tr;
@@ -400,6 +336,25 @@ auto operator<<(trace_stream<Compiler>& tr, const spec_name& sn)
         tr << "ambiguous";
     } else {
         tr << type_name(sn.def->info->type);
+    }
+
+    return tr;
+}
+
+template<class Compiler, template<typename...> class Container, typename... T>
+auto operator<<(
+    trace_stream<Compiler>& tr,
+    Container<generic_compiler::class_*, T...>& classes)
+    -> trace_stream<Compiler>& {
+    if constexpr (Compiler::has_trace) {
+        tr << "(";
+        const char* sep = "";
+        for (auto cls : classes) {
+            tr << sep << *cls;
+            sep = ", ";
+        }
+
+        tr << ")";
     }
 
     return tr;

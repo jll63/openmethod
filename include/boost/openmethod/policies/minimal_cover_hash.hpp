@@ -7,6 +7,7 @@
 #define BOOST_OPENMETHOD_POLICY_MINIMAL_COVER_HASH_HPP
 
 #include <boost/openmethod/preamble.hpp>
+#include <boost/openmethod/detail/trace.hpp>
 
 #include <boost/config.hpp>
 
@@ -22,7 +23,6 @@
 namespace boost::openmethod {
 
 namespace detail {
-
 
 template<class Registry>
 std::vector<type_id> minimal_cover_hash_control;
@@ -154,38 +154,17 @@ void minimal_cover_hash::fn<Registry>::initialize(
     auto all_zero_mask = std::uintptr_t();
     auto all_one_mask = ~std::uintptr_t();
 
-    // 1. Iterate over all (type_id, vptr) pairs using the new iterator:
-    for (auto it = ctx.type_id_vptr_begin(); it != ctx.type_id_vptr_end();
-         ++it) {
-        auto id = it->first;
-
-
-
-    }
-
-    // 2. Build the hash data structure
-    // 3. Set min_value and max_value
-    // 4. Populate the control vector if runtime checks are enabled
-
-    min_value = 0;
-    max_value = 0;
-
-    // Placeholder: count the types
-    std::size_t count = 0;
-    for (auto iter = ctx.classes_begin(); iter != ctx.classes_end(); ++iter) {
-        for (auto type_iter = iter->type_id_begin();
-             type_iter != iter->type_id_end(); ++type_iter) {
-            ++count;
+    for (const auto& cls : ctx.classes) {
+        for (auto id : cls.type_ids) {
+            all_zero_mask |= reinterpret_cast<std::uintptr_t>(id);
+            all_one_mask &= reinterpret_cast<std::uintptr_t>(id);
         }
     }
 
-    if constexpr (InitializeContext::template has_option<trace>) {
-        ctx.tr << "  Found " << count << " type_ids to hash\n";
+    if constexpr (InitializeContext::has_trace) {
+        ctx.tr << "all zero mask: " << detail::binary(all_zero_mask) << "\n";
+        ctx.tr << "all one  mask: " << detail::binary(all_one_mask) << "\n";
     }
-
-    // TODO: Replace with actual implementation
-    control.resize(count);
-    max_value = count - 1;
 }
 
 template<class Registry>
