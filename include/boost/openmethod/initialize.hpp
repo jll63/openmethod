@@ -12,6 +12,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <deque>
+#include <iterator>
 #include <map>
 #include <memory>
 #include <numeric>
@@ -196,6 +197,113 @@ struct generic_compiler {
     std::vector<method> methods;
     std::size_t class_mark = 0;
     bool compilation_done = false;
+
+    // Iterator over all (type_id, vptr) pairs across all classes
+    struct type_id_vptr_iterator {
+        using iterator_category = std::forward_iterator_tag;
+        using value_type = std::pair<type_id, vptr_type>;
+        using difference_type = std::ptrdiff_t;
+        using pointer = const value_type*;
+        using reference = const value_type&;
+
+        const generic_compiler* ctx{nullptr};
+        std::deque<class_>::const_iterator ccur;
+        std::deque<class_>::const_iterator cend;
+        std::vector<type_id>::const_iterator tcur;
+        value_type current{};
+
+        type_id_vptr_iterator() = default;
+
+        type_id_vptr_iterator(const generic_compiler* c, bool at_end)
+            : ctx(c) {
+            if (ctx == nullptr) {
+                return;
+            }
+            ccur = ctx->classes_begin();
+            cend = ctx->classes_end();
+            if (at_end) {
+                ccur = cend;
+                return;
+            }
+            skip_empty_classes();
+            if (ccur != cend) {
+                tcur = ccur->type_id_begin();
+                update_current();
+            }
+        }
+
+        reference operator*() const {
+            return current;
+        }
+
+        pointer operator->() const {
+            return &current;
+        }
+
+        type_id_vptr_iterator& operator++() {
+            advance();
+            return *this;
+        }
+
+        type_id_vptr_iterator operator++(int) {
+            auto tmp = *this;
+            advance();
+            return tmp;
+        }
+
+        friend bool operator==(const type_id_vptr_iterator& a,
+                               const type_id_vptr_iterator& b) {
+            // Same context and both at end
+            if (a.ctx == b.ctx && a.ccur == a.cend && b.ccur == b.cend) {
+                return true;
+            }
+            return a.ctx == b.ctx && a.ccur == b.ccur &&
+                   (a.ccur == a.cend || a.tcur == b.tcur);
+        }
+
+        friend bool operator!=(const type_id_vptr_iterator& a,
+                               const type_id_vptr_iterator& b) {
+            return !(a == b);
+        }
+
+      private:
+        void update_current() {
+            if (ccur != cend) {
+                current = value_type{*tcur, ccur->vptr()};
+            }
+        }
+
+        void skip_empty_classes() {
+            while (ccur != cend && ccur->type_id_begin() == ccur->type_id_end()) {
+                ++ccur;
+            }
+        }
+
+        void advance() {
+            if (ccur == cend) {
+                return;
+            }
+            ++tcur;
+            if (tcur == ccur->type_id_end()) {
+                ++ccur;
+                skip_empty_classes();
+                if (ccur != cend) {
+                    tcur = ccur->type_id_begin();
+                }
+            }
+            if (ccur != cend) {
+                update_current();
+            }
+        }
+    };
+
+    auto type_id_vptr_begin() const -> type_id_vptr_iterator {
+        return type_id_vptr_iterator(this, false);
+    }
+
+    auto type_id_vptr_end() const -> type_id_vptr_iterator {
+        return type_id_vptr_iterator(this, true);
+    }
 };
 
 template<class Compiler>
