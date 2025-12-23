@@ -12,7 +12,10 @@ add_compile_definitions(BOOST_OPENMETHOD_ENABLE_RUNTIME_CHECKS)
 
 add_library(boost_openmethod-shared SHARED extensions.cpp)
 target_link_libraries(boost_openmethod-shared Boost::openmethod)
-set_target_properties(boost_openmethod-shared PROPERTIES ENABLE_EXPORTS ON)
+set_target_properties(boost_openmethod-shared PROPERTIES
+    ENABLE_EXPORTS ON
+    OUTPUT_NAME shared
+)
 
 add_executable(boost_openmethod-static static_main.cpp)
 target_link_libraries(boost_openmethod-static Boost::openmethod Boost::dll boost_openmethod-shared)
@@ -36,7 +39,10 @@ add_library(boost_openmethod-indirect_shared SHARED indirect_extensions.cpp)
 target_compile_definitions(
     boost_openmethod-indirect_shared PUBLIC BOOST_OPENMETHOD_DEFAULT_REGISTRY=indirect_registry)
 target_link_libraries(boost_openmethod-indirect_shared PRIVATE Boost::openmethod Boost::dll)
-set_target_properties(boost_openmethod-indirect_shared PROPERTIES ENABLE_EXPORTS ON)
+set_target_properties(boost_openmethod-indirect_shared PROPERTIES
+    ENABLE_EXPORTS ON
+    OUTPUT_NAME indirect_shared
+)
 
 add_executable(boost_openmethod-indirect indirect_main.cpp)
 target_compile_definitions(
