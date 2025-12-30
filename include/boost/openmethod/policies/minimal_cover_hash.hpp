@@ -151,19 +151,26 @@ void minimal_cover_hash::fn<Registry>::initialize(
         ctx.tr << "Initializing minimal_cover_hash\n";
     }
 
-    auto all_zero_mask = std::uintptr_t();
+    auto not_all_zero_mask = std::uintptr_t();
     auto all_one_mask = ~std::uintptr_t();
 
     for (const auto& cls : ctx.classes) {
         for (auto id : cls.type_ids) {
-            all_zero_mask |= reinterpret_cast<std::uintptr_t>(id);
+            not_all_zero_mask |= reinterpret_cast<std::uintptr_t>(id);
             all_one_mask &= reinterpret_cast<std::uintptr_t>(id);
         }
     }
 
+    auto all_zero = ~not_all_zero_mask;
+    auto useful = ~std::uintptr_t() & ~(all_zero | all_one_mask);
+    auto bit_count = __builtin_popcountll(useful);
+
     if constexpr (InitializeContext::has_trace) {
-        ctx.tr << "all zero mask: " << detail::binary(all_zero_mask) << "\n";
-        ctx.tr << "all one  mask: " << detail::binary(all_one_mask) << "\n";
+        ctx.tr << "all zero: " << detail::binary(all_zero) << "\n";
+        ctx.tr << "all  one: " << detail::binary(all_one_mask) << "\n";
+        ctx.tr << "useful  : " << detail::binary(useful) << "\n";
+        ctx.tr << "bits    : " << bit_count << "\n";
+        ctx.tr << "size    : " << (1 << bit_count) << "\n";
     }
 }
 

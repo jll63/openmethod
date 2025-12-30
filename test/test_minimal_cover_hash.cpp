@@ -128,6 +128,14 @@ BOOST_AUTO_TEST_CASE(test_minimal_cover_hash) {
     //BOOST_TEST_MESSAGE("Test iteration " << (i + 1));
 
     test_registry::compiler ctx{trace()};
+    constexpr auto ids_count = sizeof(test_ids) / sizeof(test_ids[0]);
+    ctx.classes.resize(ids_count);
+
+    std::transform(test_ids, test_ids + ids_count, ctx.classes.begin(), [&](type_id id) {
+        detail::generic_compiler::class_ cls;
+        cls.type_ids.push_back(id);
+        return cls;
+    });
 
     BOOST_REQUIRE_NO_THROW(
         test_registry::policy<type_hash>::initialize(ctx, std::tuple<trace>()));
