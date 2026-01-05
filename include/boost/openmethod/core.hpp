@@ -2844,14 +2844,27 @@ struct VirtualTraits {
 
     //! Casts a virtual argument.
     //!
-    //! Casts a virtual argument to the type expected by the overrider.
+    //! `cast` is responsible for passing virtual arguments from method to
+    //! overrider. In general, this requires some form of adjustment, because
+    //! the type of the virtual parameter in the overrider may be different from
+    //! the corresponding parameter in the method. Typically, the adjustment
+    //! consists in a cast, performed via `static_cast`, `dynamic_cast`, or
+    //! other means, depending on the type of the argument and the @ref rtti
+    //! policy of the method. `cast` is allowed to return the adjusted argument
+    //! by value or by reference. Casting a reference returns a reference.
+    //! Casting a pointer returns a pointer (by value). Casting a smart pointer
+    //! passed by value to the method typically returns a smart pointer (by
+    //! value). Casting a smart pointer passed by const reference typically
+    //! returns a smart pointer _by_ _value_, unless the source and destination
+    //! types are the same, in which case `cast` can return the const reference
+    //! as-is.
     //!
-    //! @tparam T The type of a virtual parameter of a method.
-    //! @tparam U The type of a virtual parameter of an overrider.
-    //! @param arg The argument passed to a method call.
-    //! @return A reference to the argument, cast to `U`.
+    //! @tparam T The type of the virtual parameter in the method.
+    //! @tparam U The type of the virtual parameter in the overrider.
+    //! @param arg The argument passed to the method call.
+    //! @return A value that can be passed as a U.
     template<typename U>
-    static auto cast(T arg) -> U;
+    static auto cast(T arg) -> detail::unspecified;
 
     //! Rebind to a another class (smart pointers only).
     //!

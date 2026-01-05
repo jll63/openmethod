@@ -3,42 +3,43 @@
 // See accompanying file LICENSE_1_0.txt
 // or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-// https://godbolt.org/z/r6o4f171r
-
 #include <iostream>
 #include <memory>
 #include <string>
 #include <typeinfo>
 
 #include <boost/openmethod.hpp>
-#include <boost/openmethod/policies/static_rtti.hpp>
 #include <boost/openmethod/initialize.hpp>
+#include <boost/openmethod/interop/boost_intrusive_ptr.hpp>
 
 using std::string;
 
 using namespace boost::openmethod::aliases;
 
 struct abstract {
+    virtual ~abstract() {
+    }
+
     int ref_count = 0;
+
+    friend void intrusive_ptr_add_ref(abstract* p) {
+        ++p->ref_count;
+    }
+
+    friend void intrusive_ptr_release(abstract* p) {
+        if (--p->ref_count == 0) {
+            delete p;
+        }
+    }
 };
 
-struct registry
-    : boost::openmethod::registry<boost::openmethod::policies::static_rtti> {};
-
 template<class Rep>
-using matrix_ptr = boost::openmethod::virtual_ptr<Rep, registry>;
-
-BOOST_OPENMETHOD(destroy, (matrix_ptr<abstract>), void, registry);
+using matrix_ptr = boost::openmethod::boost_intrusive_virtual_ptr<Rep>;
 
 class matrix {
     matrix_ptr<abstract> rep_;
 
     explicit matrix(matrix_ptr<abstract> rep) : rep_(rep) {
-        ++rep_->ref_count;
-
-        if (--rep->ref_count == 0) {
-            destroy(rep);
-        }
     }
 
   public:
@@ -49,37 +50,38 @@ class matrix {
         return rep_;
     }
 
-    template<class Rep, class... Args>
-    static matrix make(Args&&... args) {
-        return matrix(
-            boost::openmethod::final_virtual_ptr<registry>(
-                *new Rep(std::forward<Args>(args)...)));
+    template<class Rep>
+    static matrix make() {
+        return matrix(boost::openmethod::make_boost_intrusive_virtual<Rep>());
     }
 };
 
-struct dense : abstract {
-    static constexpr const char* type = "dense";
-};
+struct dense : abstract {};
 
-BOOST_OPENMETHOD_OVERRIDE(destroy, (matrix_ptr<dense> rep), void) {
-    delete rep.get();
+struct diagonal : abstract {};
+
+using namespace boost::openmethod::aliases;
+
+BOOST_OPENMETHOD_CLASSES(abstract, dense, diagonal);
+
+BOOST_OPENMETHOD(to_str, (matrix_ptr<abstract>), string);
+
+inline auto operator<<(std::ostream& os, matrix a) -> std::ostream& {
+    return os << to_str(a.rep());
 }
 
-struct diagonal : abstract {
-    static constexpr const char* type = "diagonal";
-};
-
-BOOST_OPENMETHOD_OVERRIDE(destroy, (matrix_ptr<diagonal> rep), void) {
-    delete rep.get();
+BOOST_OPENMETHOD_OVERRIDE(to_str, (matrix_ptr<dense>), string) {
+    return "a dense matrix";
 }
 
-BOOST_OPENMETHOD_CLASSES(abstract, dense, diagonal, registry);
+BOOST_OPENMETHOD_OVERRIDE(to_str, (matrix_ptr<diagonal>), string) {
+    return "a diagonal matrix";
+}
 
 // -----------------------------------------------------------------------------
 // matrix * matrix
 
-BOOST_OPENMETHOD(
-    times, (matrix_ptr<abstract>, matrix_ptr<abstract>), matrix, registry);
+BOOST_OPENMETHOD(times, (matrix_ptr<abstract>, matrix_ptr<abstract>), matrix);
 
 // catch-all matrix * matrix -> dense
 BOOST_OPENMETHOD_OVERRIDE(
@@ -100,7 +102,7 @@ inline auto operator*(matrix a, matrix b) -> matrix {
 // -----------------------------------------------------------------------------
 // scalar * matrix
 
-BOOST_OPENMETHOD(times, (double, matrix_ptr<abstract>), matrix, registry);
+BOOST_OPENMETHOD(times, (double, matrix_ptr<abstract>), matrix);
 
 // catch-all matrix * scalar -> dense
 BOOST_OPENMETHOD_OVERRIDE(
@@ -124,25 +126,18 @@ inline auto times(matrix_ptr<abstract> a, double b) -> matrix {
 // -----------------------------------------------------------------------------
 // main
 
-BOOST_OPENMETHOD(write, (matrix_ptr<abstract>), string, registry);
-
-inline auto operator<<(std::ostream& os, matrix a) -> std::ostream& {
-    return os << write(a.rep());
-}
-
-BOOST_OPENMETHOD_OVERRIDE(write, (matrix_ptr<dense>), string) {
-    return "a dense matrix";
-}
-
-BOOST_OPENMETHOD_OVERRIDE(write, (matrix_ptr<diagonal>), string) {
-    return "a diagonal matrix";
-}
+#define check(expr)                                                            \
+    {                                                                          \
+        if (!(expr)) {                                                         \
+            cerr << #expr << " failed\n";                                      \
+        }                                                                      \
+    }
 
 auto main() -> int {
     using std::cerr;
     using std::cout;
 
-    boost::openmethod::initialize<registry>();
+    boost::openmethod::initialize();
 
     matrix a = matrix::make<dense>();
     matrix b = matrix::make<diagonal>();
