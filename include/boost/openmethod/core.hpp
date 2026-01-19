@@ -2845,19 +2845,26 @@ struct VirtualTraits {
     //! Casts a virtual argument.
     //!
     //! `cast` is responsible for passing virtual arguments from method to
-    //! overrider. In general, this requires some form of adjustment, because
-    //! the type of the virtual parameter in the overrider may be different from
-    //! the corresponding parameter in the method. Typically, the adjustment
+    //! overrider. In general, this requires some form of adjustment, because a
+    //! virtual parameter in the overrider may have a different type than the
+    //! corresponding parameter in the method. Typically, the adjustment
     //! consists in a cast, performed via `static_cast`, `dynamic_cast`, or
-    //! other means, depending on the type of the argument and the @ref rtti
-    //! policy of the method. `cast` is allowed to return the adjusted argument
-    //! by value or by reference. Casting a reference returns a reference.
-    //! Casting a pointer returns a pointer (by value). Casting a smart pointer
-    //! passed by value to the method typically returns a smart pointer (by
-    //! value). Casting a smart pointer passed by const reference typically
-    //! returns a smart pointer _by_ _value_, unless the source and destination
-    //! types are the same, in which case `cast` can return the const reference
-    //! as-is.
+    //! other means, depending on the type of the argument and the rtti policy
+    //! of the method. `cast` may return the adjusted argument by reference or
+    //! as a temporary value.
+    //!
+    //! <table>
+    //!   <tr>
+    //!     <th>Method Parameter Type</th>
+    //!     <th>Overrider Parameter Type</th>
+    //!     <th>Returns</th>
+    //!   </tr>
+    //!   <tr>
+    //!     <td>T&</td>
+    //!     <td>U&</td>
+    //!     <td>U&</td>
+    //!   </tr>
+    //! </table>
     //!
     //! @tparam T The type of the virtual parameter in the method.
     //! @tparam U The type of the virtual parameter in the overrider.

@@ -19,6 +19,10 @@
 #pragma GCC diagnostic ignored "-Wunused-local-typedefs"
 #endif
 
+#ifdef __clang__
+#pragma clang diagnostic ignored "-Wunused-local-typedefs"
+#endif
+
 struct using_shared_ptr {
     template<class Class>
     using ptr = std::shared_ptr<Class>;
