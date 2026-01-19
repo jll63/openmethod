@@ -2844,7 +2844,8 @@ struct VirtualTraits {
 
     /**
     Casts a virtual argument.
-        `cast` is responsible for passing virtual arguments from method to
+    
+    `cast` is responsible for passing virtual arguments from method to
     overrider. In general, this requires some form of adjustment, because a
     virtual parameter in the overrider may have a different type than the
     corresponding parameter in the method. Typically, the adjustment
@@ -2852,7 +2853,8 @@ struct VirtualTraits {
     other means, depending on the type of the argument and the rtti policy
     of the method. `cast` may return the adjusted argument by reference or
     as a temporary value.
-        <table>
+    
+    <table>
       <tr>
         <th>Method Parameter Type</th>
         <th>Overrider Parameter Type</th>
@@ -2864,11 +2866,6 @@ struct VirtualTraits {
         <td>U&</td>
       </tr>
     </table>
-    
-    @tparam T The type of the virtual parameter in the method.
-    @tparam U The type of the virtual parameter in the overrider.
-    @param arg The argument passed to the method call.
-    @return A value that can be passed as a U.
     */
     template<typename U>
     static auto cast(T arg) -> detail::unspecified;
