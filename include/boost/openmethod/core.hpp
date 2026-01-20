@@ -2746,7 +2746,7 @@ method<Id, ReturnType(Parameters...), Registry>::override_impl<
 #endif
 
     // zero-initalized static variable
-    // coverity[uninit_use:FALSE]
+    // coverity[uninit_use]
     if (overrider_info::method) {
         BOOST_ASSERT(overrider_info::method == &fn);
         return;
