@@ -136,7 +136,6 @@ BOOST_AUTO_TEST_CASE(intrusive_virtual_ptr_by_value) {
 }
 } // namespace BOOST_OPENMETHOD_GENSYM
 
-
 namespace BOOST_OPENMETHOD_GENSYM {
 
 // -----------------------------------------------------------------------------

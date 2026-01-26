@@ -259,6 +259,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(
         dog_virtual_ptr q(std::move(p));
         BOOST_TEST(q.get() == snoopy.get());
         BOOST_TEST(q.vptr() == default_registry::template static_vptr<Dog>);
+        // coverity[use_after_move]
         BOOST_TEST(p.get() == nullptr);
         BOOST_TEST(p.vptr() == nullptr);
     }
@@ -385,6 +386,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(
     BOOST_TEST(dog.get() == p);
 
     if (smart::cast_moves()) {
+        // coverity[use_after_move]
         BOOST_TEST(animal.get() == nullptr);
     }
 }
