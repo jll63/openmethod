@@ -9,7 +9,15 @@
 #include <boost/openmethod/preamble.hpp>
 #include <boost/openmethod/detail/ostdstream.hpp>
 
-namespace boost::openmethod::policies {
+namespace boost::openmethod {
+
+namespace detail {
+
+BOOST_OPENMETHOD_DETAIL_MAKE_SYMBOL_WITH_ATTRIBUTES(os);
+
+} // namespace detail
+
+namespace policies {
 
 //! @ref Writes to the C standard error stream.
 //!
@@ -17,15 +25,13 @@ namespace boost::openmethod::policies {
 struct stderr_output : output {
     //! An OutputFn metafunction.
     template<class Registry>
-    struct fn {
+    struct fn : detail::global_state_os<detail::ostderr, Registry> {
         //! A @ref LightweightOuputStream.
-        static detail::ostderr os;
+        // static detail::ostderr os; // now inherited from global_state_os
     };
 };
 
-template<class Registry>
-detail::ostderr stderr_output::fn<Registry>::os;
-
-} // namespace boost::openmethod::policies
+} // namespace policies
+} // namespace boost::openmethod
 
 #endif

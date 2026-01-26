@@ -7,7 +7,16 @@
 // extensions.cpp
 #include "animals.hpp"
 
-using namespace boost::openmethod::aliases;
+using namespace boost::openmethod;
+
+static_assert(
+    std::is_same_v<default_registry::attributes, declspec::dllimport>);
+
+static_assert(std::is_same_v<
+              BOOST_OPENMETHOD_TYPE(
+                  meet, (virtual_ptr<Animal>, virtual_ptr<Animal>),
+                  std::string)::attributes,
+              declspec::dllimport>);
 
 BOOST_OPENMETHOD_OVERRIDE(
     meet, (virtual_ptr<Herbivore>, virtual_ptr<Carnivore>), std::string) {

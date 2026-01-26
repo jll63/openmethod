@@ -5,9 +5,9 @@
 
 #ifndef LIBRARY_NAME
 #ifdef _MSC_VER
-#define LIBRARY_NAME "shared.dll"
+#define LIBRARY_NAME "boost_openmethod-shared.dll"
 #else
-#define LIBRARY_NAME "libshared.so"
+#define LIBRARY_NAME "libboost_openmethod-shared.so"
 #endif
 #endif
 
@@ -23,7 +23,23 @@
 #include <iostream>
 #include <memory>
 
-using namespace boost::openmethod::aliases;
+using namespace boost::openmethod;
+
+static_assert(!std::is_same_v<
+              BOOST_OPENMETHOD_TYPE(
+                  meet, (virtual_ptr<Animal>, virtual_ptr<Animal>),
+                  std::string)::attributes,
+              no_attributes>);
+
+static_assert(std::is_same_v<
+              BOOST_OPENMETHOD_TYPE(
+                  meet, (virtual_ptr<Animal>, virtual_ptr<Animal>),
+                  std::string)::attributes,
+              declspec::dllexport>);
+
+static_assert(!std::is_same_v<default_registry::attributes, no_attributes>);
+static_assert(
+    std::is_same_v<default_registry::attributes, declspec::dllexport>);
 
 struct Cow : Herbivore {};
 struct Wolf : Carnivore {};
@@ -39,64 +55,72 @@ BOOST_OPENMETHOD_OVERRIDE(
 int main() {
     // end::load[]
     // end::unload[]
-    std::cout << "Before loading the shared library.\n";
 
-    boost::openmethod::initialize();
+    try {
+        std::cout << "Before loading the shared library.\n";
 
-    std::cout << "cow meets wolf -> "
-              << meet(*std::make_unique<Cow>(), *std::make_unique<Wolf>())
-              << "\n"; // greet
-    std::cout << "wolf meets cow -> "
-              << meet(*std::make_unique<Wolf>(), *std::make_unique<Cow>())
-              << "\n"; // greet
+        boost::openmethod::initialize();
 
-    // to be continued...
-    // end::before[]
-    // tag::load[]
-    // ...
+        std::cout << "cow meets wolf -> "
+                  << meet(*std::make_unique<Cow>(), *std::make_unique<Wolf>())
+                  << "\n"; // greet
+        std::cout << "wolf meets cow -> "
+                  << meet(*std::make_unique<Wolf>(), *std::make_unique<Cow>())
+                  << "\n"; // greet
 
-    std::cout << "\nAfter loading the shared library.\n";
+        // to be continued...
+        // end::before[]
+        // tag::load[]
+        // ...
 
-    boost::dll::shared_library lib(
-        boost::dll::program_location().parent_path() / LIBRARY_NAME,
-        boost::dll::load_mode::rtld_now);
-    boost::openmethod::initialize();
+        std::cout << "\nAfter loading the shared library.\n";
 
-    std::cout << "cow meets wolf -> "
-              << meet(*std::make_unique<Cow>(), *std::make_unique<Wolf>())
-              << "\n"; // run
-    std::cout << "wolf meets cow -> "
-              << meet(*std::make_unique<Wolf>(), *std::make_unique<Cow>())
-              << "\n"; // hunt
+        boost::dll::shared_library lib(
+            boost::dll::program_location().parent_path() / LIBRARY_NAME,
+            boost::dll::load_mode::rtld_now);
+        boost::openmethod::initialize();
 
-    auto make_tiger = lib.get<Animal*()>("make_tiger");
-    std::cout << "cow meets tiger -> "
-              << meet(
-                     *std::make_unique<Cow>(),
-                     *std::unique_ptr<Animal>(make_tiger()))
-              << "\n"; // hunt
-                       // end::load[]
+        std::cout << "cow meets wolf -> "
+                  << meet(*std::make_unique<Cow>(), *std::make_unique<Wolf>())
+                  << "\n"; // run
+        std::cout << "wolf meets cow -> "
+                  << meet(*std::make_unique<Wolf>(), *std::make_unique<Cow>())
+                  << "\n"; // hunt
 
-    // tag::unload[]
-    // ...
+        auto make_tiger = lib.get<Animal*()>("make_tiger");
+        std::cout << "cow meets tiger -> "
+                  << meet(
+                         *std::make_unique<Cow>(),
+                         *std::unique_ptr<Animal>(make_tiger()))
+                  << "\n"; // hunt
+        // end::load[]
 
-    std::cout << "\nAfter unloading the shared library.\n";
+        // tag::unload[]
+        // ...
 
-    lib.unload();
-    boost::openmethod::initialize();
+        std::cout << "\nAfter unloading the shared library.\n";
 
-    std::cout << "cow meets wolf -> "
-              << meet(*std::make_unique<Cow>(), *std::make_unique<Wolf>())
-              << "\n"; // greet
-    std::cout << "wolf meets cow -> "
-              << meet(*std::make_unique<Wolf>(), *std::make_unique<Cow>())
-              << "\n"; // greet
-    // tag::before[]
-    // tag::load[]
-    // tag::unload[]
+        lib.unload();
+        boost::openmethod::initialize();
+
+        std::cout << "cow meets wolf -> "
+                  << meet(*std::make_unique<Cow>(), *std::make_unique<Wolf>())
+                  << "\n"; // greet
+        std::cout << "wolf meets cow -> "
+                  << meet(*std::make_unique<Wolf>(), *std::make_unique<Cow>())
+                  << "\n"; // greet
+                           // tag::before[]
+                           // tag::load[]
+                           // tag::unload[]
+
+        // end::before[]
+        // end::load[]
+        // end::unload[]
+
+    } catch (const std::exception& ex) {
+        std::cerr << "Exception: " << ex.what() << '\n';
+        return 1;
+    }
 
     return 0;
 }
-// end::before[]
-// end::load[]
-// end::unload[]

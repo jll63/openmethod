@@ -36,8 +36,8 @@ static_assert(detail::is_registry<default_registry>);
 struct not_a_policy {};
 static_assert(!detail::is_registry<not_a_policy>);
 
-struct registry1 : default_registry::with<unique<registry1>> {};
-struct registry2 : default_registry::with<unique<registry2>> {};
+using registry1 = test_registry_<__COUNTER__>;
+using registry2 = test_registry_<__COUNTER__>;
 
 struct foo {
     using category = foo;

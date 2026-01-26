@@ -25,16 +25,28 @@ struct enable_forwarder<
 template<class...>
 struct va_args;
 
-template<class ReturnType, class Registry>
-struct va_args<ReturnType, Registry> {
+template<class ReturnType, class Other>
+struct va_args<ReturnType, Other> {
     using return_type = ReturnType;
-    using registry = Registry;
+    using registry =
+        std::conditional_t<is_registry<Other>, Other, macro_default_registry>;
+    using attributes =
+        std::conditional_t<std::is_base_of_v<attributes, Other>, Other, void>;
+};
+
+template<class ReturnType, class T, class U>
+struct va_args<ReturnType, T, U> {
+    using return_type = ReturnType;
+    using registry = std::conditional_t<is_registry<T>, T, U>;
+    using attributes =
+        std::conditional_t<std::is_base_of_v<attributes, T>, T, U>;
 };
 
 template<class ReturnType>
 struct va_args<ReturnType> {
     using return_type = ReturnType;
     using registry = macro_default_registry;
+    using attributes = registry::attributes;
 };
 
 } // namespace boost::openmethod::detail
@@ -61,8 +73,14 @@ struct va_args<ReturnType> {
         ::boost::openmethod::detail::va_args<__VA_ARGS__>::return_type ARGS,   \
         ::boost::openmethod::detail::va_args<__VA_ARGS__>::registry>
 
+#define BOOST_OPENMETHOD_DETAIL_STORAGE_CLASS(NAME, ARGS, ...)                 \
+    auto boost_openmethod_attributes(                                         \
+        BOOST_OPENMETHOD_TYPE(NAME, ARGS, __VA_ARGS__) &)                      \
+        -> ::boost::openmethod::detail::va_args<__VA_ARGS__>::attributes;
+
 #define BOOST_OPENMETHOD(NAME, ARGS, ...)                                      \
     struct BOOST_OPENMETHOD_ID(NAME);                                          \
+    BOOST_OPENMETHOD_DETAIL_STORAGE_CLASS(NAME, ARGS, __VA_ARGS__);            \
     template<typename... ForwarderParameters>                                  \
     typename ::boost::openmethod::detail::enable_forwarder<                    \
         void, BOOST_OPENMETHOD_TYPE(NAME, ARGS, __VA_ARGS__),                  \

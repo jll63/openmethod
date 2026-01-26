@@ -5,6 +5,7 @@
 
 #include <boost/mp11/algorithm.hpp>
 #include <boost/mp11/bind.hpp>
+#include <boost/preprocessor/cat.hpp>
 
 #include <stdlib.h>
 #include <vector>
@@ -17,6 +18,9 @@
 #endif
 
 namespace boost::openmethod {
+
+// -----------------------------------------------------------------------------
+// word
 
 namespace detail {
 
@@ -37,6 +41,9 @@ union word {
 
 } // namespace detail
 
+// -----------------------------------------------------------------------------
+// public aliases
+
 //! Alias to v-table pointer type.
 //!
 //! `vptr_type` is an alias to the type of a v-table pointer.
@@ -48,6 +55,9 @@ using vptr_type = const detail::word*;
 //! functions. It can be used as an actual data pointer (e.g. to a
 //! `std::type_info` object), or as an opaque integer type.
 using type_id = const void*;
+
+// -----------------------------------------------------------------------------
+// virtual types and traits
 
 //! Decorator for virtual parameters.
 //!
@@ -70,7 +80,7 @@ struct virtual_;
 template<typename T, class Registry>
 struct virtual_traits;
 
-// -----------------------------------------------------------------------------
+// =============================================================================
 // Error handling
 
 //! Base class for all OpenMethod errors.
@@ -284,23 +294,8 @@ struct final_error : openmethod_error {
 
 namespace detail {
 
-struct empty {};
-
-template<typename Iterator>
-struct range {
-    range(Iterator first, Iterator last) : first(first), last(last) {
-    }
-
-    Iterator first, last;
-
-    auto begin() const -> Iterator {
-        return first;
-    }
-
-    auto end() const -> Iterator {
-        return last;
-    }
-};
+// =============================================================================
+// generic registrars
 
 // -----------------------------------------------------------------------------
 // class info
@@ -369,11 +364,14 @@ struct deferred_overrider_info : overrider_info {
     virtual void resolve_type_ids() = 0;
 };
 
-struct unspecified {};
-
 } // namespace detail
 
+// =============================================================================
+// initialize options
+
 #ifdef __MRDOCS__
+
+struct unspecified {};
 
 //! Blueprint for a lightweight output stream (exposition only).
 //!
@@ -395,6 +393,9 @@ struct LightweightOutputStream {
 
 #endif
 
+// -----------------------------------------------------------------------------
+// n2216
+
 //! N2216 ambiguity resolution.
 //!
 //! If `n2216` is present in @ref initialize\'s `Options`, additional steps are
@@ -411,6 +412,9 @@ struct LightweightOutputStream {
 //!   but remains the same throughtout the program, and across different runs of
 //!   the same program.
 struct n2216 {};
+
+// -----------------------------------------------------------------------------
+// trace
 
 //! Enable `initialize` tracing.
 //!
@@ -451,6 +455,9 @@ inline trace trace::from_env() {
     return trace(env && *env++ == '1' && *env++ == 0);
 #endif
 }
+
+// =============================================================================
+// policies
 
 //! Namespace for policies.
 //!
@@ -562,6 +569,9 @@ struct RttiFn {
 
 #endif
 
+// -----------------------------------------------------------------------------
+// rtti
+
 //! Policy for manipulating type information.
 //!
 //! `rtti` policies are responsible for type information acquisition and dynamic
@@ -601,6 +611,9 @@ struct rtti {
     };
 };
 
+// -----------------------------------------------------------------------------
+// deferred rtti
+
 //! Policy for deferred type id collection.
 //!
 //! Some custom RTTI systems rely on static constructors to assign type ids.
@@ -609,6 +622,9 @@ struct rtti {
 //! rtti policy from this class - instead of just `rtti` - causes the collection
 //! of type ids to be deferred until the first call to @ref update.
 struct deferred_static_rtti : rtti {};
+
+// -----------------------------------------------------------------------------
+// error handler
 
 #ifdef __MRDOCS__
 //! Blueprint for @ref error_handler metafunctions (exposition only).
@@ -638,6 +654,9 @@ struct error_handler {
     // Policy category.
     using category = error_handler;
 };
+
+// -----------------------------------------------------------------------------
+// vptr
 
 #ifdef __MRDOCS__
 
@@ -704,6 +723,9 @@ struct indirect_vptr final {
     struct fn {};
 };
 
+// -----------------------------------------------------------------------------
+// type_hash
+
 #ifdef __MRDOCS__
 //! Blueprint for @ref type_hash metafunctions (exposition only).
 //!
@@ -716,8 +738,8 @@ struct TypeHashFn {
     //! blueprint.
     //! @return A pair containing the minimum and maximum hash values.
     template<class Context>
-    static auto
-    initialize(const Context& ctx) -> std::pair<std::size_t, std::size_t>;
+    static auto initialize(const Context& ctx)
+        -> std::pair<std::size_t, std::size_t>;
 
     //! Hash a `type_id`.
     //!
@@ -763,6 +785,9 @@ struct OutputFn {
 
 #endif
 
+// -----------------------------------------------------------------------------
+// output
+
 //! Policy for writing diagnostics and trace.
 //!
 //! If an `output` policy is present, the default error handler uses it to write
@@ -780,6 +805,9 @@ struct output {
     using category = output;
 };
 
+// -----------------------------------------------------------------------------
+// runtime_checks
+
 //! Policy for post-initialize runtime checks.
 //!
 //! If this policy is present, performs the following checks:
@@ -795,9 +823,20 @@ struct runtime_checks final {
 
 } // namespace policies
 
+// -----------------------------------------------------------------------------
+// registry and policy helpers
+
 namespace detail {
 
 struct registry_base {};
+
+template<class>
+struct registry_state {
+    static_list<class_info> classes;
+    static_list<method_info> methods;
+    bool initialized;
+    std::vector<word> dispatch_data;
+};
 
 template<typename T>
 constexpr bool is_registry = std::is_base_of_v<registry_base, T>;
@@ -805,21 +844,34 @@ constexpr bool is_registry = std::is_base_of_v<registry_base, T>;
 template<typename T>
 constexpr bool is_not_void = !std::is_same_v<T, void>;
 
-template<
-    class Registry, class Index,
-    class Size = mp11::mp_size<typename Registry::policy_list>>
-struct get_policy_aux {
-    using type = typename mp11::mp_at<
-        typename Registry::policy_list, Index>::template fn<Registry>;
+template<class Base, class List, typename Default>
+struct find_first_derived_of_aux;
+
+template<class Base, class List, typename Default = void>
+using find_first_derived_of =
+    typename find_first_derived_of_aux<Base, List, Default>::type;
+
+template<class Base, typename Default>
+struct find_first_derived_of_aux<Base, mp11::mp_list<>, Default> {
+    using type = Default;
 };
 
-template<class Registry, class Size>
-struct get_policy_aux<Registry, Size, Size> {
+template<class Base, typename Default, typename First, typename... More>
+struct find_first_derived_of_aux<Base, mp11::mp_list<First, More...>, Default> {
+    using type = std::conditional_t<
+        std::is_base_of_v<Base, First>, First,
+        find_first_derived_of<Base, mp11::mp_list<More...>, Default>>;
+};
+
+template<class Registry, class Policy>
+struct get_policy_aux {
+    using type = typename Policy::template fn<Registry>;
+};
+
+template<class Registry>
+struct get_policy_aux<Registry, void> {
     using type = void;
 };
-
-using class_catalog = detail::static_list<detail::class_info>;
-using method_catalog = detail::static_list<detail::method_info>;
 
 template<class Policies, class...>
 struct with_aux;
@@ -868,6 +920,80 @@ template<typename, class...>
 struct initialize_aux;
 
 } // namespace detail
+
+// -----------------------------------------------------------------------------
+// attributes
+
+struct attributes {};
+struct no_attributes : attributes {};
+struct declspec {
+    struct dllexport : attributes {};
+    struct dllimport : attributes {};
+};
+
+struct visibility {
+    struct hidden : attributes {};
+    struct default_ : attributes {};
+};
+namespace detail {
+
+#define BOOST_OPENMETHOD_DETAIL_MAKE_SYMBOL_WITH_ATTRIBUTES(ID)                \
+    template<class Type, class Guide = Type&, typename = void>                 \
+    struct BOOST_PP_CAT(global_state_, ID) {                                   \
+        using attributes = no_attributes;                                      \
+        static Type ID;                                                        \
+    };                                                                         \
+                                                                               \
+    template<class Type, class Guide, typename Enable>                         \
+    Type BOOST_PP_CAT(global_state_, ID)<Type, Guide, Enable>::ID;             \
+                                                                               \
+    template<class Type, class Guide>                                          \
+    struct BOOST_PP_CAT(global_state_, ID)<                                    \
+        Type, Guide,                                                           \
+        std::enable_if_t<                                                      \
+            std::is_same_v<get_attributes<Guide>, declspec::dllexport>>> {     \
+        using attributes = declspec::dllexport;                                \
+        static __declspec(dllexport) Type ID;                                  \
+    };                                                                         \
+                                                                               \
+    template<class Type, class Guide>                                          \
+    Type BOOST_PP_CAT(global_state_, ID)<                                      \
+        Type, Guide,                                                           \
+        std::enable_if_t<                                                      \
+            std::is_same_v<get_attributes<Guide>, declspec::dllexport>>>::ID;  \
+                                                                               \
+    template<class Type, class Guide>                                          \
+    struct BOOST_PP_CAT(global_state_, ID)<                                    \
+        Type, Guide,                                                           \
+        std::enable_if_t<                                                      \
+            std::is_same_v<get_attributes<Guide>, declspec::dllimport>>> {     \
+        using attributes = declspec::dllimport;                                \
+        static __declspec(dllimport) Type ID;                                  \
+    }
+
+template<typename Type>
+using get_attributes =
+    decltype(boost_openmethod_attributes(std::declval<Type>()));
+
+BOOST_OPENMETHOD_DETAIL_MAKE_SYMBOL_WITH_ATTRIBUTES(st);
+
+} // namespace detail
+
+namespace policies {
+
+struct attributes {
+    using category = attributes;
+};
+
+template<typename GuideType>
+struct attributes_guide final : attributes {
+    using guide_type = GuideType;
+
+    template<class Registry>
+    struct fn {};
+};
+
+} // namespace policies
 
 //! Methods, classes and policies.
 //!
@@ -919,17 +1045,18 @@ struct initialize_aux;
 //!
 //! @see @ref policies
 template<class... Policy>
-class registry : detail::registry_base {
-    static detail::class_catalog classes;
-    static detail::method_catalog methods;
+class registry
+    : public detail::registry_base,
+      public detail::global_state_st<
+          detail::registry_state<registry<Policy...>>,
+          typename detail::find_first_derived_of<
+              policies::attributes, mp11::mp_list<Policy...>,
+              policies::attributes_guide<registry<Policy...>>>::guide_type> {
 
     template<class...>
     friend struct detail::use_class_aux;
     template<typename Name, typename ReturnType, class Registry>
     friend class method;
-
-    static std::vector<detail::word> dispatch_data;
-    static bool initialized;
 
   public:
     //! The type of this registry.
@@ -978,11 +1105,7 @@ class registry : detail::registry_base {
     //! @tparam A policy.
     template<class Category>
     using policy = typename detail::get_policy_aux<
-        registry,
-        mp11::mp_find_if_q<
-            policy_list,
-            mp11::mp_bind_front_q<
-                mp11::mp_quote_trait<std::is_base_of>, Category>>>::type;
+        registry, detail::find_first_derived_of<Category, policy_list>>::type;
 
     //! Add or replace policies.
     //!
@@ -1041,25 +1164,13 @@ class registry : detail::registry_base {
 };
 
 template<class... Policies>
-detail::class_catalog registry<Policies...>::classes;
-
-template<class... Policies>
-detail::method_catalog registry<Policies...>::methods;
-
-template<class... Policies>
-std::vector<detail::word> registry<Policies...>::dispatch_data;
-
-template<class... Policies>
-bool registry<Policies...>::initialized;
-
-template<class... Policies>
 template<class Class>
 vptr_type registry<Policies...>::static_vptr;
 
 template<class... Policies>
 void registry<Policies...>::require_initialized() {
     if constexpr (registry::has_runtime_checks) {
-        if (!initialized) {
+        if (!st.initialized) {
             if constexpr (registry::has_error_handler) {
                 error_handler::error(not_initialized());
             }
@@ -1090,6 +1201,8 @@ auto final_error::write(Stream& os) const {
     os << ", dynamic type = ";
     Registry::rtti::type_name(dynamic_type, os);
 }
+
+struct default_registry_attributes;
 
 } // namespace boost::openmethod
 

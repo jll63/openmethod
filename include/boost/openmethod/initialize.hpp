@@ -298,7 +298,20 @@ auto operator<<(trace_stream<Compiler>& tr, const spec_name& sn)
 }
 
 template<typename Iterator>
-struct range;
+struct range {
+    range(Iterator first, Iterator last) : first(first), last(last) {
+    }
+
+    Iterator first, last;
+
+    auto begin() const -> Iterator {
+        return first;
+    }
+
+    auto end() const -> Iterator {
+        return last;
+    }
+};
 
 template<class Compiler, typename T, typename F>
 auto write_range(trace_stream<Compiler>& tr, range<T> range, F fn) -> auto& {
@@ -473,7 +486,7 @@ template<class... Options>
 void registry<Policies...>::compiler<Options...>::initialize() {
     compile();
     install_global_tables();
-    registry<Policies...>::initialized = true;
+    registry<Policies...>::st.initialized = true;
 }
 
 #ifdef _MSC_VER
@@ -542,7 +555,7 @@ void registry<Policies...>::compiler<Options...>::augment_classes() {
         // The standard does not guarantee that there is exactly one
         // type_info object per class. However, it guarantees that the
         // type_index for a class has a unique value.
-        for (auto& cr : registry::classes) {
+        for (auto& cr : registry::st.classes) {
             if constexpr (has_deferred_static_rtti) {
                 static_cast<deferred_class_info&>(cr).resolve_type_ids();
             }
@@ -572,7 +585,7 @@ void registry<Policies...>::compiler<Options...>::augment_classes() {
     // All known classes now have exactly one associated class_* in the
     // map. Collect the bases.
 
-    for (auto& cr : registry::classes) {
+    for (auto& cr : registry::st.classes) {
         auto rtc = class_map[rtti::type_index(cr.type)];
 
         for (auto& base : range{cr.first_base, cr.last_base}) {
@@ -701,14 +714,14 @@ void registry<Policies...>::compiler<Options...>::augment_methods() {
     using namespace policies;
     using namespace detail;
 
-    methods.resize(registry::methods.size());
+    methods.resize(registry::st.methods.size());
 
     ++tr << "Methods:\n";
     indent _(tr);
 
     auto meth_iter = methods.begin();
 
-    for (auto& meth_info : registry::methods) {
+    for (auto& meth_info : registry::st.methods) {
         if constexpr (has_deferred_static_rtti) {
             static_cast<deferred_method_info&>(meth_info).resolve_type_ids();
         }
@@ -1411,7 +1424,7 @@ void registry<Policies...>::compiler<Options...>::write_global_data() {
         vptr::initialize(*this, options);
     }
 
-    new_dispatch_data.swap(dispatch_data);
+    new_dispatch_data.swap(st.dispatch_data);
 }
 
 template<class... Policies>
@@ -1653,7 +1666,7 @@ auto registry<Policies...>::finalize(Options... opts) -> void {
     });
 
     dispatch_data.clear();
-    initialized = false;
+    st.initialized = false;
 }
 
 //! Release resources held by registry.

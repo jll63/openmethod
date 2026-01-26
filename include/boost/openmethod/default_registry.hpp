@@ -15,6 +15,8 @@
 
 namespace boost::openmethod {
 
+struct default_registry_attributes {};
+
 //! Default registry.
 //!
 //! `default_registry` is a predefined @ref registry, and the default value of
@@ -39,7 +41,8 @@ struct default_registry
     : registry<
           policies::std_rtti, policies ::vptr_vector,
           policies::fast_perfect_hash, policies::default_error_handler,
-          policies::stderr_output
+          policies::stderr_output,
+          policies::attributes_guide<default_registry_attributes>
 #ifdef BOOST_OPENMETHOD_ENABLE_RUNTIME_CHECKS
           ,
           policies::runtime_checks

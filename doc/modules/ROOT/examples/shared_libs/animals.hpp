@@ -11,6 +11,18 @@
 // tag::content[]
 // animals.hpp
 
+#include <boost/openmethod/preamble.hpp>
+
+#ifdef LIBRARY_NAME
+#define ANIMALS_API boost::openmethod::declspec::dllexport
+#else
+#define ANIMALS_API boost::openmethod::declspec::dllimport
+#endif
+
+namespace boost::openmethod {
+    ANIMALS_API boost_openmethod_attributes(default_registry_attributes);
+}
+
 #include <string>
 #include <boost/openmethod.hpp>
 
@@ -22,7 +34,7 @@ BOOST_OPENMETHOD(
     meet, (
         boost::openmethod::virtual_ptr<Animal>,
         boost::openmethod::virtual_ptr<Animal>),
-    std::string);
+    std::string, ANIMALS_API);
 // end::content[]
 
 #endif
