@@ -359,6 +359,7 @@ struct use_class_aux<Registry, mp11::mp_list<Class, Bases...>>
             resolve_type_ids();
         }
 
+        // coverity[uninit] - zero-initialized static storage
         Registry::classes.push_back(*this);
     }
 
@@ -2403,6 +2404,8 @@ method<Id, ReturnType(Parameters...), Registry>::method() {
     this->not_implemented = reinterpret_cast<void (*)()>(fn_not_implemented);
     this->ambiguous = reinterpret_cast<void (*)()>(fn_ambiguous);
 
+    // zero-initalized static variable
+    // coverity[uninit_use]
     Registry::methods.push_back(*this);
 }
 
