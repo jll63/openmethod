@@ -8,6 +8,7 @@
 #define LIBRARY_NAME "boost_openmethod-shared.dll"
 #else
 #define LIBRARY_NAME "libboost_openmethod-shared.so"
+
 #endif
 #endif
 

@@ -30,8 +30,8 @@ struct va_args<ReturnType, Other> {
     using return_type = ReturnType;
     using registry =
         std::conditional_t<is_registry<Other>, Other, macro_default_registry>;
-    using attributes =
-        std::conditional_t<std::is_base_of_v<attributes, Other>, Other, void>;
+    using attributes = std::conditional_t<
+        std::is_base_of_v<attributes_base, Other>, Other, void>;
 };
 
 template<class ReturnType, class T, class U>
@@ -39,7 +39,7 @@ struct va_args<ReturnType, T, U> {
     using return_type = ReturnType;
     using registry = std::conditional_t<is_registry<T>, T, U>;
     using attributes =
-        std::conditional_t<std::is_base_of_v<attributes, T>, T, U>;
+        std::conditional_t<std::is_base_of_v<attributes_base, T>, T, U>;
 };
 
 template<class ReturnType>
@@ -74,8 +74,8 @@ struct va_args<ReturnType> {
         ::boost::openmethod::detail::va_args<__VA_ARGS__>::registry>
 
 #define BOOST_OPENMETHOD_DETAIL_STORAGE_CLASS(NAME, ARGS, ...)                 \
-    auto boost_openmethod_attributes(                                         \
-        BOOST_OPENMETHOD_TYPE(NAME, ARGS, __VA_ARGS__) &)                      \
+    auto boost_openmethod_attributes(                                          \
+        BOOST_OPENMETHOD_TYPE(NAME, ARGS, __VA_ARGS__)&)                       \
         -> ::boost::openmethod::detail::va_args<__VA_ARGS__>::attributes;
 
 #define BOOST_OPENMETHOD(NAME, ARGS, ...)                                      \

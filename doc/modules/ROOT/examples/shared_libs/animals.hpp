@@ -13,6 +13,14 @@
 
 #include <boost/openmethod/preamble.hpp>
 
+#ifdef BOOST_CLANG
+#pragma clang diagnostic ignored "-Wundefined-var-template"
+#endif
+
+#ifdef BOOST_GCC
+//#pragma GCC diagnostic ignored "-Wundefined-var-template"
+#endif
+
 #ifdef LIBRARY_NAME
 #define ANIMALS_API boost::openmethod::declspec::dllexport
 #else

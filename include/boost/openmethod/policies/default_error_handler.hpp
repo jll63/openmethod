@@ -11,7 +11,15 @@
 #include <functional>
 #include <variant>
 
-namespace boost::openmethod::policies {
+namespace boost::openmethod {
+
+namespace detail {
+
+BOOST_OPENMETHOD_DETAIL_MAKE_SYMBOL_WITH_ATTRIBUTES(handler);
+
+} // namespace detail
+
+namespace policies {
 
 //! Calls a std::function with the error.
 //!
@@ -77,6 +85,9 @@ struct default_error_handler : error_handler {
         //! The type of the error handler function object.
         using function_type = std::function<void(const error_variant& error)>;
 
+        using handler_storage =
+            detail::global_state_handler<function_type, Registry>;
+
         //! Calls a function with the error object, wrapped in an @ref
         //! error_variant.
         //!
@@ -84,7 +95,7 @@ struct default_error_handler : error_handler {
         //! @param error The error object.
         template<class Error>
         static auto error(const Error& error) -> void {
-            handler(error_variant(error));
+            handler_storage::handler(error_variant(error));
         }
 
         //! Sets the function to be called to handle errors.
@@ -96,7 +107,8 @@ struct default_error_handler : error_handler {
         //! @return The previous function.
         // coverity[auto_causes_copy]
         static auto set(function_type new_handler) -> function_type {
-            return std::exchange(handler, std::move(new_handler));
+            return std::exchange(
+                handler_storage::handler, std::move(new_handler));
         }
 
         //! The default error handler function.
@@ -115,16 +127,10 @@ struct default_error_handler : error_handler {
                 Registry::output::os << "\n";
             }
         }
-
-      private:
-        static function_type handler;
     };
 };
 
-template<class Registry>
-typename default_error_handler::fn<Registry>::function_type
-    default_error_handler::fn<Registry>::handler = default_handler;
-
-} // namespace boost::openmethod::policies
+} // namespace policies
+} // namespace boost::openmethod
 
 #endif

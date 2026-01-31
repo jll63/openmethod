@@ -360,7 +360,7 @@ struct use_class_aux<Registry, mp11::mp_list<Class, Bases...>>
         }
 
         // coverity[uninit] - zero-initialized static storage
-        Registry::st.classes.push_back(*this);
+        Registry::storage::st.classes.push_back(*this);
     }
 
     void resolve_type_ids() {
@@ -370,7 +370,7 @@ struct use_class_aux<Registry, mp11::mp_list<Class, Bases...>>
     }
 
     ~use_class_aux() {
-        Registry::st.classes.remove(*this);
+        Registry::storage::st.classes.remove(*this);
     }
 };
 
@@ -2416,7 +2416,7 @@ method<Id, ReturnType(Parameters...), Registry>::method() {
 
     // zero-initalized static variable
     // coverity[uninit_use]
-    Registry::st.methods.push_back(*this);
+    Registry::storage::st.methods.push_back(*this);
 }
 
 template<
@@ -2436,7 +2436,7 @@ void method<Id, ReturnType(Parameters...), Registry>::resolve_type_ids() {
 template<
     typename Id, typename... Parameters, typename ReturnType, class Registry>
 method<Id, ReturnType(Parameters...), Registry>::~method() {
-    Registry::st.methods.remove(*this);
+    Registry::storage::st.methods.remove(*this);
 }
 
 // -----------------------------------------------------------------------------

@@ -3,6 +3,7 @@
 
 #include <boost/openmethod/detail/static_list.hpp>
 
+#include <boost/config.hpp>
 #include <boost/mp11/algorithm.hpp>
 #include <boost/mp11/bind.hpp>
 #include <boost/preprocessor/cat.hpp>
@@ -738,8 +739,8 @@ struct TypeHashFn {
     //! blueprint.
     //! @return A pair containing the minimum and maximum hash values.
     template<class Context>
-    static auto initialize(const Context& ctx)
-        -> std::pair<std::size_t, std::size_t>;
+    static auto
+    initialize(const Context& ctx) -> std::pair<std::size_t, std::size_t>;
 
     //! Hash a `type_id`.
     //!
@@ -924,20 +925,18 @@ struct initialize_aux;
 // -----------------------------------------------------------------------------
 // attributes
 
-struct attributes {};
-struct no_attributes : attributes {};
+struct attributes_base {};
+
+struct no_attributes : attributes_base {};
+
 struct declspec {
-    struct dllexport : attributes {};
-    struct dllimport : attributes {};
+    struct dllexport : attributes_base {};
+    struct dllimport : attributes_base {};
 };
 
-struct visibility {
-    struct hidden : attributes {};
-    struct default_ : attributes {};
-};
 namespace detail {
 
-#define BOOST_OPENMETHOD_DETAIL_MAKE_SYMBOL_WITH_ATTRIBUTES(ID)                \
+#define BOOST_OPENMETHOD_DETAIL_MAKE_SYMBOL_WITH_ATTRIBUTES(ID, ...)           \
     template<class Type, class Guide = Type&, typename = void>                 \
     struct BOOST_PP_CAT(global_state_, ID) {                                   \
         using attributes = no_attributes;                                      \
@@ -945,7 +944,7 @@ namespace detail {
     };                                                                         \
                                                                                \
     template<class Type, class Guide, typename Enable>                         \
-    Type BOOST_PP_CAT(global_state_, ID)<Type, Guide, Enable>::ID;             \
+    Type BOOST_PP_CAT(global_state_, ID)<Type, Guide, Enable>::ID __VA_ARGS__; \
                                                                                \
     template<class Type, class Guide>                                          \
     struct BOOST_PP_CAT(global_state_, ID)<                                    \
@@ -953,7 +952,7 @@ namespace detail {
         std::enable_if_t<                                                      \
             std::is_same_v<get_attributes<Guide>, declspec::dllexport>>> {     \
         using attributes = declspec::dllexport;                                \
-        static __declspec(dllexport) Type ID;                                  \
+        static BOOST_SYMBOL_EXPORT Type ID __VA_ARGS__;                        \
     };                                                                         \
                                                                                \
     template<class Type, class Guide>                                          \
@@ -968,7 +967,7 @@ namespace detail {
         std::enable_if_t<                                                      \
             std::is_same_v<get_attributes<Guide>, declspec::dllimport>>> {     \
         using attributes = declspec::dllimport;                                \
-        static __declspec(dllimport) Type ID;                                  \
+        static BOOST_SYMBOL_IMPORT Type ID;                                    \
     }
 
 template<typename Type>
@@ -1045,13 +1044,12 @@ struct attributes_guide final : attributes {
 //!
 //! @see @ref policies
 template<class... Policy>
-class registry
-    : public detail::registry_base,
-      public detail::global_state_st<
-          detail::registry_state<registry<Policy...>>,
-          typename detail::find_first_derived_of<
-              policies::attributes, mp11::mp_list<Policy...>,
-              policies::attributes_guide<registry<Policy...>>>::guide_type> {
+class registry : public detail::registry_base {
+    using storage = detail::global_state_st<
+        detail::registry_state<registry<Policy...>>,
+        typename detail::find_first_derived_of<
+            policies::attributes, mp11::mp_list<Policy...>,
+            policies::attributes_guide<registry<Policy...>>>::guide_type>;
 
     template<class...>
     friend struct detail::use_class_aux;
@@ -1061,6 +1059,11 @@ class registry
   public:
     //! The type of this registry.
     using registry_type = registry;
+    using attributes = typename storage::attributes;
+
+    static const void* id() {
+        return static_cast<const void*>(&storage::st);
+    }
 
     template<class... Options>
     struct compiler;
@@ -1170,7 +1173,7 @@ vptr_type registry<Policies...>::static_vptr;
 template<class... Policies>
 void registry<Policies...>::require_initialized() {
     if constexpr (registry::has_runtime_checks) {
-        if (!st.initialized) {
+        if (!storage::st.initialized) {
             if constexpr (registry::has_error_handler) {
                 error_handler::error(not_initialized());
             }

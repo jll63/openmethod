@@ -24,6 +24,12 @@ add_compile_definitions(BOOST_OPENMETHOD_ENABLE_RUNTIME_CHECKS)
 # ------------------------------------------------------------------------------
 # dynamic loading, direct virtual_ptrs
 
+if(UNIX)
+    message(STATUS "Boost.OpenMethod: disabling symbol exports on POSIX (hidden visibility)")
+    set(CMAKE_CXX_VISIBILITY_PRESET hidden)
+    set(CMAKE_VISIBILITY_INLINES_HIDDEN ON)
+endif()
+
 add_executable(boost_openmethod-dynamic dynamic_main.cpp)
 set_target_properties(boost_openmethod-dynamic PROPERTIES ENABLE_EXPORTS ON)
 target_link_libraries(boost_openmethod-dynamic Boost::openmethod Boost::dll)
