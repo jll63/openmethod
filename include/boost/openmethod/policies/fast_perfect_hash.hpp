@@ -10,6 +10,7 @@
 
 #include <limits>
 #include <random>
+#include <variant>
 #ifdef _MSC_VER
 #pragma warning(push)
 #pragma warning(disable : 4702) // unreachable code
@@ -92,12 +93,12 @@ struct fast_perfect_hash : type_hash {
         static void check(std::size_t index, type_id type);
 
         template<class InitializeContext, class... Options>
-        static void initialize(
+        static void initialize_aux(
             const InitializeContext& ctx, std::vector<type_id>& buckets,
             const std::tuple<Options...>& options);
 
       public:
-        //! Find the hash factors
+        //! Finds the hash factors
         //!
         //! Attempts to find suitable values for the multiplication factor `M`
         //! and the shift amount `S` to that do not result in collisions for the
@@ -111,15 +112,21 @@ struct fast_perfect_hash : type_hash {
         //! @return A pair containing the minimum and maximum hash values.
         template<class Context, class... Options>
         static auto
-        initialize(const Context& ctx, const std::tuple<Options...>& options) {
+        initialize(const Context& ctx, const std::tuple<Options...>& options)
+            -> void {
             if constexpr (Registry::has_runtime_checks) {
-                initialize(
+                initialize_aux(
                     ctx, detail::fast_perfect_hash_control<Registry>, options);
             } else {
                 std::vector<type_id> buckets;
-                initialize(ctx, buckets, options);
+                initialize_aux(ctx, buckets, options);
             }
+        }
 
+        //! Returns the hash range
+        //!
+        //! @return A pair containing the minimum and maximum hash values.
+        static auto hash_range() -> std::pair<std::size_t, std::size_t> {
             return std::pair{
                 factors_storage::hash_fn.min_value,
                 factors_storage::hash_fn.max_value};
@@ -163,7 +170,7 @@ struct fast_perfect_hash : type_hash {
 
 template<class Registry>
 template<class InitializeContext, class... Options>
-void fast_perfect_hash::fn<Registry>::initialize(
+void fast_perfect_hash::fn<Registry>::initialize_aux(
     const InitializeContext& ctx, std::vector<type_id>& buckets,
     const std::tuple<Options...>& options) {
     (void)options;

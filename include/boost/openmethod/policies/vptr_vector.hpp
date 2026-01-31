@@ -16,8 +16,7 @@ namespace boost::openmethod {
 namespace detail {
 
 BOOST_OPENMETHOD_DETAIL_MAKE_SYMBOL_WITH_ATTRIBUTES(vptr_vector_vptrs);
-BOOST_OPENMETHOD_DETAIL_MAKE_SYMBOL_WITH_ATTRIBUTES(
-    vptr_vector_indirect_vptrs);
+BOOST_OPENMETHOD_DETAIL_MAKE_SYMBOL_WITH_ATTRIBUTES(vptr_vector_indirect_vptrs);
 
 } // namespace detail
 
@@ -67,13 +66,14 @@ struct vptr_vector : vptr {
         //! @param ctx A Context object.
         //! @param options A tuple of option objects.
         template<class Context, class... Options>
-        static auto initialize(
-            const Context& ctx, const std::tuple<Options...>& options) -> void {
+        static auto
+        initialize(const Context& ctx, const std::tuple<Options...>& options)
+            -> void {
             std::size_t size;
             (void)options;
 
             if constexpr (has_type_hash) {
-                auto [_, max_value] = type_hash::initialize(ctx, options);
+                auto [_, max_value] = type_hash::hash_range();
                 size = max_value + 1;
             } else {
                 size = 0;
@@ -168,7 +168,7 @@ struct vptr_vector : vptr {
 
             if constexpr (Registry::has_indirect_vptr) {
                 return *indirect_vptrs_storage::vptr_vector_indirect_vptrs
-                            [index];
+                    [index];
             } else {
                 return vptrs_storage::vptr_vector_vptrs[index];
             }

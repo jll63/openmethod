@@ -70,3 +70,13 @@ BOOST_AUTO_TEST_CASE(test_registry) {
     BOOST_TEST(&registry2::static_vptr<void> != &registry1::static_vptr<void>);
     // BOOST_TEST(&registry2::dispatch_data != &registry1::dispatch_data);
 }
+
+static_assert(has_initialize<
+              vptr_vector::fn<registry1>, registry1::compiler<std::tuple<>>,
+              std::tuple<>>::value);
+static_assert(!has_initialize<
+              std_rtti::fn<registry1>, registry1::compiler<std::tuple<>>,
+              std::tuple<>>::value);
+static_assert(has_initialize<
+              fast_perfect_hash::fn<registry1>,
+              registry1::compiler<std::tuple<>>, std::tuple<>>::value);

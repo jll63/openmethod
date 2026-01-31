@@ -95,7 +95,9 @@ struct default_error_handler : error_handler {
         //! @param error The error object.
         template<class Error>
         static auto error(const Error& error) -> void {
-            handler_storage::handler(error_variant(error));
+            auto handler = handler_storage::handler ? handler_storage::handler
+                                                    : default_handler;
+            handler(error_variant(error));
         }
 
         //! Sets the function to be called to handle errors.
@@ -107,8 +109,9 @@ struct default_error_handler : error_handler {
         //! @return The previous function.
         // coverity[auto_causes_copy]
         static auto set(function_type new_handler) -> function_type {
-            return std::exchange(
+            auto prev = std::exchange(
                 handler_storage::handler, std::move(new_handler));
+            return prev ? prev : default_handler;
         }
 
         //! The default error handler function.

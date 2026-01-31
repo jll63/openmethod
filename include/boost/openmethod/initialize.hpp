@@ -59,6 +59,65 @@ struct aggregate_reports<mp11::mp_list<Reports...>, mp11::mp_list<>, Void> {
     struct type : Reports... {};
 };
 
+// Policy initialization helpers
+
+// Detect if a policy fn has an initialize function with the expected signature
+template<typename PolicyFn, typename Context, typename Options, typename = void>
+struct has_initialize : std::false_type {};
+
+#if defined(_MSC_VER) && _MSC_VER <= 1950
+template<typename PolicyFn, typename Context, typename Options>
+struct has_initialize<
+    PolicyFn, Context, Options,
+    std::void_t<
+        decltype(&PolicyFn::template initialize<Context, Options>)>>
+    : std::true_type {};
+#else
+template<typename PolicyFn, typename Context, typename Options>
+struct has_initialize<
+    PolicyFn, Context, Options,
+    std::void_t<decltype(PolicyFn::initialize(
+        std::declval<const Context&>(), std::declval<const Options&>()))>>
+    : std::true_type {};
+#endif
+
+// Call initialize on a single policy if it has the function
+template<typename Policy, typename Registry, typename Context, typename Options>
+void initialize_policy(const Context& ctx, const Options& options) {
+    using PolicyFn = typename Policy::template fn<Registry>;
+    if constexpr (has_initialize<PolicyFn, Context, Options>::value) {
+        PolicyFn::initialize(ctx, options);
+    }
+}
+
+template<typename Registry, typename Policies = typename Registry::policy_list>
+struct initialize_policies;
+
+template<typename Registry, typename... Policies>
+struct initialize_policies<Registry, mp11::mp_list<Policies...>> {
+    template<typename Context, typename Options>
+    static void fn(const Context& ctx, const Options& options) {
+        (initialize_policy<Policies, Registry>(ctx, options), ...);
+    }
+};
+
+// template<typename Registry, typename Policy, typename... Policies>
+// struct initialize_policies<Registry, mp11::mp_list<Policy, Policies...>> {
+//     template<typename Context, typename Options>
+//     static void fn(const Context& ctx, const Options& options) {
+//         initialize_policy<Policy, Registry>(ctx, options);
+//         initialize_policies<Registry, mp11::mp_list<Policies...>>::fn(
+//             ctx, options);
+//     }
+// };
+
+// template<typename Registry>
+// struct initialize_policies<Registry, mp11::mp_list<>> {
+//     template<typename Context, typename Options>
+//     static void fn(const Context& ctx, const Options& options) {
+//     }
+// };
+
 inline void merge_into(boost::dynamic_bitset<>& a, boost::dynamic_bitset<>& b) {
     if (b.size() < a.size()) {
         b.resize(a.size());
@@ -438,8 +497,8 @@ struct registry<Policies...>::compiler : detail::generic_compiler {
     static void select_dominant_overriders(
         std::vector<overrider*>& dominants, std::size_t& pick,
         std::size_t& remaining);
-    static auto
-    is_more_specific(const overrider* a, const overrider* b) -> bool;
+    static auto is_more_specific(const overrider* a, const overrider* b)
+        -> bool;
     static auto is_base(const overrider* a, const overrider* b) -> bool;
 
     std::tuple<Options...> options;
@@ -1420,9 +1479,7 @@ void registry<Policies...>::compiler<Options...>::write_global_data() {
 
     ++tr << rflush(4, dispatch_data_size) << " " << gv_iter << " end\n";
 
-    if constexpr (has_vptr) {
-        vptr::initialize(*this, options);
-    }
+    detail::initialize_policies<registry>::fn(*this, options);
 
     new_dispatch_data.swap(storage::st.dispatch_data);
 }
