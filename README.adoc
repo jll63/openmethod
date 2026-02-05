@@ -1,0 +1,209 @@
+[cols="^1,1,1,1,1,1,1", options="header"]
+|===
+| Branch | GH Actions | Coverity Scan | codecov.io | Deps | Docs | Tests
+
+| https://github.com/boostorg/openmethod/tree/master[`master`]
+| image:https://github.com/boostorg/openmethod/actions/workflows/ci.yml/badge.svg?branch=master[CI,link=https://github.com/boostorg/openmethod/actions/workflows/ci.yml]
+| image:https://scan.coverity.com/projects/32486/badge.svg[Coverity Scan Build Status,link=https://scan.coverity.com/projects/boostorg-openmethod]
+| image:https://codecov.io/gh/boostorg/openmethod/branch/master/graph/badge.svg[codecov,link=https://codecov.io/gh/boostorg/openmethod/branch/master]
+| image:https://img.shields.io/badge/deps-master-brightgreen.svg[Deps,link=https://pdimov.github.io/boostdep-report/master/openmethod.html]
+| image:https://img.shields.io/badge/docs-master-brightgreen.svg[Documentation,link=https://www.boost.org/doc/libs/master/libs/openmethod/doc/html/openmethod.html]
+| image:https://img.shields.io/badge/matrix-master-brightgreen.svg[Enter the Matrix,link=http://www.boost.org/development/tests/master/developer/openmethod.html]
+
+| https://github.com/boostorg/openmethod/tree/develop[`develop`]
+| image:https://github.com/boostorg/openmethod/actions/workflows/ci.yml/badge.svg?branch=develop[CI,link=https://github.com/boostorg/openmethod/actions/workflows/ci.yml]
+| image:https://scan.coverity.com/projects/32486/badge.svg[Coverity Scan Build Status,link=https://scan.coverity.com/projects/boostorg-openmethod]
+| image:https://codecov.io/gh/boostorg/openmethod/branch/develop/graph/badge.svg[codecov,link=https://codecov.io/gh/boostorg/openmethod/branch/develop]
+| image:https://img.shields.io/badge/deps-develop-brightgreen.svg[Deps,link=https://pdimov.github.io/boostdep-report/develop/openmethod.html]
+| image:https://img.shields.io/badge/docs-develop-brightgreen.svg[Documentation,link=https://www.boost.org/doc/libs/develop/libs/openmethod/doc/html/openmethod.html]
+| image:https://img.shields.io/badge/matrix-develop-brightgreen.svg[Enter the Matrix,link=http://www.boost.org/development/tests/develop/developer/openmethod.html]
+|===
+
+ifdef::env-github[]
+
+== Boost.OpenMethod
+
+=== Overview
+
+Boost.OpenMethod implements open-methods in C++17 and above.
+
+Open-methods are virtual functions that exist outside of classes, as
+free-standing functions. They make it possible to add polymorphic behavior to
+existing classes, without modifying them. This implementation supports single
+and multiple dispatch.
+
+endif::[]
+
+=== Example
+
+[source,c++]
+----
+// library
+
+struct Matrix {
+    virtual ~Matrix() = default;
+};
+
+struct SquareMatrix : Matrix {};
+struct SymmetricMatrix : Matrix {};
+struct DiagonalMatrix : SymmetricMatrix {};
+
+// application
+
+#include <array>
+#include <iostream>
+#include <memory>
+
+#include <boost/openmethod.hpp>
+#include <boost/openmethod/initialize.hpp>
+
+using boost::openmethod::virtual_ptr;
+
+BOOST_OPENMETHOD_CLASSES(Matrix, SquareMatrix, SymmetricMatrix, DiagonalMatrix);
+
+BOOST_OPENMETHOD(to_json, (virtual_ptr<const Matrix>, std::ostream& os), void);
+
+BOOST_OPENMETHOD_OVERRIDE(to_json, (virtual_ptr<const SquareMatrix>, std::ostream& os), void) {
+    os << "all the elements\n";
+}
+
+BOOST_OPENMETHOD_OVERRIDE(to_json, (virtual_ptr<const SymmetricMatrix>, std::ostream& os), void) {
+    os << "elements above and including the diagonal\n";
+}
+
+BOOST_OPENMETHOD_OVERRIDE(to_json, (virtual_ptr<const DiagonalMatrix>, std::ostream& os), void) {
+    os << "just the diagonal\n";
+}
+
+int main() {
+    std::array<std::unique_ptr<Matrix>, 3> matrices = {
+        std::make_unique<SquareMatrix>(),
+        std::make_unique<SymmetricMatrix>(),
+        std::make_unique<DiagonalMatrix>(),
+    };
+
+    boost::openmethod::initialize();
+
+    for (const auto& m : matrices) {
+        to_json(*m, std::cout);
+    }
+}
+
+// output:
+// all the elements
+// elements above and including the diagonal
+// just the diagonal
+----
+
+=== Features
+
+* Single dispatch can be as fast as equivalent virtual function calls.
+
+* Multiple dispatch in constant time (for a given number of virtual parameters).
+
+* Redundancy-free multiple dispatch tables.
+
+* Inter-operation with standard smart pointers, extensible to other pointer-like
+  types.
+
+* Exception agnostic by default.
+
+* Macro-based interface for convenience.
+
+* Macro-free interface for inter-operation with templates.
+
+* Customization points for alternative RTTI systems, error handling, vptr
+  placement, etc.
+
+* Headers-only.
+
+=== Requirements
+
+The library requires an optimizing compiler supporting C++17 or above.
+
+=== Tested Compilers
+
+Boost.OpenMethod is tested with the following compilers:
+
+* clang: 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20
+
+* gcc: 8, 9, 10, 11, 12, 13, 14, 15
+
+* msvc: 14.3
+
+* icpx
+
+and on the following platforms:
+
+* Linux
+
+* macOS
+
+* Windows
+
+* s390x
+
+=== Quality Assurance
+
+The development infrastructure for the library includes these per-commit
+analyses:
+
+* Coverage reports
+
+* Clang sanitizers
+
+* Compilation and tests on Drone.io and GitHub Actions
+
+=== Acknowledgments
+
+I would like to thank the C++ Alliance for their support, in particular
+Joaquín M. López Muñoz for encouraging me to submit my library and being the
+first to endorse it; and Dmitryi Arkhipov for volunteering to be the review
+manager.
+
+Thanks to the members of the Boost community who posted a formal review:
+
+* Andrzej Krzemienski
+
+* Christian Mazakas
+
+* Joaquin M López Muñoz
+
+* Klemens Morgenstern
+
+* Ruben Perez
+
+* Yannick Le Goc
+
+Also thanks to Steven Watanabe for his cogent feedback and advice, and all
+the people who posted remarks and suggestions.
+
+This work was strongly influenced by the following papers:
+
+* https://www.stroustrup.com/multimethods.pdf[Open Multi-Methods for C++],
+Peter Pirkelbauer, Yuriy Solodkyy and Bjarne Stroustrup
+
+* https://core.ac.uk/download/pdf/18599789.pdf[Simplifying the Analysis of
+C++ Programs], Yuriy Solodkyy.
+
+* http://www.open-std.org/jtc1/sc22/wg21/docs/papers/2007/n2216.pdf[Report
+on language support for Multi-Methods and Open-Methods for C++], Peter
+Pirkelbauer, Yuriy Solodkyy and Bjarne Stroustrup.
+
+* https://dl.acm.org/doi/abs/10.1145/191081.191117[Optimizing multi-method
+dispatch using compressed dispatch tables], Eric Amiel, Olivier Gruber and
+Eric Simon.
+
+Finally, thanks to Prof. J.D. Garcia, of the Universidad Carlos III in Madrid,
+for organizing the "using std::cpp" conference, and introducing me to Joaquín.
+
+=== More information
+
+* http://stackoverflow.com/questions/ask?tags=c%2B%2B,boost,boost-openmethod[Ask questions]
+* https://github.com/boostorg/openmethod/issues[Report bugs]: Be sure to mention Boost version, platform and compiler you're using. A small compilable code sample to reproduce the problem is always good as well.
+* Submit your patches as pull requests against *develop* branch. Note that by submitting patches you agree to license your modifications under the http://www.boost.org/LICENSE_1_0.txt[Boost Software License, Version 1.0].
+* Discussions about the library are held on the http://www.boost.org/community/groups.html#main[Boost developers mailing list]. Be sure to read the http://www.boost.org/community/policy.html[discussion policy] before posting and add the `[openmethod]` tag at the beginning of the subject line.
+
+=== License
+
+Distributed under the http://www.boost.org/LICENSE_1_0.txt[Boost Software License, Version 1.0].

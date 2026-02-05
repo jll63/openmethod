@@ -1,0 +1,4 @@
+image:https://raw.githubusercontent.com/jll63/openmethod/03e762f3f10512eb2801f945b8d0d984039db243/doc/open.png[Open,120,float=left]
+pass:[<em style="font-size:2.5em; line-height:120px; letter-spacing:0.5em;">Boost.OpenMethod</em>]
+
+include::../README.adoc[]
