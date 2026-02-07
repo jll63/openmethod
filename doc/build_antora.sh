@@ -39,11 +39,14 @@ if [ -z "${BOOST_SRC_DIR:-}" ]; then
   fi
 fi
 
+BRANCH=master
+
 if [ -n "${BOOST_SRC_DIR:-}" ]; then
   if [ -n "${CIRCLE_REPOSITORY_URL:-}" ]; then
     if [[ "$CIRCLE_REPOSITORY_URL" =~ boostorg/boost(\.git)?$ ]]; then
       LIB="$(basename "$(dirname "$SCRIPT_DIR")")"
       REPOSITORY="boostorg/${LIB}"
+      BRANCH=$(git -C "$BOOST_SRC_DIR" rev-parse --abbrev-ref HEAD)
     else
       ACCOUNT="${CIRCLE_REPOSITORY_URL#*:}"
       ACCOUNT="${ACCOUNT%%/*}"
@@ -81,7 +84,7 @@ echo "Fixing links to non-mrdocs URIs..."
 
 for f in $(find html -name '*.html'); do
   perl -i -pe 's{&lcub;&lcub;(.*?)&rcub;&rcub;}{<a href="../../../$1.html">$1</a>}g' "$f"
-  perl -i -pe 's{<a href="motivation.html">Boost.OpenMethod</a>}{<a href="https://www.boost.org/library/develop/openmethod/">Boost.OpenMethod</a>}g' "$f"
+  perl -i -pe 's{href="index.html"}{href="https://www.boost.org/library/${BRANCH}/openmethod/"}g' "$f"
 done
 
 
