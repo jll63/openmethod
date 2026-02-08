@@ -13,7 +13,7 @@ namespace boost::openmethod {
 
 namespace detail {
 
-BOOST_OPENMETHOD_DETAIL_MAKE_DECLSPEC_SYMBOL(os);
+BOOST_OPENMETHOD_DETAIL_MAKE_STATICS(os);
 
 } // namespace detail
 
@@ -25,9 +25,9 @@ namespace policies {
 struct stderr_output : output {
     //! An OutputFn metafunction.
     template<class Registry>
-    struct fn : detail::global_state_os<detail::ostderr, Registry> {
+    struct fn : detail::static_os<detail::ostderr, Registry> {
         //! A @ref LightweightOuputStream.
-        // static detail::ostderr os; // now inherited from global_state_os
+        // static detail::ostderr os; // now inherited from static_os
     };
 };
 

@@ -10,12 +10,12 @@
 using namespace boost::openmethod;
 
 static_assert(
-    std::is_same_v<default_registry::attributes, dllimport>);
+    std::is_same_v<default_registry::declspec, dllimport>);
 
 static_assert(std::is_same_v<
               BOOST_OPENMETHOD_TYPE(
                   meet, (virtual_ptr<Animal>, virtual_ptr<Animal>),
-                  std::string)::attributes,
+                  std::string)::declspec,
               dllimport>);
 
 BOOST_OPENMETHOD_OVERRIDE(

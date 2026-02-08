@@ -360,7 +360,7 @@ struct use_class_aux<Registry, mp11::mp_list<Class, Bases...>>
         }
 
         // coverity[uninit] - zero-initialized static storage
-        Registry::storage::st.classes.push_back(*this);
+        Registry::st.classes.push_back(*this);
     }
 
     void resolve_type_ids() {
@@ -370,7 +370,7 @@ struct use_class_aux<Registry, mp11::mp_list<Class, Bases...>>
     }
 
     ~use_class_aux() {
-        Registry::storage::st.classes.remove(*this);
+        Registry::st.classes.remove(*this);
     }
 };
 
@@ -1931,7 +1931,7 @@ auto boost_openmethod_declspec(...) -> void;
 
 namespace detail {
 
-BOOST_OPENMETHOD_DETAIL_MAKE_DECLSPEC_SYMBOL(fn);
+BOOST_OPENMETHOD_DETAIL_MAKE_STATICS(fn);
 
 template<typename P, typename Q, class Registry>
 struct select_overrider_virtual_type_aux {
@@ -2165,12 +2165,12 @@ template<
     typename Id, typename... Parameters, typename ReturnType, class Registry>
 class method<Id, ReturnType(Parameters...), Registry>
     : public detail::method_base<Registry>,
-      public detail::global_state_fn<
+      public detail::static_fn<
           method<Id, ReturnType(Parameters...), Registry>> {
     template<auto Function, typename FunctionType>
     struct override_aux;
 
-    friend struct detail::global_state_fn<method>;
+    friend struct detail::static_fn<method>;
 
     // Aliases used in implementation only. Everything extracted from template
     // arguments is capitalized like the arguments themselves.
@@ -2416,7 +2416,7 @@ method<Id, ReturnType(Parameters...), Registry>::method() {
 
     // zero-initalized static variable
     // coverity[uninit_use]
-    Registry::storage::st.methods.push_back(*this);
+    Registry::st.methods.push_back(*this);
 }
 
 template<
@@ -2436,7 +2436,7 @@ void method<Id, ReturnType(Parameters...), Registry>::resolve_type_ids() {
 template<
     typename Id, typename... Parameters, typename ReturnType, class Registry>
 method<Id, ReturnType(Parameters...), Registry>::~method() {
-    Registry::storage::st.methods.remove(*this);
+    Registry::st.methods.remove(*this);
 }
 
 // -----------------------------------------------------------------------------

@@ -931,37 +931,35 @@ struct dllimport : declspec {};
 
 namespace detail {
 
-#define BOOST_OPENMETHOD_DETAIL_MAKE_DECLSPEC_SYMBOL(ID, ...)                  \
+#define BOOST_OPENMETHOD_DETAIL_MAKE_STATICS(ID, ...)                          \
     template<class Type, class Guide = Type&, typename = void>                 \
-    struct BOOST_PP_CAT(global_state_, ID) {                                   \
-        using declspec = void;                                     \
+    struct BOOST_PP_CAT(static_, ID) {                                         \
+        using declspec = void;                                                 \
         static Type ID;                                                        \
     };                                                                         \
                                                                                \
     template<class Type, class Guide, typename Enable>                         \
-    Type BOOST_PP_CAT(global_state_, ID)<Type, Guide, Enable>::ID __VA_ARGS__; \
+    Type BOOST_PP_CAT(static_, ID)<Type, Guide, Enable>::ID __VA_ARGS__;       \
                                                                                \
     template<class Type, class Guide>                                          \
-    struct BOOST_PP_CAT(global_state_, ID)<                                    \
+    struct BOOST_PP_CAT(static_, ID)<                                          \
         Type, Guide,                                                           \
-        std::enable_if_t<                                                      \
-            std::is_same_v<get_attributes<Guide>, dllexport>>> {     \
-        using declspec = dllexport;                                \
+        std::enable_if_t<std::is_same_v<get_attributes<Guide>, dllexport>>> {  \
+        using declspec = dllexport;                                            \
         static BOOST_SYMBOL_EXPORT Type ID __VA_ARGS__;                        \
     };                                                                         \
                                                                                \
     template<class Type, class Guide>                                          \
-    Type BOOST_PP_CAT(global_state_, ID)<                                      \
+    Type BOOST_PP_CAT(static_, ID)<                                            \
         Type, Guide,                                                           \
-        std::enable_if_t<                                                      \
-            std::is_same_v<get_attributes<Guide>, dllexport>>>::ID;  \
+        std::enable_if_t<std::is_same_v<get_attributes<Guide>, dllexport>>>::  \
+        ID;                                                                    \
                                                                                \
     template<class Type, class Guide>                                          \
-    struct BOOST_PP_CAT(global_state_, ID)<                                    \
+    struct BOOST_PP_CAT(static_, ID)<                                          \
         Type, Guide,                                                           \
-        std::enable_if_t<                                                      \
-            std::is_same_v<get_attributes<Guide>, dllimport>>> {     \
-        using declspec = dllimport;                                \
+        std::enable_if_t<std::is_same_v<get_attributes<Guide>, dllimport>>> {  \
+        using declspec = dllimport;                                            \
         static BOOST_SYMBOL_IMPORT Type ID;                                    \
     }
 
@@ -969,7 +967,7 @@ template<typename Type>
 using get_attributes =
     decltype(boost_openmethod_declspec(std::declval<Type>()));
 
-BOOST_OPENMETHOD_DETAIL_MAKE_DECLSPEC_SYMBOL(st);
+BOOST_OPENMETHOD_DETAIL_MAKE_STATICS(st);
 
 } // namespace detail
 
@@ -1039,12 +1037,13 @@ struct attributes_guide final : attributes {
 //!
 //! @see @ref policies
 template<class... Policy>
-class registry : public detail::registry_base {
-    using storage = detail::global_state_st<
-        detail::registry_state<registry<Policy...>>,
-        typename detail::find_first_derived_of<
-            policies::attributes, mp11::mp_list<Policy...>,
-            policies::attributes_guide<registry<Policy...>>>::guide_type>;
+class registry
+    : public detail::registry_base,
+      detail::static_st<
+          detail::registry_state<registry<Policy...>>,
+          typename detail::find_first_derived_of<
+              policies::attributes, mp11::mp_list<Policy...>,
+              policies::attributes_guide<registry<Policy...>>>::guide_type> {
 
     template<class...>
     friend struct detail::use_class_aux;
@@ -1054,10 +1053,9 @@ class registry : public detail::registry_base {
   public:
     //! The type of this registry.
     using registry_type = registry;
-    using declspec = typename storage::declspec;
 
     static const void* id() {
-        return static_cast<const void*>(&storage::st);
+        return static_cast<const void*>(&st);
     }
 
     template<class... Options>
@@ -1168,7 +1166,7 @@ vptr_type registry<Policies...>::static_vptr;
 template<class... Policies>
 void registry<Policies...>::require_initialized() {
     if constexpr (registry::has_runtime_checks) {
-        if (!storage::st.initialized) {
+        if (!st.initialized) {
             if constexpr (registry::has_error_handler) {
                 error_handler::error(not_initialized());
             }

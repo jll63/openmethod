@@ -15,8 +15,8 @@ namespace boost::openmethod {
 
 namespace detail {
 
-BOOST_OPENMETHOD_DETAIL_MAKE_DECLSPEC_SYMBOL(vptr_vector_vptrs);
-BOOST_OPENMETHOD_DETAIL_MAKE_DECLSPEC_SYMBOL(vptr_vector_indirect_vptrs);
+BOOST_OPENMETHOD_DETAIL_MAKE_STATICS(vptr_vector_vptrs);
+BOOST_OPENMETHOD_DETAIL_MAKE_STATICS(vptr_vector_indirect_vptrs);
 
 } // namespace detail
 
@@ -49,11 +49,12 @@ struct vptr_vector : vptr {
             typename Registry::template policy<policies::type_hash>;
         static constexpr auto has_type_hash = !std::is_same_v<type_hash, void>;
 
-        using vptrs_storage = detail::global_state_vptr_vector_vptrs<
-            std::vector<vptr_type>, Registry>;
-        using indirect_vptrs_storage =
-            detail::global_state_vptr_vector_indirect_vptrs<
-                std::vector<const vptr_type*>, Registry>;
+        using static_ = std::conditional_t<
+            Registry::has_indirect_vptr,
+            detail::static_vptr_vector_indirect_vptrs<
+                std::vector<const vptr_type*>, Registry>,
+            detail::static_vptr_vector_vptrs<
+                std::vector<vptr_type>, Registry>>;
 
         //! Stores the v-table pointers.
         //!
@@ -90,9 +91,9 @@ struct vptr_vector : vptr {
             }
 
             if constexpr (Registry::has_indirect_vptr) {
-                indirect_vptrs_storage::vptr_vector_indirect_vptrs.resize(size);
+                static_::vptr_vector_indirect_vptrs.resize(size);
             } else {
-                vptrs_storage::vptr_vector_vptrs.resize(size);
+                static_::vptr_vector_vptrs.resize(size);
             }
 
             for (auto iter = ctx.classes_begin(); iter != ctx.classes_end();
@@ -108,10 +109,10 @@ struct vptr_vector : vptr {
                     }
 
                     if constexpr (Registry::has_indirect_vptr) {
-                        indirect_vptrs_storage::vptr_vector_indirect_vptrs
-                            [index] = &iter->vptr();
+                        static_::vptr_vector_indirect_vptrs[index] =
+                            &iter->vptr();
                     } else {
-                        vptrs_storage::vptr_vector_vptrs[index] = iter->vptr();
+                        static_::vptr_vector_vptrs[index] = iter->vptr();
                     }
                 }
             }
@@ -147,11 +148,9 @@ struct vptr_vector : vptr {
                     std::size_t max_index = 0;
 
                     if constexpr (Registry::has_indirect_vptr) {
-                        max_index =
-                            indirect_vptrs_storage::vptr_vector_indirect_vptrs
-                                .size();
+                        max_index = static_::vptr_vector_indirect_vptrs.size();
                     } else {
-                        max_index = vptrs_storage::vptr_vector_vptrs.size();
+                        max_index = static_::vptr_vector_vptrs.size();
                     }
 
                     if (index >= max_index) {
@@ -167,10 +166,9 @@ struct vptr_vector : vptr {
             }
 
             if constexpr (Registry::has_indirect_vptr) {
-                return *indirect_vptrs_storage::vptr_vector_indirect_vptrs
-                    [index];
+                return *static_::vptr_vector_indirect_vptrs[index];
             } else {
-                return vptrs_storage::vptr_vector_vptrs[index];
+                return static_::vptr_vector_vptrs[index];
             }
         }
 
@@ -184,9 +182,9 @@ struct vptr_vector : vptr {
             using namespace policies;
 
             if constexpr (Registry::has_indirect_vptr) {
-                indirect_vptrs_storage::vptr_vector_indirect_vptrs.clear();
+                static_::vptr_vector_indirect_vptrs.clear();
             } else {
-                vptrs_storage::vptr_vector_vptrs.clear();
+                static_::vptr_vector_vptrs.clear();
             }
         }
     };

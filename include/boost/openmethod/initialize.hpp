@@ -545,7 +545,7 @@ template<class... Options>
 void registry<Policies...>::compiler<Options...>::initialize() {
     compile();
     install_global_tables();
-    registry<Policies...>::storage::st.initialized = true;
+    registry<Policies...>::st.initialized = true;
 }
 
 #ifdef _MSC_VER
@@ -614,7 +614,7 @@ void registry<Policies...>::compiler<Options...>::augment_classes() {
         // The standard does not guarantee that there is exactly one
         // type_info object per class. However, it guarantees that the
         // type_index for a class has a unique value.
-        for (auto& cr : registry::storage::st.classes) {
+        for (auto& cr : registry::st.classes) {
             if constexpr (has_deferred_static_rtti) {
                 static_cast<deferred_class_info&>(cr).resolve_type_ids();
             }
@@ -644,7 +644,7 @@ void registry<Policies...>::compiler<Options...>::augment_classes() {
     // All known classes now have exactly one associated class_* in the
     // map. Collect the bases.
 
-    for (auto& cr : registry::storage::st.classes) {
+    for (auto& cr : registry::st.classes) {
         auto rtc = class_map[rtti::type_index(cr.type)];
 
         for (auto& base : range{cr.first_base, cr.last_base}) {
@@ -773,14 +773,14 @@ void registry<Policies...>::compiler<Options...>::augment_methods() {
     using namespace policies;
     using namespace detail;
 
-    methods.resize(registry::storage::st.methods.size());
+    methods.resize(registry::st.methods.size());
 
     ++tr << "Methods:\n";
     indent _(tr);
 
     auto meth_iter = methods.begin();
 
-    for (auto& meth_info : registry::storage::st.methods) {
+    for (auto& meth_info : registry::st.methods) {
         if constexpr (has_deferred_static_rtti) {
             static_cast<deferred_method_info&>(meth_info).resolve_type_ids();
         }
@@ -1481,7 +1481,7 @@ void registry<Policies...>::compiler<Options...>::write_global_data() {
 
     detail::initialize_policies<registry>::fn(*this, options);
 
-    new_dispatch_data.swap(storage::st.dispatch_data);
+    new_dispatch_data.swap(st.dispatch_data);
 }
 
 template<class... Policies>
@@ -1722,8 +1722,8 @@ auto registry<Policies...>::finalize(Options... opts) -> void {
         }
     });
 
-    storage::st.dispatch_data.clear();
-    storage::st.initialized = false;
+    st.dispatch_data.clear();
+    st.initialized = false;
 }
 
 //! Release resources held by registry.

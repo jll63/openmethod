@@ -42,7 +42,7 @@ struct hash_fn {
     }
 };
 
-BOOST_OPENMETHOD_DETAIL_MAKE_DECLSPEC_SYMBOL(hash_fn);
+BOOST_OPENMETHOD_DETAIL_MAKE_STATICS(hash_fn);
 
 template<class Registry>
 std::vector<type_id> fast_perfect_hash_control;
@@ -86,10 +86,7 @@ struct fast_perfect_hash : type_hash {
     //!
     //! @tparam Registry The registry containing this policy
     template<class Registry>
-    class fn {
-        using factors_storage =
-            detail::global_state_hash_fn<detail::hash_fn, Registry>;
-
+    class fn : detail::static_hash_fn<detail::hash_fn, Registry> {
         static void check(std::size_t index, type_id type);
 
         template<class InitializeContext, class... Options>
@@ -127,9 +124,7 @@ struct fast_perfect_hash : type_hash {
         //!
         //! @return A pair containing the minimum and maximum hash values.
         static auto hash_range() -> std::pair<std::size_t, std::size_t> {
-            return std::pair{
-                factors_storage::hash_fn.min_value,
-                factors_storage::hash_fn.max_value};
+            return std::pair{hash_fn.min_value, hash_fn.max_value};
         }
 
         //! Hash a type id
@@ -147,7 +142,7 @@ struct fast_perfect_hash : type_hash {
         //! @return The hash value
         BOOST_FORCEINLINE
         static auto hash(type_id type) -> std::size_t {
-            auto index = factors_storage::hash_fn(type);
+            auto index = hash_fn(type);
 
             if constexpr (Registry::has_runtime_checks) {
                 check(index, type);
@@ -192,12 +187,10 @@ void fast_perfect_hash::fn<Registry>::initialize_aux(
     std::uniform_int_distribution<std::size_t> uniform_dist;
 
     for (std::size_t pass = 0; pass < 4; ++pass, ++M) {
-        factors_storage::hash_fn.shift = 8 * sizeof(type_id) - M;
+        hash_fn.shift = 8 * sizeof(type_id) - M;
         auto hash_size = 1 << M;
-        factors_storage::hash_fn.min_value =
-            (std::numeric_limits<std::size_t>::max)();
-        factors_storage::hash_fn.max_value =
-            (std::numeric_limits<std::size_t>::min)();
+        hash_fn.min_value = (std::numeric_limits<std::size_t>::max)();
+        hash_fn.max_value = (std::numeric_limits<std::size_t>::min)();
 
         if constexpr (InitializeContext::template has_option<trace>) {
             ctx.tr << "  trying with M = " << M << ", " << hash_size
@@ -212,18 +205,16 @@ void fast_perfect_hash::fn<Registry>::initialize_aux(
                 buckets.begin(), buckets.end(), type_id(detail::uintptr_max));
             ++attempts;
             ++total_attempts;
-            factors_storage::hash_fn.mult = uniform_dist(rnd) | 1;
+            hash_fn.mult = uniform_dist(rnd) | 1;
 
             for (auto iter = ctx.classes_begin(); iter != ctx.classes_end();
                  ++iter) {
                 for (auto type_iter = iter->type_id_begin();
                      type_iter != iter->type_id_end(); ++type_iter) {
                     auto type = *type_iter;
-                    auto index = factors_storage::hash_fn(type);
-                    factors_storage::hash_fn.min_value =
-                        (std::min)(factors_storage::hash_fn.min_value, index);
-                    factors_storage::hash_fn.max_value =
-                        (std::max)(factors_storage::hash_fn.max_value, index);
+                    auto index = hash_fn(type);
+                    hash_fn.min_value = (std::min)(hash_fn.min_value, index);
+                    hash_fn.max_value = (std::max)(hash_fn.max_value, index);
 
                     if (detail::uintptr(buckets[index]) !=
                         detail::uintptr_max) {
@@ -235,10 +226,10 @@ void fast_perfect_hash::fn<Registry>::initialize_aux(
             }
 
             if constexpr (InitializeContext::template has_option<trace>) {
-                ctx.tr << "  found " << factors_storage::hash_fn.mult
-                       << " after " << total_attempts << " attempts; span = ["
-                       << factors_storage::hash_fn.min_value << ", "
-                       << factors_storage::hash_fn.max_value << "]\n";
+                ctx.tr << "  found " << hash_fn.mult << " after "
+                       << total_attempts << " attempts; span = ["
+                       << hash_fn.min_value << ", " << hash_fn.max_value
+                       << "]\n";
             }
 
             return;
@@ -260,8 +251,7 @@ void fast_perfect_hash::fn<Registry>::initialize_aux(
 
 template<class Registry>
 void fast_perfect_hash::fn<Registry>::check(std::size_t index, type_id type) {
-    if (index < factors_storage::hash_fn.min_value ||
-        index > factors_storage::hash_fn.max_value ||
+    if (index < hash_fn.min_value || index > hash_fn.max_value ||
         detail::fast_perfect_hash_control<Registry>[index] != type) {
 
         if constexpr (Registry::has_error_handler) {
