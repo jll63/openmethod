@@ -1927,7 +1927,7 @@ struct virtual_traits<const virtual_ptr<Class, Registry>&, Registry> {
 
 // =============================================================================
 // Method
-auto boost_openmethod_attributes(...) -> void;
+auto boost_openmethod_declspec(...) -> void;
 
 namespace detail {
 

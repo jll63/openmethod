@@ -934,7 +934,7 @@ namespace detail {
 #define BOOST_OPENMETHOD_DETAIL_MAKE_DECLSPEC_SYMBOL(ID, ...)                  \
     template<class Type, class Guide = Type&, typename = void>                 \
     struct BOOST_PP_CAT(global_state_, ID) {                                   \
-        using attributes = void;                                     \
+        using declspec = void;                                     \
         static Type ID;                                                        \
     };                                                                         \
                                                                                \
@@ -946,7 +946,7 @@ namespace detail {
         Type, Guide,                                                           \
         std::enable_if_t<                                                      \
             std::is_same_v<get_attributes<Guide>, dllexport>>> {     \
-        using attributes = dllexport;                                \
+        using declspec = dllexport;                                \
         static BOOST_SYMBOL_EXPORT Type ID __VA_ARGS__;                        \
     };                                                                         \
                                                                                \
@@ -961,13 +961,13 @@ namespace detail {
         Type, Guide,                                                           \
         std::enable_if_t<                                                      \
             std::is_same_v<get_attributes<Guide>, dllimport>>> {     \
-        using attributes = dllimport;                                \
+        using declspec = dllimport;                                \
         static BOOST_SYMBOL_IMPORT Type ID;                                    \
     }
 
 template<typename Type>
 using get_attributes =
-    decltype(boost_openmethod_attributes(std::declval<Type>()));
+    decltype(boost_openmethod_declspec(std::declval<Type>()));
 
 BOOST_OPENMETHOD_DETAIL_MAKE_DECLSPEC_SYMBOL(st);
 
@@ -1054,7 +1054,7 @@ class registry : public detail::registry_base {
   public:
     //! The type of this registry.
     using registry_type = registry;
-    using attributes = typename storage::attributes;
+    using declspec = typename storage::declspec;
 
     static const void* id() {
         return static_cast<const void*>(&storage::st);
