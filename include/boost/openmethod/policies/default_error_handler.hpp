@@ -15,7 +15,7 @@ namespace boost::openmethod {
 
 namespace detail {
 
-BOOST_OPENMETHOD_DETAIL_MAKE_SYMBOL_WITH_ATTRIBUTES(handler);
+BOOST_OPENMETHOD_DETAIL_MAKE_DECLSPEC_SYMBOL(handler);
 
 } // namespace detail
 

@@ -15,8 +15,8 @@ namespace boost::openmethod {
 
 namespace detail {
 
-BOOST_OPENMETHOD_DETAIL_MAKE_SYMBOL_WITH_ATTRIBUTES(vptr_vector_vptrs);
-BOOST_OPENMETHOD_DETAIL_MAKE_SYMBOL_WITH_ATTRIBUTES(vptr_vector_indirect_vptrs);
+BOOST_OPENMETHOD_DETAIL_MAKE_DECLSPEC_SYMBOL(vptr_vector_vptrs);
+BOOST_OPENMETHOD_DETAIL_MAKE_DECLSPEC_SYMBOL(vptr_vector_indirect_vptrs);
 
 } // namespace detail
 

@@ -42,7 +42,7 @@ struct hash_fn {
     }
 };
 
-BOOST_OPENMETHOD_DETAIL_MAKE_SYMBOL_WITH_ATTRIBUTES(hash_fn);
+BOOST_OPENMETHOD_DETAIL_MAKE_DECLSPEC_SYMBOL(hash_fn);
 
 template<class Registry>
 std::vector<type_id> fast_perfect_hash_control;

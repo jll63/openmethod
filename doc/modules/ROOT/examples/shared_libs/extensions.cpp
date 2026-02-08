@@ -10,13 +10,13 @@
 using namespace boost::openmethod;
 
 static_assert(
-    std::is_same_v<default_registry::attributes, declspec::dllimport>);
+    std::is_same_v<default_registry::attributes, dllimport>);
 
 static_assert(std::is_same_v<
               BOOST_OPENMETHOD_TYPE(
                   meet, (virtual_ptr<Animal>, virtual_ptr<Animal>),
                   std::string)::attributes,
-              declspec::dllimport>);
+              dllimport>);
 
 BOOST_OPENMETHOD_OVERRIDE(
     meet, (virtual_ptr<Herbivore>, virtual_ptr<Carnivore>), std::string) {

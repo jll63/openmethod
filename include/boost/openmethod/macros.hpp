@@ -31,7 +31,7 @@ struct va_args<ReturnType, Other> {
     using registry =
         std::conditional_t<is_registry<Other>, Other, macro_default_registry>;
     using attributes = std::conditional_t<
-        std::is_base_of_v<attributes_base, Other>, Other, void>;
+        std::is_base_of_v<declspec, Other>, Other, void>;
 };
 
 template<class ReturnType, class T, class U>
@@ -39,7 +39,7 @@ struct va_args<ReturnType, T, U> {
     using return_type = ReturnType;
     using registry = std::conditional_t<is_registry<T>, T, U>;
     using attributes =
-        std::conditional_t<std::is_base_of_v<attributes_base, T>, T, U>;
+        std::conditional_t<std::is_base_of_v<declspec, T>, T, U>;
 };
 
 template<class ReturnType>

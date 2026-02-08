@@ -739,8 +739,8 @@ struct TypeHashFn {
     //! blueprint.
     //! @return A pair containing the minimum and maximum hash values.
     template<class Context>
-    static auto
-    initialize(const Context& ctx) -> std::pair<std::size_t, std::size_t>;
+    static auto initialize(const Context& ctx)
+        -> std::pair<std::size_t, std::size_t>;
 
     //! Hash a `type_id`.
     //!
@@ -925,21 +925,16 @@ struct initialize_aux;
 // -----------------------------------------------------------------------------
 // attributes
 
-struct attributes_base {};
-
-struct no_attributes : attributes_base {};
-
-struct declspec {
-    struct dllexport : attributes_base {};
-    struct dllimport : attributes_base {};
-};
+struct declspec {};
+struct dllexport : declspec {};
+struct dllimport : declspec {};
 
 namespace detail {
 
-#define BOOST_OPENMETHOD_DETAIL_MAKE_SYMBOL_WITH_ATTRIBUTES(ID, ...)           \
+#define BOOST_OPENMETHOD_DETAIL_MAKE_DECLSPEC_SYMBOL(ID, ...)                  \
     template<class Type, class Guide = Type&, typename = void>                 \
     struct BOOST_PP_CAT(global_state_, ID) {                                   \
-        using attributes = no_attributes;                                      \
+        using attributes = void;                                     \
         static Type ID;                                                        \
     };                                                                         \
                                                                                \
@@ -950,8 +945,8 @@ namespace detail {
     struct BOOST_PP_CAT(global_state_, ID)<                                    \
         Type, Guide,                                                           \
         std::enable_if_t<                                                      \
-            std::is_same_v<get_attributes<Guide>, declspec::dllexport>>> {     \
-        using attributes = declspec::dllexport;                                \
+            std::is_same_v<get_attributes<Guide>, dllexport>>> {     \
+        using attributes = dllexport;                                \
         static BOOST_SYMBOL_EXPORT Type ID __VA_ARGS__;                        \
     };                                                                         \
                                                                                \
@@ -959,14 +954,14 @@ namespace detail {
     Type BOOST_PP_CAT(global_state_, ID)<                                      \
         Type, Guide,                                                           \
         std::enable_if_t<                                                      \
-            std::is_same_v<get_attributes<Guide>, declspec::dllexport>>>::ID;  \
+            std::is_same_v<get_attributes<Guide>, dllexport>>>::ID;  \
                                                                                \
     template<class Type, class Guide>                                          \
     struct BOOST_PP_CAT(global_state_, ID)<                                    \
         Type, Guide,                                                           \
         std::enable_if_t<                                                      \
-            std::is_same_v<get_attributes<Guide>, declspec::dllimport>>> {     \
-        using attributes = declspec::dllimport;                                \
+            std::is_same_v<get_attributes<Guide>, dllimport>>> {     \
+        using attributes = dllimport;                                \
         static BOOST_SYMBOL_IMPORT Type ID;                                    \
     }
 
@@ -974,7 +969,7 @@ template<typename Type>
 using get_attributes =
     decltype(boost_openmethod_attributes(std::declval<Type>()));
 
-BOOST_OPENMETHOD_DETAIL_MAKE_SYMBOL_WITH_ATTRIBUTES(st);
+BOOST_OPENMETHOD_DETAIL_MAKE_DECLSPEC_SYMBOL(st);
 
 } // namespace detail
 

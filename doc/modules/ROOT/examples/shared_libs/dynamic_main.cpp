@@ -30,17 +30,17 @@ static_assert(!std::is_same_v<
               BOOST_OPENMETHOD_TYPE(
                   meet, (virtual_ptr<Animal>, virtual_ptr<Animal>),
                   std::string)::attributes,
-              no_attributes>);
+              void>);
 
 static_assert(std::is_same_v<
               BOOST_OPENMETHOD_TYPE(
                   meet, (virtual_ptr<Animal>, virtual_ptr<Animal>),
                   std::string)::attributes,
-              declspec::dllexport>);
+              dllexport>);
 
-static_assert(!std::is_same_v<default_registry::attributes, no_attributes>);
+static_assert(!std::is_same_v<default_registry::attributes, void>);
 static_assert(
-    std::is_same_v<default_registry::attributes, declspec::dllexport>);
+    std::is_same_v<default_registry::attributes, dllexport>);
 
 struct Cow : Herbivore {};
 struct Wolf : Carnivore {};

@@ -1931,7 +1931,7 @@ auto boost_openmethod_attributes(...) -> void;
 
 namespace detail {
 
-BOOST_OPENMETHOD_DETAIL_MAKE_SYMBOL_WITH_ATTRIBUTES(fn);
+BOOST_OPENMETHOD_DETAIL_MAKE_DECLSPEC_SYMBOL(fn);
 
 template<typename P, typename Q, class Registry>
 struct select_overrider_virtual_type_aux {

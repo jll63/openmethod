@@ -22,9 +22,9 @@
 #endif
 
 #ifdef LIBRARY_NAME
-#define ANIMALS_API boost::openmethod::declspec::dllexport
+#define ANIMALS_API boost::openmethod::dllexport
 #else
-#define ANIMALS_API boost::openmethod::declspec::dllimport
+#define ANIMALS_API boost::openmethod::dllimport
 #endif
 
 namespace boost::openmethod {
