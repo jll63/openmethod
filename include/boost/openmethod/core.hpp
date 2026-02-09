@@ -2238,6 +2238,10 @@ class method<Id, ReturnType(Parameters...), Registry>
     //! `Fn` must be a function that is an overrider of the method.
     //!
     //! @tparam Fn A function that is an overrider of the method.
+
+    // 'next' does not need any special treatment for Windows DLLs, because it
+    // may be called only from within the overrider, registered with a registrar
+    // in the same module.
     template<auto Fn>
     static FunctionPointer next;
 

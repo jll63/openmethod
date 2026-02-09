@@ -41,9 +41,6 @@ static_assert(std::is_same_v<
 static_assert(!std::is_same_v<default_registry::declspec, void>);
 static_assert(std::is_same_v<default_registry::declspec, dllexport>);
 
-struct Cow : Herbivore {};
-struct Wolf : Carnivore {};
-
 BOOST_OPENMETHOD_CLASSES(Herbivore, Cow, Carnivore, Wolf);
 
 BOOST_OPENMETHOD_OVERRIDE(
