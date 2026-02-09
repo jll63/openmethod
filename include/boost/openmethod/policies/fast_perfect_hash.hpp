@@ -186,7 +186,7 @@ void fast_perfect_hash::fn<Registry>::initialize_aux(
 
     std::uniform_int_distribution<std::size_t> uniform_dist;
 
-    for (std::size_t pass = 0; pass < 4; ++pass, ++M) {
+    for (std::size_t pass = 0; pass < 5; ++pass, ++M) {
         hash_fn.shift = 8 * sizeof(type_id) - M;
         auto hash_size = 1 << M;
         hash_fn.min_value = (std::numeric_limits<std::size_t>::max)();
@@ -200,7 +200,7 @@ void fast_perfect_hash::fn<Registry>::initialize_aux(
         std::size_t attempts = 0;
         buckets.resize(hash_size);
 
-        while (attempts < 100000) {
+        while (attempts < 1'00'000) {
             std::fill(
                 buckets.begin(), buckets.end(), type_id(detail::uintptr_max));
             ++attempts;
@@ -266,8 +266,8 @@ void fast_perfect_hash::fn<Registry>::check(std::size_t index, type_id type) {
 
 template<class Registry, class Stream>
 auto fast_perfect_hash::search_error::write(Stream& os) const -> void {
-    os << "could not find hash factors after " << attempts << "s using "
-       << buckets << " buckets\n";
+    os << "could not find hash factors after " << attempts
+       << " attempts using up to " << buckets << " buckets\n";
 }
 
 } // namespace policies

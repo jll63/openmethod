@@ -59,7 +59,7 @@ int main() {
     try {
         std::cout << "Before loading the shared library.\n";
 
-        boost::openmethod::initialize();
+        boost::openmethod::initialize(trace::from_env());
         BOOST_ASSERT(default_registry::static_vptr<Carnivore> != nullptr);
 
         std::cout << "cow meets wolf -> "
@@ -79,7 +79,7 @@ int main() {
         boost::dll::shared_library lib(
             boost::dll::program_location().parent_path() / LIBRARY_NAME,
             boost::dll::load_mode::rtld_now);
-        boost::openmethod::initialize();
+        boost::openmethod::initialize(trace::from_env());
 
         std::cout << "cow meets wolf -> "
                   << meet(*std::make_unique<Cow>(), *std::make_unique<Wolf>())
@@ -102,7 +102,7 @@ int main() {
         std::cout << "\nAfter unloading the shared library.\n";
 
         lib.unload();
-        boost::openmethod::initialize();
+        boost::openmethod::initialize(trace::from_env());
 
         std::cout << "cow meets wolf -> "
                   << meet(*std::make_unique<Cow>(), *std::make_unique<Wolf>())

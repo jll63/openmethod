@@ -100,23 +100,6 @@ struct initialize_policies<Registry, mp11::mp_list<Policies...>> {
     }
 };
 
-// template<typename Registry, typename Policy, typename... Policies>
-// struct initialize_policies<Registry, mp11::mp_list<Policy, Policies...>> {
-//     template<typename Context, typename Options>
-//     static void fn(const Context& ctx, const Options& options) {
-//         initialize_policy<Policy, Registry>(ctx, options);
-//         initialize_policies<Registry, mp11::mp_list<Policies...>>::fn(
-//             ctx, options);
-//     }
-// };
-
-// template<typename Registry>
-// struct initialize_policies<Registry, mp11::mp_list<>> {
-//     template<typename Context, typename Options>
-//     static void fn(const Context& ctx, const Options& options) {
-//     }
-// };
-
 inline void merge_into(boost::dynamic_bitset<>& a, boost::dynamic_bitset<>& b) {
     if (b.size() < a.size()) {
         b.resize(a.size());
@@ -679,7 +662,9 @@ void registry<Policies...>::compiler<Options...>::augment_classes() {
             {
                 indent _(tr);
                 ++tr << type_name(cr.type) << ": "
-                     << range{cr.first_base, cr.last_base} << "\n";
+                     << range{cr.first_base, cr.last_base}
+                     << ", type = " << cr.type << ", &vptr = " << &cr.vptr()
+                     << "\n";
             }
 
             auto& rtc = class_map[rtti::type_index(cr.type)];
@@ -688,7 +673,18 @@ void registry<Policies...>::compiler<Options...>::augment_classes() {
                 rtc = &classes.emplace_back();
             }
 
-            rtc->ci.push_back(&cr);
+            bool new_type_id = true;
+
+            for (auto ci : rtc->ci) {
+                if (ci->type == cr.type) {
+                    new_type_id = false;
+                    break;
+                }
+            }
+
+            if (new_type_id) {
+                rtc->ci.push_back(&cr);
+            }
         }
     }
 
