@@ -38,6 +38,8 @@ struct Animal { virtual ~Animal() {} };
 struct Herbivore : Animal {};
 struct Carnivore : Animal {};
 
+BOOST_OPENMETHOD_CLASSES(Animal, Herbivore, Carnivore);
+
 BOOST_OPENMETHOD(
     meet, (
         boost::openmethod::virtual_ptr<Animal>,

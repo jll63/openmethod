@@ -69,8 +69,7 @@ struct has_initialize : std::false_type {};
 template<typename PolicyFn, typename Context, typename Options>
 struct has_initialize<
     PolicyFn, Context, Options,
-    std::void_t<
-        decltype(&PolicyFn::template initialize<Context, Options>)>>
+    std::void_t<decltype(&PolicyFn::template initialize<Context, Options>)>>
     : std::true_type {};
 #else
 template<typename PolicyFn, typename Context, typename Options>
@@ -152,8 +151,7 @@ struct generic_compiler {
     };
 
     struct class_ {
-        bool is_abstract = false;
-        std::vector<type_id> type_ids;
+        std::vector<detail::class_info*> ci;
         std::vector<class_*> transitive_bases;
         std::vector<class_*> direct_bases;
         std::vector<class_*> direct_derived;
@@ -164,22 +162,13 @@ struct generic_compiler {
         std::size_t first_slot = 0;
         std::size_t mark = 0; // temporary mark to detect cycles
         std::vector<vtbl_entry> vtbl;
-        vptr_type* static_vptr;
 
         auto is_base_of(class_* other) const -> bool {
             return transitive_derived.find(other) != transitive_derived.end();
         }
 
-        auto vptr() const -> const vptr_type& {
-            return *static_vptr;
-        }
-
-        auto type_id_begin() const {
-            return type_ids.begin();
-        }
-
-        auto type_id_end() const {
-            return type_ids.end();
+        auto is_abstract() const -> bool {
+            return ci[0]->is_abstract;
         }
     };
 
@@ -244,12 +233,80 @@ struct generic_compiler {
 
     std::deque<class_> classes;
 
+    class const_class_iterator {
+      public:
+        using iterator_category = std::forward_iterator_tag;
+        using value_type = const detail::class_info*;
+        using difference_type = std::ptrdiff_t;
+        using pointer = const detail::class_info**;
+        using reference = const detail::class_info*&;
+
+        const_class_iterator() = default;
+
+        const_class_iterator(
+            std::deque<class_>::const_iterator class_iter,
+            std::deque<class_>::const_iterator class_end)
+            : class_iter_(class_iter), class_end_(class_end) {
+            if (class_iter_ != class_end_) {
+                ci_iter_ = class_iter_->ci.begin();
+                advance_to_valid();
+            }
+        }
+        auto operator->() const -> const detail::class_info* {
+            return *ci_iter_;
+        }
+        auto operator*() const -> const detail::class_info* {
+            return *ci_iter_;
+        }
+
+        auto operator++() -> const_class_iterator& {
+            ++ci_iter_;
+            advance_to_valid();
+            return *this;
+        }
+
+        auto operator++(int) -> const_class_iterator {
+            const_class_iterator tmp = *this;
+            ++(*this);
+            return tmp;
+        }
+
+        auto operator==(const const_class_iterator& other) const -> bool {
+            if (class_iter_ != other.class_iter_) {
+                return false;
+            }
+            if (class_iter_ == class_end_) {
+                return true;
+            }
+            return ci_iter_ == other.ci_iter_;
+        }
+
+        auto operator!=(const const_class_iterator& other) const -> bool {
+            return !(*this == other);
+        }
+
+      private:
+        void advance_to_valid() {
+            while (class_iter_ != class_end_ &&
+                   ci_iter_ == class_iter_->ci.end()) {
+                ++class_iter_;
+                if (class_iter_ != class_end_) {
+                    ci_iter_ = class_iter_->ci.begin();
+                }
+            }
+        }
+
+        std::deque<class_>::const_iterator class_iter_;
+        std::deque<class_>::const_iterator class_end_;
+        std::vector<detail::class_info*>::const_iterator ci_iter_;
+    };
+
     auto classes_begin() const {
-        return classes.begin();
+        return const_class_iterator(classes.begin(), classes.end());
     }
 
     auto classes_end() const {
-        return classes.end();
+        return const_class_iterator(classes.end(), classes.end());
     }
 
     std::vector<method> methods;
@@ -307,7 +364,7 @@ template<class Compiler>
 auto operator<<(trace_stream<Compiler>& tr, const generic_compiler::class_& cls)
     -> trace_stream<Compiler>& {
     if constexpr (Compiler::has_trace) {
-        tr << type_name(cls.type_ids[0]);
+        tr << type_name(cls.ci[0]->type);
     }
 
     return tr;
@@ -629,15 +686,9 @@ void registry<Policies...>::compiler<Options...>::augment_classes() {
 
             if (rtc == nullptr) {
                 rtc = &classes.emplace_back();
-                rtc->is_abstract = cr.is_abstract;
-                rtc->static_vptr = cr.static_vptr;
             }
 
-            if (std::find(
-                    rtc->type_ids.begin(), rtc->type_ids.end(), cr.type) ==
-                rtc->type_ids.end()) {
-                rtc->type_ids.push_back(cr.type);
-            }
+            rtc->ci.push_back(&cr);
         }
     }
 
@@ -914,8 +965,8 @@ void registry<Policies...>::compiler<Options...>::augment_methods() {
 
                 if (!vp->is_base_of(overrider.vp[param_index])) {
                     missing_base error;
-                    error.base = overrider.vp[param_index]->type_ids[0];
-                    error.derived = vp->type_ids[0];
+                    error.base = overrider.vp[param_index]->ci[0]->type;
+                    error.derived = vp->ci[0]->type;
 
                     if constexpr (has_error_handler) {
                         error_handler::error(error);
@@ -1124,7 +1175,7 @@ void registry<Policies...>::compiler<Options...>::build_dispatch_tables() {
                     auto& group = dim_group[mask];
                     group.classes.push_back(covariant_class);
                     group.has_concrete_classes = group.has_concrete_classes ||
-                        !covariant_class->is_abstract;
+                        !covariant_class->is_abstract();
 
                     ++tr << "-> mask: " << mask << "\n";
                 }
@@ -1155,7 +1206,7 @@ void registry<Policies...>::compiler<Options...>::build_dispatch_tables() {
 
                 for (auto cls : group.classes) {
                     indent _(tr);
-                    ++tr << type_name(cls->type_ids[0]) << "\n";
+                    ++tr << type_name(cls->ci[0]->type) << "\n";
                     auto& entry = cls->vtbl[m.slots[dim] - cls->first_slot];
                     entry.method_index = &m - &methods[0];
                     entry.vp_index = dim;
@@ -1224,7 +1275,7 @@ void registry<Policies...>::compiler<Options...>::build_dispatch_table(
                  << "\n";
             indent _(tr);
             for (auto cls : range{group.classes.begin(), group.classes.end()}) {
-                ++tr << type_name(cls->type_ids[0]) << "\n";
+                ++tr << type_name(cls->ci[0]->type) << "\n";
             }
         }
 
@@ -1439,7 +1490,9 @@ void registry<Policies...>::compiler<Options...>::write_global_data() {
     ++tr << "Initializing v-tables at " << gv_iter << "\n";
 
     for (auto& cls : classes) {
-        *cls.static_vptr = gv_iter - cls.first_slot;
+        for (auto& ci : cls.ci) {
+            *ci->static_vptr = gv_iter - cls.first_slot;
+        }
 
         ++tr << rflush(4, gv_iter - gv_first) << " " << gv_iter << " vtbl for "
              << cls << " slots " << cls.first_slot << "-"

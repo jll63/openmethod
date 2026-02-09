@@ -307,8 +307,8 @@ struct class_info : static_list<class_info>::static_link {
     type_id *first_base, *last_base;
     bool is_abstract{false};
 
-    auto vptr() const {
-        return static_vptr;
+    auto vptr() const -> const vptr_type& {
+        return *static_vptr;
     }
 
     auto type_id_begin() const {
@@ -1082,7 +1082,7 @@ class registry
     //!
     //! @tparam Class A registered class.
     template<class Class>
-    static vptr_type static_vptr;
+    inline static vptr_type static_vptr;
 
     //! List of policies selected in a registry.
     //!
@@ -1158,10 +1158,6 @@ class registry
     static constexpr auto has_indirect_vptr =
         !std::is_same_v<policy<policies::indirect_vptr>, void>;
 };
-
-template<class... Policies>
-template<class Class>
-vptr_type registry<Policies...>::static_vptr;
 
 template<class... Policies>
 void registry<Policies...>::require_initialized() {

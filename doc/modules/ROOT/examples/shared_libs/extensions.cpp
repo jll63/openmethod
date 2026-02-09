@@ -37,6 +37,7 @@ extern "C" {
 __declspec(dllexport)
 #endif
 auto make_tiger() -> Animal* {
+    BOOST_ASSERT(default_registry::static_vptr<Carnivore> != nullptr);
     return new Tiger;
 }
 }

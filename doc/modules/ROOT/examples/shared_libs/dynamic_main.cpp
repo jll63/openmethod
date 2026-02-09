@@ -44,7 +44,7 @@ static_assert(std::is_same_v<default_registry::declspec, dllexport>);
 struct Cow : Herbivore {};
 struct Wolf : Carnivore {};
 
-BOOST_OPENMETHOD_CLASSES(Animal, Herbivore, Cow, Wolf, Carnivore);
+BOOST_OPENMETHOD_CLASSES(Herbivore, Cow, Carnivore, Wolf);
 
 BOOST_OPENMETHOD_OVERRIDE(
     meet, (virtual_ptr<Animal>, virtual_ptr<Animal>), std::string) {
@@ -60,6 +60,7 @@ int main() {
         std::cout << "Before loading the shared library.\n";
 
         boost::openmethod::initialize();
+        BOOST_ASSERT(default_registry::static_vptr<Carnivore> != nullptr);
 
         std::cout << "cow meets wolf -> "
                   << meet(*std::make_unique<Cow>(), *std::make_unique<Wolf>())
