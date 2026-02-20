@@ -739,8 +739,8 @@ struct TypeHashFn {
     //! blueprint.
     //! @return A pair containing the minimum and maximum hash values.
     template<class Context>
-    static auto initialize(const Context& ctx)
-        -> std::pair<std::size_t, std::size_t>;
+    static auto
+    initialize(const Context& ctx) -> std::pair<std::size_t, std::size_t>;
 
     //! Hash a `type_id`.
     //!
@@ -1037,25 +1037,26 @@ struct attributes_guide final : attributes {
 //!
 //! @see @ref policies
 template<class... Policy>
-class registry
-    : public detail::registry_base,
-      detail::static_st<
-          detail::registry_state<registry<Policy...>>,
-          typename detail::find_first_derived_of<
-              policies::attributes, mp11::mp_list<Policy...>,
-              policies::attributes_guide<registry<Policy...>>>::guide_type> {
+class registry : public detail::registry_base {
 
     template<class...>
     friend struct detail::use_class_aux;
     template<typename Name, typename ReturnType, class Registry>
     friend class method;
 
+    using static_ = detail::static_st<
+        detail::registry_state<registry<Policy...>>,
+        typename detail::find_first_derived_of<
+            policies::attributes, mp11::mp_list<Policy...>,
+            policies::attributes_guide<registry<Policy...>>>::guide_type>;
+
   public:
     //! The type of this registry.
     using registry_type = registry;
+    using declspec = typename static_::declspec; 
 
     static const void* id() {
-        return static_cast<const void*>(&st);
+        return static_cast<const void*>(&static_::st.classes);
     }
 
     template<class... Options>
@@ -1162,7 +1163,7 @@ class registry
 template<class... Policies>
 void registry<Policies...>::require_initialized() {
     if constexpr (registry::has_runtime_checks) {
-        if (!st.initialized) {
+        if (!static_::st.initialized) {
             if constexpr (registry::has_error_handler) {
                 error_handler::error(not_initialized());
             }
