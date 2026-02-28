@@ -525,6 +525,8 @@ constexpr bool has_vptr_fn = std::is_same_v<
         std::declval<const Class&>(), std::declval<Registry*>())),
     vptr_type>;
 
+BOOST_OPENMETHOD_DETAIL_HAS_STATIC_FN(has_dynamic_type, dynamic_type);
+
 template<class Registry, class ArgType>
 decltype(auto) acquire_vptr(const ArgType& arg) {
     Registry::require_initialized();
