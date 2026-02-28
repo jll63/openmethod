@@ -19,8 +19,6 @@
 | image:https://img.shields.io/badge/matrix-develop-brightgreen.svg[Enter the Matrix,link=http://www.boost.org/development/tests/develop/developer/openmethod.html]
 |===
 
-ifdef::env-github[]
-
 == Boost.OpenMethod
 
 === Overview
@@ -31,8 +29,6 @@ Open-methods are virtual functions that exist outside of classes, as
 free-standing functions. They make it possible to add polymorphic behavior to
 existing classes, without modifying them. This implementation supports single
 and multiple dispatch.
-
-endif::[]
 
 === Example
 

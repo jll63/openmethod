@@ -81,7 +81,7 @@ echo "Fixing links to non-mrdocs URIs..."
 
 for f in $(find html -name '*.html'); do
   perl -i -pe 's{&lcub;&lcub;(.*?)&rcub;&rcub;}{<a href="../../../$1.html">$1</a>}g' "$f"
-  perl -i -pe 's{<a href="motivation.html">Boost.OpenMethod</a>}{<a href="https://www.boost.org/library/develop/openmethod/">Boost.OpenMethod</a>}g' "$f"
+  perl -i -pe 's{<a href="motivation.html">Boost.OpenMethod</a>}{<a href="https://www.boost.org/library/${BRANCH}/openmethod/">Boost.OpenMethod</a>}g' "$f"
 done
 
 
