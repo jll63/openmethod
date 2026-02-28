@@ -1,4 +1,4 @@
-* xref:index.adoc[Motivation]
+* xref:motivation.adoc[Motivation]
 * Basic Features
 ** xref:basics.adoc[Methods and Overriders]
 ** xref:performance.adoc[Performance]
