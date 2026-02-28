@@ -37,6 +37,9 @@ struct va_args<ReturnType> {
     using registry = macro_default_registry;
 };
 
+template<typename...>
+inline constexpr bool method_not_found = false;
+
 } // namespace boost::openmethod::detail
 
 #define BOOST_OPENMETHOD_GENSYM BOOST_PP_CAT(openmethod_gensym_, __COUNTER__)
@@ -82,10 +85,18 @@ struct va_args<ReturnType> {
     struct BOOST_OPENMETHOD_OVERRIDERS(NAME)
 
 #define BOOST_OPENMETHOD_DETAIL_LOCATE_METHOD(NAME, ARGS)                      \
-    template<typename T>                                                       \
-    struct boost_openmethod_detail_locate_method_aux;                          \
+    template<typename T, typename = void>                                      \
+    struct boost_openmethod_detail_locate_method_aux {                         \
+        static_assert(                                                         \
+            ::boost::openmethod::detail::method_not_found<T>,                  \
+            "BOOST_OPENMETHOD_OVERRIDE: cannot find '" #NAME                   \
+            "' method that accepts the same arguments as the overrider"); \
+    };                                                                         \
     template<typename... A>                                                    \
-    struct boost_openmethod_detail_locate_method_aux<void(A...)> {             \
+    struct boost_openmethod_detail_locate_method_aux<                          \
+        void(A...),                                                            \
+        std::void_t<decltype(BOOST_OPENMETHOD_GUIDE(NAME)(                     \
+            std::declval<A>()...))>> {                                         \
         using type =                                                           \
             decltype(BOOST_OPENMETHOD_GUIDE(NAME)(std::declval<A>()...));      \
     }
