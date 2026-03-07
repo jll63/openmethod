@@ -77,7 +77,7 @@ struct virtual_traits<std::any, Registry> {
     //! @param arg An rvalue reference to the `std::any` method argument.
     //! @return The value stored in `arg`, cast to `U`.
     template<typename U>
-    static auto cast(std::any&& arg) -> decltype(auto) {
+    static auto cast(const std::any& arg) {
         return std::any_cast<U>(arg);
     }
 };

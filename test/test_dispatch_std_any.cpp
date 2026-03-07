@@ -22,7 +22,7 @@ using namespace boost::openmethod;
                                                                                \
     use_any_types<Dog, std::string, int> BOOST_OPENMETHOD_GENSYM;
 
-#if 0
+#if 1
 
 namespace BOOST_OPENMETHOD_GENSYM {
 
@@ -37,15 +37,26 @@ BOOST_OPENMETHOD_OVERRIDE(name, (Dog dog), std::string) {
     return dog.name + " the dog";
 }
 
-BOOST_OPENMETHOD_OVERRIDE(name, (Cat cat), std::string) {
-    return cat.name + " the cat";
+BOOST_OPENMETHOD_OVERRIDE(name, (std::string name), std::string) {
+    return name;
+}
+
+BOOST_OPENMETHOD_OVERRIDE(name, (int value), std::string) {
+    std::ostringstream os;
+    os << value << " the integer";
+    return os.str();
 }
 
 BOOST_AUTO_TEST_CASE(std_any_by_value) {
     initialize();
 
-    BOOST_TEST(name(std::any(Dog{"Spot"})) == "Spot the dog");
-    BOOST_TEST(name(std::any(Cat{"Felix"})) == "Felix the cat");
+    const std::any spot(Dog{"Spot"});
+    const std::any felix(std::string{"Felix the cat"});
+    const std::any answer(42);
+
+    BOOST_TEST(name(spot) == "Spot the dog");
+    BOOST_TEST(name(felix) == "Felix the cat");
+    BOOST_TEST(name(answer) == "42 the integer");
 }
 } // namespace BOOST_OPENMETHOD_GENSYM
 #endif
