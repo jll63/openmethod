@@ -66,9 +66,9 @@ analyses:
 
 === Build Status
 
-[cols="^1,1,1,1,1,1,1", options="header"]
+[cols="^1,1,1,1,1,1", options="header"]
 |===
-| Branch | GH Actions | Coverity Scan | codecov.io | Deps | Docs | Tests
+| Branch | GH Actions | Coverity Scan | codecov.io | Deps | Docs
 
 | https://github.com/boostorg/openmethod/tree/master[`master`]
 | image:https://github.com/boostorg/openmethod/actions/workflows/ci.yml/badge.svg?branch=master[CI,link=https://github.com/boostorg/openmethod/actions/workflows/ci.yml]
@@ -76,7 +76,6 @@ analyses:
 | image:https://codecov.io/gh/boostorg/openmethod/branch/master/graph/badge.svg[codecov,link=https://codecov.io/gh/boostorg/openmethod/branch/master]
 | image:https://img.shields.io/badge/deps-master-brightgreen.svg[Deps,link=https://pdimov.github.io/boostdep-report/master/openmethod.html]
 | image:https://img.shields.io/badge/docs-master-brightgreen.svg[Documentation,link=https://www.boost.org/library/latest/openmethod/]
-| image:https://img.shields.io/badge/matrix-master-brightgreen.svg[Enter the Matrix,link=https://regression.boost.org/master/developer/openmethod.html]
 
 | https://github.com/boostorg/openmethod/tree/develop[`develop`]
 | image:https://github.com/boostorg/openmethod/actions/workflows/ci.yml/badge.svg?branch=develop[CI,link=https://github.com/boostorg/openmethod/actions/workflows/ci.yml]
@@ -84,7 +83,6 @@ analyses:
 | image:https://codecov.io/gh/boostorg/openmethod/branch/develop/graph/badge.svg[codecov,link=https://codecov.io/gh/boostorg/openmethod/branch/develop]
 | image:https://img.shields.io/badge/deps-develop-brightgreen.svg[Deps,link=https://pdimov.github.io/boostdep-report/develop/openmethod.html]
 | image:https://img.shields.io/badge/docs-develop-brightgreen.svg[Documentation,link=https://www.boost.org/doc/libs/develop/libs/openmethod/doc/html/openmethod.html]
-| image:https://img.shields.io/badge/matrix-develop-brightgreen.svg[Enter the Matrix,link=https://regression.boost.org/develop/developer/openmethod.html]
 |===
 
 === Community
