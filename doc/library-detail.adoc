@@ -1,6 +1,70 @@
-= Boost.OpenMethod
+== Boost.OpenMethod
 
-== Build Status
+This page gives a 10,000-foot view of the library. For the motivation,
+tutorials and reference, please follow the documentation link.
+
+=== Features
+
+* Free-standing virtual functions, similar to CLOS, Clojure, Julia, Dylan, etc.
+
+* Single dispatch can be as fast as equivalent virtual function calls.
+
+* Multiple dispatch in constant time (for a given number of virtual parameters).
+
+* Redundancy-free multiple dispatch tables.
+
+* Inter-operation with standard smart pointers, extensible to other pointer-like
+  types.
+
+* Exception agnostic by default.
+
+* Macro-based interface for convenience.
+
+* Macro-free interface for inter-operation with templates.
+
+* Customization points for alternative RTTI systems, error handling, vptr
+  placement, etc.
+
+* Header-only.
+
+=== Requirements
+
+The library requires an optimizing compiler supporting C++17 or above.
+
+=== Tested Compilers
+
+Boost.OpenMethod is tested with the following compilers:
+
+* clang: 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20
+
+* gcc: 8, 9, 10, 11, 12, 13, 14, 15
+
+* msvc: 14.3
+
+* icpx
+
+...on the following platforms:
+
+* Linux
+
+* macOS
+
+* Windows
+
+* s390x
+
+=== Quality Assurance
+
+The development infrastructure for the library includes these per-commit
+analyses:
+
+* Coverage reports
+
+* Clang sanitizers
+
+* Compilation and tests on Drone.io and GitHub Actions
+
+=== Build Status
 
 [cols="^1,1,1,1,1,1,1", options="header"]
 |===
@@ -23,17 +87,7 @@
 | image:https://img.shields.io/badge/matrix-develop-brightgreen.svg[Enter the Matrix,link=https://regression.boost.org/develop/developer/openmethod.html]
 |===
 
-This page is intended for people who want to learn about the internals of the library,
-and, perhaps, contribute to it. If you are a (potential) user, please head to the
-https://www.boost.org/doc/libs/latest/libs/openmethod/doc/html/openmethod/index.html[documentation].
-
-== Contributing
-
-Submit your contributions as pull requests against *develop* branch. Please note: by
-submitting PRs you implicitly agree to license your modifications under the
-http://www.boost.org/LICENSE_1_0.txt[Boost Software License, Version 1.0].
-
-== Community
+=== Community
 
 Questions, suggestions, defect reports, etc can be submitted via the following
 channels:
@@ -51,3 +105,7 @@ Please add the `[openmethod]` tag at the beginning of the subject line.
 bug reports. Please mention the Boost version, platform and compiler you are
 using, and provide a small compilable code sample to reproduce the problem. Also
 a good place for feature requests and suggestions.
+
+=== License
+
+Distributed under the http://www.boost.org/LICENSE_1_0.txt[Boost Software License, Version 1.0].
