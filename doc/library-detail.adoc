@@ -82,7 +82,7 @@ analyses:
 | image:https://scan.coverity.com/projects/32486/badge.svg[Coverity Scan Build Status,link=https://scan.coverity.com/projects/boostorg-openmethod]
 | image:https://codecov.io/gh/boostorg/openmethod/branch/develop/graph/badge.svg[codecov,link=https://codecov.io/gh/boostorg/openmethod/branch/develop]
 | image:https://img.shields.io/badge/deps-develop-brightgreen.svg[Deps,link=https://pdimov.github.io/boostdep-report/develop/openmethod.html]
-| image:https://img.shields.io/badge/docs-develop-brightgreen.svg[Documentation,link=https://www.boost.org/doc/libs/develop/libs/openmethod/doc/html/openmethod.html]
+| image:https://img.shields.io/badge/docs-develop-brightgreen.svg[Documentation,link=https://www.boost.org/doc/libs/develop/libs/openmethod/doc/html/openmethod]
 |===
 
 === Community
