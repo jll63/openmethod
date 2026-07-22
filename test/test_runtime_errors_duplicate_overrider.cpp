@@ -52,7 +52,8 @@ auto poke_woof(virtual_ptr<Dog>) -> const char* {
     return "woof";
 }
 
-using poke_method = BOOST_OPENMETHOD_TYPE(poke, (virtual_ptr<Animal>), const char*);
+using poke_method =
+    BOOST_OPENMETHOD_TYPE(poke, (virtual_ptr<Animal>), const char*);
 BOOST_OPENMETHOD_REGISTER(poke_method::override<poke_bark>);
 BOOST_OPENMETHOD_REGISTER(poke_method::override<poke_woof>);
 
