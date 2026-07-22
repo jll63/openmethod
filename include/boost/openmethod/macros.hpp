@@ -136,12 +136,12 @@ inline constexpr bool method_not_found = false;
 // still captures the whole trailing type expression (built from the
 // overrider's return type, which may contain an unprotected top-level comma,
 // e.g. an un-aliased std::pair<A, B>) as one argument.
-#define BOOST_OPENMETHOD_DETAIL_REGISTER_OVERRIDER_AUX(                       \
-    NAME, ARGS, REGISTRAR, ...)                                               \
-    BOOST_OPENMETHOD_REGISTER(                                                \
-        BOOST_OPENMETHOD_OVERRIDERS(NAME) < __VA_ARGS__ ARGS >                \
-        ::boost_openmethod_detail_locate_method_aux<void ARGS>::type::        \
-            REGISTRAR<                                                        \
+#define BOOST_OPENMETHOD_DETAIL_REGISTER_OVERRIDER_AUX(                        \
+    NAME, ARGS, REGISTRAR, ...)                                                \
+    BOOST_OPENMETHOD_REGISTER(                                                 \
+        BOOST_OPENMETHOD_OVERRIDERS(NAME) < __VA_ARGS__ ARGS >                 \
+        ::boost_openmethod_detail_locate_method_aux<void ARGS>::type::         \
+            REGISTRAR<                                                         \
                 BOOST_OPENMETHOD_OVERRIDERS(NAME) < __VA_ARGS__ ARGS>::fn >);
 
 #define BOOST_OPENMETHOD_DETAIL_REGISTER_OVERRIDER(NAME, ARGS, ...)            \
@@ -168,7 +168,7 @@ inline constexpr bool method_not_found = false;
 #define BOOST_OPENMETHOD_INLINE_OVERRIDE(NAME, ARGS, ...)                      \
     BOOST_OPENMETHOD_DECLARE_OVERRIDER(NAME, ARGS, __VA_ARGS__)                \
     BOOST_OPENMETHOD_DETAIL_REGISTER_OVERRIDER_AUX(                            \
-        NAME, ARGS, inline_override, __VA_ARGS__)                             \
+        NAME, ARGS, inline_override, __VA_ARGS__)                              \
     inline auto BOOST_OPENMETHOD_OVERRIDER(NAME, ARGS, __VA_ARGS__)::fn ARGS   \
         -> boost::mp11::mp_back<boost::mp11::mp_list<__VA_ARGS__>>
 

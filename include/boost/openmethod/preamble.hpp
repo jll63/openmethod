@@ -694,9 +694,8 @@ struct VptrFn {
     //! @param ctx A Context object.
     //! @param options A tuple of option objects.
     template<class Context, class... Options>
-    static auto
-    initialize(const Context& ctx, const std::tuple<Options...>& options)
-        -> void;
+    static auto initialize(
+        const Context& ctx, const std::tuple<Options...>& options) -> void;
 
     //! Return a *reference* to a v-table pointer for an object.
     //!
@@ -767,9 +766,8 @@ struct TypeHashFn {
     //! Use @ref hash_range to retrieve the minimum and maximum hash values
     //! after calling this function.
     template<class Context, class... Options>
-    static auto
-    initialize(const Context& ctx, const std::tuple<Options...>& options)
-        -> void;
+    static auto initialize(
+        const Context& ctx, const std::tuple<Options...>& options) -> void;
 
     //! Return the range of hash values produced by @ref hash.
     //!

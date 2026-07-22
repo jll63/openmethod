@@ -2428,8 +2428,7 @@ type_id method<Id, ReturnType(Parameters...), Registry>::override_impl<
 template<
     typename Id, typename... Parameters, typename ReturnType, class Registry>
 template<
-    auto Function, typename FnReturnType, typename... FnParameters,
-    bool Inline>
+    auto Function, typename FnReturnType, typename... FnParameters, bool Inline>
 typename method<Id, ReturnType(Parameters...), Registry>::
     template override_impl<Function, FnReturnType, Inline>
         method<Id, ReturnType(Parameters...), Registry>::override_aux<

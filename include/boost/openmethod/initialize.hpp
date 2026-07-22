@@ -83,14 +83,14 @@ struct aggregate_reports<mp11::mp_list<Reports...>, mp11::mp_list<>, Void> {
 // (C1060) instead. Take the address of a specialization instead: it only
 // involves T's members.
 #define BOOST_OPENMETHOD_DETAIL_HAS_STATIC_FN_MSVC_SAFE(FN)                    \
-    template<typename, class, class...>                                       \
-    struct BOOST_PP_CAT(has_, BOOST_PP_CAT(FN, _aux)) : std::false_type {};   \
-    template<class T, class... Args>                                          \
-    struct BOOST_PP_CAT(has_, BOOST_PP_CAT(FN, _aux))<                        \
-        std::void_t<decltype(&T::template FN<std::decay_t<Args>...>)>, T,     \
-        Args...> : std::true_type {};                                         \
-    template<class T, class... Args>                                          \
-    constexpr bool BOOST_PP_CAT(has_, FN) =                                   \
+    template<typename, class, class...>                                        \
+    struct BOOST_PP_CAT(has_, BOOST_PP_CAT(FN, _aux)) : std::false_type {};    \
+    template<class T, class... Args>                                           \
+    struct BOOST_PP_CAT(has_, BOOST_PP_CAT(FN, _aux))<                         \
+        std::void_t<decltype(&T::template FN<std::decay_t<Args>...>)>, T,      \
+        Args...> : std::true_type {};                                          \
+    template<class T, class... Args>                                           \
+    constexpr bool BOOST_PP_CAT(has_, FN) =                                    \
         BOOST_PP_CAT(has_, BOOST_PP_CAT(FN, _aux))<void, T, Args...>::value
 #else
 #define BOOST_OPENMETHOD_DETAIL_HAS_STATIC_FN_MSVC_SAFE(FN)                    \

@@ -53,13 +53,12 @@ struct vptr_vector : vptr {
                 boost::mp11::mp_find<
                     typename Registry::policy_list,
                     detail::find_first_derived_of<
-                        policies::type_hash,
-                        typename Registry::policy_list>>::value <
-                    boost::mp11::mp_find<
-                        typename Registry::policy_list,
-                        detail::find_first_derived_of<
-                            vptr_vector,
-                            typename Registry::policy_list>>::value,
+                        policies::type_hash, typename Registry::policy_list>>::
+                        value < boost::mp11::mp_find<
+                                    typename Registry::policy_list,
+                                    detail::find_first_derived_of<
+                                        vptr_vector,
+                                        typename Registry::policy_list>>::value,
             "the type_hash policy must appear before vptr_vector in the "
             "registry's policy_list");
 
