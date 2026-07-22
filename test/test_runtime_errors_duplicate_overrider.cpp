@@ -53,8 +53,8 @@ auto poke_woof(virtual_ptr<Dog>) -> const char* {
 }
 
 using poke_method = BOOST_OPENMETHOD_TYPE(poke, (virtual_ptr<Animal>), const char*);
-static poke_method::override<poke_bark> poke_bark_registrar;
-static poke_method::override<poke_woof> poke_woof_registrar;
+BOOST_OPENMETHOD_REGISTER(poke_method::override<poke_bark>);
+BOOST_OPENMETHOD_REGISTER(poke_method::override<poke_woof>);
 
 BOOST_AUTO_TEST_CASE(duplicate_overrider_is_ambiguous) {
     auto report = initialize().report;
