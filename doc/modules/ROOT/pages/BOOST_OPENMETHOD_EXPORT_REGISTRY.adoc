@@ -12,7 +12,7 @@ BOOST_OPENMETHOD_EXPORT_REGISTRY(registry);
 
 Used at namespace scope, after the registry's definition, in _exactly one_
 translation unit of the module (executable or shared library) that owns the
-registry.
+registry. It must be placed in a `.cpp` file, never in a header.
 
 ## Description
 
@@ -38,15 +38,25 @@ tool for sharing user-defined registries:
 
 [source,c++]
 ----
-struct my_registry : boost::openmethod::registry</* policies... */> {};
+// registry.cpp - exactly one translation unit of the owning module
+#define MY_MODULE_OWNS_REGISTRY
+#include "my_registry.hpp"
 
-BOOST_OPENMETHOD_EXPORT_REGISTRY(my_registry); // in exactly one owning TU
+BOOST_OPENMETHOD_EXPORT_REGISTRY(my_registry);
 ----
 
-NOTE: An explicit instantiation definition may appear only once in the
-program. Use this macro in exactly one translation unit of the owning module;
-all other translation units, in every module, use
-xref:BOOST_OPENMETHOD_IMPORT_REGISTRY.adoc[BOOST_OPENMETHOD_IMPORT_REGISTRY].
+WARNING: An explicit instantiation definition may appear only once in the
+program, so this macro belongs in a `.cpp` file and must not be placed in a
+header: every translation unit of the owning module that included that header
+would emit one. Within a single translation unit that is a hard error; across
+translation units it is ill-formed, no diagnostic required - some toolchains
+merge the duplicates quietly, others fail to link. A header carrying the
+export therefore appears to work right up until the owning module gains a
+second translation unit.
+
+All other translation units, in every module, use
+xref:BOOST_OPENMETHOD_IMPORT_REGISTRY.adoc[BOOST_OPENMETHOD_IMPORT_REGISTRY],
+which is an `extern template` declaration and may safely live in a header.
 
 On ELF platforms, the pair can be omitted altogether if the program is not
 built with hidden visibility. Under `-fvisibility=hidden`, it is required, as

@@ -10,8 +10,9 @@
 set(lib boost_openmethod-isl_custom_lib)
 set(exe boost_openmethod-test_implicit_shared_libraries_custom)
 
-# lib.cpp defines LIB_SOURCE, which selects BOOST_OPENMETHOD_EXPORT_REGISTRY in
-# registry.hpp: this library owns the registry state.
+# lib.cpp emits BOOST_OPENMETHOD_EXPORT_REGISTRY: this library owns the registry
+# state - from lib.cpp, not from a header: the export is an explicit
+# instantiation definition and a program may contain only one (see registry.hpp).
 add_library(${lib} SHARED lib.cpp)
 target_link_libraries(${lib} PRIVATE Boost::openmethod)
 

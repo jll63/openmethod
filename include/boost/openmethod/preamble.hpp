@@ -1059,12 +1059,19 @@ struct initialize_aux;
 //! `INDIRECT` pair for @ref indirect_registry). For a custom registry, use the
 //! {{BOOST_OPENMETHOD_EXPORT_REGISTRY}} /
 //! {{BOOST_OPENMETHOD_IMPORT_REGISTRY}} pair, at namespace scope, after the
-//! registry's definition:
+//! registry's definition. The import is a declaration and belongs in the
+//! header; the export is an explicit instantiation definition, of which a
+//! program may contain only one, and belongs in a `.cpp`:
 //! @code
-//! // in exactly one translation unit of the owning module:
-//! BOOST_OPENMETHOD_EXPORT_REGISTRY(my_registry);
-//! // in every client translation unit:
+//! // my_registry.hpp
+//! #ifndef MY_MODULE_OWNS_REGISTRY
 //! BOOST_OPENMETHOD_IMPORT_REGISTRY(my_registry);
+//! #endif
+//!
+//! // registry.cpp - exactly one translation unit of the owning module
+//! #define MY_MODULE_OWNS_REGISTRY
+//! #include "my_registry.hpp"
+//! BOOST_OPENMETHOD_EXPORT_REGISTRY(my_registry);
 //! @endcode
 template<class Registry>
 struct registry_state {

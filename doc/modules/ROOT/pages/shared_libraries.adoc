@@ -193,24 +193,47 @@ xref:BOOST_OPENMETHOD_EXPORT_REGISTRY.adoc[BOOST_OPENMETHOD_EXPORT_REGISTRY] and
 xref:BOOST_OPENMETHOD_IMPORT_REGISTRY.adoc[BOOST_OPENMETHOD_IMPORT_REGISTRY].
 Unlike the predefined-registry macros, which are tokens defined _before_
 including the registry header, these take the registry type as an argument and
-are used at namespace scope, _after_ the registry's definition. The owning
-module exports the state in exactly one translation unit; every client imports
-it:
+are used at namespace scope, _after_ the registry's definition.
+
+The two go in different places. `IMPORT` expands to an `extern template`
+declaration, which may be repeated, so it belongs in the header that defines
+the registry, next to it. `EXPORT` expands to an explicit instantiation
+_definition_, of which a program may contain only one, so it belongs in a
+`.cpp` file - **never in a header**. Every translation unit of the owning
+module suppresses the import; exactly one of them emits the export:
 
 [source,c++]
 ----
+// my_registry.hpp
 struct my_registry : boost::openmethod::registry</* policies... */> {};
 
-#ifdef MY_MODULE_OWNS_REGISTRY // in exactly one TU of the owning module
-BOOST_OPENMETHOD_EXPORT_REGISTRY(my_registry);
-#else
+// Client modules import the state. Every translation unit of the module that
+// owns it defines MY_MODULE_OWNS_REGISTRY before including this header.
+#ifndef MY_MODULE_OWNS_REGISTRY
 BOOST_OPENMETHOD_IMPORT_REGISTRY(my_registry);
 #endif
 ----
 
-They expand to the same exported explicit instantiation and imported `extern
-template` declaration of `my_registry`'s state that the predefined-registry
-macros produce.
+[source,c++]
+----
+// registry.cpp - exactly one translation unit of the owning module
+#define MY_MODULE_OWNS_REGISTRY
+#include "my_registry.hpp"
+
+BOOST_OPENMETHOD_EXPORT_REGISTRY(my_registry);
+----
+
+WARNING: putting `BOOST_OPENMETHOD_EXPORT_REGISTRY` in a header works only as
+long as the owning module has a single translation unit, and breaks silently
+when a second one is added. Two explicit instantiation definitions in the same
+translation unit are a hard error; in different translation units they are
+ill-formed, no diagnostic required - some toolchains merge them quietly, others
+fail to link.
+
+The macros expand to the same exported explicit instantiation and imported
+`extern template` declaration of `my_registry`'s state that the
+predefined-registry macros produce. `test/implicit_shared_libraries/custom_registry`
+is a worked example, with an owning library of two translation units.
 
 [#implementation_notes]
 ## Implementation Notes

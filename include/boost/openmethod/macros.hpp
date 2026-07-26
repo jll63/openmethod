@@ -184,11 +184,25 @@ inline constexpr bool method_not_found = false;
 // one translation unit; every client module emits an imported `extern template`
 // declaration with BOOST_OPENMETHOD_IMPORT_REGISTRY, so it references the
 // owner's symbol instead of instantiating its own copy. Use them at namespace
-// scope, after the registry's definition, with a trailing `;`:
+// scope, after the registry's definition, with a trailing `;`.
 //
+// They go in different places. IMPORT is an `extern template` declaration and
+// may be repeated, so it belongs in the header that defines the registry.
+// EXPORT is an explicit instantiation *definition*, of which a program may
+// contain only one, so it belongs in a .cpp - never in a header, where every
+// translation unit of the owning module that included it would emit one (a
+// hard error within one TU; ill-formed, no diagnostic required across TUs):
+//
+//     // my_registry.hpp
 //     struct my_registry : boost::openmethod::registry</* ... */> {};
-//     BOOST_OPENMETHOD_EXPORT_REGISTRY(my_registry); // owner, one TU
-//     BOOST_OPENMETHOD_IMPORT_REGISTRY(my_registry); // every client TU
+//     #ifndef MY_MODULE_OWNS_REGISTRY
+//     BOOST_OPENMETHOD_IMPORT_REGISTRY(my_registry);
+//     #endif
+//
+//     // registry.cpp - exactly one TU of the owning module
+//     #define MY_MODULE_OWNS_REGISTRY
+//     #include "my_registry.hpp"
+//     BOOST_OPENMETHOD_EXPORT_REGISTRY(my_registry);
 //
 // The predefined registries have their own dedicated pairs
 // (BOOST_OPENMETHOD_{EXPORT,IMPORT}_{DEFAULT,INDIRECT}_REGISTRY); this pair is

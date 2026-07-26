@@ -230,7 +230,13 @@ built with hidden visibility.
 declaration as the snippet above. Unlike the `DEFAULT`/`INDIRECT` tokens (defined before including
 the registry header), these take the registry type and are used at namespace scope, after the
 registry's definition and before any use: `EXPORT` in exactly one owning TU, `IMPORT` in every
-client TU. They live in `macros.hpp` (which pulls in `core.hpp`), so `default_registry.hpp` — which
+client TU. **`EXPORT` must go in a `.cpp`, never in a header** — it is an explicit instantiation
+*definition*, so every TU of the owning module that included such a header would emit one (a hard
+"duplicate explicit instantiation" error within one TU; ill-formed no-diagnostic-required across
+TUs — ELF toolchains merge the COMDAT silently, so the mistake hides until the module gains a
+second TU). `IMPORT` is an `extern template` declaration and belongs in the registry's header,
+guarded so the owning module's TUs skip it. See
+`test/implicit_shared_libraries/custom_registry/` for the worked pattern. They live in `macros.hpp` (which pulls in `core.hpp`), so `default_registry.hpp` — which
 sits below `macros.hpp` in the include layering and includes only `preamble.hpp` + policies — cannot
 use them and keeps its own hand-written `#ifdef`-guarded blocks.
 
