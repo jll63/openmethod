@@ -60,12 +60,49 @@ one stated above: one module owns the registry state, the others import it.
 The natural arrangement is for the shared library to own the registry: the
 program already links against the library, so, on Windows, the import library
 dependency runs in the usual direction. The `implicit_linking` example
-demonstrates this arrangement. It follows the same convention as the dynamic
-example below: the shared header carries the declaration - `extern` `EXPORT`
-for the owning module, `IMPORT` for everyone else, selected by
-`OWNS_REGISTRY_STATE` - and the owner emits the definition in one `.cpp`. Here
-that owner is `extensions.cpp`, the library, and `main.cpp`, the executable,
-imports.
+demonstrates this arrangement.
+
+The following header is shared between the program and the library. It defines
+the class hierarchy and the `meet` method, and it is also where each module says
+how it relates to the registry state:
+
+[source,c++]
+----
+include::{shared}/implicit_linking/animals.hpp[tag=content]
+----
+
+The module that owns the state defines `OWNS_REGISTRY_STATE` before including
+this header, and emits the matching _definition_ - plain
+`BOOST_OPENMETHOD_EXPORT_REGISTRY` - in exactly one of its `.cpp` files. Every
+other translation unit, in that module and in every other, gets a _declaration_
+from the header instead: prefixing `EXPORT` with `extern` turns the definition
+into one, and `IMPORT` is already a declaration.
+
+TIP: each module in these examples has a single translation unit, so the
+`extern` declaration is not strictly required. It is shown because it becomes
+required as soon as an owning module has more than one: a translation unit of
+the owner that neither exports nor declares the export instantiates the state
+implicitly, and under `-fvisibility=hidden` that module-local copy demotes the
+merged symbol, so clients fail to link. Putting the declaration in the shared
+header from the start makes the module safe to grow.
+
+Here the shared library owns the state, so it defines `OWNS_REGISTRY_STATE` and
+emits the definition. It also adds two overriders, a new class, `Tiger`, and a
+factory function:
+
+[source,c++]
+----
+include::{shared}/implicit_linking/extensions.cpp[tag=content]
+----
+
+The executable does not define `OWNS_REGISTRY_STATE`, so the header imported the
+state for it. It provides a catch-all overrider, then calls `meet` - including on
+a `Tiger`, a class it has no compile-time knowledge of:
+
+[source,c++]
+----
+include::{shared}/implicit_linking/main.cpp[tag=content]
+----
 
 ## Dynamic Linking
 
@@ -81,35 +118,14 @@ Here the program is the natural owner of the registry state: it must be able
 to run before the library is loaded, and regardless of whether it is loaded at
 all.
 
-Let's look at an example. The following header is shared between the program
-and the dynamically loaded library. It defines the class hierarchy and the
-`meet` method, and it is also where each module says how it relates to the
-registry state:
+Let's look at an example. It shares the same `animals.hpp` as the static-linking
+example above - same classes, same `meet` method, same `OWNS_REGISTRY_STATE`
+convention - but ownership is reversed.
 
-[source,c++]
-----
-include::{shared}/dynamic_loading/animals.hpp[tag=content]
-----
-
-The module that owns the state defines `OWNS_REGISTRY_STATE` before including
-this header, and emits the matching _definition_ - plain
-`BOOST_OPENMETHOD_EXPORT_REGISTRY` - in exactly one of its `.cpp` files. Every
-other translation unit, in that module and in every other, gets a _declaration_
-from the header instead: prefixing `EXPORT` with `extern` turns the definition
-into one, and `IMPORT` is already a declaration.
-
-TIP: each module in this example has a single translation unit, so the
-`extern` declaration is not strictly required here. It is shown because it
-becomes required as soon as an owning module has more than one: a translation
-unit of the owner that neither exports nor declares the export instantiates the
-state implicitly, and under `-fvisibility=hidden` that module-local copy demotes
-the merged symbol, so clients fail to link. Putting the declaration in the
-shared header from the start makes the module safe to grow.
-
-The main program owns the registry state, so it defines `OWNS_REGISTRY_STATE`
-and emits the `EXPORT` definition - in its only translation unit, satisfying the
-exactly-one rule. It provides a catch-all overrider, then calls the `meet`
-method:
+Here the main program owns the registry state, so it is `main.cpp` that defines
+`OWNS_REGISTRY_STATE` and emits the `EXPORT` definition, in its only translation
+unit, satisfying the exactly-one rule. It provides a catch-all overrider, then
+calls the `meet` method:
 
 [source,c++]
 ----
