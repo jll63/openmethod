@@ -6,12 +6,12 @@
 // tag::content[]
 // extensions.cpp
 
-// The main program owns the registry state; this library imports it.
-#define BOOST_OPENMETHOD_IMPORT_DEFAULT_REGISTRY
-
 #include "animals.hpp"
 
 using namespace boost::openmethod;
+
+// The main program owns the registry state; this library does not define
+// OWNS_REGISTRY_STATE, so animals.hpp imported it.
 
 BOOST_OPENMETHOD_OVERRIDE(
     meet, (virtual_ptr<Herbivore> a, virtual_ptr<Carnivore> b), std::string) {

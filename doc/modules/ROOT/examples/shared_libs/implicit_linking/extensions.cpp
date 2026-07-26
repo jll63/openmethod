@@ -6,21 +6,20 @@
 // tag::content[]
 // extensions.cpp
 
-// Here the shared library owns the registry state and the executable imports
-// it. That keeps the link dependency in the usual direction: the executable
-// links against the library, so on Windows it links the library's import
-// library, never the other way around.
-//
-// The export is an explicit instantiation definition, which may appear only
-// once in the program. This library has a single translation unit, so the
-// EXPORT macro alone is enough; a library with several would use
-// `extern BOOST_OPENMETHOD_EXPORT_REGISTRY` (or the DECLARE_EXPORT token) in
-// the others.
-#define BOOST_OPENMETHOD_EXPORT_DEFAULT_REGISTRY
+// This shared library owns the registry state and the executable imports it.
+// That keeps the link dependency in the usual direction: the executable links
+// against the library, so on Windows it links the library's import library,
+// never the other way around.
+#define OWNS_REGISTRY_STATE
 
 #include "animals.hpp"
 
 using namespace boost::openmethod;
+
+// The definition of the shared state. An explicit instantiation definition may
+// appear only once in the program, so exactly one .cpp of the owning module
+// emits it; the others get the `extern` declaration from animals.hpp.
+BOOST_OPENMETHOD_EXPORT_REGISTRY(boost::openmethod::default_registry);
 
 BOOST_OPENMETHOD_OVERRIDE(
     meet, (virtual_ptr<Herbivore> a, virtual_ptr<Carnivore> b), std::string) {

@@ -5,13 +5,13 @@
 
 #define BOOST_TEST_MODULE implicit_shared_libraries_default_registry
 
-// The shared library owns and exports the registry state (see lib.cpp); this
-// module imports it.
-#define BOOST_OPENMETHOD_IMPORT_DEFAULT_REGISTRY
-
 #include <boost/test/unit_test.hpp>
 
 #include "lib.hpp"
+
+// The shared library owns and exports the registry state (see lib.cpp); this
+// module imports it.
+BOOST_OPENMETHOD_IMPORT_REGISTRY(boost::openmethod::default_registry);
 
 #include <boost/openmethod/initialize.hpp>
 

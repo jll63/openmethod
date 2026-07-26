@@ -37,12 +37,17 @@ namespace boost::openmethod {
 //! including those pulled from libraries.
 //!
 //! For a program and its shared libraries to contribute to the same
-//! `default_registry`, its state must be shared across the modules: the
-//! owning module exports it by defining
-//! {{BOOST_OPENMETHOD_EXPORT_DEFAULT_REGISTRY}} in exactly one translation
-//! unit, and every client module imports it by defining
-//! {{BOOST_OPENMETHOD_IMPORT_DEFAULT_REGISTRY}}, in both cases before
-//! including this header.
+//! `default_registry`, its state must be shared across the modules, with
+//! {{BOOST_OPENMETHOD_EXPORT_REGISTRY}} and
+//! {{BOOST_OPENMETHOD_IMPORT_REGISTRY}}:
+//! @code
+//! // header, every translation unit of a client module:
+//! BOOST_OPENMETHOD_IMPORT_REGISTRY(boost::openmethod::default_registry);
+//! // header, every translation unit of the owning module:
+//! extern BOOST_OPENMETHOD_EXPORT_REGISTRY(boost::openmethod::default_registry);
+//! // exactly one .cpp of the owning module:
+//! BOOST_OPENMETHOD_EXPORT_REGISTRY(boost::openmethod::default_registry);
+//! @endcode
 struct default_registry
     : registry<
           policies::std_rtti, policies::fast_perfect_hash,
@@ -54,50 +59,6 @@ struct default_registry
 #endif
           > {
 };
-
-// Share the registry state across modules via an explicit instantiation of
-// registry_state (the one-member wrapper holding the shared `st`): the owning
-// module exports the instantiation definition, clients declare an imported
-// instantiation ("extern template") so they reference the owner's symbol
-// instead of instantiating their own copy. The state lives in
-// registry_state<registry_type> (the registry<...> base class), not
-// registry_state<default_registry>.
-//
-// On Windows the export/import decoration is dllexport/dllimport. On ELF it is
-// visibility("default") on the EXPORT side (BOOST_SYMBOL_EXPORT); the IMPORT
-// side is a plain `extern template` (BOOST_SYMBOL_IMPORT is empty) that
-// suppresses implicit instantiation so the client references the exported
-// symbol. This matters under -fvisibility=hidden: an implicitly instantiated,
-// COMDAT `st` would be internalized to a per-module local symbol and could not
-// be shared; the explicit instantiation definition emits a single strong,
-// default-visibility global that the other modules import. Without the macros
-// (the common case, off Windows) `st` keeps ordinary external linkage and is
-// shared by the dynamic linker, as long as the program is not built with hidden
-// visibility.
-//
-// An explicit instantiation definition may appear only once in the program,
-// so BOOST_OPENMETHOD_EXPORT_DEFAULT_REGISTRY must be compiled in exactly one
-// translation unit of the owning module.
-//
-// If the owning module has *other* translation units, each of them must define
-// BOOST_OPENMETHOD_DECLARE_EXPORT_DEFAULT_REGISTRY, which emits an exported
-// explicit instantiation *declaration*. Like the import side it suppresses
-// implicit instantiation, and it pins the symbol to default visibility. Without
-// it such a translation unit instantiates the state implicitly; under
-// -fvisibility=hidden that copy is module-local, and since ELF merges COMDATs
-// at the most restrictive visibility, the whole symbol becomes local and
-// clients fail to link. A single-translation-unit owner needs only the EXPORT
-// token.
-#if defined(BOOST_OPENMETHOD_EXPORT_DEFAULT_REGISTRY)
-template struct BOOST_SYMBOL_EXPORT
-    registry_state<default_registry::registry_type>;
-#elif defined(BOOST_OPENMETHOD_DECLARE_EXPORT_DEFAULT_REGISTRY)
-extern template struct BOOST_SYMBOL_EXPORT
-    registry_state<default_registry::registry_type>;
-#elif defined(BOOST_OPENMETHOD_IMPORT_DEFAULT_REGISTRY)
-extern template struct BOOST_SYMBOL_IMPORT
-    registry_state<default_registry::registry_type>;
-#endif
 
 namespace detail {
 
@@ -111,28 +72,13 @@ static odr_check<default_registry> default_registry_odr_check_instance;
 //! policies as @ref default_registry, plus the @ref indirect_vptr policy.
 //!
 //! `indirect_registry` has its own state, separate from `default_registry`'s.
-//! To share it across shared libraries, use
-//! {{BOOST_OPENMETHOD_EXPORT_INDIRECT_REGISTRY}} and
-//! {{BOOST_OPENMETHOD_IMPORT_INDIRECT_REGISTRY}}.
+//! Share it across shared libraries exactly as for @ref default_registry,
+//! naming `indirect_registry` in the
+//! {{BOOST_OPENMETHOD_EXPORT_REGISTRY}} /
+//! {{BOOST_OPENMETHOD_IMPORT_REGISTRY}} macros.
 //!
 //! @see indirect_vptr.
 struct indirect_registry : default_registry::with<policies::indirect_vptr> {};
-
-// indirect_registry has its own state (its policy list differs from
-// default_registry's), shared across modules with its own macro pair,
-// BOOST_OPENMETHOD_{EXPORT,IMPORT}_INDIRECT_REGISTRY. As with the default
-// registry, the EXPORT macro must be compiled in exactly one translation unit
-// of the owning module.
-#if defined(BOOST_OPENMETHOD_EXPORT_INDIRECT_REGISTRY)
-template struct BOOST_SYMBOL_EXPORT
-    registry_state<indirect_registry::registry_type>;
-#elif defined(BOOST_OPENMETHOD_DECLARE_EXPORT_INDIRECT_REGISTRY)
-extern template struct BOOST_SYMBOL_EXPORT
-    registry_state<indirect_registry::registry_type>;
-#elif defined(BOOST_OPENMETHOD_IMPORT_INDIRECT_REGISTRY)
-extern template struct BOOST_SYMBOL_IMPORT
-    registry_state<indirect_registry::registry_type>;
-#endif
 
 } // namespace boost::openmethod
 

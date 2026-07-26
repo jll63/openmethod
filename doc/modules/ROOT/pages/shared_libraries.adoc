@@ -13,28 +13,34 @@ must be truly global: a single copy, shared by all the modules.
 
 All of a registry's mutable state lives in a single variable. Sharing a
 registry across modules therefore means sharing that one symbol: the _owning_
-module exports it, and every _client_ module imports it. For
-`default_registry`, three macros control this:
+module exports it, and every _client_ module imports it. Two macros control
+this, and they take the registry as an argument, so the same pair serves
+`default_registry`, `indirect_registry` and any registry you define yourself:
 
-- `BOOST_OPENMETHOD_EXPORT_DEFAULT_REGISTRY` -- defined in _exactly one_
-  translation unit of the owning module, it emits an explicit instantiation of
-  the registry state, decorated for export.
-- `BOOST_OPENMETHOD_DECLARE_EXPORT_DEFAULT_REGISTRY` -- defined in every _other_
-  translation unit of the owning module, it emits an exported `extern template`
-  declaration. This both suppresses implicit instantiation and pins the symbol
-  to default visibility; it is required as soon as the owning module has more
-  than one translation unit (see the warning under <<Custom Registries>>).
-- `BOOST_OPENMETHOD_IMPORT_DEFAULT_REGISTRY` -- defined in every client
-  translation unit, it emits an `extern template` declaration, decorated for
-  import, so clients reference the owner's symbol instead of instantiating
-  their own copy.
+- xref:BOOST_OPENMETHOD_EXPORT_REGISTRY.adoc[BOOST_OPENMETHOD_EXPORT_REGISTRY]
+  -- in _exactly one_ translation unit of the owning module, it emits an
+  explicit instantiation of the registry state, decorated for export.
+  Prefixed with `extern` it becomes a _declaration_, which goes in the header
+  and is required in every _other_ translation unit of the owning module.
+- xref:BOOST_OPENMETHOD_IMPORT_REGISTRY.adoc[BOOST_OPENMETHOD_IMPORT_REGISTRY]
+  -- in every client translation unit, it emits an `extern template`
+  declaration, decorated for import, so clients reference the owner's symbol
+  instead of instantiating their own copy.
 
-A module with a single translation unit needs only the first (or, if it is a
-client, only the last). Any of these macros must be defined _before_ including
-`<boost/openmethod/default_registry.hpp>` (directly or via
-`<boost/openmethod.hpp>`). The same two macros work on all platforms; the
-<<implementation_notes>> section explains what they expand to, and when they can be
-omitted.
+[source,c++]
+----
+// header, every translation unit of a client module
+BOOST_OPENMETHOD_IMPORT_REGISTRY(boost::openmethod::default_registry);
+// header, every translation unit of the owning module
+extern BOOST_OPENMETHOD_EXPORT_REGISTRY(boost::openmethod::default_registry);
+// exactly one .cpp of the owning module
+BOOST_OPENMETHOD_EXPORT_REGISTRY(boost::openmethod::default_registry);
+----
+
+An owning module with a single translation unit needs only the last of these.
+Use the macros at namespace scope, after `<boost/openmethod.hpp>` has been
+included. The same macros work on all platforms; the <<implementation_notes>>
+section explains what they expand to, and when they can be omitted.
 
 Nothing else needs decoration. In particular, methods declared with
 `BOOST_OPENMETHOD` require no export or import: method objects are consolidated
@@ -80,8 +86,8 @@ and the dynamically loaded library. It defines the class hierarchy and the
 include::{shared}/dynamic_loading/animals.hpp[tag=content]
 ----
 
-The main program owns the registry state, so it defines the `EXPORT` macro -
-in its only translation unit, satisfying the exactly-one rule. It provides a
+The main program owns the registry state, so it uses the `EXPORT` macro - in
+its only translation unit, satisfying the exactly-one rule. It provides a
 catch-all overrider, then calls the `meet` method:
 
 [source,c++]
@@ -145,18 +151,18 @@ import library (`.lib` on MSVC) that the DLL links against. On POSIX,
 `ENABLE_EXPORTS` adds `-rdynamic` (or the platform's equivalent), which makes
 the executable's symbols visible to the libraries it loads.
 
-NOTE: `BOOST_OPENMETHOD_EXPORT_DEFAULT_REGISTRY` produces an explicit
-instantiation _definition_, which may appear only once in the program. Define
-it in exactly one translation unit of the owning module; all other translation
-units, in every module, use the `IMPORT` macro.
+NOTE: `BOOST_OPENMETHOD_EXPORT_REGISTRY` produces an explicit instantiation
+_definition_, which may appear only once in the program. Use it in exactly one
+translation unit of the owning module; the owning module's other translation
+units use the `extern` form, and client modules use the `IMPORT` macro.
 
-WARNING: a translation unit that includes the registry headers _without_
-either macro compiles cleanly - it just silently gets its own private copy of
-the registry state instead of an error. That module then stops sharing
-classes, methods and overriders with the rest of the program (symptoms:
-`missing_class` or unexpected `bad_call` errors). Guard against this by
-defining the applicable macro on the command line, or in a project header
-that every translation unit includes before any `boost/openmethod` header.
+WARNING: a translation unit that uses neither macro compiles cleanly - it just
+silently gets its own private copy of the registry state instead of an error.
+That module then stops sharing classes, methods and overriders with the rest of
+the program (symptoms: `missing_class` or unexpected `bad_call` errors). Guard
+against this by putting the applicable macro in a project header that every
+translation unit includes, as in the examples, rather than repeating it in
+individual `.cpp` files.
 
 ## Indirect Vptrs
 
@@ -173,9 +179,8 @@ that has the same policies as `default_registry`, plus `indirect_vptr`. We can
 use it to override the default registry, for example using a compiler
 command-line switch (`-DBOOST_OPENMETHOD_DEFAULT_REGISTRY=indirect_registry`).
 
-cpp:indirect_registry[] has its own state, controlled by the analogous
-`BOOST_OPENMETHOD_EXPORT_INDIRECT_REGISTRY` and
-`BOOST_OPENMETHOD_IMPORT_INDIRECT_REGISTRY` pair.
+cpp:indirect_registry[] has its own state, shared with the same two macros -
+just name `indirect_registry` instead of `default_registry`.
 
 Here is an example of a program that carries `virtual_ptr`{empty}s across
 `initialize` calls. Note that, since the registry in use is now
@@ -188,21 +193,17 @@ include::{shared}/indirect_vptr/main.cpp[tag=content]
 
 This program loads a shared library that is itself compiled with
 `-DBOOST_OPENMETHOD_DEFAULT_REGISTRY=indirect_registry`, and imports the
-registry state with `BOOST_OPENMETHOD_IMPORT_INDIRECT_REGISTRY`. The complete
-example is in the `indirect_vptr` directory.
+registry state with
+`BOOST_OPENMETHOD_IMPORT_REGISTRY(boost::openmethod::indirect_registry)`. The
+complete example is in the `indirect_vptr` directory.
 
 ## Custom Registries
 
-A custom registry is shared the same way. Since the `DEFAULT` and `INDIRECT`
-macros are tied to the predefined registries, the library provides a general,
-registry-parameterized pair for user-defined registries:
-xref:BOOST_OPENMETHOD_EXPORT_REGISTRY.adoc[BOOST_OPENMETHOD_EXPORT_REGISTRY] and
-xref:BOOST_OPENMETHOD_IMPORT_REGISTRY.adoc[BOOST_OPENMETHOD_IMPORT_REGISTRY].
-Unlike the predefined-registry macros, which are tokens defined _before_
-including the registry header, these take the registry type as an argument and
-are used at namespace scope, _after_ the registry's definition.
+A custom registry is shared with the same two macros - they take the registry
+as an argument, so nothing here is specific to the predefined ones. Name your
+own registry instead, at namespace scope, after its definition.
 
-The two go in different places. `IMPORT` expands to an `extern template`
+The macros go in different places. `IMPORT` expands to an `extern template`
 declaration, which may be repeated, so it belongs in the header that defines
 the registry, next to it. `EXPORT` expands to an explicit instantiation
 _definition_, of which a program may contain only one, so it belongs in a
@@ -215,8 +216,8 @@ module suppresses the import; exactly one of them emits the export:
 struct my_registry : boost::openmethod::registry</* policies... */> {};
 
 // Every translation unit of the module that owns the state defines
-// MY_MODULE_OWNS_REGISTRY before including this header; client modules do not.
-#ifdef MY_MODULE_OWNS_REGISTRY
+// OWNS_REGISTRY_STATE before including this header; client modules do not.
+#ifdef OWNS_REGISTRY_STATE
 extern BOOST_OPENMETHOD_EXPORT_REGISTRY(my_registry);
 #else
 BOOST_OPENMETHOD_IMPORT_REGISTRY(my_registry);
@@ -226,7 +227,7 @@ BOOST_OPENMETHOD_IMPORT_REGISTRY(my_registry);
 [source,c++]
 ----
 // registry.cpp - exactly one translation unit of the owning module
-#define MY_MODULE_OWNS_REGISTRY
+#define OWNS_REGISTRY_STATE
 #include "my_registry.hpp"
 
 BOOST_OPENMETHOD_EXPORT_REGISTRY(my_registry);
@@ -245,9 +246,8 @@ declares the export instantiates the state implicitly. Under
 `-fvisibility=hidden` that copy is module-local, and because ELF merges COMDATs
 at the _most restrictive_ visibility, the merged symbol becomes local - the
 module builds, exports nothing, and clients fail to link with an undefined
-reference to `registry_state<...>::st`. The predefined registries have the same
-requirement, via `BOOST_OPENMETHOD_DECLARE_EXPORT_DEFAULT_REGISTRY` and
-`BOOST_OPENMETHOD_DECLARE_EXPORT_INDIRECT_REGISTRY`.
+reference to `registry_state<...>::st`. This applies to the predefined
+registries exactly as it does to your own.
 
 The macros expand to the same exported explicit instantiation and imported
 `extern template` declaration of `my_registry`'s state that the

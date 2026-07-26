@@ -3,14 +3,15 @@
 // accompanying file LICENSE_1_0.txt or copy at
 // http://www.boost.org/LICENSE_1_0.txt)
 
-// This program is compiled with
-// -DBOOST_OPENMETHOD_DEFAULT_REGISTRY=indirect_registry, so the registry
-// under use is indirect_registry, and the INDIRECT macro pair applies.
-
 // tag::content[]
 // main.cpp
 
-#define BOOST_OPENMETHOD_EXPORT_INDIRECT_REGISTRY
+// This program is compiled with
+// -DBOOST_OPENMETHOD_DEFAULT_REGISTRY=indirect_registry, so the registry in use
+// is indirect_registry, and it is indirect_registry's state that is shared.
+//
+// This executable owns that state; the library it loads imports it.
+#define OWNS_REGISTRY_STATE
 
 #include "animals.hpp"
 
@@ -21,6 +22,9 @@
 #include <iostream>
 
 using namespace boost::openmethod::aliases;
+
+// The definition of the shared state, in the one translation unit that owns it.
+BOOST_OPENMETHOD_EXPORT_REGISTRY(boost::openmethod::indirect_registry);
 
 BOOST_OPENMETHOD_OVERRIDE(
     meet, (virtual_ptr<Animal>, virtual_ptr<Animal>), std::string) {

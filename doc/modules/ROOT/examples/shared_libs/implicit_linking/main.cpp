@@ -6,16 +6,15 @@
 // tag::content[]
 // main.cpp
 
-// The shared library (extensions.cpp) owns the registry state; this
-// executable imports it.
-#define BOOST_OPENMETHOD_IMPORT_DEFAULT_REGISTRY
-
 #include "animals.hpp"
 #include <boost/openmethod/initialize.hpp>
 #include <iostream>
 #include <memory>
 
 using namespace boost::openmethod::aliases;
+
+// The shared library (extensions.cpp) owns the registry state; this executable
+// does not define OWNS_REGISTRY_STATE, so animals.hpp imported it.
 
 BOOST_OPENMETHOD_OVERRIDE(
     meet, (virtual_ptr<Animal>, virtual_ptr<Animal>), std::string) {

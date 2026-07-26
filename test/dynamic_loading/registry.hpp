@@ -8,28 +8,6 @@
 
 #include <boost/openmethod/preamble.hpp>
 
-// The indirect variants select indirect_registry by defining
-// BOOST_OPENMETHOD_DEFAULT_REGISTRY on the command line; the default variants
-// leave it undefined. Pick the export/import macro pair matching the registry
-// under test. This is done on every platform, not just Windows: the modules are
-// built with hidden visibility in the super-project, where an implicitly
-// instantiated registry state would not be shared across the shared objects, so
-// the explicit-instantiation export/import (see default_registry.hpp) is needed
-// on ELF too.
-#if defined(EXPORT_REGISTRY)
-#if defined(BOOST_OPENMETHOD_DEFAULT_REGISTRY)
-#define BOOST_OPENMETHOD_EXPORT_INDIRECT_REGISTRY
-#else
-#define BOOST_OPENMETHOD_EXPORT_DEFAULT_REGISTRY
-#endif
-#else
-#if defined(BOOST_OPENMETHOD_DEFAULT_REGISTRY)
-#define BOOST_OPENMETHOD_IMPORT_INDIRECT_REGISTRY
-#else
-#define BOOST_OPENMETHOD_IMPORT_DEFAULT_REGISTRY
-#endif
-#endif
-
 #include <boost/openmethod/default_registry.hpp>
 
 // The registry under test. The build selects the variant by defining
@@ -42,6 +20,26 @@
 #endif
 
 using test_registry = BOOST_OPENMETHOD_DEFAULT_REGISTRY;
+
+// Share the registry state across the modules. Included *after* the
+// BOOST_OPENMETHOD_DEFAULT_REGISTRY definition above, so core.hpp binds its
+// macro default registry to test_registry.
+#include <boost/openmethod.hpp>
+
+// The module that owns the state compiles with EXPORT_REGISTRY defined; every
+// other module imports it. Each module here has a single translation unit, so
+// the owner needs only the definition form; a multi-TU owner would put
+// `extern BOOST_OPENMETHOD_EXPORT_REGISTRY(test_registry);` here instead and
+// the definition in one of its .cpp files.
+//
+// This is done on every platform, not just Windows: the modules are built with
+// hidden visibility in the super-project, where an implicitly instantiated
+// registry state would not be shared across the shared objects.
+#if defined(EXPORT_REGISTRY)
+BOOST_OPENMETHOD_EXPORT_REGISTRY(test_registry);
+#else
+BOOST_OPENMETHOD_IMPORT_REGISTRY(test_registry);
+#endif
 
 // The single address that identifies the registry's shared state. It must be
 // identical across all modules that share the registry (see registry::id()).

@@ -1,7 +1,7 @@
 
 # BOOST_OPENMETHOD_IMPORT_REGISTRY
 
-Imports the state of a custom registry from the module that owns it.
+Imports a registry's state from the module that owns it.
 
 ## Synopsis
 
@@ -31,13 +31,8 @@ declaration suppresses the client's own instantiation of the state, so the
 client references the owner's symbol instead of creating a private copy. The
 same macro pair works on all platforms.
 
-Unlike
-xref:BOOST_OPENMETHOD_IMPORT_DEFAULT_REGISTRY.adoc[BOOST_OPENMETHOD_IMPORT_DEFAULT_REGISTRY]
-and the `INDIRECT` pair - tokens defined _before_ including the registry
-header, and tied to the predefined cpp:default_registry[] and
-cpp:indirect_registry[] - `BOOST_OPENMETHOD_IMPORT_REGISTRY` takes the registry
-type as an argument and is written _after_ the registry's definition. It is the
-tool for sharing user-defined registries:
+It takes the registry as an argument, so the same macro serves the predefined
+registries and user-defined ones alike:
 
 [source,c++]
 ----
@@ -45,13 +40,21 @@ tool for sharing user-defined registries:
 struct my_registry : boost::openmethod::registry</* policies... */> {};
 
 // Every translation unit of the module that owns the state defines
-// MY_MODULE_OWNS_REGISTRY before including this header; exactly one of them
+// OWNS_REGISTRY_STATE before including this header; exactly one of them
 // emits the matching BOOST_OPENMETHOD_EXPORT_REGISTRY, in a .cpp file.
-#ifdef MY_MODULE_OWNS_REGISTRY
+#ifdef OWNS_REGISTRY_STATE
 extern BOOST_OPENMETHOD_EXPORT_REGISTRY(my_registry);
 #else
 BOOST_OPENMETHOD_IMPORT_REGISTRY(my_registry);
 #endif
+----
+
+The predefined registries are named the same way:
+
+[source,c++]
+----
+BOOST_OPENMETHOD_IMPORT_REGISTRY(boost::openmethod::default_registry);
+BOOST_OPENMETHOD_IMPORT_REGISTRY(boost::openmethod::indirect_registry);
 ----
 
 The client module must be linked so that the reference can be resolved: on

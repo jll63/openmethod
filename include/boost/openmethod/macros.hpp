@@ -188,14 +188,14 @@ inline constexpr bool method_not_found = false;
 //
 //     // my_registry.hpp
 //     struct my_registry : boost::openmethod::registry</* ... */> {};
-//     #ifdef MY_MODULE_OWNS_REGISTRY
+//     #ifdef OWNS_REGISTRY_STATE
 //     extern BOOST_OPENMETHOD_EXPORT_REGISTRY(my_registry);
 //     #else
 //     BOOST_OPENMETHOD_IMPORT_REGISTRY(my_registry);
 //     #endif
 //
 //     // registry.cpp - exactly one TU of the owning module
-//     #define MY_MODULE_OWNS_REGISTRY
+//     #define OWNS_REGISTRY_STATE
 //     #include "my_registry.hpp"
 //     BOOST_OPENMETHOD_EXPORT_REGISTRY(my_registry);
 //
@@ -217,9 +217,12 @@ inline constexpr bool method_not_found = false;
 // BOOST_OPENMETHOD_IMPORT_REGISTRY already includes the `extern`: an import is
 // always a declaration.
 //
-// The predefined registries are controlled by define-before-include tokens
-// instead, and so have a third one for this case:
-// BOOST_OPENMETHOD_{EXPORT,DECLARE_EXPORT,IMPORT}_{DEFAULT,INDIRECT}_REGISTRY.
+// REGISTRY may be any registry, predefined or user-defined; the macros fully
+// qualify everything they emit, so there is no need to be inside, or to open,
+// namespace boost::openmethod:
+//
+//     BOOST_OPENMETHOD_EXPORT_REGISTRY(boost::openmethod::default_registry);
+//
 // See shared_libraries.adoc for the full discussion, including the required
 // link setup.
 #define BOOST_OPENMETHOD_EXPORT_REGISTRY(REGISTRY)                             \

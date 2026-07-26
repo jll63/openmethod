@@ -8,13 +8,14 @@
 
 // This library is compiled with
 // -DBOOST_OPENMETHOD_DEFAULT_REGISTRY=indirect_registry, so the registry in use
-// is indirect_registry, which has its own state and its own macro pair. The
-// main program owns that state; this library imports it.
-#define BOOST_OPENMETHOD_IMPORT_INDIRECT_REGISTRY
+// is indirect_registry, which has its own state.
 
 #include "animals.hpp"
 
 using namespace boost::openmethod;
+
+// The main program owns that state; this library does not define
+// OWNS_REGISTRY_STATE, so animals.hpp imported it.
 
 BOOST_OPENMETHOD_OVERRIDE(
     meet, (virtual_ptr<Herbivore> a, virtual_ptr<Carnivore> b), std::string) {

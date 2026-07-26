@@ -1050,28 +1050,25 @@ struct initialize_aux;
 //!   which MSVC rejects (error C2513).
 //!
 //! A one-member, function-free class is the only shape MSVC will export as a
-//! whole and import via `extern template`. See default_registry.hpp for the
-//! per-registry instantiations.
+//! whole and import via `extern template`.
 //!
-//! For the predefined registries, the export/import pair is emitted by the
-//! {{BOOST_OPENMETHOD_EXPORT_DEFAULT_REGISTRY}} /
-//! {{BOOST_OPENMETHOD_IMPORT_DEFAULT_REGISTRY}} macros (and the analogous
-//! `INDIRECT` pair for @ref indirect_registry). For a custom registry, use the
-//! {{BOOST_OPENMETHOD_EXPORT_REGISTRY}} /
+//! Use the {{BOOST_OPENMETHOD_EXPORT_REGISTRY}} /
 //! {{BOOST_OPENMETHOD_IMPORT_REGISTRY}} pair, at namespace scope, after the
-//! registry's definition. The import is a declaration and belongs in the
-//! header; the export is an explicit instantiation definition, of which a
-//! program may contain only one, and belongs in a `.cpp`:
+//! registry's definition. They take the registry as an argument, so the same
+//! pair serves @ref default_registry, @ref indirect_registry and registries
+//! you define yourself. The import is a declaration and belongs in the header;
+//! the export is an explicit instantiation definition, of which a program may
+//! contain only one, and belongs in a `.cpp`:
 //! @code
 //! // my_registry.hpp
-//! #ifdef MY_MODULE_OWNS_REGISTRY
+//! #ifdef OWNS_REGISTRY_STATE
 //! extern BOOST_OPENMETHOD_EXPORT_REGISTRY(my_registry);
 //! #else
 //! BOOST_OPENMETHOD_IMPORT_REGISTRY(my_registry);
 //! #endif
 //!
 //! // registry.cpp - exactly one translation unit of the owning module
-//! #define MY_MODULE_OWNS_REGISTRY
+//! #define OWNS_REGISTRY_STATE
 //! #include "my_registry.hpp"
 //! BOOST_OPENMETHOD_EXPORT_REGISTRY(my_registry);
 //! @endcode
@@ -1186,7 +1183,7 @@ class registry : public detail::registry_base {
     //!
     //! Modules (executables and shared libraries) contributing to the same
     //! registry must share this one variable; see @ref registry_state and
-    //! {{BOOST_OPENMETHOD_EXPORT_DEFAULT_REGISTRY}}.
+    //! {{BOOST_OPENMETHOD_EXPORT_REGISTRY}}.
     static auto& state() {
         return static_::st;
     }

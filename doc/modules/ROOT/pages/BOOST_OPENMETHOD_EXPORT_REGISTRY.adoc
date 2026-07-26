@@ -1,7 +1,7 @@
 
 # BOOST_OPENMETHOD_EXPORT_REGISTRY
 
-Exports the state of a custom registry from the module that owns it.
+Exports a registry's state from the module that owns it.
 
 ## Synopsis
 
@@ -28,21 +28,20 @@ of the registry state, decorated with `BOOST_SYMBOL_EXPORT`:
 `__declspec(dllexport)` on Windows, default visibility on ELF platforms. The
 same macro pair works on all platforms.
 
-Unlike
-xref:BOOST_OPENMETHOD_EXPORT_DEFAULT_REGISTRY.adoc[BOOST_OPENMETHOD_EXPORT_DEFAULT_REGISTRY]
-and the `INDIRECT` pair - tokens defined _before_ including the registry
-header, and tied to the predefined cpp:default_registry[] and
-cpp:indirect_registry[] - `BOOST_OPENMETHOD_EXPORT_REGISTRY` takes the registry
-type as an argument and is written _after_ the registry's definition. It is the
-tool for sharing user-defined registries:
+It takes the registry as an argument, so the same macro serves the predefined
+registries and user-defined ones alike:
 
 [source,c++]
 ----
 // registry.cpp - exactly one translation unit of the owning module
-#define MY_MODULE_OWNS_REGISTRY
+#define OWNS_REGISTRY_STATE
 #include "my_registry.hpp"
 
 BOOST_OPENMETHOD_EXPORT_REGISTRY(my_registry);
+
+// The predefined registries are named the same way:
+BOOST_OPENMETHOD_EXPORT_REGISTRY(boost::openmethod::default_registry);
+BOOST_OPENMETHOD_EXPORT_REGISTRY(boost::openmethod::indirect_registry);
 ----
 
 WARNING: An explicit instantiation definition may appear only once in the

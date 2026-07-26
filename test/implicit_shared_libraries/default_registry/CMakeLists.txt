@@ -4,13 +4,13 @@
 # or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 # default_registry shared across an implicitly linked library, using the
-# BOOST_OPENMETHOD_{EXPORT,IMPORT}_DEFAULT_REGISTRY macro pair.
+# BOOST_OPENMETHOD_{EXPORT,IMPORT}_REGISTRY macros.
 
 set(lib boost_openmethod-isl_default_lib)
 set(exe boost_openmethod-test_implicit_shared_libraries_default)
 
-# lib.cpp defines BOOST_OPENMETHOD_EXPORT_DEFAULT_REGISTRY: this library owns
-# the registry state.
+# lib.cpp emits BOOST_OPENMETHOD_EXPORT_REGISTRY(default_registry): this
+# library owns the registry state.
 add_library(${lib} SHARED lib.cpp)
 target_link_libraries(${lib} PRIVATE Boost::openmethod)
 

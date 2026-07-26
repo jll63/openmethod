@@ -215,22 +215,26 @@ specialization written, so making `registry_state<default_registry>` work would 
 `default_registry` to *be* its base (an alias) — rejected for the mangled-name reason. Only the
 shared state symbol carries the full policy list, which is accepted.
 
-**Usage (predefined registries)**: define exactly one of the macros *before* including
-`<boost/openmethod/default_registry.hpp>` (or `<boost/openmethod.hpp>`):
-`BOOST_OPENMETHOD_EXPORT_DEFAULT_REGISTRY` in **exactly one TU** of the module that owns the
-state (it emits an explicit instantiation *definition*, which may appear only once in the
-program), `BOOST_OPENMETHOD_IMPORT_DEFAULT_REGISTRY` in every client TU. `indirect_registry` has
-its own state and its own analogous pair, `BOOST_OPENMETHOD_{EXPORT,IMPORT}_INDIRECT_REGISTRY`.
-With neither macro, the state has ordinary linkage — fine off Windows only when the program is not
-built with hidden visibility.
+**Usage**: there are exactly two macros, and they take the registry as an argument, so the same
+pair serves `default_registry`, `indirect_registry` and user-defined registries. There are no
+per-registry tokens — the old `BOOST_OPENMETHOD_{EXPORT,IMPORT}_{DEFAULT,INDIRECT}_REGISTRY`
+define-before-include tokens were removed, and `default_registry.hpp` no longer emits any
+instantiation of its own. The macros fully qualify what they emit, so callers never need to open
+`namespace boost::openmethod`:
+```cpp
+// header, every TU of a client module
+BOOST_OPENMETHOD_IMPORT_REGISTRY(boost::openmethod::default_registry);
+// header, every TU of the owning module
+extern BOOST_OPENMETHOD_EXPORT_REGISTRY(boost::openmethod::default_registry);
+// exactly one .cpp of the owning module
+BOOST_OPENMETHOD_EXPORT_REGISTRY(boost::openmethod::default_registry);
+```
+A single-TU owning module needs only the last. With neither macro, the state has ordinary
+linkage — fine off Windows only when the program is not built with hidden visibility.
 
-**Custom registries**: the library provides a general, registry-parameterized macro pair,
-`BOOST_OPENMETHOD_EXPORT_REGISTRY(REGISTRY)` / `BOOST_OPENMETHOD_IMPORT_REGISTRY(REGISTRY)` (in
-`macros.hpp`), which emit the same exported explicit instantiation / imported `extern template`
-declaration as the snippet above. Unlike the `DEFAULT`/`INDIRECT` tokens (defined before including
-the registry header), these take the registry type and are used at namespace scope, after the
-registry's definition and before any use: `EXPORT` in exactly one owning TU, `IMPORT` in every
-client TU. **`EXPORT` must go in a `.cpp`, never in a header** — it is an explicit instantiation
+Both macros live in `macros.hpp` (which pulls in `core.hpp`), so they are available once
+`<boost/openmethod.hpp>` has been included, and are used at namespace scope: `EXPORT` in exactly
+one owning TU, `IMPORT` in every client TU. **`EXPORT` must go in a `.cpp`, never in a header** — it is an explicit instantiation
 *definition*, so every TU of the owning module that included such a header would emit one (a hard
 "duplicate explicit instantiation" error within one TU; ill-formed no-diagnostic-required across
 TUs — ELF toolchains merge the COMDAT silently, so the mistake hides until the module gains a
@@ -239,18 +243,18 @@ second TU). `IMPORT` is an `extern template` declaration and belongs in the regi
 **Multi-TU owning modules need the `extern` form**: `EXPORT` expands to an explicit instantiation
 definition, so `extern BOOST_OPENMETHOD_EXPORT_REGISTRY(REGISTRY);` is a *declaration* — exported,
 so it both suppresses implicit instantiation and pins default visibility. It goes in the header, in
-every TU of the owning module. (The predefined registries are driven by define-before-include
-tokens, where the `extern` trick is unavailable, so they have a third token instead:
-`BOOST_OPENMETHOD_DECLARE_EXPORT_{DEFAULT,INDIRECT}_REGISTRY`.) It is load-bearing: a TU of the owner that neither exports nor declares the
+every TU of the owning module. It is load-bearing: a TU of the owner that neither exports nor declares the
 export instantiates the state implicitly, and under `-fvisibility=hidden` that copy is module-local
 — ELF merges COMDATs at the *most restrictive* visibility, so the merged symbol becomes local, the
 module exports nothing, and clients fail to link with an undefined reference to
 `registry_state<...>::st`. So: `IMPORT` in client headers, `extern EXPORT` in the owner's header,
 plain `EXPORT` in exactly one of the owner's `.cpp` files. A single-TU owner needs only `EXPORT`. See
 `test/implicit_shared_libraries/custom_registry/` for the worked pattern — `lib2.cpp` exists solely
-to keep the multi-TU path covered. They live in `macros.hpp` (which pulls in `core.hpp`), so `default_registry.hpp` — which
-sits below `macros.hpp` in the include layering and includes only `preamble.hpp` + policies — cannot
-use them and keeps its own hand-written `#ifdef`-guarded blocks.
+to keep the multi-TU path covered.
+
+Placement within the exporting TU does *not* matter: the definition may appear before or after the
+code that uses the registry, and still carries default visibility either way (verified with
+`readelf` under `-fvisibility=hidden`).
 
 **Methods need no decoration**: method objects are *consolidated* across modules at `initialize()`
 time, not shared via a single symbol, so `BOOST_OPENMETHOD(...)` takes no declspec argument.
@@ -265,7 +269,7 @@ shared symbol across modules. `registry_state_id()` (in `registry.hpp`) returns 
 address (`test_registry::id()`); `main.cpp`'s `same_ids()` compares two such addresses (registry vs.
 method, registry vs. overrider) and asserts they are identical. (Policy state lives inside
 `registry_state_type`, so the registry-state address is the one shared symbol.) Files:
-- `registry.hpp` — maps `EXPORT_REGISTRY` → the `BOOST_OPENMETHOD_{EXPORT,IMPORT}_{DEFAULT,INDIRECT}_REGISTRY` pair matching the registry under test (indirect iff `BOOST_OPENMETHOD_DEFAULT_REGISTRY` is defined on the command line) before including `default_registry.hpp`; defines `registry_state_id()`
+- `registry.hpp` — defines `test_registry` (indirect iff `BOOST_OPENMETHOD_DEFAULT_REGISTRY` is defined on the command line), then emits `BOOST_OPENMETHOD_{EXPORT,IMPORT}_REGISTRY(test_registry)` according to whether the module compiles with `EXPORT_REGISTRY`; defines `registry_state_id()`
 - `classes.hpp` — `Animal`/`Dog`/`Cat` definitions (marked `BOOST_SYMBOL_VISIBLE` so their RTTI stays
   default-visibility under the hidden-visibility CMake variant below) + `make_dog`/`make_cat`
 - `method.hpp` — declares the `speak`/`meet` methods (no declspec arguments)
