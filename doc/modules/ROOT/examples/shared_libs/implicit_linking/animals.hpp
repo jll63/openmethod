@@ -15,13 +15,9 @@
 #include <boost/openmethod.hpp>
 
 #ifdef OWNS_REGISTRY_STATE
-extern template struct BOOST_SYMBOL_EXPORT
-    boost::openmethod::registry_state<
-        boost::openmethod::default_registry::registry_type>;
+BOOST_OPENMETHOD_EXPORT_REGISTRY(boost::openmethod::default_registry);
 #else
-extern template struct BOOST_SYMBOL_IMPORT
-    boost::openmethod::registry_state<
-        boost::openmethod::default_registry::registry_type>;
+BOOST_OPENMETHOD_IMPORT_REGISTRY(boost::openmethod::default_registry);
 #endif
 
 struct Animal { virtual ~Animal() {} };

@@ -17,8 +17,7 @@ using namespace boost::openmethod;
 // The one definition of the shared state. It carries no visibility attribute:
 // lib.hpp already declared it exported, and repeating the attribute here is an
 // error on GCC.
-template struct boost::openmethod::registry_state<
-    boost::openmethod::default_registry::registry_type>;
+BOOST_OPENMETHOD_INSTANTIATE_REGISTRY(boost::openmethod::default_registry);
 
 BOOST_OPENMETHOD_CLASSES(Animal, Dog, Cat);
 

@@ -18,8 +18,7 @@
 
 using namespace boost::openmethod::aliases;
 
-template struct boost::openmethod::registry_state<
-    boost::openmethod::indirect_registry::registry_type>;
+BOOST_OPENMETHOD_INSTANTIATE_REGISTRY(boost::openmethod::indirect_registry);
 
 BOOST_OPENMETHOD_OVERRIDE(
     meet, (virtual_ptr<Animal>, virtual_ptr<Animal>), std::string) {

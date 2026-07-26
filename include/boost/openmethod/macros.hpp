@@ -175,4 +175,62 @@ inline constexpr bool method_not_found = false;
 #define BOOST_OPENMETHOD_CLASSES(...)                                          \
     BOOST_OPENMETHOD_REGISTER(::boost::openmethod::use_classes<__VA_ARGS__>)
 
+// Share a registry's state across module boundaries. All of a registry's
+// mutable state lives in one variable, registry_state<R::registry_type>::st
+// (see registry_state in preamble.hpp); these macros emit the explicit
+// instantiations that make it a single shared symbol:
+//
+//   BOOST_OPENMETHOD_IMPORT_REGISTRY      - header; every TU of a CLIENT module
+//   BOOST_OPENMETHOD_EXPORT_REGISTRY      - header; every TU of the OWNING module
+//   BOOST_OPENMETHOD_INSTANTIATE_REGISTRY - exactly one .cpp of the owning module
+//
+// The owning module uses both: EXPORT in the header its translation units
+// share, and INSTANTIATE in exactly one of them. Use them at namespace scope,
+// after the registry's definition, with a trailing `;`. REGISTRY may be any
+// registry, predefined or user-defined; everything emitted is fully qualified,
+// so there is no need to be inside, or to open, namespace boost::openmethod.
+//
+// The macros exist because no single spelling is portable - the two ABIs want
+// opposite things:
+//
+// * declspec platforms (Windows, Cygwin, MinGW): MSVC rejects `extern` together
+//   with __declspec(dllexport) on an explicit instantiation outright ("warning
+//   C4910: '__declspec(dllexport)' and 'extern' are incompatible on an explicit
+//   instantiation"). Nor is such a declaration needed: visibility is not a PE
+//   concept, so the owning module's other translation units may instantiate the
+//   state implicitly and the linker merges them within the module. EXPORT
+//   therefore expands to nothing, and INSTANTIATE carries the dllexport.
+//
+// * ELF and Mach-O: the attribute has to be on the *declaration*, so that every
+//   translation unit of the owning module pins the symbol to default
+//   visibility. Repeating it on the definition is an error on GCC ("type
+//   attributes ignored after type is already defined"), which is why
+//   INSTANTIATE carries no attribute there. And EXPORT is not decoration: a
+//   translation unit of the owner that has neither it nor the definition
+//   instantiates the state implicitly, and under -fvisibility=hidden that copy
+//   is module-local; since ELF merges COMDATs at the most restrictive
+//   visibility, the whole symbol then becomes local and clients fail to link.
+#define BOOST_OPENMETHOD_IMPORT_REGISTRY(REGISTRY)                             \
+    extern template struct BOOST_SYMBOL_IMPORT ::boost::openmethod::           \
+        registry_state<REGISTRY::registry_type>
+
+#ifdef BOOST_HAS_DECLSPEC
+
+#define BOOST_OPENMETHOD_EXPORT_REGISTRY(REGISTRY) static_assert(true)
+
+#define BOOST_OPENMETHOD_INSTANTIATE_REGISTRY(REGISTRY)                        \
+    template struct BOOST_SYMBOL_EXPORT ::boost::openmethod::registry_state<   \
+        REGISTRY::registry_type>
+
+#else
+
+#define BOOST_OPENMETHOD_EXPORT_REGISTRY(REGISTRY)                             \
+    extern template struct BOOST_SYMBOL_EXPORT ::boost::openmethod::           \
+        registry_state<REGISTRY::registry_type>
+
+#define BOOST_OPENMETHOD_INSTANTIATE_REGISTRY(REGISTRY)                        \
+    template struct ::boost::openmethod::registry_state<REGISTRY::registry_type>
+
+#endif
+
 #endif

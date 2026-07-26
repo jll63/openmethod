@@ -1052,19 +1052,19 @@ struct initialize_aux;
 //! A one-member, function-free class is the only shape MSVC will export as a
 //! whole and import via `extern template`.
 //!
-//! To share the state across modules, write the explicit instantiations
-//! yourself. The visibility attribute goes on the *declaration*; the single
-//! definition carries none - repeating it there is an error on GCC:
+//! To share the state across modules, use
+//! {{BOOST_OPENMETHOD_IMPORT_REGISTRY}}, {{BOOST_OPENMETHOD_EXPORT_REGISTRY}}
+//! and {{BOOST_OPENMETHOD_INSTANTIATE_REGISTRY}}. They hide a platform
+//! incompatibility: the export goes on the declaration on ELF and Mach-O, but
+//! on the instantiation on declspec platforms, where `extern` and
+//! `__declspec(dllexport)` cannot be combined.
 //! @code
 //! // header, every translation unit of a client module:
-//! extern template struct BOOST_SYMBOL_IMPORT
-//!     boost::openmethod::registry_state<my_registry::registry_type>;
+//! BOOST_OPENMETHOD_IMPORT_REGISTRY(boost::openmethod::default_registry);
 //! // header, every translation unit of the owning module:
-//! extern template struct BOOST_SYMBOL_EXPORT
-//!     boost::openmethod::registry_state<my_registry::registry_type>;
+//! BOOST_OPENMETHOD_EXPORT_REGISTRY(boost::openmethod::default_registry);
 //! // exactly one .cpp of the owning module:
-//! template struct boost::openmethod::registry_state<
-//!     my_registry::registry_type>;
+//! BOOST_OPENMETHOD_INSTANTIATE_REGISTRY(boost::openmethod::default_registry);
 //! @endcode
 template<class Registry>
 struct registry_state {

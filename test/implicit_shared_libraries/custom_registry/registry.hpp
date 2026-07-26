@@ -59,11 +59,9 @@ static_assert(!boost::mp11::mp_contains<
 // local so clients cannot link. lib2.cpp is a second TU of this library
 // precisely to keep that path covered.
 #if defined(OWNS_REGISTRY_STATE)
-extern template struct BOOST_SYMBOL_EXPORT
-    boost::openmethod::registry_state<custom_registry::registry_type>;
+BOOST_OPENMETHOD_EXPORT_REGISTRY(custom_registry);
 #else
-extern template struct BOOST_SYMBOL_IMPORT
-    boost::openmethod::registry_state<custom_registry::registry_type>;
+BOOST_OPENMETHOD_IMPORT_REGISTRY(custom_registry);
 #endif
 
 #endif

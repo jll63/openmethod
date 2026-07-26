@@ -37,21 +37,16 @@ namespace boost::openmethod {
 //! including those pulled from libraries.
 //!
 //! For a program and its shared libraries to contribute to the same
-//! `default_registry`, its state must be shared across the modules. Write the
-//! explicit instantiations yourself; the visibility attribute goes on the
-//! *declaration*, and the single definition carries none:
+//! `default_registry`, its state must be shared across the modules, with
+//! {{BOOST_OPENMETHOD_IMPORT_REGISTRY}}, {{BOOST_OPENMETHOD_EXPORT_REGISTRY}}
+//! and {{BOOST_OPENMETHOD_INSTANTIATE_REGISTRY}}:
 //! @code
 //! // header, every translation unit of a client module:
-//! extern template struct BOOST_SYMBOL_IMPORT
-//!     boost::openmethod::registry_state<
-//!         boost::openmethod::default_registry::registry_type>;
+//! BOOST_OPENMETHOD_IMPORT_REGISTRY(boost::openmethod::default_registry);
 //! // header, every translation unit of the owning module:
-//! extern template struct BOOST_SYMBOL_EXPORT
-//!     boost::openmethod::registry_state<
-//!         boost::openmethod::default_registry::registry_type>;
-//! // exactly one .cpp of the owning module (no attribute):
-//! template struct boost::openmethod::registry_state<
-//!     boost::openmethod::default_registry::registry_type>;
+//! BOOST_OPENMETHOD_EXPORT_REGISTRY(boost::openmethod::default_registry);
+//! // exactly one .cpp of the owning module:
+//! BOOST_OPENMETHOD_INSTANTIATE_REGISTRY(boost::openmethod::default_registry);
 //! @endcode
 struct default_registry
     : registry<
@@ -78,7 +73,7 @@ static odr_check<default_registry> default_registry_odr_check_instance;
 //!
 //! `indirect_registry` has its own state, separate from `default_registry`'s.
 //! Share it across shared libraries exactly as for @ref default_registry,
-//! naming `indirect_registry` in the explicit instantiations.
+//! naming `indirect_registry` in the macros.
 //!
 //! @see indirect_vptr.
 struct indirect_registry : default_registry::with<policies::indirect_vptr> {};

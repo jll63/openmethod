@@ -215,37 +215,40 @@ specialization written, so making `registry_state<default_registry>` work would 
 `default_registry` to *be* its base (an alias) — rejected for the mangled-name reason. Only the
 shared state symbol carries the full policy list, which is accepted.
 
-**Usage**: there are no macros for this — they were removed as more trouble than they were worth
-(one token sequence cannot be both an attributed declaration and an unattributed definition, see
-below). Write the explicit instantiations directly, fully qualified, at namespace scope:
+**Usage**: three macros, each taking the registry as an argument, so the same three serve
+`default_registry`, `indirect_registry` and user-defined registries. Everything they emit is fully
+qualified, so callers never open `namespace boost::openmethod`:
 ```cpp
 // header, every TU of a client module
-extern template struct BOOST_SYMBOL_IMPORT
-    boost::openmethod::registry_state<boost::openmethod::default_registry::registry_type>;
+BOOST_OPENMETHOD_IMPORT_REGISTRY(boost::openmethod::default_registry);
 // header, every TU of the owning module
-extern template struct BOOST_SYMBOL_EXPORT
-    boost::openmethod::registry_state<boost::openmethod::default_registry::registry_type>;
-// exactly one .cpp of the owning module — NO attribute
-template struct boost::openmethod::registry_state<
-    boost::openmethod::default_registry::registry_type>;
+BOOST_OPENMETHOD_EXPORT_REGISTRY(boost::openmethod::default_registry);
+// exactly one .cpp of the owning module
+BOOST_OPENMETHOD_INSTANTIATE_REGISTRY(boost::openmethod::default_registry);
 ```
-Substitute any registry (`indirect_registry`, a custom one). Note `::registry_type`: the state is
-keyed on the `registry<...>` base, never the derived struct. With none of these, the state has
-ordinary linkage — fine off Windows only when the program is not built with hidden visibility.
+The owning module uses two: `EXPORT` in the shared header, `INSTANTIATE` once. Note
+`::registry_type` inside the expansions: the state is keyed on the `registry<...>` base, never the
+derived struct.
 
-**The attribute goes on the declaration only.** Repeating `BOOST_SYMBOL_EXPORT` on the definition
-is `error: type attributes ignored after type is already defined [-Werror=attributes]` on GCC,
-while clang accepts it silently — so this breaks only in CI, on the gcc jobs. That asymmetry is
-exactly what sank the macro pair.
+**Why three macros and not raw incantations** — the underlying explicit instantiations are not
+portable, and each spelling fails on one platform while compiling silently on the other. The
+macros branch on `BOOST_HAS_DECLSPEC`:
+- *declspec platforms* (Windows/Cygwin/MinGW): `__declspec(dllexport)` and `extern` are
+  incompatible on an explicit instantiation — MSVC emits `warning C4910` and, with warnings-as-
+  errors, fails. It is also unnecessary there, visibility not being a PE concept. So `EXPORT`
+  expands to nothing (`static_assert(true)`, to swallow the `;`) and `INSTANTIATE` carries the
+  `dllexport`.
+- *ELF and Mach-O*: the attribute must be on the **declaration**; repeating it on the definition is
+  `error: type attributes ignored after type is already defined [-Werror=attributes]` on GCC, which
+  clang accepts silently. So `EXPORT` carries it and `INSTANTIATE` carries none.
 
-**The exported declaration is required in every TU of the owning module**, not just as
-documentation: a TU of the owner that has neither the declaration nor the definition instantiates
-the state implicitly, and under `-fvisibility=hidden` that copy is module-local. ELF merges COMDATs
-at the *most restrictive* visibility, so the merged symbol becomes local, the module exports
-nothing, and clients fail to link with an undefined reference to `registry_state<...>::st`.
-`test/implicit_shared_libraries/custom_registry/lib2.cpp` is a second owner TU kept solely to guard
-that path. Placement within the defining TU does not matter (verified with `readelf` under
-`-fvisibility=hidden`).
+**`EXPORT` is load-bearing on ELF**, not documentation: a TU of the owning module with neither
+`EXPORT` nor `INSTANTIATE` instantiates the state implicitly, and under `-fvisibility=hidden` that
+copy is module-local. ELF merges COMDATs at the *most restrictive* visibility, so the merged symbol
+becomes local, the module exports nothing, and clients fail to link with an undefined reference to
+`registry_state<...>::st`. `test/implicit_shared_libraries/custom_registry/lib2.cpp` is a second
+owner TU kept solely to guard that path. Placement within the instantiating TU does not matter
+(verified with `readelf` under `-fvisibility=hidden`).
 
 **Methods need no decoration**: method objects are *consolidated* across modules at `initialize()`
 time, not shared via a single symbol, so `BOOST_OPENMETHOD(...)` takes no declspec argument.

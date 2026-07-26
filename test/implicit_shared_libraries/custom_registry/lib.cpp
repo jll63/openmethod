@@ -20,8 +20,7 @@
 // one place. The matching exported *declaration* in registry.hpp has already
 // been seen by this point, in this and every other translation unit of the
 // library, which is what keeps the symbol at default visibility.
-template struct boost::openmethod::registry_state<
-    custom_registry::registry_type>;
+BOOST_OPENMETHOD_INSTANTIATE_REGISTRY(custom_registry);
 
 using namespace boost::openmethod;
 

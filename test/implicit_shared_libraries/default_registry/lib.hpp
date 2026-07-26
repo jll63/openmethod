@@ -13,11 +13,9 @@
 // The library owns the registry state; the executable imports it. The
 // visibility attribute goes on the declaration only - see lib.cpp.
 #if defined(OWNS_REGISTRY_STATE)
-extern template struct BOOST_SYMBOL_EXPORT boost::openmethod::registry_state<
-    boost::openmethod::default_registry::registry_type>;
+BOOST_OPENMETHOD_EXPORT_REGISTRY(boost::openmethod::default_registry);
 #else
-extern template struct BOOST_SYMBOL_IMPORT boost::openmethod::registry_state<
-    boost::openmethod::default_registry::registry_type>;
+BOOST_OPENMETHOD_IMPORT_REGISTRY(boost::openmethod::default_registry);
 #endif
 
 // BOOST_SYMBOL_VISIBLE gives these classes' RTTI default visibility even in a

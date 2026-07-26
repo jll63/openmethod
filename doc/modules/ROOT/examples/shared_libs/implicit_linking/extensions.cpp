@@ -12,8 +12,7 @@
 
 using namespace boost::openmethod;
 
-template struct boost::openmethod::registry_state<
-    boost::openmethod::default_registry::registry_type>;
+BOOST_OPENMETHOD_INSTANTIATE_REGISTRY(boost::openmethod::default_registry);
 
 BOOST_OPENMETHOD_CLASSES(Animal, Herbivore, Cow, Carnivore, Wolf);
 

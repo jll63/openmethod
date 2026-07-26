@@ -37,12 +37,10 @@ using test_registry = BOOST_OPENMETHOD_DEFAULT_REGISTRY;
 // hidden visibility in the super-project, where an implicitly instantiated
 // registry state would not be shared across the shared objects.
 #if defined(EXPORT_REGISTRY)
-extern template struct BOOST_SYMBOL_EXPORT
-    boost::openmethod::registry_state<test_registry::registry_type>;
-template struct boost::openmethod::registry_state<test_registry::registry_type>;
+BOOST_OPENMETHOD_EXPORT_REGISTRY(test_registry);
+BOOST_OPENMETHOD_INSTANTIATE_REGISTRY(test_registry);
 #else
-extern template struct BOOST_SYMBOL_IMPORT
-    boost::openmethod::registry_state<test_registry::registry_type>;
+BOOST_OPENMETHOD_IMPORT_REGISTRY(test_registry);
 #endif
 
 // The single address that identifies the registry's shared state. It must be
