@@ -1,0 +1,34 @@
+#  Boost.OpenMethod Library - implicit_shared_libraries/custom_registry Jamfile
+#
+#  Copyright 2025 Jean-Louis Leroy
+#
+#  Distributed under the Boost Software License, Version 1.0.
+#  See accompanying file LICENSE_1_0.txt or copy at
+#  http://www.boost.org/LICENSE_1_0.txt
+
+# A custom registry (default_registry with the vector and hash policies replaced
+# by vptr_map) shared across an implicitly linked library, using the general
+# BOOST_OPENMETHOD_{EXPORT,IMPORT}_REGISTRY macro pair. See registry.hpp.
+#
+#   test executable  ──linked──▶  lib (owns and exports the registry state)
+#
+# See the sibling default_registry/Jamfile for why there is no Boost.DLL
+# dependency and no <local-visibility>global here.
+
+import testing ;
+
+# lib.cpp defines LIB_SOURCE, which selects BOOST_OPENMETHOD_EXPORT_REGISTRY in
+# registry.hpp: this library owns the registry state.
+lib boost_openmethod-isl_custom_lib
+    : lib.cpp
+    : <link>shared
+    ;
+
+run main.cpp
+    boost_openmethod-isl_custom_lib
+    /boost/test//boost_unit_test_framework/<warnings>off/<link>static
+    :
+    :
+    : <link>shared
+    : implicit_shared_libraries_custom
+    ;

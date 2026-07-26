@@ -47,6 +47,7 @@ for local src in [ glob compile_fail_*.cpp ]
 }
 
 build-project dynamic_loading ;
+build-project implicit_shared_libraries ;
 
 # quick (for CI)
 alias quick

@@ -159,3 +159,7 @@ openmethod_compile_fail_test(
 if (TARGET Boost::dll)
     add_subdirectory(dynamic_loading)
 endif()
+
+# Implicitly (build-time) linked shared libraries. Needs no Boost::dll, since
+# nothing is loaded at run time.
+add_subdirectory(implicit_shared_libraries)
