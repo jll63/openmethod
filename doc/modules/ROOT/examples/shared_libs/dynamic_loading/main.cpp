@@ -36,7 +36,6 @@ int main() {
         std::cout << "Before loading the shared library.\n";
 
         boost::openmethod::initialize(trace::from_env());
-        BOOST_ASSERT(default_registry::static_vptr<Carnivore> != nullptr);
 
         std::cout << "cow meets wolf -> "
                   << meet(*std::make_unique<Cow>(), *std::make_unique<Wolf>())
@@ -61,7 +60,7 @@ int main() {
 
         std::cout << "cow meets wolf -> "
                   << meet(*std::make_unique<Cow>(), *std::make_unique<Wolf>())
-                  << "\n"; // run
+                  << "\n"; // do not greet, run
         std::cout << "wolf meets cow -> "
                   << meet(*std::make_unique<Wolf>(), *std::make_unique<Cow>())
                   << "\n"; // hunt
@@ -71,7 +70,7 @@ int main() {
                   << meet(
                          *std::make_unique<Cow>(),
                          *std::unique_ptr<Animal>(make_tiger()))
-                  << "\n"; // run
+                  << "\n"; // do not greet, run
         // end::load[]
 
         // tag::unload[]

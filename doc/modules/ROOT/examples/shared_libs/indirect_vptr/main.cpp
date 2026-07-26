@@ -45,7 +45,8 @@ auto main() -> int {
     boost::openmethod::initialize();
 
     // The virtual_ptrs made before the reload still dispatch correctly:
-    std::cout << "cow meets wolf -> " << meet(*gracie, *willy) << "\n"; // run
+    std::cout << "cow meets wolf -> " << meet(*gracie, *willy)
+              << "\n"; // do not greet, run
     std::cout << "wolf meets cow -> " << meet(*willy, *gracie) << "\n"; // hunt
 
     return 0;

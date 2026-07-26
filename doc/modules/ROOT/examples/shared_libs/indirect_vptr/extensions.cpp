@@ -12,14 +12,8 @@ using namespace boost::openmethod;
 
 BOOST_OPENMETHOD_OVERRIDE(
     meet, (virtual_ptr<Herbivore> a, virtual_ptr<Carnivore> b), std::string) {
-    auto p = BOOST_OPENMETHOD_TYPE(
-        meet, (virtual_ptr<Animal>, virtual_ptr<Animal>),
-        std::string)::next<fn>;
-    // end::content[]
-    BOOST_ASSERT(p);
-    BOOST_ASSERT(p(a, b) == "greet");
-    // tag::content[]
-    return "run";
+    auto base = next(a, b);
+    return "do not " + base + ", run";
 }
 
 BOOST_OPENMETHOD_OVERRIDE(

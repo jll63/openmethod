@@ -28,11 +28,13 @@ auto main() -> int {
     std::unique_ptr<Animal> gracie(new Cow());
     std::unique_ptr<Animal> willy(new Wolf());
 
-    std::cout << "cow meets wolf -> " << meet(*gracie, *willy) << "\n"; // run
+    std::cout << "cow meets wolf -> " << meet(*gracie, *willy)
+              << "\n"; // do not greet, run
     std::cout << "wolf meets cow -> " << meet(*willy, *gracie) << "\n"; // hunt
 
     std::unique_ptr<Animal> hobbes(make_tiger());
-    std::cout << "cow meets tiger -> " << meet(*gracie, *hobbes) << "\n"; // run
+    std::cout << "cow meets tiger -> " << meet(*gracie, *hobbes)
+              << "\n"; // do not greet, run
 
     return 0;
 }
