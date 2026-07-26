@@ -40,28 +40,28 @@ static_assert(!boost::mp11::mp_contains<
 
 #include <boost/openmethod.hpp>
 
-// Only the *import* side belongs in a header. BOOST_OPENMETHOD_IMPORT_REGISTRY
-// expands to an `extern template` declaration, which may be repeated freely.
+// Where each macro goes:
+//
+//          BOOST_OPENMETHOD_IMPORT_REGISTRY - header, every client TU
+//   extern BOOST_OPENMETHOD_EXPORT_REGISTRY - header, every owning-module TU
+//          BOOST_OPENMETHOD_EXPORT_REGISTRY - exactly one .cpp of the owner
+//
 // BOOST_OPENMETHOD_EXPORT_REGISTRY expands to an explicit instantiation
-// *definition*, of which a program may contain only one, so it belongs in a
-// .cpp file - lib.cpp, here - never in a header: every translation unit of the
-// owning module that included such a header would emit one. In a single
-// translation unit that is a hard error ("duplicate explicit instantiation");
-// across translation units it is ill-formed, no diagnostic required - ELF
-// toolchains happen to merge the COMDAT silently, which is not something to
-// rely on.
+// *definition*, so prefixing it with `extern` turns it into a *declaration*.
+// The two declaration forms may be repeated and so live here; the definition,
+// of which a program may contain only one, lives in a .cpp (lib.cpp) - never in
+// a header, where every TU of the owning module including it would emit one: a
+// hard error within one TU, and ill-formed no-diagnostic-required across TUs.
 //
-// Every translation unit of the module that owns the state defines
-// OWNS_REGISTRY_STATE before including this header, so that none of them
-// imports it; exactly one of them (lib.cpp) emits the export. Client modules
-// define nothing and import.
-//
-// NOTE: this library has a single translation unit. A multi-TU owning module
-// cannot currently be expressed with these macros under hidden visibility: the
-// TUs that do not emit the export implicitly instantiate the state as a hidden
-// COMDAT, and ELF merges COMDATs with the most restrictive visibility, so the
-// symbol ends up local and clients fail to link.
-#if !defined(OWNS_REGISTRY_STATE)
+// The `extern` form is what makes a multi-TU owning module work. Without it, a
+// TU of the owner that does not emit the export instantiates the state
+// implicitly; under -fvisibility=hidden that copy is module-local, ELF merges
+// COMDATs at the most restrictive visibility, and the symbol ends up local so
+// clients cannot link. lib2.cpp is a second TU of this library precisely to
+// keep that path covered.
+#if defined(OWNS_REGISTRY_STATE)
+extern BOOST_OPENMETHOD_EXPORT_REGISTRY(custom_registry);
+#else
 BOOST_OPENMETHOD_IMPORT_REGISTRY(custom_registry);
 #endif
 

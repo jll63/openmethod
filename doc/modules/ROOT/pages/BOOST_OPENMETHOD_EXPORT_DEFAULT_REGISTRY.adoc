@@ -28,6 +28,15 @@ NOTE: An explicit instantiation definition may appear only once in the
 program. Define this macro in exactly one translation unit of the owning
 module; all other translation units, in every module, use the `IMPORT` macro.
 
+IMPORTANT: if the owning module has more than one translation unit, each of
+the others must define `BOOST_OPENMETHOD_DECLARE_EXPORT_DEFAULT_REGISTRY` instead, before including the same header.
+It emits an _exported explicit instantiation declaration_, which both
+suppresses implicit instantiation and pins the symbol to default visibility.
+Without it, those translation units instantiate the state implicitly; under
+`-fvisibility=hidden` that copy is module-local, and since ELF merges COMDATs
+at the most restrictive visibility the whole symbol becomes local and clients
+fail to link. A module with a single translation unit needs only this macro.
+
 On ELF platforms, the macro pair can be omitted altogether if the program is
 not built with hidden visibility. Under `-fvisibility=hidden`, it is required,
 as on Windows.

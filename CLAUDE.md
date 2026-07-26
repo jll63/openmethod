@@ -234,9 +234,21 @@ client TU. **`EXPORT` must go in a `.cpp`, never in a header** — it is an expl
 *definition*, so every TU of the owning module that included such a header would emit one (a hard
 "duplicate explicit instantiation" error within one TU; ill-formed no-diagnostic-required across
 TUs — ELF toolchains merge the COMDAT silently, so the mistake hides until the module gains a
-second TU). `IMPORT` is an `extern template` declaration and belongs in the registry's header,
-guarded so the owning module's TUs skip it. See
-`test/implicit_shared_libraries/custom_registry/` for the worked pattern. They live in `macros.hpp` (which pulls in `core.hpp`), so `default_registry.hpp` — which
+second TU). `IMPORT` is an `extern template` declaration and belongs in the registry's header.
+
+**Multi-TU owning modules need the `extern` form**: `EXPORT` expands to an explicit instantiation
+definition, so `extern BOOST_OPENMETHOD_EXPORT_REGISTRY(REGISTRY);` is a *declaration* — exported,
+so it both suppresses implicit instantiation and pins default visibility. It goes in the header, in
+every TU of the owning module. (The predefined registries are driven by define-before-include
+tokens, where the `extern` trick is unavailable, so they have a third token instead:
+`BOOST_OPENMETHOD_DECLARE_EXPORT_{DEFAULT,INDIRECT}_REGISTRY`.) It is load-bearing: a TU of the owner that neither exports nor declares the
+export instantiates the state implicitly, and under `-fvisibility=hidden` that copy is module-local
+— ELF merges COMDATs at the *most restrictive* visibility, so the merged symbol becomes local, the
+module exports nothing, and clients fail to link with an undefined reference to
+`registry_state<...>::st`. So: `IMPORT` in client headers, `extern EXPORT` in the owner's header,
+plain `EXPORT` in exactly one of the owner's `.cpp` files. A single-TU owner needs only `EXPORT`. See
+`test/implicit_shared_libraries/custom_registry/` for the worked pattern — `lib2.cpp` exists solely
+to keep the multi-TU path covered. They live in `macros.hpp` (which pulls in `core.hpp`), so `default_registry.hpp` — which
 sits below `macros.hpp` in the include layering and includes only `preamble.hpp` + policies — cannot
 use them and keeps its own hand-written `#ifdef`-guarded blocks.
 

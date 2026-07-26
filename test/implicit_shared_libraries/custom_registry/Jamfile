@@ -21,7 +21,7 @@ import testing ;
 # state - from lib.cpp, not from a header: the export is an explicit
 # instantiation definition and a program may contain only one (see registry.hpp).
 lib boost_openmethod-isl_custom_lib
-    : lib.cpp
+    : lib.cpp lib2.cpp
     : <link>shared
     ;
 

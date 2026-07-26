@@ -14,17 +14,23 @@ must be truly global: a single copy, shared by all the modules.
 All of a registry's mutable state lives in a single variable. Sharing a
 registry across modules therefore means sharing that one symbol: the _owning_
 module exports it, and every _client_ module imports it. For
-`default_registry`, two macros control this:
+`default_registry`, three macros control this:
 
 - `BOOST_OPENMETHOD_EXPORT_DEFAULT_REGISTRY` -- defined in _exactly one_
   translation unit of the owning module, it emits an explicit instantiation of
   the registry state, decorated for export.
+- `BOOST_OPENMETHOD_DECLARE_EXPORT_DEFAULT_REGISTRY` -- defined in every _other_
+  translation unit of the owning module, it emits an exported `extern template`
+  declaration. This both suppresses implicit instantiation and pins the symbol
+  to default visibility; it is required as soon as the owning module has more
+  than one translation unit (see the warning under <<Custom Registries>>).
 - `BOOST_OPENMETHOD_IMPORT_DEFAULT_REGISTRY` -- defined in every client
   translation unit, it emits an `extern template` declaration, decorated for
   import, so clients reference the owner's symbol instead of instantiating
   their own copy.
 
-Either macro must be defined _before_ including
+A module with a single translation unit needs only the first (or, if it is a
+client, only the last). Any of these macros must be defined _before_ including
 `<boost/openmethod/default_registry.hpp>` (directly or via
 `<boost/openmethod.hpp>`). The same two macros work on all platforms; the
 <<implementation_notes>> section explains what they expand to, and when they can be
@@ -207,9 +213,11 @@ module suppresses the import; exactly one of them emits the export:
 // my_registry.hpp
 struct my_registry : boost::openmethod::registry</* policies... */> {};
 
-// Client modules import the state. Every translation unit of the module that
-// owns it defines MY_MODULE_OWNS_REGISTRY before including this header.
-#ifndef MY_MODULE_OWNS_REGISTRY
+// Every translation unit of the module that owns the state defines
+// MY_MODULE_OWNS_REGISTRY before including this header; client modules do not.
+#ifdef MY_MODULE_OWNS_REGISTRY
+extern BOOST_OPENMETHOD_EXPORT_REGISTRY(my_registry);
+#else
 BOOST_OPENMETHOD_IMPORT_REGISTRY(my_registry);
 #endif
 ----
@@ -229,6 +237,16 @@ when a second one is added. Two explicit instantiation definitions in the same
 translation unit are a hard error; in different translation units they are
 ill-formed, no diagnostic required - some toolchains merge them quietly, others
 fail to link.
+
+WARNING: the `extern` form is what makes a multi-translation-unit owning module
+work, and omitting it fails in the opposite direction: a translation unit of the owner that neither exports nor
+declares the export instantiates the state implicitly. Under
+`-fvisibility=hidden` that copy is module-local, and because ELF merges COMDATs
+at the _most restrictive_ visibility, the merged symbol becomes local - the
+module builds, exports nothing, and clients fail to link with an undefined
+reference to `registry_state<...>::st`. The predefined registries have the same
+requirement, via `BOOST_OPENMETHOD_DECLARE_EXPORT_DEFAULT_REGISTRY` and
+`BOOST_OPENMETHOD_DECLARE_EXPORT_INDIRECT_REGISTRY`.
 
 The macros expand to the same exported explicit instantiation and imported
 `extern template` declaration of `my_registry`'s state that the

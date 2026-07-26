@@ -78,8 +78,21 @@ struct default_registry
 // An explicit instantiation definition may appear only once in the program,
 // so BOOST_OPENMETHOD_EXPORT_DEFAULT_REGISTRY must be compiled in exactly one
 // translation unit of the owning module.
+//
+// If the owning module has *other* translation units, each of them must define
+// BOOST_OPENMETHOD_DECLARE_EXPORT_DEFAULT_REGISTRY, which emits an exported
+// explicit instantiation *declaration*. Like the import side it suppresses
+// implicit instantiation, and it pins the symbol to default visibility. Without
+// it such a translation unit instantiates the state implicitly; under
+// -fvisibility=hidden that copy is module-local, and since ELF merges COMDATs
+// at the most restrictive visibility, the whole symbol becomes local and
+// clients fail to link. A single-translation-unit owner needs only the EXPORT
+// token.
 #if defined(BOOST_OPENMETHOD_EXPORT_DEFAULT_REGISTRY)
 template struct BOOST_SYMBOL_EXPORT
+    registry_state<default_registry::registry_type>;
+#elif defined(BOOST_OPENMETHOD_DECLARE_EXPORT_DEFAULT_REGISTRY)
+extern template struct BOOST_SYMBOL_EXPORT
     registry_state<default_registry::registry_type>;
 #elif defined(BOOST_OPENMETHOD_IMPORT_DEFAULT_REGISTRY)
 extern template struct BOOST_SYMBOL_IMPORT
@@ -112,6 +125,9 @@ struct indirect_registry : default_registry::with<policies::indirect_vptr> {};
 // of the owning module.
 #if defined(BOOST_OPENMETHOD_EXPORT_INDIRECT_REGISTRY)
 template struct BOOST_SYMBOL_EXPORT
+    registry_state<indirect_registry::registry_type>;
+#elif defined(BOOST_OPENMETHOD_DECLARE_EXPORT_INDIRECT_REGISTRY)
+extern template struct BOOST_SYMBOL_EXPORT
     registry_state<indirect_registry::registry_type>;
 #elif defined(BOOST_OPENMETHOD_IMPORT_INDIRECT_REGISTRY)
 extern template struct BOOST_SYMBOL_IMPORT

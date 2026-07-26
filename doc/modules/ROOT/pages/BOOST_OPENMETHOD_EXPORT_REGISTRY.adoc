@@ -54,7 +54,33 @@ merge the duplicates quietly, others fail to link. A header carrying the
 export therefore appears to work right up until the owning module gains a
 second translation unit.
 
-All other translation units, in every module, use
+### Multiple translation units in the owning module
+
+The macro expands to an explicit instantiation _definition_, so prefixing it
+with `extern` turns it into a _declaration_:
+
+[source,c++]
+----
+// my_registry.hpp - every translation unit of the owning module
+extern BOOST_OPENMETHOD_EXPORT_REGISTRY(my_registry);
+----
+
+Like the import side this suppresses implicit instantiation, and it also pins
+the symbol to default visibility (`__declspec(dllexport)` on Windows). It is
+required as soon as the owning module has more than one translation unit: every
+one of them takes the `extern` form, and exactly one `.cpp` additionally emits
+the plain form. A module with a single translation unit needs only the plain
+form.
+
+IMPORTANT: omitting the `extern` declaration in a multi-translation-unit owning
+module produces a module that appears to build but does not export the state. A
+translation unit of the owner that neither exports nor declares the export
+instantiates the state implicitly; under `-fvisibility=hidden` that copy is
+module-local, and because ELF merges COMDATs at the _most restrictive_
+visibility, the merged symbol becomes local. Clients then fail to link with an
+undefined reference to `registry_state<...>::st`.
+
+Translation units of _client_ modules use
 xref:BOOST_OPENMETHOD_IMPORT_REGISTRY.adoc[BOOST_OPENMETHOD_IMPORT_REGISTRY],
 which is an `extern template` declaration and may safely live in a header.
 

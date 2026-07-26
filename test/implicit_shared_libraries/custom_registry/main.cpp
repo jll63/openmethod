@@ -18,7 +18,7 @@
 
 using namespace boost::openmethod;
 
-BOOST_OPENMETHOD_CLASSES(Animal, Dog, Cat);
+BOOST_OPENMETHOD_CLASSES(Animal, Dog, Cat, Cow);
 
 // Registered by the executable; the library knows nothing about it.
 BOOST_OPENMETHOD_OVERRIDE(speak, (virtual_ptr<Cat>), const char*) {
@@ -50,6 +50,13 @@ BOOST_AUTO_TEST_CASE(shared_registry_state) {
     auto cat = make_unique_virtual<Cat>();
     BOOST_TEST(std::string(lib_speak(cat)) == "meow");
     BOOST_TEST(std::string(speak(cat)) == "meow");
+
+    // lib2.cpp is a second translation unit of the same owning library. Its
+    // overrider must be in the tables too - and the library only exports the
+    // state at all because registry.hpp gave that TU an exported declaration.
+    auto cow = lib_make_cow();
+    BOOST_TEST(std::string(speak(cow)) == "moo");
+    BOOST_TEST(std::string(lib_speak(cow)) == "moo");
 
     // A plain Animal falls back to the library's base overrider.
     auto animal = make_unique_virtual<Animal>();

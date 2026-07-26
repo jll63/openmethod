@@ -1064,7 +1064,9 @@ struct initialize_aux;
 //! program may contain only one, and belongs in a `.cpp`:
 //! @code
 //! // my_registry.hpp
-//! #ifndef MY_MODULE_OWNS_REGISTRY
+//! #ifdef MY_MODULE_OWNS_REGISTRY
+//! extern BOOST_OPENMETHOD_EXPORT_REGISTRY(my_registry);
+//! #else
 //! BOOST_OPENMETHOD_IMPORT_REGISTRY(my_registry);
 //! #endif
 //!

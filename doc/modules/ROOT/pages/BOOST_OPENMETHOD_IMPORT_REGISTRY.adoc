@@ -11,9 +11,9 @@ BOOST_OPENMETHOD_IMPORT_REGISTRY(registry);
 ----
 
 Used at namespace scope, after the registry's definition, in every translation
-unit of every module that uses the registry without owning it. Being a
-declaration, it may be repeated, so it is normally placed in the header that
-defines the registry.
+unit of every module that uses the registry without owning it. It already
+includes the `extern` - an import is always a declaration - so it may be
+repeated, and is normally placed in the header that defines the registry.
 
 ## Description
 
@@ -47,7 +47,9 @@ struct my_registry : boost::openmethod::registry</* policies... */> {};
 // Every translation unit of the module that owns the state defines
 // MY_MODULE_OWNS_REGISTRY before including this header; exactly one of them
 // emits the matching BOOST_OPENMETHOD_EXPORT_REGISTRY, in a .cpp file.
-#ifndef MY_MODULE_OWNS_REGISTRY
+#ifdef MY_MODULE_OWNS_REGISTRY
+extern BOOST_OPENMETHOD_EXPORT_REGISTRY(my_registry);
+#else
 BOOST_OPENMETHOD_IMPORT_REGISTRY(my_registry);
 #endif
 ----

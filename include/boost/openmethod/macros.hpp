@@ -179,23 +179,18 @@ inline constexpr bool method_not_found = false;
 // registry's mutable state lives in a single variable,
 // registry_state<REGISTRY::registry_type>::st (see registry_state in
 // preamble.hpp); these macros emit the explicit instantiation that turns it
-// into a single shared symbol. The owning module emits an exported explicit
-// instantiation *definition* with BOOST_OPENMETHOD_EXPORT_REGISTRY, in exactly
-// one translation unit; every client module emits an imported `extern template`
-// declaration with BOOST_OPENMETHOD_IMPORT_REGISTRY, so it references the
-// owner's symbol instead of instantiating its own copy. Use them at namespace
-// scope, after the registry's definition, with a trailing `;`.
+// into a single shared symbol. Use them at namespace scope, after the
+// registry's definition, with a trailing `;`.
 //
-// They go in different places. IMPORT is an `extern template` declaration and
-// may be repeated, so it belongs in the header that defines the registry.
-// EXPORT is an explicit instantiation *definition*, of which a program may
-// contain only one, so it belongs in a .cpp - never in a header, where every
-// translation unit of the owning module that included it would emit one (a
-// hard error within one TU; ill-formed, no diagnostic required across TUs):
+// BOOST_OPENMETHOD_EXPORT_REGISTRY expands to an explicit instantiation
+// *definition*, so it can also be prefixed with `extern` to make it a
+// *declaration*. That gives the three placements needed:
 //
 //     // my_registry.hpp
 //     struct my_registry : boost::openmethod::registry</* ... */> {};
-//     #ifndef MY_MODULE_OWNS_REGISTRY
+//     #ifdef MY_MODULE_OWNS_REGISTRY
+//     extern BOOST_OPENMETHOD_EXPORT_REGISTRY(my_registry);
+//     #else
 //     BOOST_OPENMETHOD_IMPORT_REGISTRY(my_registry);
 //     #endif
 //
@@ -204,10 +199,29 @@ inline constexpr bool method_not_found = false;
 //     #include "my_registry.hpp"
 //     BOOST_OPENMETHOD_EXPORT_REGISTRY(my_registry);
 //
-// The predefined registries have their own dedicated pairs
-// (BOOST_OPENMETHOD_{EXPORT,IMPORT}_{DEFAULT,INDIRECT}_REGISTRY); this pair is
-// for user-defined registries. See shared_libraries.adoc for the full
-// discussion, including the required link setup.
+// The plain (definition) form is an explicit instantiation definition, of which
+// a program may contain only one, so it belongs in a .cpp - never in a header,
+// where every translation unit of the owning module including it would emit one
+// (a hard error within one TU; ill-formed, no diagnostic required across TUs).
+//
+// The `extern` form is what makes a multi-translation-unit owning module work,
+// and is required as soon as the owner has more than one. Like the import side
+// it suppresses implicit instantiation, and it pins the symbol to default
+// visibility / dllexport. Without it, a translation unit of the owner that does
+// not emit the export instantiates the state implicitly; under
+// -fvisibility=hidden that copy is module-local, ELF merges COMDATs at the
+// *most restrictive* visibility, and the result is a local symbol that clients
+// cannot link against. A single-translation-unit owner can use the plain form
+// alone.
+//
+// BOOST_OPENMETHOD_IMPORT_REGISTRY already includes the `extern`: an import is
+// always a declaration.
+//
+// The predefined registries are controlled by define-before-include tokens
+// instead, and so have a third one for this case:
+// BOOST_OPENMETHOD_{EXPORT,DECLARE_EXPORT,IMPORT}_{DEFAULT,INDIRECT}_REGISTRY.
+// See shared_libraries.adoc for the full discussion, including the required
+// link setup.
 #define BOOST_OPENMETHOD_EXPORT_REGISTRY(REGISTRY)                             \
     template struct BOOST_SYMBOL_EXPORT ::boost::openmethod::registry_state<   \
         REGISTRY::registry_type>

@@ -26,6 +26,9 @@ struct BOOST_SYMBOL_VISIBLE Dog : Animal {};
 
 struct BOOST_SYMBOL_VISIBLE Cat : Animal {};
 
+// Overridden in lib2.cpp, the library's second translation unit.
+struct BOOST_SYMBOL_VISIBLE Cow : Animal {};
+
 // Methods are consolidated across modules at initialize() time, so they need no
 // DLL decoration of their own. custom_registry is the default registry here
 // (registry.hpp defines BOOST_OPENMETHOD_DEFAULT_REGISTRY), so it does not have
@@ -53,5 +56,8 @@ LIB_API auto lib_speak(boost::openmethod::virtual_ptr<Animal> animal) -> const
     char*;
 
 LIB_API auto lib_make_dog() -> boost::openmethod::unique_virtual_ptr<Animal>;
+
+// Defined in lib2.cpp, a second translation unit of this library.
+LIB_API auto lib_make_cow() -> boost::openmethod::unique_virtual_ptr<Animal>;
 
 #endif

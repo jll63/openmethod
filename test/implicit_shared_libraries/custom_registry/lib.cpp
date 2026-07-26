@@ -8,33 +8,24 @@
 // this library, so on Windows the import-library dependency runs the usual way
 // (see the "Static Linking" section of shared_libraries.adoc).
 //
-// OWNS_REGISTRY_STATE suppresses the import declaration in registry.hpp; it is
-// defined by every translation unit of this library (see also lib2.cpp).
+// OWNS_REGISTRY_STATE selects the `extern BOOST_OPENMETHOD_EXPORT_REGISTRY`
+// declaration in registry.hpp; it is defined by every translation unit of this
+// library (see also lib2.cpp).
 #define OWNS_REGISTRY_STATE
-
-// Only the registry's definition, so that the export below is the first thing
-// in this translation unit that mentions the state.
-#include "registry.hpp"
-
-// The export is an explicit instantiation *definition*, so it must appear
-// exactly once in the program: in a .cpp, never in a header. This is that one
-// place.
-//
-// It must also precede anything that uses the registry. A use would implicitly
-// instantiate the state first, and under -fvisibility=hidden that instantiation
-// is a module-local symbol; the BOOST_SYMBOL_EXPORT on a later explicit
-// instantiation definition then arrives too late to promote it, leaving the
-// library with a private copy and clients with an unresolved reference. Hence
-// the split include: registry.hpp above, lib.hpp (which declares the method)
-// below.
-BOOST_OPENMETHOD_EXPORT_REGISTRY(custom_registry);
-
 #define LIB_SOURCE
+
 #include "lib.hpp"
+
+// The export is an explicit instantiation *definition*, so a program may
+// contain only one: it belongs in a .cpp, never in a header, and this is that
+// one place. The matching exported *declaration* in registry.hpp has already
+// been seen by this point, in this and every other translation unit of the
+// library, which is what keeps the symbol at default visibility.
+BOOST_OPENMETHOD_EXPORT_REGISTRY(custom_registry);
 
 using namespace boost::openmethod;
 
-BOOST_OPENMETHOD_CLASSES(Animal, Dog, Cat);
+BOOST_OPENMETHOD_CLASSES(Animal, Dog, Cat, Cow);
 
 BOOST_OPENMETHOD_OVERRIDE(speak, (virtual_ptr<Animal>), const char*) {
     return "?";
