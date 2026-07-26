@@ -4,20 +4,17 @@
 # or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 # Dynamic loading with indirect virtual_ptrs, which stay valid across the
-# initialize() call that follows loading. Same layout as dynamic_loading, with
-# every target compiled against indirect_registry; main.cpp and extensions.cpp
-# use the BOOST_OPENMETHOD_{EXPORT,IMPORT}_INDIRECT_REGISTRY pair accordingly.
+# initialize() call that follows loading. Same layout as dynamic_loading; the
+# registry is selected in animals.hpp, which defines
+# BOOST_OPENMETHOD_DEFAULT_REGISTRY to indirect_registry, so no target here
+# needs a compile definition.
 
 add_executable(boost_openmethod-indirect main.cpp)
-target_compile_definitions(boost_openmethod-indirect
-    PRIVATE BOOST_OPENMETHOD_DEFAULT_REGISTRY=indirect_registry)
 set_target_properties(boost_openmethod-indirect PROPERTIES ENABLE_EXPORTS ON)
 target_link_libraries(boost_openmethod-indirect
     PRIVATE Boost::openmethod Boost::dll)
 
 add_library(boost_openmethod-indirect_shared SHARED extensions.cpp)
-target_compile_definitions(boost_openmethod-indirect_shared
-    PRIVATE BOOST_OPENMETHOD_DEFAULT_REGISTRY=indirect_registry)
 target_link_libraries(boost_openmethod-indirect_shared
     PRIVATE Boost::openmethod boost_openmethod-indirect)
 

@@ -12,6 +12,8 @@
 // animals.hpp
 
 #include <string>
+
+#define BOOST_OPENMETHOD_DEFAULT_REGISTRY boost::openmethod::indirect_registry
 #include <boost/openmethod.hpp>
 
 #ifdef OWNS_REGISTRY_STATE

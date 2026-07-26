@@ -213,27 +213,36 @@ of their execution.
 Otherwise, indirect v-table pointers must be used. This is achieved by using a
 registry that contains the cpp:indirect_vptr[] policy.
 `<boost/openmethod/default_registry.hpp>` provides an cpp:indirect_registry[]
-that has the same policies as `default_registry`, plus `indirect_vptr`. We can
-use it to override the default registry, for example using a compiler
-command-line switch (`-DBOOST_OPENMETHOD_DEFAULT_REGISTRY=indirect_registry`).
+that has the same policies as `default_registry`, plus `indirect_vptr`. Make it
+the registry the `BOOST_OPENMETHOD` macros use by defining
+xref:BOOST_OPENMETHOD_DEFAULT_REGISTRY.adoc[BOOST_OPENMETHOD_DEFAULT_REGISTRY]
+_before_ including `<boost/openmethod.hpp>`.
 
-cpp:indirect_registry[] has its own state, shared with the same two macros -
-just name `indirect_registry` instead of `default_registry`.
+The `indirect_vptr` example does that in the header both modules share, rather
+than passing a compiler switch from the build system. One place then settles
+both questions - which registry the program uses, and how its state is shared -
+and no translation unit can accidentally disagree:
 
-Here is an example of a program that carries `virtual_ptr`{empty}s across
-`initialize` calls. Note that, since the registry in use is now
-`indirect_registry`, the `INDIRECT` macro pair is used to share its state:
+[source,c++]
+----
+include::{shared}/indirect_vptr/animals.hpp[tag=content]
+----
+
+cpp:indirect_registry[] has its own state, separate from `default_registry`'s,
+and it is shared with the same two macros: just name `indirect_registry`, as
+above.
+
+Here is a program that carries `virtual_ptr`{empty}s across `initialize` calls.
+It owns the state, so it defines `OWNS_REGISTRY_STATE` and emits the definition:
 
 [source,c++]
 ----
 include::{shared}/indirect_vptr/main.cpp[tag=content]
 ----
 
-This program loads a shared library that is itself compiled with
-`-DBOOST_OPENMETHOD_DEFAULT_REGISTRY=indirect_registry`, and imports the
-registry state with
-`BOOST_OPENMETHOD_IMPORT_REGISTRY(boost::openmethod::indirect_registry)`. The
-complete example is in the `indirect_vptr` directory.
+The shared library it loads includes the same header, so it uses
+`indirect_registry` too and imports the state. The complete example is in the
+`indirect_vptr` directory.
 
 ## Custom Registries
 
