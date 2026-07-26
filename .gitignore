@@ -1,7 +1,9 @@
+.cache
 .hrefs
 .rtags
 build/
 builds/
+build-*/
 **/#*#
 dependencies/*
 Dependencies/*
