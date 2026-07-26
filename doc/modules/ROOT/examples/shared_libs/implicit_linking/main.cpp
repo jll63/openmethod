@@ -13,9 +13,6 @@
 
 using namespace boost::openmethod::aliases;
 
-// The shared library (extensions.cpp) owns the registry state; this executable
-// does not define OWNS_REGISTRY_STATE, so animals.hpp imported it.
-
 BOOST_OPENMETHOD_OVERRIDE(
     meet, (virtual_ptr<Animal>, virtual_ptr<Animal>), std::string) {
     return "greet";

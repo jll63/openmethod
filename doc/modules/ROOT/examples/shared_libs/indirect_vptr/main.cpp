@@ -6,11 +6,6 @@
 // tag::content[]
 // main.cpp
 
-// This program is compiled with
-// -DBOOST_OPENMETHOD_DEFAULT_REGISTRY=indirect_registry, so the registry in use
-// is indirect_registry, and it is indirect_registry's state that is shared.
-//
-// This executable owns that state; the library it loads imports it.
 #define OWNS_REGISTRY_STATE
 
 #include "animals.hpp"
@@ -23,7 +18,6 @@
 
 using namespace boost::openmethod::aliases;
 
-// The definition of the shared state, in the one translation unit that owns it.
 BOOST_OPENMETHOD_EXPORT_REGISTRY(boost::openmethod::indirect_registry);
 
 BOOST_OPENMETHOD_OVERRIDE(

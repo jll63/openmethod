@@ -10,9 +10,6 @@
 
 using namespace boost::openmethod;
 
-// The main program owns the registry state; this library does not define
-// OWNS_REGISTRY_STATE, so animals.hpp imported it.
-
 BOOST_OPENMETHOD_OVERRIDE(
     meet, (virtual_ptr<Herbivore> a, virtual_ptr<Carnivore> b), std::string) {
     auto p = BOOST_OPENMETHOD_TYPE(

@@ -6,7 +6,6 @@
 // tag::before[]
 // main.cpp
 
-// This executable owns the registry state; the library it loads imports it.
 #define OWNS_REGISTRY_STATE
 
 #include "animals.hpp"
@@ -19,7 +18,6 @@
 
 using namespace boost::openmethod;
 
-// The definition of the shared state, in the one translation unit that owns it.
 BOOST_OPENMETHOD_EXPORT_REGISTRY(boost::openmethod::default_registry);
 
 BOOST_OPENMETHOD_CLASSES(Herbivore, Cow, Carnivore, Wolf);
