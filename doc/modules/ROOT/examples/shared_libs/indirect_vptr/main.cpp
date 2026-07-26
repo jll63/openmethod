@@ -8,7 +8,7 @@
 // under use is indirect_registry, and the INDIRECT macro pair applies.
 
 // tag::content[]
-// indirect_main.cpp
+// main.cpp
 
 #define BOOST_OPENMETHOD_EXPORT_INDIRECT_REGISTRY
 

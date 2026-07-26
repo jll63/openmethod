@@ -255,7 +255,10 @@ use them and keeps its own hand-written `#ifdef`-guarded blocks.
 **Methods need no decoration**: method objects are *consolidated* across modules at `initialize()`
 time, not shared via a single symbol, so `BOOST_OPENMETHOD(...)` takes no declspec argument.
 
-See `doc/modules/ROOT/examples/shared_libs/` and `test/dynamic_loading/` for complete examples.
+See `doc/modules/ROOT/examples/shared_libs/` — one self-contained example per subdirectory
+(`implicit_linking/`, `dynamic_loading/`, `indirect_vptr/`), each with its own `animals.hpp`,
+`main.cpp` and `extensions.cpp` so every file spells out its export/import macro unconditionally —
+plus `test/dynamic_loading/` and `test/implicit_shared_libraries/` for the tests.
 
 **Dynamic Loading Test** (`test/dynamic_loading/`): verifies that the registry state is a single
 shared symbol across modules. `registry_state_id()` (in `registry.hpp`) returns the registry-state

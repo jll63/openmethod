@@ -53,9 +53,9 @@ one stated above: one module owns the registry state, the others import it.
 
 The natural arrangement is for the shared library to own the registry: the
 program already links against the library, so, on Windows, the import library
-dependency runs in the usual direction. The `static_main.cpp` and
-`static_extensions.cpp` modules in the examples directory demonstrate this
-arrangement.
+dependency runs in the usual direction. The `implicit_linking` example
+demonstrates this arrangement; its `extensions.cpp` (the library) exports the
+state and its `main.cpp` (the executable) imports it.
 
 ## Dynamic Linking
 
@@ -77,7 +77,7 @@ and the dynamically loaded library. It defines the class hierarchy and the
 
 [source,c++]
 ----
-include::{shared}/animals.hpp[tag=content]
+include::{shared}/dynamic_loading/animals.hpp[tag=content]
 ----
 
 The main program owns the registry state, so it defines the `EXPORT` macro -
@@ -86,7 +86,7 @@ catch-all overrider, then calls the `meet` method:
 
 [source,c++]
 ----
-include::{shared}/dynamic_main.cpp[tag=before]
+include::{shared}/dynamic_loading/main.cpp[tag=before]
 ----
 
 The shared library imports the registry state. It adds two overriders, a new
@@ -94,7 +94,7 @@ class, `Tiger`, and a factory function:
 
 [source,c++]
 ----
-include::{shared}/extensions.cpp[tag=content]
+include::{shared}/dynamic_loading/extensions.cpp[tag=content]
 ----
 
 We load the shared library using Boost.DLL. After calling `initialize`, the new
@@ -103,7 +103,7 @@ though it has no knowledge of that class at compile time.
 
 [source,c++]
 ----
-include::{shared}/dynamic_main.cpp[tag=load]
+include::{shared}/dynamic_loading/main.cpp[tag=load]
 ----
 
 Finally, we unload the shared library and call `initialize` again. The
@@ -111,7 +111,7 @@ overriders provided by the shared library are removed from the method.
 
 [source,c++]
 ----
-include::{shared}/dynamic_main.cpp[tag=unload]
+include::{shared}/dynamic_loading/main.cpp[tag=unload]
 ----
 
 NOTE: `dlclose` does not necessarily unload the library when using gcc's
@@ -132,7 +132,7 @@ the typical linking direction:
 
 [source,cmake]
 ----
-add_executable(my_app dynamic_main.cpp)
+add_executable(my_app main.cpp)
 set_target_properties(my_app PROPERTIES ENABLE_EXPORTS ON)
 target_link_libraries(my_app Boost::openmethod Boost::dll)
 
@@ -183,12 +183,13 @@ Here is an example of a program that carries `virtual_ptr`{empty}s across
 
 [source,c++]
 ----
-include::{shared}/indirect_main.cpp[tag=content]
+include::{shared}/indirect_vptr/main.cpp[tag=content]
 ----
 
 This program loads a shared library that is itself compiled with
 `-DBOOST_OPENMETHOD_DEFAULT_REGISTRY=indirect_registry`, and imports the
-registry state with `BOOST_OPENMETHOD_IMPORT_INDIRECT_REGISTRY`.
+registry state with `BOOST_OPENMETHOD_IMPORT_INDIRECT_REGISTRY`. The complete
+example is in the `indirect_vptr` directory.
 
 ## Custom Registries
 

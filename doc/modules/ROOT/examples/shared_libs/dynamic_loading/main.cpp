@@ -4,7 +4,7 @@
 // http://www.boost.org/LICENSE_1_0.txt)
 
 // tag::before[]
-// dynamic_main.cpp
+// main.cpp
 
 #define BOOST_OPENMETHOD_EXPORT_DEFAULT_REGISTRY
 

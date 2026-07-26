@@ -4,9 +4,9 @@
 // http://www.boost.org/LICENSE_1_0.txt)
 
 // tag::content[]
-// static_main.cpp
+// main.cpp
 
-// The shared library (static_extensions.cpp) owns the registry state; the
+// The shared library (extensions.cpp) owns the registry state; this
 // executable imports it.
 #define BOOST_OPENMETHOD_IMPORT_DEFAULT_REGISTRY
 
