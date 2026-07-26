@@ -602,7 +602,12 @@ inline auto final_virtual_ptr(Arg&& obj) {
         auto static_type = Registry::rtti::template static_type<Class>();
         auto dynamic_type = Registry::rtti::dynamic_type(Traits::peek(obj));
 
-        if (dynamic_type != static_type) {
+        // Compare through type_index, never the type_ids themselves: the same
+        // class has one type_id per module, so an object created in another
+        // module yields a different type_id than this module's static_type and
+        // a raw comparison would abort on a perfectly valid pointer.
+        if (Registry::rtti::type_index(dynamic_type) !=
+            Registry::rtti::type_index(static_type)) {
             if constexpr (is_not_void<typename Registry::error_handler>) {
                 final_error error;
                 error.static_type = static_type;

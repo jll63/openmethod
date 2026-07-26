@@ -49,6 +49,10 @@ BOOST_OPENMETHOD(speak, (boost::openmethod::virtual_ptr<Animal>), const char*);
 // executable sees.
 LIB_API auto lib_registry_state_id() -> const void*;
 
+// Diagnostic: the &typeid(method<...>) that augment_methods() groups the
+// per-module copies of `speak` by, as seen from inside the library.
+LIB_API auto lib_speak_method_type_id() -> const void*;
+
 // Dispatch performed inside the library, on an object created in either module.
 LIB_API auto lib_speak(boost::openmethod::virtual_ptr<Animal> animal) -> const
     char*;

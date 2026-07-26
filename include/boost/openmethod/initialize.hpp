@@ -722,7 +722,8 @@ void registry<Policies...>::compiler<Options...>::augment_classes() {
             bool duplicate = false;
 
             for (auto ci : rtc->ci) {
-                if (ci->type == cr.type && ci->static_vptr == cr.static_vptr) {
+                if (rtti::type_index(ci->type) == rtti::type_index(cr.type) &&
+                    ci->static_vptr == cr.static_vptr) {
                     duplicate = true;
                     break;
                 }

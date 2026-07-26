@@ -29,6 +29,11 @@ BOOST_OPENMETHOD_OVERRIDE(speak, (virtual_ptr<Dog>), const char*) {
     return "woof";
 }
 
+auto lib_speak_method_type_id() -> const void* {
+    return &typeid(
+        BOOST_OPENMETHOD_TYPE(speak, (virtual_ptr<Animal>), const char*));
+}
+
 auto lib_registry_state_id() -> const void* {
     return default_registry::id();
 }
