@@ -9,7 +9,7 @@
 #include <boost/openmethod/preamble.hpp>
 
 #ifndef BOOST_NO_RTTI
-#include <typeindex>
+#include <string_view>
 #include <typeinfo>
 #include <boost/core/demangle.hpp>
 #endif
@@ -77,18 +77,30 @@ struct std_rtti : rtti {
         //! Returns a key that uniquely identifies a class.
         //!
         //! C++ does *not* guarantee that there is a single instance of
-        //! `std::type_info` per type. `std_rtti` uses the addresses of
-        //! `std::type_index` objects as `type_id`s. Thus, the same class may
-        //! have multiple corresponding `type_id`s. `std::type_index` objects,
-        //! on the other hand, are guaranteed to compare as equal iff they
-        //! correspond to the same class, and they can be used to identify the
-        //! `type_id`s pertaining to the same class.
+        //! `std::type_info` per type: a class used by several modules of a
+        //! program typically has one per module. `type_index` maps a `type_id`
+        //! to a key that compares equal for all the `type_id`s of one class,
+        //! which is what @ref initialize uses to group the registrations coming
+        //! from different modules.
+        //!
+        //! The key is the *name*, not the address and not a `std::type_index`.
+        //! `std::type_index` would delegate to `std::type_info::operator==`,
+        //! and that is only as good as the platform's RTTI uniqueness:
+        //! libstdc++ falls back to comparing names, but libc++ on Darwin
+        //! compares uniquely-named RTTI by address. There, two modules'
+        //! `type_info` objects for the same type compare *unequal* unless the
+        //! symbol happens to be exported and coalesced by dyld - which, for a
+        //! template like `method<Id, Signature, Registry>`, requires every
+        //! template argument to have default visibility as well. Under
+        //! `-fvisibility=hidden` that is not the case, the copies are not
+        //! grouped, each module's method keeps its own overrider list, and
+        //! calls report @ref no_overrider. Comparing names sidesteps the
+        //! platform's uniqueness rules entirely.
         //!
         //! @param type A `type_id`.
-        //! @return A `std::type_index` for `type` (cast to a `const std::type_info&`).
-        static auto type_index(type_id type) -> std::type_index {
-            return std::type_index(
-                *reinterpret_cast<const std::type_info*>(type));
+        //! @return The mangled name of the class identified by `type`.
+        static auto type_index(type_id type) -> std::string_view {
+            return reinterpret_cast<const std::type_info*>(type)->name();
         }
 
         //! Casts an object to a type.
