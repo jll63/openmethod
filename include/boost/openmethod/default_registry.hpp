@@ -37,16 +37,21 @@ namespace boost::openmethod {
 //! including those pulled from libraries.
 //!
 //! For a program and its shared libraries to contribute to the same
-//! `default_registry`, its state must be shared across the modules, with
-//! {{BOOST_OPENMETHOD_EXPORT_REGISTRY}} and
-//! {{BOOST_OPENMETHOD_IMPORT_REGISTRY}}:
+//! `default_registry`, its state must be shared across the modules. Write the
+//! explicit instantiations yourself; the visibility attribute goes on the
+//! *declaration*, and the single definition carries none:
 //! @code
 //! // header, every translation unit of a client module:
-//! BOOST_OPENMETHOD_IMPORT_REGISTRY(boost::openmethod::default_registry);
+//! extern template struct BOOST_SYMBOL_IMPORT
+//!     boost::openmethod::registry_state<
+//!         boost::openmethod::default_registry::registry_type>;
 //! // header, every translation unit of the owning module:
-//! extern BOOST_OPENMETHOD_EXPORT_REGISTRY(boost::openmethod::default_registry);
-//! // exactly one .cpp of the owning module:
-//! BOOST_OPENMETHOD_EXPORT_REGISTRY(boost::openmethod::default_registry);
+//! extern template struct BOOST_SYMBOL_EXPORT
+//!     boost::openmethod::registry_state<
+//!         boost::openmethod::default_registry::registry_type>;
+//! // exactly one .cpp of the owning module (no attribute):
+//! template struct boost::openmethod::registry_state<
+//!     boost::openmethod::default_registry::registry_type>;
 //! @endcode
 struct default_registry
     : registry<
@@ -73,9 +78,7 @@ static odr_check<default_registry> default_registry_odr_check_instance;
 //!
 //! `indirect_registry` has its own state, separate from `default_registry`'s.
 //! Share it across shared libraries exactly as for @ref default_registry,
-//! naming `indirect_registry` in the
-//! {{BOOST_OPENMETHOD_EXPORT_REGISTRY}} /
-//! {{BOOST_OPENMETHOD_IMPORT_REGISTRY}} macros.
+//! naming `indirect_registry` in the explicit instantiations.
 //!
 //! @see indirect_vptr.
 struct indirect_registry : default_registry::with<policies::indirect_vptr> {};

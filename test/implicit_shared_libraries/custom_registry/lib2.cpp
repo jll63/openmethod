@@ -5,8 +5,8 @@
 
 // A second translation unit of the library that owns the registry state. It
 // makes this a multi-TU owning module, the configuration that requires the
-// `extern BOOST_OPENMETHOD_EXPORT_REGISTRY` declaration: without the one
-// registry.hpp emits here, this translation unit would instantiate the state
+// exported declaration: without the one registry.hpp emits here, this
+// translation unit would instantiate the state
 // implicitly, and under -fvisibility=hidden that module-local copy would demote
 // the merged symbol to local, leaving main.cpp unable to link.
 //

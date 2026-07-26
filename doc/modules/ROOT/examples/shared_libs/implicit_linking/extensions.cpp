@@ -12,26 +12,13 @@
 
 using namespace boost::openmethod;
 
-BOOST_OPENMETHOD_EXPORT_REGISTRY(boost::openmethod::default_registry);
+template struct boost::openmethod::registry_state<
+    boost::openmethod::default_registry::registry_type>;
+
+BOOST_OPENMETHOD_CLASSES(Animal, Herbivore, Cow, Carnivore, Wolf);
 
 BOOST_OPENMETHOD_OVERRIDE(
-    meet, (virtual_ptr<Herbivore> a, virtual_ptr<Carnivore> b), std::string) {
-    auto base = next(a, b);
-    return "do not " + base + ", run";
-}
-
-BOOST_OPENMETHOD_OVERRIDE(
-    meet, (virtual_ptr<Carnivore>, virtual_ptr<Herbivore>), std::string) {
-    return "hunt";
-}
-
-struct Tiger : Carnivore {};
-
-BOOST_OPENMETHOD_CLASSES(Tiger, Carnivore);
-
-extern "C" {
-BOOST_SYMBOL_EXPORT auto make_tiger() -> Animal* {
-    return new Tiger;
-}
+    meet, (virtual_ptr<Animal>, virtual_ptr<Animal>), std::string) {
+    return "greet";
 }
 // end::content[]

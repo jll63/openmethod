@@ -6,11 +6,10 @@
 // This library owns and exports the registry state; main.cpp imports it. That
 // is the natural direction for implicit linking: the executable already links
 // this library, so on Windows the import-library dependency runs the usual way
-// (see the "Static Linking" section of shared_libraries.adoc).
+// (see the "Implicit Linking" section of shared_libraries.adoc).
 //
-// OWNS_REGISTRY_STATE selects the `extern BOOST_OPENMETHOD_EXPORT_REGISTRY`
-// declaration in registry.hpp; it is defined by every translation unit of this
-// library (see also lib2.cpp).
+// OWNS_REGISTRY_STATE selects the exported declaration in registry.hpp; it is
+// defined by every translation unit of this library (see also lib2.cpp).
 #define OWNS_REGISTRY_STATE
 #define LIB_SOURCE
 
@@ -21,7 +20,8 @@
 // one place. The matching exported *declaration* in registry.hpp has already
 // been seen by this point, in this and every other translation unit of the
 // library, which is what keeps the symbol at default visibility.
-BOOST_OPENMETHOD_EXPORT_REGISTRY(custom_registry);
+template struct boost::openmethod::registry_state<
+    custom_registry::registry_type>;
 
 using namespace boost::openmethod;
 

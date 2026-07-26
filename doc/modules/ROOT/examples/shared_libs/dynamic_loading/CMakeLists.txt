@@ -4,7 +4,7 @@
 # or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 # Dynamic loading, direct virtual_ptrs. The executable owns the registry state
-# (main.cpp emits BOOST_OPENMETHOD_EXPORT_REGISTRY); the
+# (main.cpp emits the one definition of the state); the
 # runtime-loaded library imports it, so it links against the exe - the reverse
 # of the usual direction. On Windows this needs the exe's import library,
 # generated because of ENABLE_EXPORTS; on other platforms ENABLE_EXPORTS adds

@@ -10,6 +10,16 @@
 #include <boost/openmethod.hpp>
 #include <boost/openmethod/interop/std_unique_ptr.hpp>
 
+// The library owns the registry state; the executable imports it. The
+// visibility attribute goes on the declaration only - see lib.cpp.
+#if defined(OWNS_REGISTRY_STATE)
+extern template struct BOOST_SYMBOL_EXPORT boost::openmethod::registry_state<
+    boost::openmethod::default_registry::registry_type>;
+#else
+extern template struct BOOST_SYMBOL_IMPORT boost::openmethod::registry_state<
+    boost::openmethod::default_registry::registry_type>;
+#endif
+
 // BOOST_SYMBOL_VISIBLE gives these classes' RTTI default visibility even in a
 // hidden-visibility build, so their type_id unifies across the executable and
 // the shared library. Same rationale as test/dynamic_loading/classes.hpp.

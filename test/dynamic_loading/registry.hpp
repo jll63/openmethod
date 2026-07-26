@@ -27,18 +27,22 @@ using test_registry = BOOST_OPENMETHOD_DEFAULT_REGISTRY;
 #include <boost/openmethod.hpp>
 
 // The module that owns the state compiles with EXPORT_REGISTRY defined; every
-// other module imports it. Each module here has a single translation unit, so
-// the owner needs only the definition form; a multi-TU owner would put
-// `extern BOOST_OPENMETHOD_EXPORT_REGISTRY(test_registry);` here instead and
+// other module imports it. The visibility attribute goes on the declaration;
+// the definition that follows carries none (repeating it is an error on GCC).
+// Each module here has a single translation unit, so the definition can sit in
+// this header; a multi-TU owner would keep only the declaration here and put
 // the definition in one of its .cpp files.
 //
 // This is done on every platform, not just Windows: the modules are built with
 // hidden visibility in the super-project, where an implicitly instantiated
 // registry state would not be shared across the shared objects.
 #if defined(EXPORT_REGISTRY)
-BOOST_OPENMETHOD_EXPORT_REGISTRY(test_registry);
+extern template struct BOOST_SYMBOL_EXPORT
+    boost::openmethod::registry_state<test_registry::registry_type>;
+template struct boost::openmethod::registry_state<test_registry::registry_type>;
 #else
-BOOST_OPENMETHOD_IMPORT_REGISTRY(test_registry);
+extern template struct BOOST_SYMBOL_IMPORT
+    boost::openmethod::registry_state<test_registry::registry_type>;
 #endif
 
 // The single address that identifies the registry's shared state. It must be

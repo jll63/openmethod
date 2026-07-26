@@ -1052,25 +1052,19 @@ struct initialize_aux;
 //! A one-member, function-free class is the only shape MSVC will export as a
 //! whole and import via `extern template`.
 //!
-//! Use the {{BOOST_OPENMETHOD_EXPORT_REGISTRY}} /
-//! {{BOOST_OPENMETHOD_IMPORT_REGISTRY}} pair, at namespace scope, after the
-//! registry's definition. They take the registry as an argument, so the same
-//! pair serves @ref default_registry, @ref indirect_registry and registries
-//! you define yourself. The import is a declaration and belongs in the header;
-//! the export is an explicit instantiation definition, of which a program may
-//! contain only one, and belongs in a `.cpp`:
+//! To share the state across modules, write the explicit instantiations
+//! yourself. The visibility attribute goes on the *declaration*; the single
+//! definition carries none - repeating it there is an error on GCC:
 //! @code
-//! // my_registry.hpp
-//! #ifdef OWNS_REGISTRY_STATE
-//! extern BOOST_OPENMETHOD_EXPORT_REGISTRY(my_registry);
-//! #else
-//! BOOST_OPENMETHOD_IMPORT_REGISTRY(my_registry);
-//! #endif
-//!
-//! // registry.cpp - exactly one translation unit of the owning module
-//! #define OWNS_REGISTRY_STATE
-//! #include "my_registry.hpp"
-//! BOOST_OPENMETHOD_EXPORT_REGISTRY(my_registry);
+//! // header, every translation unit of a client module:
+//! extern template struct BOOST_SYMBOL_IMPORT
+//!     boost::openmethod::registry_state<my_registry::registry_type>;
+//! // header, every translation unit of the owning module:
+//! extern template struct BOOST_SYMBOL_EXPORT
+//!     boost::openmethod::registry_state<my_registry::registry_type>;
+//! // exactly one .cpp of the owning module:
+//! template struct boost::openmethod::registry_state<
+//!     my_registry::registry_type>;
 //! @endcode
 template<class Registry>
 struct registry_state {
@@ -1182,8 +1176,7 @@ class registry : public detail::registry_base {
     //! it.
     //!
     //! Modules (executables and shared libraries) contributing to the same
-    //! registry must share this one variable; see @ref registry_state and
-    //! {{BOOST_OPENMETHOD_EXPORT_REGISTRY}}.
+    //! registry must share this one variable; see @ref registry_state.
     static auto& state() {
         return static_::st;
     }

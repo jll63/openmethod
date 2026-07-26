@@ -4,7 +4,7 @@
 # or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 # Implicit (load-time) linking. The shared library owns the registry state
-# (extensions.cpp emits BOOST_OPENMETHOD_EXPORT_REGISTRY); the
+# (extensions.cpp emits the one definition of the state); the
 # executable imports it. This keeps the link dependency in the usual direction
 # on Windows: the exe links the library's import library.
 

@@ -9,10 +9,6 @@
 
 #include "lib.hpp"
 
-// The shared library owns and exports the registry state (see lib.cpp); this
-// module imports it.
-BOOST_OPENMETHOD_IMPORT_REGISTRY(boost::openmethod::default_registry);
-
 #include <boost/openmethod/initialize.hpp>
 
 #include <string>

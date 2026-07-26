@@ -13,33 +13,50 @@ must be truly global: a single copy, shared by all the modules.
 
 All of a registry's mutable state lives in a single variable. Sharing a
 registry across modules therefore means sharing that one symbol: the _owning_
-module exports it, and every _client_ module imports it. Two macros control
-this, and they take the registry as an argument, so the same pair serves
-`default_registry`, `indirect_registry` and any registry you define yourself:
-
-- xref:BOOST_OPENMETHOD_EXPORT_REGISTRY.adoc[BOOST_OPENMETHOD_EXPORT_REGISTRY]
-  -- in _exactly one_ translation unit of the owning module, it emits an
-  explicit instantiation of the registry state, decorated for export.
-  Prefixed with `extern` it becomes a _declaration_, which goes in the header
-  and is required in every _other_ translation unit of the owning module.
-- xref:BOOST_OPENMETHOD_IMPORT_REGISTRY.adoc[BOOST_OPENMETHOD_IMPORT_REGISTRY]
-  -- in every client translation unit, it emits an `extern template`
-  declaration, decorated for import, so clients reference the owner's symbol
-  instead of instantiating their own copy.
+module exports it, and every _client_ module imports it. There are no macros
+for this: you write three explicit instantiations, fully qualified, at namespace
+scope, so nothing has to be added to `namespace boost::openmethod`.
 
 [source,c++]
 ----
-// header, every translation unit of a client module
-BOOST_OPENMETHOD_IMPORT_REGISTRY(boost::openmethod::default_registry);
-// header, every translation unit of the owning module
-extern BOOST_OPENMETHOD_EXPORT_REGISTRY(boost::openmethod::default_registry);
-// exactly one .cpp of the owning module
-BOOST_OPENMETHOD_EXPORT_REGISTRY(boost::openmethod::default_registry);
+// header, every translation unit of a CLIENT module
+extern template struct BOOST_SYMBOL_IMPORT
+    boost::openmethod::registry_state<
+        boost::openmethod::default_registry::registry_type>;
+
+// header, every translation unit of the OWNING module
+extern template struct BOOST_SYMBOL_EXPORT
+    boost::openmethod::registry_state<
+        boost::openmethod::default_registry::registry_type>;
+
+// exactly one .cpp of the owning module - no attribute
+template struct boost::openmethod::registry_state<
+    boost::openmethod::default_registry::registry_type>;
 ----
 
-An owning module with a single translation unit needs only the last of these.
-Use the macros at namespace scope, after `<boost/openmethod.hpp>` has been
-included. The same macros work on all platforms; the <<implementation_notes>>
+The first two are `extern template` _declarations_; they may be repeated, so
+they belong in the header the modules share, selected by a macro the owning
+module defines. The third is the _definition_, of which a program may contain
+only one.
+
+Substitute any registry for `default_registry` - `indirect_registry`, or one of
+your own. Note the `::registry_type`: the state is keyed on the `registry<...>`
+base class, never on the derived struct.
+
+WARNING: `BOOST_SYMBOL_EXPORT` goes on the *declaration* only. Repeating it on
+the definition is `error: type attributes ignored after type is already
+defined` on GCC, while clang accepts it silently - so the mistake shows up only
+on some compilers.
+
+WARNING: the exported declaration is not decoration; it is required in every
+translation unit of the owning module. One that has neither it nor the
+definition instantiates the state implicitly, and under `-fvisibility=hidden`
+that copy is module-local. Since ELF merges COMDATs at the _most restrictive_
+visibility, the merged symbol then becomes local: the module builds, exports
+nothing, and clients fail to link with an undefined reference to
+`registry_state<...>::st`.
+
+The same three lines work on all platforms; the <<implementation_notes>>
 section explains what they expand to, and when they can be omitted.
 
 Nothing else needs decoration. In particular, methods declared with
@@ -50,7 +67,7 @@ If a library only uses its own registries, for example, if using open-methods
 as an implementation detail, it has its own global data, and there is no need
 for any of this - nor to call `initialize` again.
 
-## Static Linking
+## Implicit Linking
 
 When a program links against a shared library at build time, all the modules
 are loaded before `main` starts, their static constructors run, and a single
@@ -72,37 +89,36 @@ include::{shared}/implicit_linking/animals.hpp[tag=content]
 ----
 
 The module that owns the state defines `OWNS_REGISTRY_STATE` before including
-this header, and emits the matching _definition_ - plain
-`BOOST_OPENMETHOD_EXPORT_REGISTRY` - in exactly one of its `.cpp` files. Every
-other translation unit, in that module and in every other, gets a _declaration_
-from the header instead: prefixing `EXPORT` with `extern` turns the definition
-into one, and `IMPORT` is already a declaration.
+this header, which selects the exported declaration; every other module gets the
+imported one. The owner also emits the single definition, in one of its `.cpp`
+files.
 
-TIP: each module in these examples has a single translation unit, so the
-`extern` declaration is not strictly required. It is shown because it becomes
-required as soon as an owning module has more than one: a translation unit of
-the owner that neither exports nor declares the export instantiates the state
-implicitly, and under `-fvisibility=hidden` that module-local copy demotes the
-merged symbol, so clients fail to link. Putting the declaration in the shared
-header from the start makes the module safe to grow.
+TIP: each module here has one translation unit, so the owning module could get
+away with just the definition. The declaration is shown because it becomes
+required the moment that module gains a second translation unit - see the second
+warning above. Putting it in the shared header from the start makes the module
+safe to grow.
 
-Here the shared library owns the state, so it defines `OWNS_REGISTRY_STATE` and
-emits the definition. It also adds two overriders, a new class, `Tiger`, and a
-factory function:
+Here the library owns the state. It registers the classes, provides the default
+behaviour, and emits the definition:
 
 [source,c++]
 ----
 include::{shared}/implicit_linking/extensions.cpp[tag=content]
 ----
 
-The executable does not define `OWNS_REGISTRY_STATE`, so the header imported the
-state for it. It provides a catch-all overrider, then calls `meet` - including on
-a `Tiger`, a class it has no compile-time knowledge of:
+The program extends it. It adds a class the library has never heard of, two
+overriders that specialise `meet`, and imports the state through the header:
 
 [source,c++]
 ----
 include::{shared}/implicit_linking/main.cpp[tag=content]
 ----
+
+Note what `next` does here: the program's `Herbivore, Carnivore` overrider calls
+the library's `Animal, Animal` overrider, so control crosses the module boundary
+in the middle of a single dispatch, and `cow meets wolf` prints
+`do not greet, run`.
 
 ## Dynamic Linking
 
@@ -118,7 +134,7 @@ Here the program is the natural owner of the registry state: it must be able
 to run before the library is loaded, and regardless of whether it is loaded at
 all.
 
-Let's look at an example. It shares the same `animals.hpp` as the static-linking
+Let's look at an example. It shares the same `animals.hpp` as the implicit-linking
 example above - same classes, same `meet` method, same `OWNS_REGISTRY_STATE`
 convention - but ownership is reversed.
 
@@ -189,10 +205,11 @@ import library (`.lib` on MSVC) that the DLL links against. On POSIX,
 `ENABLE_EXPORTS` adds `-rdynamic` (or the platform's equivalent), which makes
 the executable's symbols visible to the libraries it loads.
 
-NOTE: `BOOST_OPENMETHOD_EXPORT_REGISTRY` produces an explicit instantiation
-_definition_, which may appear only once in the program. Use it in exactly one
-translation unit of the owning module; the owning module's other translation
-units use the `extern` form, and client modules use the `IMPORT` macro.
+NOTE: the unadorned `template struct ...registry_state<...>;` is an explicit
+instantiation _definition_, which may appear only once in the program. Put it in
+exactly one translation unit of the owning module; that module's other
+translation units carry the exported `extern template` declaration, and client
+modules the imported one.
 
 WARNING: a translation unit that uses neither macro compiles cleanly - it just
 silently gets its own private copy of the registry state instead of an error.
@@ -229,7 +246,7 @@ include::{shared}/indirect_vptr/animals.hpp[tag=content]
 ----
 
 cpp:indirect_registry[] has its own state, separate from `default_registry`'s,
-and it is shared with the same two macros: just name `indirect_registry`, as
+shared with the same three instantiations: just name `indirect_registry`, as
 above.
 
 Here is a program that carries `virtual_ptr`{empty}s across `initialize` calls.
@@ -246,28 +263,21 @@ The shared library it loads includes the same header, so it uses
 
 ## Custom Registries
 
-A custom registry is shared with the same two macros - they take the registry
-as an argument, so nothing here is specific to the predefined ones. Name your
-own registry instead, at namespace scope, after its definition.
-
-The macros go in different places. `IMPORT` expands to an `extern template`
-declaration, which may be repeated, so it belongs in the header that defines
-the registry, next to it. `EXPORT` expands to an explicit instantiation
-_definition_, of which a program may contain only one, so it belongs in a
-`.cpp` file - **never in a header**. Every translation unit of the owning
-module suppresses the import; exactly one of them emits the export:
+A custom registry is shared exactly the same way - name it instead of
+`default_registry` in the three instantiations. Nothing above is specific to the
+predefined registries:
 
 [source,c++]
 ----
 // my_registry.hpp
 struct my_registry : boost::openmethod::registry</* policies... */> {};
 
-// Every translation unit of the module that owns the state defines
-// OWNS_REGISTRY_STATE before including this header; client modules do not.
 #ifdef OWNS_REGISTRY_STATE
-extern BOOST_OPENMETHOD_EXPORT_REGISTRY(my_registry);
+extern template struct BOOST_SYMBOL_EXPORT
+    boost::openmethod::registry_state<my_registry::registry_type>;
 #else
-BOOST_OPENMETHOD_IMPORT_REGISTRY(my_registry);
+extern template struct BOOST_SYMBOL_IMPORT
+    boost::openmethod::registry_state<my_registry::registry_type>;
 #endif
 ----
 
@@ -277,29 +287,11 @@ BOOST_OPENMETHOD_IMPORT_REGISTRY(my_registry);
 #define OWNS_REGISTRY_STATE
 #include "my_registry.hpp"
 
-BOOST_OPENMETHOD_EXPORT_REGISTRY(my_registry);
+template struct boost::openmethod::registry_state<my_registry::registry_type>;
 ----
 
-WARNING: putting `BOOST_OPENMETHOD_EXPORT_REGISTRY` in a header works only as
-long as the owning module has a single translation unit, and breaks silently
-when a second one is added. Two explicit instantiation definitions in the same
-translation unit are a hard error; in different translation units they are
-ill-formed, no diagnostic required - some toolchains merge them quietly, others
-fail to link.
-
-WARNING: the `extern` form is what makes a multi-translation-unit owning module
-work, and omitting it fails in the opposite direction: a translation unit of the owner that neither exports nor
-declares the export instantiates the state implicitly. Under
-`-fvisibility=hidden` that copy is module-local, and because ELF merges COMDATs
-at the _most restrictive_ visibility, the merged symbol becomes local - the
-module builds, exports nothing, and clients fail to link with an undefined
-reference to `registry_state<...>::st`. This applies to the predefined
-registries exactly as it does to your own.
-
-The macros expand to the same exported explicit instantiation and imported
-`extern template` declaration of `my_registry`'s state that the
-predefined-registry macros produce. `test/implicit_shared_libraries/custom_registry`
-is a worked example, with an owning library of two translation units.
+`test/implicit_shared_libraries/custom_registry` is a worked example, with an
+owning library of two translation units.
 
 [#implementation_notes]
 ## Implementation Notes

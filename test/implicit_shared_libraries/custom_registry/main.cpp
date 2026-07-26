@@ -7,9 +7,8 @@
 
 #include <boost/test/unit_test.hpp>
 
-// LIB_SOURCE is not defined here, so registry.hpp (via lib.hpp) emits
-// BOOST_OPENMETHOD_IMPORT_REGISTRY: this module imports the state that the
-// shared library owns.
+// OWNS_REGISTRY_STATE is not defined here, so registry.hpp (via lib.hpp)
+// declares the state imported: this module uses the state the library owns.
 #include "lib.hpp"
 
 #include <boost/openmethod/initialize.hpp>

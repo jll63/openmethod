@@ -42,27 +42,28 @@ static_assert(!boost::mp11::mp_contains<
 
 // Where each macro goes:
 //
-//          BOOST_OPENMETHOD_IMPORT_REGISTRY - header, every client TU
-//   extern BOOST_OPENMETHOD_EXPORT_REGISTRY - header, every owning-module TU
-//          BOOST_OPENMETHOD_EXPORT_REGISTRY - exactly one .cpp of the owner
+//   extern template ... BOOST_SYMBOL_IMPORT - header, every client TU
+//   extern template ... BOOST_SYMBOL_EXPORT - header, every owning-module TU
+//   template ...        (no attribute)      - exactly one .cpp of the owner
 //
-// BOOST_OPENMETHOD_EXPORT_REGISTRY expands to an explicit instantiation
-// *definition*, so prefixing it with `extern` turns it into a *declaration*.
-// The two declaration forms may be repeated and so live here; the definition,
-// of which a program may contain only one, lives in a .cpp (lib.cpp) - never in
-// a header, where every TU of the owning module including it would emit one: a
-// hard error within one TU, and ill-formed no-diagnostic-required across TUs.
+// The two declarations may be repeated and so live here. The definition, of
+// which a program may contain only one, lives in a .cpp (lib.cpp) - never in a
+// header, where every TU of the owning module including it would emit one. It
+// carries no visibility attribute: this header already declared the symbol
+// exported, and GCC rejects repeating the attribute on the definition.
 //
-// The `extern` form is what makes a multi-TU owning module work. Without it, a
-// TU of the owner that does not emit the export instantiates the state
-// implicitly; under -fvisibility=hidden that copy is module-local, ELF merges
-// COMDATs at the most restrictive visibility, and the symbol ends up local so
-// clients cannot link. lib2.cpp is a second TU of this library precisely to
-// keep that path covered.
+// The exported *declaration* is what makes a multi-TU owning module work.
+// Without it, a TU of the owner that does not emit the definition instantiates
+// the state implicitly; under -fvisibility=hidden that copy is module-local,
+// ELF merges COMDATs at the most restrictive visibility, and the symbol ends up
+// local so clients cannot link. lib2.cpp is a second TU of this library
+// precisely to keep that path covered.
 #if defined(OWNS_REGISTRY_STATE)
-extern BOOST_OPENMETHOD_EXPORT_REGISTRY(custom_registry);
+extern template struct BOOST_SYMBOL_EXPORT
+    boost::openmethod::registry_state<custom_registry::registry_type>;
 #else
-BOOST_OPENMETHOD_IMPORT_REGISTRY(custom_registry);
+extern template struct BOOST_SYMBOL_IMPORT
+    boost::openmethod::registry_state<custom_registry::registry_type>;
 #endif
 
 #endif

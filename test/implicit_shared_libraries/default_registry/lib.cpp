@@ -6,18 +6,19 @@
 // This library owns and exports the registry state; main.cpp imports it. That
 // is the natural direction for implicit linking: the executable already links
 // this library, so on Windows the import-library dependency runs the usual way
-// (see the "Static Linking" section of shared_libraries.adoc).
+// (see the "Implicit Linking" section of shared_libraries.adoc).
 #define LIB_SOURCE
+#define OWNS_REGISTRY_STATE
 
 #include "lib.hpp"
 
 using namespace boost::openmethod;
 
-// This library has a single translation unit, so the definition form alone is
-// enough; a multi-TU owner would also need
-// `extern BOOST_OPENMETHOD_EXPORT_REGISTRY(...)` in a shared header (see the
-// custom_registry sibling test).
-BOOST_OPENMETHOD_EXPORT_REGISTRY(boost::openmethod::default_registry);
+// The one definition of the shared state. It carries no visibility attribute:
+// lib.hpp already declared it exported, and repeating the attribute here is an
+// error on GCC.
+template struct boost::openmethod::registry_state<
+    boost::openmethod::default_registry::registry_type>;
 
 BOOST_OPENMETHOD_CLASSES(Animal, Dog, Cat);
 

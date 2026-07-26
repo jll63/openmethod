@@ -9,8 +9,8 @@
 set(lib boost_openmethod-isl_default_lib)
 set(exe boost_openmethod-test_implicit_shared_libraries_default)
 
-# lib.cpp emits BOOST_OPENMETHOD_EXPORT_REGISTRY(default_registry): this
-# library owns the registry state.
+# lib.cpp emits the one definition of the registry state: this library owns
+# it, and the executable imports it.
 add_library(${lib} SHARED lib.cpp)
 target_link_libraries(${lib} PRIVATE Boost::openmethod)
 

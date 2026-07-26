@@ -13,13 +13,19 @@
 
 using namespace boost::openmethod::aliases;
 
+struct Tiger : Carnivore {};
+
+BOOST_OPENMETHOD_CLASSES(Tiger, Carnivore);
+
 BOOST_OPENMETHOD_OVERRIDE(
-    meet, (virtual_ptr<Animal>, virtual_ptr<Animal>), std::string) {
-    return "greet";
+    meet, (virtual_ptr<Herbivore> a, virtual_ptr<Carnivore> b), std::string) {
+    auto base = next(a, b);
+    return "do not " + base + ", run";
 }
 
-extern "C" {
-BOOST_SYMBOL_IMPORT auto make_tiger() -> Animal*;
+BOOST_OPENMETHOD_OVERRIDE(
+    meet, (virtual_ptr<Carnivore>, virtual_ptr<Herbivore>), std::string) {
+    return "hunt";
 }
 
 auto main() -> int {
@@ -27,12 +33,11 @@ auto main() -> int {
 
     std::unique_ptr<Animal> gracie(new Cow());
     std::unique_ptr<Animal> willy(new Wolf());
+    std::unique_ptr<Animal> hobbes(new Tiger());
 
     std::cout << "cow meets wolf -> " << meet(*gracie, *willy)
               << "\n"; // do not greet, run
     std::cout << "wolf meets cow -> " << meet(*willy, *gracie) << "\n"; // hunt
-
-    std::unique_ptr<Animal> hobbes(make_tiger());
     std::cout << "cow meets tiger -> " << meet(*gracie, *hobbes)
               << "\n"; // do not greet, run
 
