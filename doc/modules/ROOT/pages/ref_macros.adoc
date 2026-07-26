@@ -51,4 +51,8 @@ The following macros are for advanced uses of the library.
 | Exports the state of `indirect_registry` from the module that owns it.
 | xref:BOOST_OPENMETHOD_IMPORT_INDIRECT_REGISTRY.adoc[BOOST_OPENMETHOD_IMPORT_INDIRECT_REGISTRY]
 | Imports the state of `indirect_registry` from the module that owns it.
+| xref:BOOST_OPENMETHOD_EXPORT_REGISTRY.adoc[BOOST_OPENMETHOD_EXPORT_REGISTRY]
+| Exports the state of a custom registry from the module that owns it.
+| xref:BOOST_OPENMETHOD_IMPORT_REGISTRY.adoc[BOOST_OPENMETHOD_IMPORT_REGISTRY]
+| Imports the state of a custom registry from the module that owns it.
 |===

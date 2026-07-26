@@ -224,9 +224,15 @@ its own state and its own analogous pair, `BOOST_OPENMETHOD_{EXPORT,IMPORT}_INDI
 With neither macro, the state has ordinary linkage — fine off Windows only when the program is not
 built with hidden visibility.
 
-**Custom registries**: the library provides no general macro. Users write the explicit
-instantiation / `extern template` declaration themselves (as in the snippet above, possibly
-wrapped in their own per-registry macros), after the registry's definition and before any use.
+**Custom registries**: the library provides a general, registry-parameterized macro pair,
+`BOOST_OPENMETHOD_EXPORT_REGISTRY(REGISTRY)` / `BOOST_OPENMETHOD_IMPORT_REGISTRY(REGISTRY)` (in
+`macros.hpp`), which emit the same exported explicit instantiation / imported `extern template`
+declaration as the snippet above. Unlike the `DEFAULT`/`INDIRECT` tokens (defined before including
+the registry header), these take the registry type and are used at namespace scope, after the
+registry's definition and before any use: `EXPORT` in exactly one owning TU, `IMPORT` in every
+client TU. They live in `macros.hpp` (which pulls in `core.hpp`), so `default_registry.hpp` — which
+sits below `macros.hpp` in the include layering and includes only `preamble.hpp` + policies — cannot
+use them and keeps its own hand-written `#ifdef`-guarded blocks.
 
 **Methods need no decoration**: method objects are *consolidated* across modules at `initialize()`
 time, not shared via a single symbol, so `BOOST_OPENMETHOD(...)` takes no declspec argument.

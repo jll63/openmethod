@@ -23,10 +23,7 @@ BOOST_OPENMETHOD_OVERRIDE(
 }
 
 extern "C" {
-#ifdef _WIN32
-__declspec(dllimport)
-#endif
-auto make_tiger() -> Animal*;
+BOOST_SYMBOL_IMPORT auto make_tiger() -> Animal*;
 }
 
 auto main() -> int {

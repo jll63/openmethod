@@ -48,7 +48,7 @@ one stated above: one module owns the registry state, the others import it.
 The natural arrangement is for the shared library to own the registry: the
 program already links against the library, so, on Windows, the import library
 dependency runs in the usual direction. The `static_main.cpp` and
-`static_extensions.cpp` programs in the examples directory demonstrate this
+`static_extensions.cpp` modules in the examples directory demonstrate this
 arrangement.
 
 ## Dynamic Linking
@@ -186,23 +186,31 @@ registry state with `BOOST_OPENMETHOD_IMPORT_INDIRECT_REGISTRY`.
 
 ## Custom Registries
 
-A custom registry is shared the same way, but the library does not provide
-macros for it. Write the explicit instantiation and the `extern template`
-declaration yourself (possibly wrapped in your own per-registry macros), after
-the registry's definition:
+A custom registry is shared the same way. Since the `DEFAULT` and `INDIRECT`
+macros are tied to the predefined registries, the library provides a general,
+registry-parameterized pair for user-defined registries:
+xref:BOOST_OPENMETHOD_EXPORT_REGISTRY.adoc[BOOST_OPENMETHOD_EXPORT_REGISTRY] and
+xref:BOOST_OPENMETHOD_IMPORT_REGISTRY.adoc[BOOST_OPENMETHOD_IMPORT_REGISTRY].
+Unlike the predefined-registry macros, which are tokens defined _before_
+including the registry header, these take the registry type as an argument and
+are used at namespace scope, _after_ the registry's definition. The owning
+module exports the state in exactly one translation unit; every client imports
+it:
 
 [source,c++]
 ----
 struct my_registry : boost::openmethod::registry</* policies... */> {};
 
 #ifdef MY_MODULE_OWNS_REGISTRY // in exactly one TU of the owning module
-template struct BOOST_SYMBOL_EXPORT
-    boost::openmethod::registry_state<my_registry::registry_type>;
+BOOST_OPENMETHOD_EXPORT_REGISTRY(my_registry);
 #else
-extern template struct BOOST_SYMBOL_IMPORT
-    boost::openmethod::registry_state<my_registry::registry_type>;
+BOOST_OPENMETHOD_IMPORT_REGISTRY(my_registry);
 #endif
 ----
+
+They expand to the same exported explicit instantiation and imported `extern
+template` declaration of `my_registry`'s state that the predefined-registry
+macros produce.
 
 [#implementation_notes]
 ## Implementation Notes

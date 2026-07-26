@@ -1056,15 +1056,15 @@ struct initialize_aux;
 //! For the predefined registries, the export/import pair is emitted by the
 //! {{BOOST_OPENMETHOD_EXPORT_DEFAULT_REGISTRY}} /
 //! {{BOOST_OPENMETHOD_IMPORT_DEFAULT_REGISTRY}} macros (and the analogous
-//! `INDIRECT` pair for @ref indirect_registry). For a custom registry, write
-//! the pair yourself, after the registry's definition:
+//! `INDIRECT` pair for @ref indirect_registry). For a custom registry, use the
+//! {{BOOST_OPENMETHOD_EXPORT_REGISTRY}} /
+//! {{BOOST_OPENMETHOD_IMPORT_REGISTRY}} pair, at namespace scope, after the
+//! registry's definition:
 //! @code
 //! // in exactly one translation unit of the owning module:
-//! template struct BOOST_SYMBOL_EXPORT
-//!     boost::openmethod::registry_state<my_registry::registry_type>;
+//! BOOST_OPENMETHOD_EXPORT_REGISTRY(my_registry);
 //! // in every client translation unit:
-//! extern template struct BOOST_SYMBOL_IMPORT
-//!     boost::openmethod::registry_state<my_registry::registry_type>;
+//! BOOST_OPENMETHOD_IMPORT_REGISTRY(my_registry);
 //! @endcode
 template<class Registry>
 struct registry_state {

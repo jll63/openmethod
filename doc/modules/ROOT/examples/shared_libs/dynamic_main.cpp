@@ -9,18 +9,14 @@
 #define BOOST_OPENMETHOD_EXPORT_DEFAULT_REGISTRY
 
 #include "animals.hpp"
-// end::before[]
 
 #include <boost/openmethod.hpp>
 #include <boost/openmethod/initialize.hpp>
 #include <boost/dll/shared_library.hpp>
-#include <boost/dll/runtime_symbol_info.hpp>
 #include <iostream>
 #include <memory>
 
 using namespace boost::openmethod;
-
-// tag::before[]
 
 BOOST_OPENMETHOD_CLASSES(Herbivore, Cow, Carnivore, Wolf);
 

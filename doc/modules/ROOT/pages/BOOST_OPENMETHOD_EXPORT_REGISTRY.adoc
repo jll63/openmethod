@@ -1,0 +1,56 @@
+
+# BOOST_OPENMETHOD_EXPORT_REGISTRY
+
+Exports the state of a custom registry from the module that owns it.
+
+## Synopsis
+
+[source,c++]
+----
+BOOST_OPENMETHOD_EXPORT_REGISTRY(registry);
+----
+
+Used at namespace scope, after the registry's definition, in _exactly one_
+translation unit of the module (executable or shared library) that owns the
+registry.
+
+## Description
+
+All of a registry's mutable state lives in a single variable (see
+cpp:registry_state[]). For a program and its shared libraries to contribute
+classes, methods and overriders to the same registry, that variable must be
+shared across the modules: the _owning_ module exports it, and every _client_
+module imports it with
+xref:BOOST_OPENMETHOD_IMPORT_REGISTRY.adoc[BOOST_OPENMETHOD_IMPORT_REGISTRY].
+
+`BOOST_OPENMETHOD_EXPORT_REGISTRY` emits an explicit instantiation _definition_
+of the registry state, decorated with `BOOST_SYMBOL_EXPORT`:
+`__declspec(dllexport)` on Windows, default visibility on ELF platforms. The
+same macro pair works on all platforms.
+
+Unlike
+xref:BOOST_OPENMETHOD_EXPORT_DEFAULT_REGISTRY.adoc[BOOST_OPENMETHOD_EXPORT_DEFAULT_REGISTRY]
+and the `INDIRECT` pair - tokens defined _before_ including the registry
+header, and tied to the predefined cpp:default_registry[] and
+cpp:indirect_registry[] - `BOOST_OPENMETHOD_EXPORT_REGISTRY` takes the registry
+type as an argument and is written _after_ the registry's definition. It is the
+tool for sharing user-defined registries:
+
+[source,c++]
+----
+struct my_registry : boost::openmethod::registry</* policies... */> {};
+
+BOOST_OPENMETHOD_EXPORT_REGISTRY(my_registry); // in exactly one owning TU
+----
+
+NOTE: An explicit instantiation definition may appear only once in the
+program. Use this macro in exactly one translation unit of the owning module;
+all other translation units, in every module, use
+xref:BOOST_OPENMETHOD_IMPORT_REGISTRY.adoc[BOOST_OPENMETHOD_IMPORT_REGISTRY].
+
+On ELF platforms, the pair can be omitted altogether if the program is not
+built with hidden visibility. Under `-fvisibility=hidden`, it is required, as
+on Windows.
+
+See xref:shared_libraries.adoc[Shared Libraries] for a full discussion,
+including the required link setup.

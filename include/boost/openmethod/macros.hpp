@@ -175,4 +175,31 @@ inline constexpr bool method_not_found = false;
 #define BOOST_OPENMETHOD_CLASSES(...)                                          \
     BOOST_OPENMETHOD_REGISTER(::boost::openmethod::use_classes<__VA_ARGS__>)
 
+// Share a custom registry's state across shared-library boundaries. All of a
+// registry's mutable state lives in a single variable,
+// registry_state<REGISTRY::registry_type>::st (see registry_state in
+// preamble.hpp); these macros emit the explicit instantiation that turns it
+// into a single shared symbol. The owning module emits an exported explicit
+// instantiation *definition* with BOOST_OPENMETHOD_EXPORT_REGISTRY, in exactly
+// one translation unit; every client module emits an imported `extern template`
+// declaration with BOOST_OPENMETHOD_IMPORT_REGISTRY, so it references the
+// owner's symbol instead of instantiating its own copy. Use them at namespace
+// scope, after the registry's definition, with a trailing `;`:
+//
+//     struct my_registry : boost::openmethod::registry</* ... */> {};
+//     BOOST_OPENMETHOD_EXPORT_REGISTRY(my_registry); // owner, one TU
+//     BOOST_OPENMETHOD_IMPORT_REGISTRY(my_registry); // every client TU
+//
+// The predefined registries have their own dedicated pairs
+// (BOOST_OPENMETHOD_{EXPORT,IMPORT}_{DEFAULT,INDIRECT}_REGISTRY); this pair is
+// for user-defined registries. See shared_libraries.adoc for the full
+// discussion, including the required link setup.
+#define BOOST_OPENMETHOD_EXPORT_REGISTRY(REGISTRY)                             \
+    template struct BOOST_SYMBOL_EXPORT ::boost::openmethod::registry_state<   \
+        REGISTRY::registry_type>
+
+#define BOOST_OPENMETHOD_IMPORT_REGISTRY(REGISTRY)                             \
+    extern template struct BOOST_SYMBOL_IMPORT ::boost::openmethod::           \
+        registry_state<REGISTRY::registry_type>
+
 #endif
