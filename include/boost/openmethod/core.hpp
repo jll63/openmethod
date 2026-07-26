@@ -602,12 +602,17 @@ inline auto final_virtual_ptr(Arg&& obj) {
         auto static_type = Registry::rtti::template static_type<Class>();
         auto dynamic_type = Registry::rtti::dynamic_type(Traits::peek(obj));
 
-        // Compare through type_index, never the type_ids themselves: the same
-        // class has one type_id per module, so an object created in another
-        // module yields a different type_id than this module's static_type and
-        // a raw comparison would abort on a perfectly valid pointer.
-        if (Registry::rtti::type_index(dynamic_type) !=
-            Registry::rtti::type_index(static_type)) {
+        // Equal type_ids settle it, and that is the common case: both come
+        // from this module. Only when they differ is type_index needed, because
+        // the same class has one type_id per module, so an object created
+        // elsewhere yields a different type_id than this module's static_type
+        // and a raw comparison alone would abort on a valid pointer. Ordering
+        // the test this way keeps the check a pointer comparison except in the
+        // cross-module case, where type_index may be as costly as comparing
+        // names (see std_rtti::type_index).
+        if (dynamic_type != static_type &&
+            Registry::rtti::type_index(dynamic_type) !=
+                Registry::rtti::type_index(static_type)) {
             if constexpr (is_not_void<typename Registry::error_handler>) {
                 final_error error;
                 error.static_type = static_type;
