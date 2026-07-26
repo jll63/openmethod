@@ -95,3 +95,17 @@ add_custom_target(boost_openmethod-shared-all ALL
         boost_openmethod-dynamic boost_openmethod-shared
         boost_openmethod-indirect boost_openmethod-indirect_shared
 )
+
+# The three add_test()s above run these executables, so `tests` - the target the
+# ctest workflow (and the Boost super-project) builds - must build them too.
+# Without this they are reachable only through ALL, and
+# `cmake --build . --target tests && ctest` reports them as "Not Run". The
+# other examples get this via add_dependencies(tests ...) in the parent
+# CMakeLists; the targets here are declared locally, so hook them up here.
+# `tests` is created in test/CMakeLists.txt, added before this directory.
+if (TARGET tests)
+    add_dependencies(tests
+        boost_openmethod-static boost_openmethod-static_shared
+        boost_openmethod-dynamic boost_openmethod-shared
+        boost_openmethod-indirect boost_openmethod-indirect_shared)
+endif()
