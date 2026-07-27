@@ -34,10 +34,15 @@ local RDYNAMIC =
     <target-os>qnxnto,<toolset>gcc:<linkflags>"-rdynamic"
     <target-os>solaris:<linkflags>"-Bdynamic" ;
 
-# Default ELF symbol visibility: template static variables used as shared
-# registry state must be exported with DEFAULT visibility so the dynamic
-# linker deduplicates them across DSOs.  MSVC ignores this property.
-local VISIBILITY = <local-visibility>global ;
+# Formerly <local-visibility>global, to keep the shared registry state at
+# DEFAULT visibility so the dynamic linker would deduplicate it across DSOs.
+# Both reasons for that are gone: the state is now exported explicitly by
+# BOOST_OPENMETHOD_{EXPORT,INSTANTIATE}_REGISTRY, and class and method identity
+# no longer depend on typeinfo unifying across modules, since std_rtti::type_index
+# compares RTTI names. Building these tests at the default hidden visibility is
+# also the more honest configuration - it is the one the export/import macros
+# exist for, and the one users get.
+local VISIBILITY = ;
 
 # Disable Clang's -fsanitize=vptr sub-check under UBSAN. This test creates
 # polymorphic objects inside dlopen'd libraries and downcasts them in another
@@ -47,9 +52,20 @@ local VISIBILITY = <local-visibility>global ;
 # (notably macOS/Mach-O) it fires a false positive even though the object really
 # is of that type. Gate on the UBSAN feature so nothing changes elsewhere; it is
 # a no-op for GCC (which has no vptr sanitizer). ASAN is unaffected.
+#
+# The `function` sub-check fires for the same underlying reason once these tests
+# build at hidden visibility: it validates a call through a function pointer
+# against the callee's type, and reports the dispatch thunk as "call to function
+# ... through pointer to incorrect function type" when the two modules' type_info
+# objects for that identical type differ. Gate it on the Clang toolsets: it is a
+# Clang-only sub-check, and GCC rejects an unknown -fno-sanitize= argument.
 local NO_VPTR =
     <undefined-sanitizer>on:<cxxflags>-fno-sanitize=vptr
-    <undefined-sanitizer>norecover:<cxxflags>-fno-sanitize=vptr ;
+    <undefined-sanitizer>norecover:<cxxflags>-fno-sanitize=vptr
+    <toolset>clang,<undefined-sanitizer>on:<cxxflags>-fno-sanitize=function
+    <toolset>clang,<undefined-sanitizer>norecover:<cxxflags>-fno-sanitize=function
+    <toolset>clang-darwin,<undefined-sanitizer>on:<cxxflags>-fno-sanitize=function
+    <toolset>clang-darwin,<undefined-sanitizer>norecover:<cxxflags>-fno-sanitize=function ;
 
 # Link the external Boost utility libraries (dll, test, filesystem, and their
 # transitive deps like system) statically. Only *our* registry/method/overrider

@@ -21,10 +21,9 @@
 #             through pointer to incorrect function type". The types are the
 #             same type; only their type_info objects differ, one per module.
 #
-# test/dynamic_loading/Jamfile already disables vptr for the same reason. That
-# test additionally sets <local-visibility>global, which incidentally makes the
-# typeinfo unify and hides both checks; these tests deliberately do not, because
-# hidden visibility is the configuration the export/import macros exist for.
+# test/dynamic_loading/Jamfile disables the same two sub-checks, for the same
+# reason. Both suites build at the default hidden visibility, which is the
+# configuration the export/import macros exist for and the one users get.
 #
 # Gate on the UBSAN feature so nothing changes elsewhere, and gate `function` on
 # the Clang toolsets: it is a Clang-only sub-check, and GCC rejects an unknown

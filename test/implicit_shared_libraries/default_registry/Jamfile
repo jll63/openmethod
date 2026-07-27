@@ -15,10 +15,9 @@
 # specific directory: b2 adds a linked shared library's directory to the test's
 # runtime path.
 #
-# <local-visibility>global is deliberately NOT set here (dynamic_loading's
-# Jamfile does set it): the export/import macro pair is what makes the state
-# shareable under hidden visibility, and forcing global visibility would mask a
-# regression in it.
+# <local-visibility>global is deliberately NOT set: the export/import macros are
+# what make the state shareable under hidden visibility, and forcing global
+# visibility would mask a regression in them.
 #
 # The project requirements of test/Jamfile - including
 # <library>/boost/openmethod//boost_openmethod - propagate to this Jamfile.

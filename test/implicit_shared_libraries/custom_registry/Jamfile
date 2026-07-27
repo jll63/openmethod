@@ -14,6 +14,9 @@
 #
 # See the sibling default_registry/Jamfile for why there is no Boost.DLL
 # dependency and no <local-visibility>global here.
+#
+# lib.cpp and lib2.cpp make this owning library multi-TU, which is the shape
+# that requires the exported declaration in registry.hpp.
 
 import testing ;
 
