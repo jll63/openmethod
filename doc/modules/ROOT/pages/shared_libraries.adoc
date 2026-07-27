@@ -14,8 +14,8 @@ must be truly global: a single copy, shared by all the modules.
 All of a registry's mutable state lives in a single variable. Sharing a
 registry across modules therefore means sharing that one symbol: the _owning_
 module exports it, and every _client_ module imports it. Three macros do this.
-Each takes the registry as an argument, so the same three serve
-`default_registry`, `indirect_registry` and any registry you define yourself:
+Each takes the registry as an argument, so they can be used to manage
+`default_registry`, `indirect_registry` and any custom registry:
 
 [cols="2,3"]
 |===
@@ -298,9 +298,6 @@ BOOST_OPENMETHOD_IMPORT_REGISTRY(my_registry);
 BOOST_OPENMETHOD_INSTANTIATE_REGISTRY(my_registry);
 ----
 
-`test/implicit_shared_libraries/custom_registry` is a worked example, with an
-owning library of two translation units.
-
 [#implementation_notes]
 ## Implementation Notes
 
@@ -317,12 +314,12 @@ is gathered, by template machinery, into a tuple inside that same object.
 This is what makes sharing a registry across modules tractable: there is
 exactly _one_ symbol to export and import, whatever the registry's policies.
 The variable is the sole member of cpp:registry_state[], a deliberately thin,
-function-free class template. That shape is dictated by MSVC:
+function-free class template. That form is dictated by MSVC:
 `dllexport`/`dllimport` are only honored on a _whole-class_ explicit
 instantiation - not on a variable template, nor on the instantiation of a
 lone static data member - and exporting a class wholesale also decorates its
 member functions and nested types, which the state-holding class itself could
-not tolerate. A one-member wrapper class with no functions is the one shape
+not tolerate. A one-member wrapper class with no functions is the one form
 that can be exported and imported on every platform.
 
 ### Registrars are consolidated, not shared
