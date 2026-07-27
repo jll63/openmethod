@@ -34,16 +34,6 @@ local RDYNAMIC =
     <target-os>qnxnto,<toolset>gcc:<linkflags>"-rdynamic"
     <target-os>solaris:<linkflags>"-Bdynamic" ;
 
-# Formerly <local-visibility>global, to keep the shared registry state at
-# DEFAULT visibility so the dynamic linker would deduplicate it across DSOs.
-# Both reasons for that are gone: the state is now exported explicitly by
-# BOOST_OPENMETHOD_{EXPORT,INSTANTIATE}_REGISTRY, and class and method identity
-# no longer depend on typeinfo unifying across modules, since std_rtti::type_index
-# compares RTTI names. Building these tests at the default hidden visibility is
-# also the more honest configuration - it is the one the export/import macros
-# exist for, and the one users get.
-local VISIBILITY = ;
-
 # Disable Clang's -fsanitize=vptr sub-check under UBSAN. This test creates
 # polymorphic objects inside dlopen'd libraries and downcasts them in another
 # module (core.hpp optimal_cast, reached through open-method dispatch). The vptr
@@ -101,7 +91,6 @@ rule make-variant ( suffix : extra-req * )
     lib boost_openmethod-dl_test_registry$(suffix)
         : registry.cpp
         : <link>shared
-          $(VISIBILITY)
           $(NO_VPTR)
           $(extra-req)
           <library>/boost/dll//boost_dll/<warnings>off/<link>static
@@ -113,7 +102,6 @@ rule make-variant ( suffix : extra-req * )
     lib boost_openmethod-dl_test_method$(suffix)
         : method.cpp
         : <link>shared
-          $(VISIBILITY)
           $(NO_VPTR)
           $(extra-req)
           <library>/boost/dll//boost_dll/<warnings>off/<link>static
@@ -131,7 +119,6 @@ rule make-variant ( suffix : extra-req * )
     lib boost_openmethod-dl_test_overrider$(suffix)
         : overrider.cpp
         : <link>shared
-          $(VISIBILITY)
           $(NO_VPTR)
           $(extra-req)
           <library>/boost/dll//boost_dll/<warnings>off/<link>static
@@ -154,7 +141,6 @@ rule make-variant ( suffix : extra-req * )
         :
         : <link>shared
           $(RDYNAMIC)
-          $(VISIBILITY)
           $(NO_VPTR)
           $(extra-req)
           <library>/boost/filesystem//boost_filesystem/<warnings>off/<link>static
