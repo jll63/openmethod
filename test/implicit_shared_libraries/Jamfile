@@ -6,6 +6,39 @@
 #  See accompanying file LICENSE_1_0.txt or copy at
 #  http://www.boost.org/LICENSE_1_0.txt
 
+# Disable two of Clang's UBSAN sub-checks for these tests. Both fire as false
+# positives on platforms that do not deduplicate a class's typeinfo and vtable
+# across modules - notably macOS/Mach-O - which is exactly what these tests
+# exercise: an object is created in one module and used in another.
+#
+#   vptr      validates an object's vptr against the expected type's RTTI.
+#             Reported on Drone as "downcast of address ... which does not point
+#             to an object of type 'Dog'" (core.hpp, optimal_cast, reached
+#             through dispatch) even though the object really is a Dog.
+#
+#   function  validates that a call through a function pointer matches the
+#             callee's type. Reported as "call to function ...thunk<...>::fn
+#             through pointer to incorrect function type". The types are the
+#             same type; only their type_info objects differ, one per module.
+#
+# test/dynamic_loading/Jamfile already disables vptr for the same reason. That
+# test additionally sets <local-visibility>global, which incidentally makes the
+# typeinfo unify and hides both checks; these tests deliberately do not, because
+# hidden visibility is the configuration the export/import macros exist for.
+#
+# Gate on the UBSAN feature so nothing changes elsewhere, and gate `function` on
+# the Clang toolsets: it is a Clang-only sub-check, and GCC rejects an unknown
+# -fno-sanitize= argument outright. ASAN is unaffected.
+project
+  : requirements
+    <undefined-sanitizer>on:<cxxflags>-fno-sanitize=vptr
+    <undefined-sanitizer>norecover:<cxxflags>-fno-sanitize=vptr
+    <toolset>clang,<undefined-sanitizer>on:<cxxflags>-fno-sanitize=function
+    <toolset>clang,<undefined-sanitizer>norecover:<cxxflags>-fno-sanitize=function
+    <toolset>clang-darwin,<undefined-sanitizer>on:<cxxflags>-fno-sanitize=function
+    <toolset>clang-darwin,<undefined-sanitizer>norecover:<cxxflags>-fno-sanitize=function
+  ;
+
 # Each variant lives in its own directory; see the Jamfile in each.
 
 build-project default_registry ;
