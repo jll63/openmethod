@@ -70,16 +70,12 @@ ELF merges COMDATs at the _most restrictive_ visibility, the merged symbol then
 becomes local: the module builds, exports nothing, and clients fail to link with
 an undefined reference to `registry_state<...>::st`.
 
-The <<implementation_notes>> section explains what the macros expand to, and
-when they can be omitted.
-
 Nothing else needs decoration. In particular, methods declared with
 `BOOST_OPENMETHOD` require no export or import: method objects are consolidated
 across modules when `initialize` runs (see <<implementation_notes>>).
 
-If a library only uses its own registries, for example, if using open-methods
-as an implementation detail, it has its own global data, and there is no need
-for any of this - nor to call `initialize` again.
+If a library uses open-methods as an implementation detail, and does not make
+them part of its public API, it is not necessary to export the registry state.
 
 ## Implicit Linking
 
