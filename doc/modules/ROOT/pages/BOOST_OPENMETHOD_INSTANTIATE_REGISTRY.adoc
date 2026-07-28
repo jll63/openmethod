@@ -1,0 +1,40 @@
+
+# BOOST_OPENMETHOD_INSTANTIATE_REGISTRY
+
+Instantiates a registry's state in the module that owns it.
+
+## Synopsis
+
+[source,c++]
+----
+BOOST_OPENMETHOD_INSTANTIATE_REGISTRY(registry);
+----
+
+Used at namespace scope, after the registry's definition, in _exactly one_
+translation unit of the module that owns the registry. It belongs in a `.cpp`
+file, never in a header.
+
+## Description
+
+All of a registry's mutable state lives in a single variable (see
+cpp:registry_state[]). Sharing a registry across modules means sharing that one
+symbol, which takes three macros: the _owning_ module uses
+xref:BOOST_OPENMETHOD_EXPORT_REGISTRY.adoc[BOOST_OPENMETHOD_EXPORT_REGISTRY] in
+the header its translation units share and
+xref:BOOST_OPENMETHOD_INSTANTIATE_REGISTRY.adoc[BOOST_OPENMETHOD_INSTANTIATE_REGISTRY]
+in exactly one of them; every _client_ module uses
+xref:BOOST_OPENMETHOD_IMPORT_REGISTRY.adoc[BOOST_OPENMETHOD_IMPORT_REGISTRY].
+
+They exist to hide a platform incompatibility: on Windows, Cygwin and MinGW,
+`__declspec(dllexport)` and `extern` are incompatible on an explicit
+instantiation, while on ELF and Mach-O the visibility attribute must be on the
+declaration and must not be repeated on the definition. See
+xref:shared_libraries.adoc[Shared Libraries] for the full discussion, including
+the required link setup.
+
+It emits the explicit instantiation _definition_ of the registry state, of which
+a program may contain only one. On declspec platforms the definition carries the
+`dllexport`; on ELF and Mach-O it carries no attribute, that having been
+supplied by
+xref:BOOST_OPENMETHOD_EXPORT_REGISTRY.adoc[BOOST_OPENMETHOD_EXPORT_REGISTRY] in
+the header.
