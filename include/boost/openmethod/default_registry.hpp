@@ -23,9 +23,9 @@ namespace boost::openmethod {
 //! @li @ref policies::std_rtti: Use standard RTTI.
 //! @li @ref policies::fast_perfect_hash: Use a fast perfect hash function to
 //!   map type ids to indices.
-//! @li @ref policies::vptr_vector: Store v-table pointers in a `std::vector`.
+//! @li @ref policies::vptr_vector: Store v-table pointers in a @c std::vector.
 //! @li @ref policies::default_error_handler: Write short diagnostic messages.
-//! @li @ref policies::stderr_output: Write messages to `stderr`.
+//! @li @ref policies::stderr_output: Write messages to @c stderr.
 //!
 //! If
 //! {{BOOST_OPENMETHOD_ENABLE_RUNTIME_CHECKS}}
@@ -35,10 +35,23 @@ namespace boost::openmethod {
 //! inconsistent use of the macro can cause ODR violations. If defined, it must
 //! be in all the translation units in the program that use `default_registry`,
 //! including those pulled from libraries.
+//!
+//! For a program and its shared libraries to contribute to the same
+//! `default_registry`, its state must be shared across the modules, with
+//! {{BOOST_OPENMETHOD_IMPORT_REGISTRY}}, {{BOOST_OPENMETHOD_EXPORT_REGISTRY}}
+//! and {{BOOST_OPENMETHOD_INSTANTIATE_REGISTRY}}:
+//! @code
+//! // header, every translation unit of a client module:
+//! BOOST_OPENMETHOD_IMPORT_REGISTRY(boost::openmethod::default_registry);
+//! // header, every translation unit of the owning module:
+//! BOOST_OPENMETHOD_EXPORT_REGISTRY(boost::openmethod::default_registry);
+//! // exactly one .cpp of the owning module:
+//! BOOST_OPENMETHOD_INSTANTIATE_REGISTRY(boost::openmethod::default_registry);
+//! @endcode
 struct default_registry
     : registry<
-          policies::std_rtti, policies ::vptr_vector,
-          policies::fast_perfect_hash, policies::default_error_handler,
+          policies::std_rtti, policies::fast_perfect_hash,
+          policies::vptr_vector, policies::default_error_handler,
           policies::stderr_output
 #ifdef BOOST_OPENMETHOD_ENABLE_RUNTIME_CHECKS
           ,
@@ -57,6 +70,10 @@ static odr_check<default_registry> default_registry_odr_check_instance;
 //!
 //! `indirect_registry` is a predefined @ref registry that uses the same
 //! policies as @ref default_registry, plus the @ref indirect_vptr policy.
+//!
+//! `indirect_registry` has its own state, separate from `default_registry`'s.
+//! Share it across shared libraries exactly as for @ref default_registry,
+//! naming `indirect_registry` in the macros.
 //!
 //! @see indirect_vptr.
 struct indirect_registry : default_registry::with<policies::indirect_vptr> {};

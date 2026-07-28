@@ -1,0 +1,46 @@
+
+# BOOST_OPENMETHOD_EXPORT_REGISTRY
+
+Declares a registry's state exported, in the module that owns it.
+
+## Synopsis
+
+[source,c++]
+----
+BOOST_OPENMETHOD_EXPORT_REGISTRY(registry);
+----
+
+Used at namespace scope, after the registry's definition, in _every_ translation
+unit of the module that owns the registry. Being a declaration it may be
+repeated, so it belongs in the header those translation units share.
+
+## Description
+
+All of a registry's mutable state lives in a single variable (see
+cpp:registry_state[]). Sharing a registry across modules means sharing that one
+symbol, which takes three macros: the _owning_ module uses
+xref:BOOST_OPENMETHOD_EXPORT_REGISTRY.adoc[BOOST_OPENMETHOD_EXPORT_REGISTRY] in
+the header its translation units share and
+xref:BOOST_OPENMETHOD_INSTANTIATE_REGISTRY.adoc[BOOST_OPENMETHOD_INSTANTIATE_REGISTRY]
+in exactly one of them; every _client_ module uses
+xref:BOOST_OPENMETHOD_IMPORT_REGISTRY.adoc[BOOST_OPENMETHOD_IMPORT_REGISTRY].
+
+They exist to hide a platform incompatibility: on Windows, Cygwin and MinGW,
+`__declspec(dllexport)` and `extern` are incompatible on an explicit
+instantiation, while on ELF and Mach-O the visibility attribute must be on the
+declaration and must not be repeated on the definition. See
+xref:shared_libraries.adoc[Shared Libraries] for the full discussion, including
+the required link setup.
+
+On ELF it emits an exported explicit instantiation _declaration_, which both
+suppresses implicit instantiation and pins the symbol to default visibility. On
+declspec platforms it expands to nothing, because there the export belongs on
+the instantiation instead.
+
+WARNING: on ELF this macro is not decoration. A translation unit of the owning
+module that uses neither it nor
+xref:BOOST_OPENMETHOD_INSTANTIATE_REGISTRY.adoc[BOOST_OPENMETHOD_INSTANTIATE_REGISTRY]
+instantiates the state implicitly, and under `-fvisibility=hidden` that copy is
+module-local. Since ELF merges COMDATs at the _most restrictive_ visibility, the
+merged symbol becomes local: the module builds, exports nothing, and clients
+fail to link with an undefined reference to `registry_state<...>::st`.
