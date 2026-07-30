@@ -224,11 +224,11 @@ BOOST_OPENMETHOD_CLOSE_NAMESPACE_DETAIL_UNLESS_MRDOCS
 //!
 //! `virtual_traits` must be specialized for each type that can be used as a
 //! virtual parameters. It enables methods to:
-//! @li find the type of the object the argument refers to (e.g. `Node` from
-//! `Node&`)
-//! @li obtain a non-modifiable reference to that object (e.g. a `const Node&` from
-//! `Node&`)
-//! @li cast the argument to another type (e.g. cast a `Node&` to a `Plus&`)
+//! @li find the type of the object the argument refers to (e.g. @c Node from
+//! @c Node&)
+//! @li obtain a non-modifiable reference to that object (e.g. a @c const
+//! @c Node& from @c Node&)
+//! @li cast the argument to another type (e.g. cast a @c Node& to a @c Plus&)
 //!
 //! @par Requirements
 //!
@@ -360,7 +360,7 @@ struct use_class_aux<Registry, mp11::mp_list<Class, Bases...>>
         }
 
         // coverity[uninit] - zero-initialized static storage
-        Registry::classes.push_back(*this);
+        Registry::static_::st.classes.push_back(*this);
     }
 
     void resolve_type_ids() {
@@ -370,7 +370,7 @@ struct use_class_aux<Registry, mp11::mp_list<Class, Bases...>>
     }
 
     ~use_class_aux() {
-        Registry::classes.remove(*this);
+        Registry::static_::st.classes.remove(*this);
     }
 };
 
@@ -380,14 +380,15 @@ type_id use_class_aux<
 
 template<class... Classes>
 using use_classes_tuple_type = boost::mp11::mp_apply<
-    std::tuple,
+    detail::tuple,
     boost::mp11::mp_transform_q<
         boost::mp11::mp_bind_front<
             detail::use_class_aux,
             typename detail::extract_registry<Classes...>::registry>,
         boost::mp11::mp_apply<
             detail::inheritance_map,
-            typename detail::extract_registry<Classes...>::others>>>;
+            boost::mp11::mp_unique<
+                typename detail::extract_registry<Classes...>::others>>>>;
 
 } // namespace detail
 
@@ -608,7 +609,17 @@ inline auto final_virtual_ptr(Arg&& obj) {
         auto static_type = Registry::rtti::template static_type<Class>();
         auto dynamic_type = Registry::rtti::dynamic_type(Traits::peek(obj));
 
-        if (dynamic_type != static_type) {
+        // Equal type_ids settle it, and that is the common case: both come
+        // from this module. Only when they differ is type_index needed, because
+        // the same class has one type_id per module, so an object created
+        // elsewhere yields a different type_id than this module's static_type
+        // and a raw comparison alone would abort on a valid pointer. Ordering
+        // the test this way keeps the check a pointer comparison except in the
+        // cross-module case, where type_index may be as costly as comparing
+        // names (see std_rtti::type_index).
+        if (dynamic_type != static_type &&
+            Registry::rtti::type_index(dynamic_type) !=
+                Registry::rtti::type_index(static_type)) {
             if constexpr (is_not_void<typename Registry::error_handler>) {
                 final_error error;
                 error.static_type = static_type;
@@ -662,9 +673,9 @@ inline auto final_virtual_ptr(Arg&& obj) {
 //!
 //! @par Requirements
 //!
-//! @li @ref virtual_traits must be specialized for `Class&`.
-//! @li `Class` must be a class type, possibly cv-qualified, registered in
-//! `Registry`.
+//! @li @ref virtual_traits must be specialized for @c Class&.
+//! @li @c Class must be a class type, possibly cv-qualified, registered in
+//! @c Registry.
 //!
 //! @tparam Class The class of the object, possibly cv-qualified
 //! @tparam Registry The registry in which `Class` is registered
@@ -756,9 +767,9 @@ class virtual_ptr {
     //! @endcode
     //!
     //! @par Requirements
-    //! @li `Other` must be a polymorphic class, according to `Registry`'s
-    //! `rtti` policy.
-    //! @li `Other\*` must be constructible from `Class\*`.
+    //! @li @c Other must be a polymorphic class, according to the @c rtti
+    //! policy of @c Registry.
+    //! @li @c Other* must be constructible from @c Class*.
     //!
     //! @par Errors
     //!
@@ -805,10 +816,10 @@ class virtual_ptr {
     //!
     //! @par Requirements
     //!
-    //! @li `Other` must be a polymorphic class, according to `Registry`'s
-    //! `rtti` policy.
+    //! @li @c Other must be a polymorphic class, according to the @c rtti
+    //! policy of @c Registry.
     //!
-    //! @li `Other\*` must be constructible from `Class\*`.
+    //! @li @c Other* must be constructible from @c Class*.
     //!
     //! @par Errors
     //!
@@ -880,7 +891,7 @@ class virtual_ptr {
     //! @param other A virtual_ptr to a type-compatible object
     //!
     //! @par Requirements
-    //! @li `Other`\'s object pointer must be assignable to a `Class\*`.
+    //! @li @c Other's object pointer must be assignable to a @c Class*.
     template<
         class Other,
         typename = std::enable_if_t<std::is_constructible_v<
@@ -917,10 +928,10 @@ class virtual_ptr {
     //!
     //! @par Requirements
     //!
-    //! @li `Other` must be a polymorphic class, according to `Registry`'s
-    //! `rtti` policy.
+    //! @li @c Other must be a polymorphic class, according to the @c rtti
+    //! policy of @c Registry.
     //!
-    //! @li `Other\*` must be constructible from `Class\*`.
+    //! @li @c Other* must be constructible from @c Class*.
     //!
     //! @par Errors
     //!
@@ -968,9 +979,9 @@ class virtual_ptr {
     //! @param other A pointer to a polymorphic object
     //!
     //! @par Requirements
-    //! @li `Other` must be a polymorphic class, according to `Registry`'s
-    //! `rtti` policy.
-    //! @li `Other\*` must be constructible from `Class\*`.
+    //! @li @c Other must be a polymorphic class, according to the @c rtti
+    //! policy of @c Registry.
+    //! @li @c Other* must be constructible from @c Class*.
     //!
     //! @par Errors
     //!
@@ -1045,7 +1056,7 @@ class virtual_ptr {
     //! @param other A virtual_ptr to a type-compatible object
     //!
     //! @par Requirements
-    //! @li `Other`\'s object pointer must be assignable to a `Class\*`.
+    //! @li @c Other's object pointer must be assignable to a @c Class*.
     template<
         class Other,
         typename = std::enable_if_t<std::is_assignable_v<
@@ -1118,7 +1129,7 @@ class virtual_ptr {
     //! @tparam Other The target class of the cast
     //! @return A `virtual_ptr<Other, Registry>` pointing to the same object
     //! @par Requirements
-    //! @li `Other` must be a base or derived class of `Class`.
+    //! @li @c Other must be a base or derived class of @c Class.
     template<
         class Other,
         typename = std::enable_if_t<
@@ -1262,11 +1273,11 @@ class virtual_ptr<
     //! @endcode
     //!
     //! @par Requirements
-    //! @li `SmartPtr` and `Other` must be instantiated from the same template -
-    //! e.g. both `std::shared_ptr` or both `std::unique_ptr`.
-    //! @li `Other` must be a smart pointer to a polymorphic class derived from
-    //! `element_type`.
-    //! @li `SmartPtr` must be constructible from `const Other&`.
+    //! @li @c SmartPtr and @c Other must be instantiated from the same template -
+    //! e.g. both @c std::shared_ptr or both @c std::unique_ptr.
+    //! @li @c Other must be a smart pointer to a polymorphic class derived from
+    //! @c element_type.
+    //! @li @c SmartPtr must be constructible from @c const @c Other&.
     template<
         class Other,
         typename = std::enable_if_t<
@@ -1309,11 +1320,11 @@ class virtual_ptr<
     //! @endcode
     //!
     //! @par Requirements
-    //! @li `SmartPtr` and `Other` must be instantiated from the same template -
-    //! e.g. both `std::shared_ptr` or both `std::unique_ptr`.
-    //! @li `Other` must be a smart pointer to a polymorphic class derived from
-    //! `element_type`.
-    //! @li `SmartPtr` must be constructible from `Other&`.
+    //! @li @c SmartPtr and @c Other must be instantiated from the same template -
+    //! e.g. both @c std::shared_ptr or both @c std::unique_ptr.
+    //! @li @c Other must be a smart pointer to a polymorphic class derived from
+    //! @c element_type.
+    //! @li @c SmartPtr must be constructible from @c Other&.
     template<
         class Other,
         typename = std::enable_if_t<
@@ -1359,11 +1370,11 @@ class virtual_ptr<
     //! @endcode
     //!
     //! @par Requirements
-    //! @li `SmartPtr` and `Other` must be instantiated from the same template -
-    //! e.g. both `std::shared_ptr` or both `std::unique_ptr`.
-    //! @li `Other` must be a smart pointer to a polymorphic class derived from
-    //! `element_type`.
-    //! @li `SmartPtr` must be constructible from `Other&&`.
+    //! @li @c SmartPtr and @c Other must be instantiated from the same template -
+    //! e.g. both @c std::shared_ptr or both @c std::unique_ptr.
+    //! @li @c Other must be a smart pointer to a polymorphic class derived from
+    //! @c element_type.
+    //! @li @c SmartPtr must be constructible from @c Other&&.
     template<
         class Other,
         typename = std::enable_if_t<
@@ -1407,11 +1418,11 @@ class virtual_ptr<
     //! @endcode
     //!
     //! @par Requirements
-    //! @li `SmartPtr` and `Other` must be instantiated from the same template -
-    //! e.g. both `std::shared_ptr` or both `std::unique_ptr`.
-    //! @li `Other` must be a virtual pointer to a class derived from
-    //! `element_type`.
-    //! @li `SmartPtr` must be constructible from `Other&`.
+    //! @li @c SmartPtr and @c Other must be instantiated from the same template -
+    //! e.g. both @c std::shared_ptr or both @c std::unique_ptr.
+    //! @li @c Other must be a virtual pointer to a class derived from
+    //! @c element_type.
+    //! @li @c SmartPtr must be constructible from @c Other&.
     template<
         class Other,
         typename = std::enable_if_t<
@@ -1447,11 +1458,11 @@ class virtual_ptr<
     //! @endcode
     //!
     //! @par Requirements
-    //! @li `SmartPtr` and `Other` must be instantiated from the same template -
-    //! e.g. both `std::shared_ptr` or both `std::unique_ptr`.
-    //! @li `Other` must be a smart pointer to a class derived from
-    //! `element_type`.
-    //! @li `SmartPtr` must be constructible from `Other&&`.
+    //! @li @c SmartPtr and @c Other must be instantiated from the same template -
+    //! e.g. both @c std::shared_ptr or both @c std::unique_ptr.
+    //! @li @c Other must be a smart pointer to a class derived from
+    //! @c element_type.
+    //! @li @c SmartPtr must be constructible from @c Other&&.
     template<
         class Other,
         typename = std::enable_if_t<
@@ -1511,11 +1522,11 @@ class virtual_ptr<
     //! @endcode
     //!
     //! @par Requirements
-    //! @li `SmartPtr` and `Other` must be instantiated from the same template -
-    //! e.g. both `std::shared_ptr` or both `std::unique_ptr`.
-    //! @li `Other` must be a smart pointer to a polymorphic class derived from
-    //! `element_type`.
-    //! @li `SmartPtr` must be constructible from `const Other&`.
+    //! @li @c SmartPtr and @c Other must be instantiated from the same template -
+    //! e.g. both @c std::shared_ptr or both @c std::unique_ptr.
+    //! @li @c Other must be a smart pointer to a polymorphic class derived from
+    //! @c element_type.
+    //! @li @c SmartPtr must be constructible from @c const @c Other&.
     template<
         class Other,
         typename = std::enable_if_t<
@@ -1551,11 +1562,11 @@ class virtual_ptr<
     //! @endcode
     //!
     //! @par Requirements
-    //! @li `SmartPtr` and `Other` must be instantiated from the same template -
-    //! e.g. both `std::shared_ptr` or both `std::unique_ptr`.
-    //! @li `Other` must be a smart pointer to a polymorphic class derived from
-    //! `element_type`.
-    //! @li `SmartPtr` must be constructible from `Other&&`.
+    //! @li @c SmartPtr and @c Other must be instantiated from the same template -
+    //! e.g. both @c std::shared_ptr or both @c std::unique_ptr.
+    //! @li @c Other must be a smart pointer to a polymorphic class derived from
+    //! @c element_type.
+    //! @li @c SmartPtr must be constructible from @c Other&&.
     template<
         class Other,
         typename = std::enable_if_t<
@@ -1596,11 +1607,11 @@ class virtual_ptr<
     //! @endcode
     //!
     //! @par Requirements
-    //! @li `SmartPtr` and `Other` must be instantiated from the same template -
-    //! e.g. both `std::shared_ptr` or both `std::unique_ptr`.
-    //! @li `Other` must be a virtual pointer to a class derived from
-    //! `element_type`.
-    //! @li `SmartPtr` must be constructible from `Other&`.
+    //! @li @c SmartPtr and @c Other must be instantiated from the same template -
+    //! e.g. both @c std::shared_ptr or both @c std::unique_ptr.
+    //! @li @c Other must be a virtual pointer to a class derived from
+    //! @c element_type.
+    //! @li @c SmartPtr must be constructible from @c Other&.
     template<
         class Other,
         typename = std::enable_if_t<
@@ -1640,11 +1651,11 @@ class virtual_ptr<
     //! @endcode
     //!
     //! @par Requirements
-    //! @li `SmartPtr` and `Other` must be instantiated from the same template -
-    //! e.g. both `std::shared_ptr` or both `std::unique_ptr`.
-    //! @li `Other` must be a virtual pointer to a class derived from
-    //! `element_type`.
-    //! @li `SmartPtr` must be constructible from `Other&`.
+    //! @li @c SmartPtr and @c Other must be instantiated from the same template -
+    //! e.g. both @c std::shared_ptr or both @c std::unique_ptr.
+    //! @li @c Other must be a virtual pointer to a class derived from
+    //! @c element_type.
+    //! @li @c SmartPtr must be constructible from @c Other&.
     template<
         class Other,
         typename = std::enable_if_t<
@@ -1685,11 +1696,11 @@ class virtual_ptr<
     //! @endcode
     //!
     //! @par Requirements
-    //! @li `SmartPtr` and `Other` must be instantiated from the same template -
-    //! e.g. both `std::shared_ptr` or both `std::unique_ptr`.
-    //! @li `Other` must be a smart pointer to a class derived from
-    //! `element_type`.
-    //! @li `SmartPtr` must be constructible from `Other&&`.
+    //! @li @c SmartPtr and @c Other must be instantiated from the same template -
+    //! e.g. both @c std::shared_ptr or both @c std::unique_ptr.
+    //! @li @c Other must be a smart pointer to a class derived from
+    //! @c element_type.
+    //! @li @c SmartPtr must be constructible from @c Other&&.
     template<
         class Other,
         typename = std::enable_if_t<
@@ -1736,7 +1747,7 @@ class virtual_ptr<
     //! @tparam Other The target class of the cast
     //! @return A `virtual_ptr<Other, Registry>` pointing to the same object
     //! @par Requirements
-    //! @li `Other` must be a base or a derived class of `Class`.
+    //! @li @c Other must be a base or a derived class of @c Class.
     template<
         class Other,
         typename = std::enable_if_t<
@@ -2169,7 +2180,12 @@ template<
     typename Id, typename... Parameters, typename ReturnType, class Registry>
 class method<Id, ReturnType(Parameters...), Registry>
     : public detail::method_base<Registry> {
-    template<auto Function, typename FunctionType>
+    // Deliberately no default for Inline: giving it a default on only one of
+    // this template's two forward declarations in this file (the other is
+    // below, next to override_impl) is accepted by gcc but rejected by clang
+    // ("too few template arguments"), so every use spells out all three
+    // arguments explicitly instead.
+    template<auto Function, typename FunctionType, bool Inline>
     struct override_aux;
 
     // Aliases used in implementation only. Everything extracted from template
@@ -2236,6 +2252,10 @@ class method<Id, ReturnType(Parameters...), Registry>
     //! `Fn` must be a function that is an overrider of the method.
     //!
     //! @tparam Fn A function that is an overrider of the method.
+
+    // 'next' does not need any special treatment for Windows DLLs, because it
+    // may be called only from within the overrider, registered with a registrar
+    // in the same module.
     template<auto Fn>
     static FunctionPointer next;
 
@@ -2250,14 +2270,14 @@ class method<Id, ReturnType(Parameters...), Registry>
     //!
     //! @li Have the same number of formal parameters as the method.
     //!
-    //! @li Each `virtual_ptr<T>` in the method's parameter list must have a
-    //! corresponding `virtual_ptr<U>` parameter in the same position in the
-    //! overrider's parameter list, such that `U` is the same as `T`, or has
-    //! `T` as an accessible unambiguous base.
+    //! @li Each @c virtual_ptr<T> in the method's parameter list must have a
+    //! corresponding @c virtual_ptr<U> parameter in the same position in the
+    //! overrider's parameter list, such that @c U is the same as @c T, or has
+    //! @c T as an accessible unambiguous base.
     //!
-    //! @li Each `virtual_<T>` in the method's parameter list must have a
-    //! corresponding `U` parameter in the same position in the overrider's
-    //! parameter list, such that `U` is the same as `T`, or has `T` as an
+    //! @li Each @c virtual_<T> in the method's parameter list must have a
+    //! corresponding @c U parameter in the same position in the overrider's
+    //! parameter list, such that @c U is the same as @c T, or has @c T as an
     //! accessible unambiguous base.
     //!
     //! @li All other formal parameters must have the same type as the method's
@@ -2270,7 +2290,40 @@ class method<Id, ReturnType(Parameters...), Registry>
     //! @tparam Fn One or more functions to the overrider list
     template<auto... Fn>
     class override {
-        std::tuple<override_aux<Fn, decltype(Fn)>...> impl;
+        boost::mp11::mp_apply<
+            detail::tuple,
+            boost::mp11::mp_unique<
+                boost::mp11::mp_list<override_aux<Fn, decltype(Fn), false>...>>>
+            impl;
+    };
+
+    // Like override, but marks every overrider_info registered here as
+    // inline_ = true (see overrider_info in preamble.hpp), making it
+    // eligible for cross-module dedup during augment_methods()
+    // consolidation - used by BOOST_OPENMETHOD_INLINE_OVERRIDE. Only an
+    // overrider defined `inline` can legally have an identical definition
+    // appear in more than one translation unit/module, which is why plain
+    // `override` (above) never sets this.
+    //
+    // inline_ must be baked in as the `Inline` non-type template parameter
+    // of override_aux/override_impl (below), not passed as a runtime
+    // constructor argument to this class: override_aux::impl is a static
+    // template data member whose dynamic initialization is not guaranteed to
+    // happen before this class's own constructor body runs (taking its
+    // address, `(void)&impl;` in override_aux's constructor, does not force
+    // immediate construction) - a runtime assignment made here could run
+    // *before* override_impl's constructor, which would then overwrite it
+    // via its implicit default-construction of the overrider_info base.
+    // Setting it inside override_impl's own constructor, alongside method,
+    // pf, etc., is the only point guaranteed to run exactly once, at the
+    // right time.
+    template<auto... Fn>
+    class inline_override {
+        boost::mp11::mp_apply<
+            detail::tuple,
+            boost::mp11::mp_unique<
+                boost::mp11::mp_list<override_aux<Fn, decltype(Fn), true>...>>>
+            impl;
     };
 
   private:
@@ -2346,7 +2399,7 @@ class method<Id, ReturnType(Parameters...), Registry>
             Registry>;
     };
 
-    template<auto Function, typename FnReturnType>
+    template<auto Function, typename FnReturnType, bool Inline = false>
     struct override_impl
         : std::conditional_t<
               Registry::has_deferred_static_rtti,
@@ -2357,23 +2410,20 @@ class method<Id, ReturnType(Parameters...), Registry>
         static type_id vp_type_ids[Arity];
     };
 
-    template<auto Function, typename FunctionType>
+    template<auto Function, typename FunctionType, bool Inline>
     struct override_aux;
 
-    template<auto Function, typename FnReturnType, typename... FnParameters>
-    struct override_aux<Function, FnReturnType (*)(FnParameters...)> {
+    template<
+        auto Function, typename FnReturnType, typename... FnParameters,
+        bool Inline>
+    struct override_aux<Function, FnReturnType (*)(FnParameters...), Inline> {
         override_aux() {
             (void)&impl;
         }
 
-        static override_impl<Function, FnReturnType> impl;
+        static override_impl<Function, FnReturnType, Inline> impl;
     };
 };
-
-template<
-    typename Id, typename... Parameters, typename ReturnType, class Registry>
-method<Id, ReturnType(Parameters...), Registry>
-    method<Id, ReturnType(Parameters...), Registry>::fn;
 
 template<
     typename Id, typename... Parameters, typename ReturnType, class Registry>
@@ -2383,17 +2433,23 @@ typename method<Id, ReturnType(Parameters...), Registry>::FunctionPointer
 
 template<
     typename Id, typename... Parameters, typename ReturnType, class Registry>
-template<auto Function, typename FnReturnType>
-type_id method<Id, ReturnType(Parameters...), Registry>::override_impl<
-    Function, FnReturnType>::vp_type_ids[Arity];
+method<Id, ReturnType(Parameters...), Registry>
+    method<Id, ReturnType(Parameters...), Registry>::fn;
 
 template<
     typename Id, typename... Parameters, typename ReturnType, class Registry>
-template<auto Function, typename FnReturnType, typename... FnParameters>
+template<auto Function, typename FnReturnType, bool Inline>
+type_id method<Id, ReturnType(Parameters...), Registry>::override_impl<
+    Function, FnReturnType, Inline>::vp_type_ids[Arity];
+
+template<
+    typename Id, typename... Parameters, typename ReturnType, class Registry>
+template<
+    auto Function, typename FnReturnType, typename... FnParameters, bool Inline>
 typename method<Id, ReturnType(Parameters...), Registry>::
-    template override_impl<Function, FnReturnType>
+    template override_impl<Function, FnReturnType, Inline>
         method<Id, ReturnType(Parameters...), Registry>::override_aux<
-            Function, FnReturnType (*)(FnParameters...)>::impl;
+            Function, FnReturnType (*)(FnParameters...), Inline>::impl;
 
 template<
     typename Id, typename... Parameters, typename ReturnType, class Registry>
@@ -2413,7 +2469,7 @@ method<Id, ReturnType(Parameters...), Registry>::method() {
 
     // zero-initalized static variable
     // coverity[uninit_use]
-    Registry::methods.push_back(*this);
+    Registry::static_::st.methods.push_back(*this);
 }
 
 template<
@@ -2433,7 +2489,7 @@ void method<Id, ReturnType(Parameters...), Registry>::resolve_type_ids() {
 template<
     typename Id, typename... Parameters, typename ReturnType, class Registry>
 method<Id, ReturnType(Parameters...), Registry>::~method() {
-    Registry::methods.remove(*this);
+    Registry::static_::st.methods.remove(*this);
 }
 
 // -----------------------------------------------------------------------------
@@ -2736,9 +2792,9 @@ auto method<Id, ReturnType(Parameters...), Registry>::
 
 template<
     typename Id, typename... Parameters, typename ReturnType, class Registry>
-template<auto Function, typename FnReturnType>
+template<auto Function, typename FnReturnType, bool Inline>
 method<Id, ReturnType(Parameters...), Registry>::override_impl<
-    Function, FnReturnType>::override_impl(FunctionPointer* p_next) {
+    Function, FnReturnType, Inline>::override_impl(FunctionPointer* p_next) {
     using namespace detail;
 
     // static variable this->method below is zero-initialized but gcc and clang
@@ -2758,7 +2814,7 @@ method<Id, ReturnType(Parameters...), Registry>::override_impl<
     // zero-initalized static variable
     // coverity[uninit_use]
     if (overrider_info::method) {
-        BOOST_ASSERT(overrider_info::method == &fn);
+        BOOST_ASSERT(overrider_info::method == &method::fn);
         return;
     }
 
@@ -2770,7 +2826,13 @@ method<Id, ReturnType(Parameters...), Registry>::override_impl<
 #pragma GCC diagnostic pop
 #endif
 
-    overrider_info::method = &fn;
+    overrider_info::method = &method::fn;
+    // Baked in as a template parameter (not a runtime constructor argument):
+    // this static object's dynamic initialization is not guaranteed to
+    // happen at any particular point relative to other code (see class
+    // override/inline_override in this file), so Inline must be known here,
+    // at the one place this object's fields are set exactly once.
+    overrider_info::inline_ = Inline;
 
     if constexpr (!Registry::has_deferred_static_rtti) {
         resolve_type_ids();
@@ -2785,14 +2847,14 @@ method<Id, ReturnType(Parameters...), Registry>::override_impl<
     this->vp_begin = vp_type_ids;
     this->vp_end = vp_type_ids + Arity;
 
-    fn.overriders.push_back(*this);
+    method::fn.overriders.push_back(*this);
 }
 
 template<
     typename Id, typename... Parameters, typename ReturnType, class Registry>
-template<auto Function, typename FnReturnType>
+template<auto Function, typename FnReturnType, bool Inline>
 void method<Id, ReturnType(Parameters...), Registry>::override_impl<
-    Function, FnReturnType>::resolve_type_ids() {
+    Function, FnReturnType, Inline>::resolve_type_ids() {
     using namespace detail;
 
     this->return_type = Registry::rtti::template static_type<
