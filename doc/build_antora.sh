@@ -85,7 +85,6 @@ echo "BRANCH='${BRANCH:-}'"
 echo "BASE_URL='${BASE_URL:-}'"
 
 for f in $(find html -name '*.html'); do
-  perl -i -pe "s{&lcub;&lcub;(.*?)&rcub;&rcub;}{<a href=\"../../../\$1.html\">\$1</a>}g" "$f"
   perl -i -pe "s{<a href=\"motivation.html\">Boost.OpenMethod</a>}{<a href=\"https://www.boost.org/library/${BRANCH}/openmethod/\">Boost.OpenMethod</a>}g" "$f"
 done
 
@@ -96,8 +95,7 @@ if [ -n "${BASE_URL:-}" ]; then
   else
     echo "mrdocs.yml.bak not found; skipping restore"
   fi
-  perl -i -pe "s[{{BASE_URL}}][$BASE_URL]g" \
-    html/openmethod/ref_headers.html html/openmethod/BOOST_OPENMETHOD*.html
+  perl -i -pe "s[{{BASE_URL}}][$BASE_URL]g" html/openmethod/ref_headers.html
 fi
 
 echo "Done"

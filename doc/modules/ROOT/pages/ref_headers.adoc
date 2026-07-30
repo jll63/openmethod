@@ -77,7 +77,7 @@ Provides a `virtual_traits` specialization that makes it possible to use a
 
 The following headers can be included before `core.hpp` to define custom
 registries and policies, and override the default registry by defining
-xref:BOOST_OPENMETHOD_DEFAULT_REGISTRY.adoc[`BOOST_OPENMETHOD_DEFAULT_REGISTRY`].
+xref:reference:BOOST_OPENMETHOD_DEFAULT_REGISTRY.adoc[`BOOST_OPENMETHOD_DEFAULT_REGISTRY`].
 
 ### link:{{BASE_URL}}/include/boost/openmethod/preamble.hpp[<boost/openmethod/preamble.hpp>]
 

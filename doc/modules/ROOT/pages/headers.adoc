@@ -57,14 +57,14 @@ include::{example}/2/roles.hpp[tag=content]
 ----
 
 Unlike function declarations,
-xref:BOOST_OPENMETHOD_DECLARE_OVERRIDER.adoc[BOOST_OPENMETHOD_DECLARE_OVERRIDER]
+xref:reference:BOOST_OPENMETHOD_DECLARE_OVERRIDER.adoc[BOOST_OPENMETHOD_DECLARE_OVERRIDER]
 cannot appear multiple times in a translation unit with the same arguments.
 Also, it requires the _method_ itself to be defined prior using this macro.
 
 Overriders are placed in _overrider_ _containers_. An overrider container is a
 class template named after the method, declared in the current namespace. It is
 specialized for each overrider signature. Macro
-xref:BOOST_OPENMETHOD_OVERRIDER.adoc[BOOST_OPENMETHOD_OVERRIDER] takes the same
+xref:reference:BOOST_OPENMETHOD_OVERRIDER.adoc[BOOST_OPENMETHOD_OVERRIDER] takes the same
 arguments `BOOST_OPENMETHOD_OVERRIDE`, and expands to the corresponding
 specialization of the overrider container. Containers have a static member
 function `fn` that contains the body of the overrider, provided by the user. We can
@@ -81,7 +81,7 @@ OpenMethod does, it's `next`. It is almost always the right choice.
 
 The exception is: when performance is critical, we may want to inline the call
 to the base overrider.
-xref:BOOST_OPENMETHOD_INLINE_OVERRIDE.adoc[BOOST_OPENMETHOD_INLINE_OVERRIDE]
+xref:reference:BOOST_OPENMETHOD_INLINE_OVERRIDE.adoc[BOOST_OPENMETHOD_INLINE_OVERRIDE]
 defines the overrider as an inline function, and it can go in a header file:
 
 [source,c++]

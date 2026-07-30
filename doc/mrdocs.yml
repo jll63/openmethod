@@ -25,6 +25,17 @@ exclude-symbols:
   - 'boost::openmethod::boost_openmethod_registry'
   - 'boost::openmethod::registry_state::st'
 
+# Macros. Only the public macros carry a doc comment, and with
+# `extract-all-macros` off (the default) MrDocs extracts only documented ones.
+# The patterns below make that explicit: the library's own implementation
+# macros are never documented, whatever they are called.
+include-macros:
+  - 'BOOST_OPENMETHOD*'
+exclude-macros:
+  - 'BOOST_OPENMETHOD_DETAIL_*'
+  - 'BOOST_OPENMETHOD_GENSYM'
+  - 'BOOST_OPENMETHOD_GUIDE'
+
 sort-members: false
 # sort-namespace-members-by: location
 extract-friends: false

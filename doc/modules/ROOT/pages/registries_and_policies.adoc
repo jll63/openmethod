@@ -6,11 +6,11 @@ same registry. If a class is used as a virtual parameter in methods using
 different registries, it must be registered with each of them.
 
 Class templates cpp:use_classes[], cpp:method[], cpp:virtual_ptr[], and macros
-xref:BOOST_OPENMETHOD.adoc[BOOST_OPENMETHOD] and
-xref:BOOST_OPENMETHOD_CLASSES.adoc[BOOST_OPENMETHOD_CLASSES], take an additional
+xref:reference:BOOST_OPENMETHOD.adoc[BOOST_OPENMETHOD] and
+xref:reference:BOOST_OPENMETHOD_CLASSES.adoc[BOOST_OPENMETHOD_CLASSES], take an additional
 argument, a cpp:registry[] class, which defaults to cpp:default_registry[]. The
 default registry can be overridden by defining the macroprocessor symbol
-xref:BOOST_OPENMETHOD_DEFAULT_REGISTRY.adoc[BOOST_OPENMETHOD_DEFAULT_REGISTRY]
+xref:reference:BOOST_OPENMETHOD_DEFAULT_REGISTRY.adoc[BOOST_OPENMETHOD_DEFAULT_REGISTRY]
 _before_ including `<boost/openmethod/core.hpp>`. The value of the symbol is
 used as a default template parameter for `use_classes`, `method`, `virtual_ptr`,
 and others. Once the `core` header has been included, changing
@@ -53,7 +53,7 @@ Policies are placed in the cpp:boost::openmethod::policies[] namespace.
 |===
 
 if
-xref:BOOST_OPENMETHOD_ENABLE_RUNTIME_CHECKS.adoc[BOOST_OPENMETHOD_ENABLE_RUNTIME_CHECKS]
+xref:reference:BOOST_OPENMETHOD_ENABLE_RUNTIME_CHECKS.adoc[BOOST_OPENMETHOD_ENABLE_RUNTIME_CHECKS]
 is defined, `default_registry` also contains the `runtime_checks` policy. This
 enables extra validations during method dispatch, which can detect missing class
 registrations that could not be caught by `initialize`.

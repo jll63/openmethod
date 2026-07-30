@@ -24,6 +24,33 @@
 #include <boost/openmethod/default_registry.hpp>
 
 #ifndef BOOST_OPENMETHOD_DEFAULT_REGISTRY
+//! Default value for `Registry`.
+//!
+//! The name of the default registry.
+//!
+//! `BOOST_OPENMETHOD_DEFAULT_REGISTRY` is the default value for the `Registry`
+//! template parameter of @ref boost::openmethod::method,
+//! @ref boost::openmethod::use_classes, @ref boost::openmethod::virtual_ptr,
+//! and all the constructs that take a registry as a template argument.
+//!
+//! `BOOST_OPENMETHOD_DEFAULT_REGISTRY` can be defined by a program to change
+//! the default registry globally, *before* including
+//! `<boost/openmethod/core.hpp>`. After that, changing its value has no effect,
+//! even on other macros.
+//!
+//! To override the default registry, proceed as follows:
+//!
+//! @li Define a @ref boost::openmethod::registry class, either from scratch, or
+//! by tuning an existing registry. Include `<boost/openmethod/preamble.hpp>`,
+//! `<boost/openmethod/default_registry.hpp>`, and headers under
+//! `boost/openmethod/policies` as needed.
+//!
+//! @li Set `BOOST_OPENMETHOD_DEFAULT_REGISTRY` to the new registry class.
+//!
+//! @li Include `<boost/openmethod/core.hpp>`.
+//!
+//! @note Use this feature with caution, as it will cause ODR violations if
+//! different translation units define different default registries.
 #define BOOST_OPENMETHOD_DEFAULT_REGISTRY ::boost::openmethod::default_registry
 #endif
 
@@ -661,7 +688,7 @@ inline auto final_virtual_ptr(Arg&& obj) {
 //! the other way around.
 //!
 //! The default value for `Registry` can be customized by defining the
-//! {{BOOST_OPENMETHOD_DEFAULT_REGISTRY}}
+//! @ref BOOST_OPENMETHOD_DEFAULT_REGISTRY
 //! preprocessor symbol.
 //!
 //! @par Requirements
@@ -2093,7 +2120,7 @@ struct validate_method_parameter<
 //!
 //! The default value for `Registry` is @ref default_registry, but it can be
 //! overridden by defining the preprocessor symbol
-//! {{BOOST_OPENMETHOD_DEFAULT_REGISTRY}}, *before* including
+//! @ref BOOST_OPENMETHOD_DEFAULT_REGISTRY, *before* including
 //! `<boost/openmethod/core.hpp>`. Setting the symbol afterwards has no effect.
 //!
 //! Specializations of `method` have a single instance: the static member `fn`,

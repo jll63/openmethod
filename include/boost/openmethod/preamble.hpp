@@ -96,7 +96,7 @@ struct openmethod_error {};
 //!
 //! This error is raised if the definition of @ref default_registry is
 //! inconsistent across translation units, due to misuse of
-//! {{BOOST_OPENMETHOD_ENABLE_RUNTIME_CHECKS}}.
+//! @ref BOOST_OPENMETHOD_ENABLE_RUNTIME_CHECKS.
 struct odr_violation : openmethod_error {
     //! Write a description of the error to a stream.
     //! @tparam Registry The registry containing this policy.
@@ -1053,8 +1053,8 @@ struct initialize_aux;
 //! whole and import via `extern template`.
 //!
 //! To share the state across modules, use
-//! {{BOOST_OPENMETHOD_IMPORT_REGISTRY}}, {{BOOST_OPENMETHOD_EXPORT_REGISTRY}}
-//! and {{BOOST_OPENMETHOD_INSTANTIATE_REGISTRY}}. They hide a platform
+//! @ref BOOST_OPENMETHOD_IMPORT_REGISTRY, @ref BOOST_OPENMETHOD_EXPORT_REGISTRY
+//! and @ref BOOST_OPENMETHOD_INSTANTIATE_REGISTRY. They hide a platform
 //! incompatibility: the export goes on the declaration on ELF and Mach-O, but
 //! on the instantiation on declspec platforms, where `extern` and
 //! `__declspec(dllexport)` cannot be combined.
