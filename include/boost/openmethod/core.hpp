@@ -51,6 +51,8 @@
 //!
 //! @note Use this feature with caution, as it will cause ODR violations if
 //! different translation units define different default registries.
+//!
+//! @see [Registries and Policies](xref:ROOT:registries_and_policies.adoc)
 #define BOOST_OPENMETHOD_DEFAULT_REGISTRY ::boost::openmethod::default_registry
 #endif
 

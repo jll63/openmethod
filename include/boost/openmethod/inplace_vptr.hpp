@@ -200,7 +200,7 @@ class inplace_vptr_derived;
 //! Specialization for a single base class.
 //!
 //!
-//! @see The main template for documentation.
+//! @see @ref inplace_vptr_derived for documentation.
 template<class Class, class Base>
 class inplace_vptr_derived<Class, Base> {
     static_assert(
@@ -233,7 +233,7 @@ class inplace_vptr_derived<Class, Base> {
 
 //! Specialization for multiple base classes.
 //!
-//! @see The main template for documentation.
+//! @see @ref inplace_vptr_derived for documentation.
 template<class Class, class Base1, class Base2, class... MoreBases>
 class inplace_vptr_derived<Class, Base1, Base2, MoreBases...> {
     static_assert(

@@ -54,6 +54,8 @@ inline constexpr bool method_not_found = false;
 //!
 //! @param ... The registrar's type. It is variadic so that it may contain
 //! unparenthesized commas, as in `std::pair<int, int>`.
+//!
+//! @see [Core API](xref:ROOT:core_api.adoc)
 #define BOOST_OPENMETHOD_REGISTER(...)                                         \
     static __VA_ARGS__ BOOST_OPENMETHOD_GENSYM
 
@@ -65,6 +67,8 @@ inline constexpr bool method_not_found = false;
 //! @note `ID` must be an *identifier*. Qualified names are not allowed.
 //!
 //! @param ID The method's name.
+//!
+//! @see [Core API](xref:ROOT:core_api.adoc)
 #define BOOST_OPENMETHOD_ID(ID) ID##_boost_openmethod
 
 //! Return the class template containing the overriders for all the methods
@@ -76,6 +80,8 @@ inline constexpr bool method_not_found = false;
 //! @note `ID` must be an *identifier*. Qualified names are not allowed.
 //!
 //! @param ID The method's name.
+//!
+//! @see [Header and Implementation Files](xref:ROOT:headers.adoc)
 #define BOOST_OPENMETHOD_OVERRIDERS(ID)                                        \
     BOOST_PP_CAT(BOOST_OPENMETHOD_ID(ID), _overriders)
 
@@ -89,6 +95,8 @@ inline constexpr bool method_not_found = false;
 //! @param ID The method's name.
 //! @param PARAMETERS The overrider's parameter list, in parentheses.
 //! @param ... The overrider's return type.
+//!
+//! @see [Core API](xref:ROOT:core_api.adoc)
 #define BOOST_OPENMETHOD_OVERRIDER(ID, PARAMETERS, ...)                        \
     BOOST_OPENMETHOD_OVERRIDERS(ID)<__VA_ARGS__ PARAMETERS>
 
@@ -104,6 +112,8 @@ inline constexpr bool method_not_found = false;
 //! @param ID The method's name.
 //! @param PARAMETERS The method's parameter list, in parentheses.
 //! @param ... The method's return type, optionally followed by the registry.
+//!
+//! @see [Core API](xref:ROOT:core_api.adoc)
 #define BOOST_OPENMETHOD_TYPE(ID, PARAMETERS, ...)                             \
     ::boost::openmethod::method<                                               \
         BOOST_OPENMETHOD_ID(ID),                                               \
@@ -192,6 +202,9 @@ inline constexpr bool method_not_found = false;
 //! @param ID The method's name.
 //! @param PARAMETERS The method's parameter list, in parentheses.
 //! @param ... The method's return type, optionally followed by the registry.
+//!
+//! @see [Methods and Overriders](xref:ROOT:basics.adoc)
+//! @see [Header and Implementation Files](xref:ROOT:headers.adoc)
 #define BOOST_OPENMETHOD(ID, PARAMETERS, ...)                                  \
     struct BOOST_OPENMETHOD_ID(ID);                                            \
     template<typename... ForwarderParameters>                                  \
@@ -276,6 +289,8 @@ inline constexpr bool method_not_found = false;
 //! @param ID The method's name.
 //! @param PARAMETERS The overrider's parameter list, in parentheses.
 //! @param ... The overrider's return type.
+//!
+//! @see [Header and Implementation Files](xref:ROOT:headers.adoc)
 #define BOOST_OPENMETHOD_DECLARE_OVERRIDER(ID, PARAMETERS, ...)                \
     template<typename...>                                                      \
     struct BOOST_OPENMETHOD_OVERRIDERS(ID);                                    \
@@ -335,6 +350,8 @@ inline constexpr bool method_not_found = false;
 //! @param ID The method's name.
 //! @param PARAMETERS The overrider's parameter list, in parentheses.
 //! @param ... The overrider's return type.
+//!
+//! @see [Header and Implementation Files](xref:ROOT:headers.adoc)
 #define BOOST_OPENMETHOD_DEFINE_OVERRIDER(ID, PARAMETERS, ...)                 \
     BOOST_OPENMETHOD_DETAIL_REGISTER_OVERRIDER(ID, PARAMETERS, __VA_ARGS__)    \
     auto BOOST_OPENMETHOD_OVERRIDER(                                           \
@@ -414,6 +431,11 @@ inline constexpr bool method_not_found = false;
 //! @param ID The method's name.
 //! @param PARAMETERS The overrider's parameter list, in parentheses.
 //! @param ... The overrider's return type.
+//!
+//! @see [Methods and Overriders](xref:ROOT:basics.adoc)
+//! @see [Header and Implementation Files](xref:ROOT:headers.adoc)
+//! @see [Namespaces](xref:ROOT:namespaces.adoc)
+//! @see [Friends](xref:ROOT:friends.adoc)
 #define BOOST_OPENMETHOD_OVERRIDE(ID, PARAMETERS, ...)                         \
     BOOST_OPENMETHOD_DECLARE_OVERRIDER(ID, PARAMETERS, __VA_ARGS__)            \
     BOOST_OPENMETHOD_DEFINE_OVERRIDER(ID, PARAMETERS, __VA_ARGS__)
@@ -438,6 +460,8 @@ inline constexpr bool method_not_found = false;
 //! @param ID The method's name.
 //! @param PARAMETERS The overrider's parameter list, in parentheses.
 //! @param ... The overrider's return type.
+//!
+//! @see [Header and Implementation Files](xref:ROOT:headers.adoc)
 #define BOOST_OPENMETHOD_INLINE_OVERRIDE(ID, PARAMETERS, ...)                  \
     BOOST_OPENMETHOD_DECLARE_OVERRIDER(ID, PARAMETERS, __VA_ARGS__)            \
     BOOST_OPENMETHOD_DETAIL_REGISTER_OVERRIDER_AUX(                            \
@@ -458,6 +482,8 @@ inline constexpr bool method_not_found = false;
 //! included. Subsequently changing it has no retroactive effect.
 //!
 //! @param ... The classes to register, optionally followed by the registry.
+//!
+//! @see [Methods and Overriders](xref:ROOT:basics.adoc)
 #define BOOST_OPENMETHOD_CLASSES(...)                                          \
     BOOST_OPENMETHOD_REGISTER(::boost::openmethod::use_classes<__VA_ARGS__>)
 
@@ -498,9 +524,7 @@ inline constexpr bool method_not_found = false;
 //! They exist to hide a platform incompatibility: on Windows, Cygwin and
 //! MinGW, `__declspec(dllexport)` and `extern` are incompatible on an explicit
 //! instantiation, while on ELF and Mach-O the visibility attribute must be on
-//! the declaration and must not be repeated on the definition. See
-//! [Shared Libraries](xref:ROOT:shared_libraries.adoc) for the full
-//! discussion, including the required link setup.
+//! the declaration and must not be repeated on the definition.
 //!
 //! Use at namespace scope, after the registry's definition, in every
 //! translation unit of every module that uses the registry without owning it.
@@ -519,6 +543,9 @@ inline constexpr bool method_not_found = false;
 //!
 //! @param REGISTRY The registry to import. May be any registry, predefined or
 //! user-defined.
+//!
+//! @see [Shared Libraries](xref:ROOT:shared_libraries.adoc) for the full
+//! discussion, including the required link setup.
 #define BOOST_OPENMETHOD_IMPORT_REGISTRY(REGISTRY)                             \
     extern template struct BOOST_SYMBOL_IMPORT ::boost::openmethod::           \
         registry_state<REGISTRY::registry_type>
@@ -546,9 +573,7 @@ inline constexpr bool method_not_found = false;
 //! owning module.
 //!
 //! See @ref BOOST_OPENMETHOD_IMPORT_REGISTRY for how the three registry-sharing
-//! macros fit together, and
-//! [Shared Libraries](xref:ROOT:shared_libraries.adoc) for the full discussion,
-//! including the required link setup.
+//! macros fit together.
 //!
 //! Use at namespace scope, after the registry's definition, in *every*
 //! translation unit of the module that owns the registry. Being a declaration
@@ -570,6 +595,9 @@ inline constexpr bool method_not_found = false;
 //!
 //! @param REGISTRY The registry to export. May be any registry, predefined or
 //! user-defined.
+//!
+//! @see [Shared Libraries](xref:ROOT:shared_libraries.adoc) for the full
+//! discussion, including the required link setup.
 #define BOOST_OPENMETHOD_EXPORT_REGISTRY(REGISTRY)                             \
     BOOST_OPENMETHOD_DETAIL_EXPORT_REGISTRY(REGISTRY)
 
@@ -577,9 +605,7 @@ inline constexpr bool method_not_found = false;
 //! owning module.
 //!
 //! See @ref BOOST_OPENMETHOD_IMPORT_REGISTRY for how the three registry-sharing
-//! macros fit together, and
-//! [Shared Libraries](xref:ROOT:shared_libraries.adoc) for the full discussion,
-//! including the required link setup.
+//! macros fit together.
 //!
 //! Use at namespace scope, after the registry's definition, in *exactly one*
 //! translation unit of the module that owns the registry. It belongs in a
@@ -592,6 +618,9 @@ inline constexpr bool method_not_found = false;
 //!
 //! @param REGISTRY The registry to instantiate. May be any registry, predefined
 //! or user-defined.
+//!
+//! @see [Shared Libraries](xref:ROOT:shared_libraries.adoc) for the full
+//! discussion, including the required link setup.
 #define BOOST_OPENMETHOD_INSTANTIATE_REGISTRY(REGISTRY)                        \
     BOOST_OPENMETHOD_DETAIL_INSTANTIATE_REGISTRY(REGISTRY)
 

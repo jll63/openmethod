@@ -74,7 +74,7 @@ static odr_check<default_registry> default_registry_odr_check_instance;
 //! Share it across shared libraries exactly as for @ref default_registry,
 //! naming `indirect_registry` in the macros.
 //!
-//! @see indirect_vptr.
+//! @see @ref policies::indirect_vptr
 struct indirect_registry : default_registry::with<policies::indirect_vptr> {};
 
 } // namespace boost::openmethod
@@ -91,6 +91,8 @@ struct indirect_registry : default_registry::with<policies::indirect_vptr> {};
 //! May be defined by a program before including
 //! `<boost/openmethod/default_registry.hpp>` to enable runtime checks. See
 //! @ref boost::openmethod::default_registry for details.
+//!
+//! @see [Registries and Policies](xref:ROOT:registries_and_policies.adoc)
 #define BOOST_OPENMETHOD_ENABLE_RUNTIME_CHECKS
 #endif
 #endif
