@@ -498,9 +498,9 @@ inline constexpr bool method_not_found = false;
 //! They exist to hide a platform incompatibility: on Windows, Cygwin and
 //! MinGW, `__declspec(dllexport)` and `extern` are incompatible on an explicit
 //! instantiation, while on ELF and Mach-O the visibility attribute must be on
-//! the declaration and must not be repeated on the definition. See the Shared
-//! Libraries section of the documentation for the full discussion, including
-//! the required link setup.
+//! the declaration and must not be repeated on the definition. See
+//! [Shared Libraries](xref:ROOT:shared_libraries.adoc) for the full
+//! discussion, including the required link setup.
 //!
 //! Use at namespace scope, after the registry's definition, in every
 //! translation unit of every module that uses the registry without owning it.
@@ -546,7 +546,9 @@ inline constexpr bool method_not_found = false;
 //! owning module.
 //!
 //! See @ref BOOST_OPENMETHOD_IMPORT_REGISTRY for how the three registry-sharing
-//! macros fit together.
+//! macros fit together, and
+//! [Shared Libraries](xref:ROOT:shared_libraries.adoc) for the full discussion,
+//! including the required link setup.
 //!
 //! Use at namespace scope, after the registry's definition, in *every*
 //! translation unit of the module that owns the registry. Being a declaration
@@ -575,7 +577,9 @@ inline constexpr bool method_not_found = false;
 //! owning module.
 //!
 //! See @ref BOOST_OPENMETHOD_IMPORT_REGISTRY for how the three registry-sharing
-//! macros fit together.
+//! macros fit together, and
+//! [Shared Libraries](xref:ROOT:shared_libraries.adoc) for the full discussion,
+//! including the required link setup.
 //!
 //! Use at namespace scope, after the registry's definition, in *exactly one*
 //! translation unit of the module that owns the registry. It belongs in a
