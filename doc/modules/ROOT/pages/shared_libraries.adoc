@@ -2,8 +2,8 @@
 
 [#shared_libraries]
 
-This section discusses how OpenMethod interoperates with shared libraries on
-Linux, other POSIX-like platforms, and Windows.
+OpenMethod interoperates with shared libraries on Linux, other POSIX-like
+platforms, and Windows.
 
 OpenMethod uses global data to keep track of methods, overriders and classes,
 all managed by static constructors and destructors. cpp:initialize[] uses that
