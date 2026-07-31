@@ -441,6 +441,9 @@ using use_classes_tuple_type = boost::mp11::mp_apply<
 //!
 //! Virtual and multiple inheritance are supported, with the exclusion of
 //! repeated inheritance.
+//!
+//! @see [Core API](xref:ROOT:core_api.adoc)
+//! @see [Registries and Policies](xref:ROOT:registries_and_policies.adoc)
 template<class... Classes>
 class use_classes {
     detail::use_classes_tuple_type<Classes...> tuple;
@@ -702,6 +705,10 @@ inline auto final_virtual_ptr(Arg&& obj) {
 //! @tparam Class The class of the object, possibly cv-qualified
 //! @tparam Registry The registry in which `Class` is registered
 //! @tparam unnamed Implementation defined, use default
+//!
+//! @see [Smart Pointers](xref:ROOT:smart_pointers.adoc)
+//! @see [Virtual Pointer Alternatives](xref:ROOT:virtual_ptr_alt.adoc)
+//! @see [Performance](xref:ROOT:performance.adoc)
 template<class Class, class Registry, typename>
 class virtual_ptr {
 
@@ -1189,6 +1196,8 @@ class virtual_ptr {
 //!
 //! @tparam SmartPtr A smart pointer type
 //! @tparam Registry The registry in which the underlying class is registered
+//!
+//! @see [Smart Pointers](xref:ROOT:smart_pointers.adoc)
 template<class SmartPtr, class Registry>
 class virtual_ptr<
     SmartPtr, Registry,
@@ -2177,6 +2186,8 @@ struct validate_method_parameter<
 //! @tparam Id A type
 //! @tparam Fn A function type
 //! @tparam Registry The registry in which the method is defined
+//!
+//! @see [Core API](xref:ROOT:core_api.adoc)
 template<
     typename Id, typename Fn,
     class Registry = BOOST_OPENMETHOD_DEFAULT_REGISTRY>

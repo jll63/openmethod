@@ -16,6 +16,8 @@ namespace policies {
 //! @ref Writes to the C standard error stream.
 //!
 //! `stderr_output` writes to standard error using the C API.
+//!
+//! @see [Error Handling](xref:ROOT:error_handling.adoc)
 struct stderr_output : output {
     //! An OutputFn metafunction.
     template<class Registry>

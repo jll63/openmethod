@@ -1907,6 +1907,9 @@ void registry<Policies...>::compiler<Options...>::print(
 //!     // ...
 //! }
 //! @endcode
+//!
+//! @see [Methods and Overriders](xref:ROOT:basics.adoc)
+//! @see [Shared Libraries](xref:ROOT:shared_libraries.adoc)
 template<class Registry = BOOST_OPENMETHOD_DEFAULT_REGISTRY, class... Options>
 inline auto initialize(Options&&... options) {
     if (detail::odr_check<Registry>::count > 1) {
@@ -1987,6 +1990,8 @@ auto registry<Policies...>::finalize(Options... opts) -> void {
 //! @tparam Options... Zero or more option types, deduced from the function
 //! arguments.
 //! @param options Zero or more option objects.
+//!
+//! @see [Shared Libraries](xref:ROOT:shared_libraries.adoc)
 template<class Registry = BOOST_OPENMETHOD_DEFAULT_REGISTRY, class... Options>
 inline auto finalize(Options&&... opts) -> void {
     Registry::finalize(std::forward<Options>(opts)...);

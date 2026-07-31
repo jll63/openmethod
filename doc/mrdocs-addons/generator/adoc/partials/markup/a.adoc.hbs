@@ -1,0 +1,46 @@
+{{!
+    Overrides the built-in markup/a partial, adding the `xref:ROOT:` branch
+    below. Everything else is the upstream template verbatim; keep it that way
+    so the file is easy to diff against a newer MrDocs.
+
+    Why the extra branch: a doc comment reaches a hand-written guide page with a
+    markdown link whose target is an Antora resource ID, which the final `else`
+    emits verbatim:
+
+        //! @see [Methods and Overriders](xref:ROOT:basics.adoc)
+
+    That works only at the output root. MrDocs sets `:relfileprefix: ../../` on
+    nested pages, Asciidoctor folds it into the xref target Antora resolves, and
+    `../../ROOT:basics.adoc` is not a valid resource ID. Clearing the attribute
+    is not an option - the breadcrumbs in the document title are converted by
+    plain Asciidoctor and need it. See cppalliance/mrdocs#1245.
+
+    So on a nested page emit a `link:` instead: a link macro is not an
+    inter-document xref, so relfileprefix never touches it. `relfileprefix`
+    reaches the reference module root and the ROOT module sits one level above
+    it, hence the extra `../`. At the root the href is passed through unchanged,
+    so those links stay real xrefs and Antora still validates them.
+
+    Delete this file once #1245 is resolved upstream.
+
+    Do not relativize links as asciidoc does not support it.
+
+    https://gitlab.com/antora/antora/-/issues/428
+}}
+{{#if (eq href @root.symbol.url)~}}
+    {{{> @partial-block }}}
+{{~else if (starts_with href "#")~}}
+    link:{{{ href }}}[{{> @partial-block }}]
+{{~else if (starts_with href "xref:ROOT:")~}}
+{{~#if @root.page.relfileprefix~}}
+    link:{{{@root.page.relfileprefix}}}../{{{replace (remove_prefix href "xref:ROOT:") ".adoc" ".html"}}}[{{> @partial-block }}]
+{{~else~}}
+    {{{href}}}[{{> @partial-block }}]
+{{~/if~}}
+{{~else if (starts_with href "/")~}}
+    xref:{{{remove_prefix href "/"}}}[{{> @partial-block }}]
+{{~else if (starts_with href ".")~}}
+    xref:{{{href}}}[{{> @partial-block }}]
+{{~else~}}
+    {{{href}}}[{{> @partial-block }}{{#if blank}}^{{/if}}]
+{{~/if~}}

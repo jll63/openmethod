@@ -60,6 +60,8 @@ namespace policies {
 //! corresponds to a value in the domain, or even that the codomain is a dense
 //! range of integers. In other words, a lot of space may be wasted in presence
 //! of large sets of type_ids.
+//!
+//! @see [Registries and Policies](xref:ROOT:registries_and_policies.adoc)
 struct fast_perfect_hash : type_hash {
 
     //! Cannot find hash factors

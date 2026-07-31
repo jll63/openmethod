@@ -124,6 +124,8 @@ class inplace_vptr_base_tag {};
 //!     return 0;
 //! }
 //! @endcode
+//!
+//! @see [Virtual Pointer Alternatives](xref:ROOT:virtual_ptr_alt.adoc)
 template<class Class, class Registry = BOOST_OPENMETHOD_DEFAULT_REGISTRY>
 class inplace_vptr_base : protected detail::inplace_vptr_base_tag {
     template<class To, class Other>
@@ -180,6 +182,8 @@ class inplace_vptr_base : protected detail::inplace_vptr_base_tag {
 //! @tparam Class The class in which to embed the v-table pointer.
 //! @tparam Base A direct base class of `Class`.
 //! @tparam MoreBases More direct base classes of `Class`.
+//!
+//! @see [Virtual Pointer Alternatives](xref:ROOT:virtual_ptr_alt.adoc)
 template<class Class, class Base, class... MoreBases>
 class inplace_vptr_derived {
   protected:

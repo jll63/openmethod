@@ -80,6 +80,8 @@ using type_id = const void*;
 //! - @ref virtual_traits must be specialized for `T`.
 //!
 //! @tparam T A class.
+//!
+//! @see [Virtual Pointer Alternatives](xref:ROOT:virtual_ptr_alt.adoc)
 template<typename T>
 struct virtual_;
 
@@ -90,6 +92,8 @@ struct virtual_traits;
 // Error handling
 
 //! Base class for all OpenMethod errors.
+//!
+//! @see [Error Handling](xref:ROOT:error_handling.adoc)
 struct openmethod_error {};
 
 //! One Definition Rule violation.
@@ -97,6 +101,8 @@ struct openmethod_error {};
 //! This error is raised if the definition of @ref default_registry is
 //! inconsistent across translation units, due to misuse of
 //! @ref BOOST_OPENMETHOD_ENABLE_RUNTIME_CHECKS.
+//!
+//! @see [Error Handling](xref:ROOT:error_handling.adoc)
 struct odr_violation : openmethod_error {
     //! Write a description of the error to a stream.
     //! @tparam Registry The registry containing this policy.
@@ -132,6 +138,8 @@ std::size_t odr_check<Registry>::inc = count++;
 } // namespace detail
 
 //! Registry not initialized
+//!
+//! @see [Error Handling](xref:ROOT:error_handling.adoc)
 struct not_initialized : openmethod_error {
     //! Write a short description to an output stream
     //! @param os The output stream
@@ -186,6 +194,8 @@ struct not_initialized : openmethod_error {
 //! Bulldog hector;
 //! poke(hector); // throws missing_class;
 //! @endcode
+//!
+//! @see [Error Handling](xref:ROOT:error_handling.adoc)
 struct missing_class : openmethod_error {
     //! The type_id of the unknown class.
     type_id type;
@@ -225,6 +235,8 @@ struct missing_class : openmethod_error {
 //! @code
 //! BOOST_OPENMETHOD_CLASSES(Animal, Dog);
 //! @endcode
+//!
+//! @see [Error Handling](xref:ROOT:error_handling.adoc)
 struct missing_base : openmethod_error {
     //! The type_id of the base class.
     type_id base;
@@ -240,6 +252,8 @@ struct missing_base : openmethod_error {
 };
 
 //! No valid overrider
+//!
+//! @see [Error Handling](xref:ROOT:error_handling.adoc)
 struct bad_call : openmethod_error {
     //! The type_id of method that was called
     type_id method;
@@ -254,6 +268,7 @@ struct bad_call : openmethod_error {
 //! No overrider for virtual tuple
 //!
 //! @see @ref bad_call for data members.
+//! @see [Error Handling](xref:ROOT:error_handling.adoc)
 struct no_overrider : bad_call {
     //! Write a short description to an output stream
     //! @param os The output stream
@@ -268,6 +283,7 @@ struct no_overrider : bad_call {
 //! Ambiguous call
 //!
 //! @see @ref bad_call for data members.
+//! @see [Error Handling](xref:ROOT:error_handling.adoc)
 struct ambiguous_call : bad_call {
     //! Write a short description to an output stream
     //! @param os The output stream
@@ -287,6 +303,8 @@ struct ambiguous_call : bad_call {
 //! policy, its @ref error function is called with a `final_error` object, then
 //! the program is terminated with
 //! @ref abort.
+//!
+//! @see [Error Handling](xref:ROOT:error_handling.adoc)
 struct final_error : openmethod_error {
     type_id static_type, dynamic_type;
 
@@ -484,6 +502,7 @@ inline trace trace::from_env() {
 //! that conforms to the blueprint's requirements.
 //!
 //! @see @ref registry for a complete explanation of registries and policies.
+//! @see [Registries and Policies](xref:ROOT:registries_and_policies.adoc)
 
 namespace policies {
 
@@ -600,6 +619,8 @@ struct RttiFn {
 //! @li derive from @c rtti.
 //! @li provide a @c fn<Registry> metafunction that conforms to the @ref RttiFn
 //! blueprint.
+//!
+//! @see [Custom RTTI](xref:ROOT:custom_rtti.adoc)
 struct rtti {
     // Policy category.
     using category = rtti;
@@ -638,6 +659,8 @@ struct rtti {
 //! and overriders. This creates order-of-initialization issues. Deriving a @e
 //! rtti policy from this class - instead of just `rtti` - causes the collection
 //! of type ids to be deferred until the first call to @ref update.
+//!
+//! @see [Custom RTTI](xref:ROOT:custom_rtti.adoc)
 struct deferred_static_rtti : rtti {};
 
 // -----------------------------------------------------------------------------
@@ -667,6 +690,8 @@ struct ErrorHandlerFn {
 //! @li derive from @c error_handler.
 //! @li provide a @c fn<Registry> metafunction that conforms to the @ref
 //! ErrorHandlerFn blueprint.
+//!
+//! @see [Error Handling](xref:ROOT:error_handling.adoc)
 struct error_handler {
     // Policy category.
     using category = error_handler;
@@ -726,6 +751,8 @@ struct VptrFn {
 //! @li derive from @c vptr.
 //! @li provide a @c fn<Registry> metafunction that conforms to the @ref
 //! VptrFn blueprint.
+//!
+//! @see [Registries and Policies](xref:ROOT:registries_and_policies.adoc)
 struct vptr {
     // Policy category.
     using category = vptr;
@@ -738,6 +765,8 @@ struct vptr {
 //! These indirect pointers remain valid after a call to @ref initialize, after
 //! dynamically loading a library that adds classes, methods and overriders to
 //! the registry.
+//!
+//! @see [Shared Libraries](xref:ROOT:shared_libraries.adoc)
 struct indirect_vptr final {
     // Policy category.
     using category = indirect_vptr;
@@ -802,6 +831,8 @@ struct TypeHashFn {
 //! @li derive from @c type_hash.
 //! @li provide a @c fn<Registry> metafunction that conforms to the @ref
 //! TypeHashFn blueprint.
+//!
+//! @see [Registries and Policies](xref:ROOT:registries_and_policies.adoc)
 struct type_hash {
     // Policy category.
     using category = type_hash;
@@ -835,6 +866,8 @@ struct OutputFn {
 //! @li derive from @c output.
 //! @li provide a @c fn<Registry> metafunction that conforms to the @ref
 //! OutputFn blueprint.
+//!
+//! @see [Error Handling](xref:ROOT:error_handling.adoc)
 struct output {
     // Policy category.
     using category = output;
@@ -849,6 +882,8 @@ struct output {
 //! @li Classes of virtual arguments have been registered.
 //! @li Dynamic and static types match in "final" constructs (@ref
 //! final_virtual_ptr and related functions).
+//!
+//! @see [Error Handling](xref:ROOT:error_handling.adoc)
 struct runtime_checks final {
     // Policy category.
     using category = runtime_checks;
@@ -1066,6 +1101,8 @@ struct initialize_aux;
 //! // exactly one .cpp of the owning module:
 //! BOOST_OPENMETHOD_INSTANTIATE_REGISTRY(boost::openmethod::default_registry);
 //! @endcode
+//!
+//! @see [Shared Libraries](xref:ROOT:shared_libraries.adoc)
 template<class Registry>
 struct registry_state {
     static detail::registry_state_type<Registry> st;
@@ -1123,6 +1160,7 @@ detail::registry_state_type<Registry> registry_state<Registry>::st;
 //! @li @c Policy must contain a @c fn<Registry> metafunction.
 //!
 //! @see @ref policies
+//! @see [Registries and Policies](xref:ROOT:registries_and_policies.adoc)
 template<class... Policy>
 class registry : public detail::registry_base {
 

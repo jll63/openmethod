@@ -22,6 +22,8 @@ namespace boost::openmethod::policies {
 //! @par Example
 //! TODO
 //! include::example$static_rtti.cpp[tag=all]
+//!
+//! @see [Custom RTTI](xref:ROOT:custom_rtti.adoc)
 struct static_rtti : rtti {
     //! A RttiFn metafunction.
     //!

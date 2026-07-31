@@ -20,6 +20,8 @@ namespace boost::openmethod::policies {
 //!
 //! `std_rtti` implements the `rtti` policy using the standard C++ RTTI system.
 //! It is the default RTTI policy.
+//!
+//! @see [Custom RTTI](xref:ROOT:custom_rtti.adoc)
 struct std_rtti : rtti {
     //! A RttiFn metafunction.
     //!

@@ -16,6 +16,8 @@ namespace boost::openmethod {
 //!
 //! @tparam Class A class type, possibly cv-qualified.
 //! @tparam Registry A @ref registry.
+//!
+//! @see [Smart Pointers](xref:ROOT:smart_pointers.adoc)
 template<class Class, class Registry>
 struct virtual_traits<std::unique_ptr<Class>, Registry> {
     //! `Class`, stripped from cv-qualifiers.
@@ -62,6 +64,8 @@ struct virtual_traits<std::unique_ptr<Class>, Registry> {
 };
 
 //! Alias for a `virtual_ptr<std::unique_ptr<T>>`.
+//!
+//! @see [Smart Pointers](xref:ROOT:smart_pointers.adoc)
 template<class Class, class Registry = BOOST_OPENMETHOD_DEFAULT_REGISTRY>
 using unique_virtual_ptr = virtual_ptr<std::unique_ptr<Class>, Registry>;
 
@@ -79,6 +83,8 @@ using unique_virtual_ptr = virtual_ptr<std::unique_ptr<Class>, Registry>;
 //! @param args Arguments to pass to the constructor of `Class`.
 //! @return A `unique_virtual_ptr<Class, Registry>` pointing to a newly
 //! created object of type `Class`.
+//!
+//! @see [Smart Pointers](xref:ROOT:smart_pointers.adoc)
 template<
     class Class, class Registry = BOOST_OPENMETHOD_DEFAULT_REGISTRY,
     typename... T>
