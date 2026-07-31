@@ -177,7 +177,9 @@ class inplace_vptr_base : protected detail::inplace_vptr_base_tag {
 //! @ref policies::vptr policy, nor any policy it depends on (like @ref
 //! policies::type_hash).
 //!
-//! @see @ref inplace_vptr_base for an example.
+//! @ref inplace_vptr_base carries an example.
+//!
+//! @see @ref inplace_vptr_base
 //!
 //! @tparam Class The class in which to embed the v-table pointer.
 //! @tparam Base A direct base class of `Class`.

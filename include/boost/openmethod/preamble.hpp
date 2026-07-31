@@ -267,7 +267,9 @@ struct bad_call : openmethod_error {
 
 //! No overrider for virtual tuple
 //!
-//! @see @ref bad_call for data members.
+//! The data members are documented on @ref bad_call.
+//!
+//! @see @ref bad_call
 //! @see [Error Handling](xref:ROOT:error_handling.adoc)
 struct no_overrider : bad_call {
     //! Write a short description to an output stream
@@ -282,7 +284,9 @@ struct no_overrider : bad_call {
 
 //! Ambiguous call
 //!
-//! @see @ref bad_call for data members.
+//! The data members are documented on @ref bad_call.
+//!
+//! @see @ref bad_call
 //! @see [Error Handling](xref:ROOT:error_handling.adoc)
 struct ambiguous_call : bad_call {
     //! Write a short description to an output stream
@@ -501,7 +505,9 @@ inline trace trace::from_env() {
 //! implementing these blueprints must provide a `fn<Registry>` metafunction
 //! that conforms to the blueprint's requirements.
 //!
-//! @see @ref registry for a complete explanation of registries and policies.
+//! @ref registry carries a complete explanation of registries and policies.
+//!
+//! @see @ref registry
 //! @see [Registries and Policies](xref:ROOT:registries_and_policies.adoc)
 
 namespace policies {
