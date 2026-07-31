@@ -62,10 +62,24 @@ fi
 
 cd "$SCRIPT_DIR"
 
+# MrDocs takes its own base-url - the one behind the "Declared in <header>" link
+# on every reference page - from mrdocs.yml, and the Antora extension invokes it
+# with a fixed argument list, so there is no way to pass the commit other than
+# editing the file. Restore it from an EXIT trap rather than at the end of the
+# script: without one, a failed build leaves mrdocs.yml patched, and the next
+# run backs up the patched file and loses the original.
+restore_mrdocs_yml() {
+  if [ -f "$SCRIPT_DIR/mrdocs.yml.bak" ]; then
+    mv -f "$SCRIPT_DIR/mrdocs.yml.bak" "$SCRIPT_DIR/mrdocs.yml"
+    echo "Restored original mrdocs.yml"
+  fi
+}
+
 if [ -n "${REPOSITORY}" ] && [ -n "${SHA}" ]; then
   BASE_URL="https://github.com/${REPOSITORY}/blob/${SHA}"
   echo "Setting base-url to $BASE_URL"
   cp mrdocs.yml mrdocs.yml.bak
+  trap restore_mrdocs_yml EXIT
   perl -i -pe 's{^\s*base-url:.*$}{base-url: '"$BASE_URL/"'}' mrdocs.yml
 else
   echo "REPOSITORY or SHA not set; skipping base-url modification"
@@ -96,14 +110,5 @@ echo "BASE_URL='${BASE_URL:-}'"
 for f in $(find html -name '*.html'); do
   perl -i -pe "s{<a href=\"motivation.html\">Boost.OpenMethod</a>}{<a href=\"https://www.boost.org/library/${BRANCH}/openmethod/\">Boost.OpenMethod</a>}g" "$f"
 done
-
-if [ -n "${BASE_URL:-}" ]; then
-  if [ -f mrdocs.yml.bak ]; then
-    mv -f mrdocs.yml.bak mrdocs.yml
-    echo "Restored original mrdocs.yml"
-  else
-    echo "mrdocs.yml.bak not found; skipping restore"
-  fi
-fi
 
 echo "Done"
