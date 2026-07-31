@@ -78,7 +78,16 @@ npm ci
 echo "Building docs in custom dir..."
 PATH="$(pwd)/node_modules/.bin:${PATH}"
 export PATH
-npx antora --clean --fetch "$PLAYBOOK" --stacktrace # --log-level all
+
+# ref_headers.adoc links each header to its source with `link:{base-url}/...`.
+# Point that at the exact commit when we know it; otherwise antora.yml's
+# fallback applies. A command-line attribute outranks the one in antora.yml.
+ANTORA_ATTRS=()
+if [ -n "${BASE_URL:-}" ]; then
+  ANTORA_ATTRS+=(--attribute "base-url=$BASE_URL")
+fi
+
+npx antora --clean --fetch "$PLAYBOOK" "${ANTORA_ATTRS[@]}" --stacktrace # --log-level all
 
 echo "Fixing links to non-mrdocs URIs..."
 echo "BRANCH='${BRANCH:-}'"
@@ -95,7 +104,6 @@ if [ -n "${BASE_URL:-}" ]; then
   else
     echo "mrdocs.yml.bak not found; skipping restore"
   fi
-  perl -i -pe "s[{{BASE_URL}}][$BASE_URL]g" html/openmethod/ref_headers.html
 fi
 
 echo "Done"
