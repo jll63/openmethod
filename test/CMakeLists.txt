@@ -155,6 +155,14 @@ openmethod_compile_fail_test(
     compile_fail_repeated_inheritance "repeated inheritance")
 openmethod_compile_fail_test(
     compile_fail_override_method_not_found "cannot find 'speak' method that accepts the same arguments as the overrider")
+# The constrained `cast` is removed from the overload set, so the diagnostic is
+# the compiler's own overload resolution failure, whose wording varies: "no
+# matching function for call to" on clang and gcc, "no matching overloaded
+# function found" on MSVC.
+openmethod_compile_fail_test(
+    compile_fail_boost_any_const_ref_to_mutable_ref "no matching")
+openmethod_compile_fail_test(
+    compile_fail_boost_any_mutable_ref_to_rvalue_ref "no matching")
 
 if (TARGET Boost::dll)
     add_subdirectory(dynamic_loading)

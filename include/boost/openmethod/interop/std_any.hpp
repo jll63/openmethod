@@ -183,13 +183,23 @@ struct virtual_traits<std::any&&, Registry> {
     }
 };
 
+//! Register the types that a `std::any` virtual parameter may contain.
+//!
+//! Registers `std::any` as a class, and each `T` as a class derived from
+//! `std::any`. This makes the contained types visible to the dispatch
+//! machinery, which resolves a call on the `type_id` returned by
+//! `std::any::type()`.
+//!
+//! @tparam T... The types that may be stored in the `any`, optionally
+//! followed by a @ref registry.
 template<typename... T>
-struct use_any_types : detail::use_class_aux<
-                           typename detail::extract_registry<T...>::registry,
-                           mp11::mp_list<std::any, std::any>>,
-                       detail::use_class_aux<
-                           typename detail::extract_registry<T...>::registry,
-                           mp11::mp_list<T, std::any>>... {};
+struct use_std_any_types
+    : detail::use_class_aux<
+          typename detail::extract_registry<T...>::registry,
+          mp11::mp_list<std::any, std::any>>,
+      detail::use_class_aux<
+          typename detail::extract_registry<T...>::registry,
+          mp11::mp_list<T, std::any>>... {};
 
 } // namespace boost::openmethod
 

@@ -71,6 +71,22 @@ Provides a `virtual_traits` specialization that makes it possible to use a
 Provides a `virtual_traits` specialization that makes it possible to use a
 `boost::intrusive_ptr` in place of a raw pointer or reference in virtual parameters.
 
+[#std_any]
+### link:{{BASE_URL}}/include/boost/openmethod/interop/std_any.hpp[<boost/openmethod/interop/std_any.hpp>]
+
+Provides `virtual_traits` specializations that make it possible to use a `std::any` -
+by const reference, by mutable reference, or by rvalue reference - in virtual
+parameters. Dispatch is on the type of the contained value. Also provides
+`use_std_any_types`, which registers the types that may be contained.
+
+[#boost_any]
+### link:{{BASE_URL}}/include/boost/openmethod/interop/boost_any.hpp[<boost/openmethod/interop/boost_any.hpp>]
+
+Provides `virtual_traits` specializations that make it possible to use a `boost::any` -
+by const reference, by mutable reference, or by rvalue reference - in virtual
+parameters. Dispatch is on the type of the contained value. Also provides
+`use_boost_any_types`, which registers the types that may be contained.
+
 *The headers below are for advanced use*.
 
 ## Pre-Core Headers
