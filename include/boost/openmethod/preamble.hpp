@@ -159,41 +159,16 @@ struct not_initialized : openmethod_error {
 //! @par Examples
 //!
 //! Missing registration of a class used as a virtual parameter in a method:
-//! @code
-//! struct Animal { virtual ~Animal() {} };
-//! struct Dog : Animal {};
 //!
-//! BOOST_OPENMETHOD_CLASSES(Animal);
-//!
-//! BOOST_OPENMETHOD(poke, (virtual_ptr<Animal>), void);
-//!
-//! initialize(); // throws missing_class;
-//! @endcode
+//! include:errors.cpp#missing_class_in_method;missing_class_in_method_init
 //!
 //! Missing registration of a class used as a virtual parameter in an overrider:
-//! @code
-//! BOOST_OPENMETHOD_CLASSES(Animal);
 //!
-//! BOOST_OPENMETHOD(poke, (virtual_ptr<Animal>), void);
-//!
-//! BOOST_OPENMETHOD_OVERRIDE(poke, (virtual_ptr<Dog>), void) { /* ... */ }
-//!
-//! initialize(); // throws missing_class;
-//! @endcode
+//! include:errors.cpp#missing_class_in_overrider;missing_class_in_overrider_init
 //!
 //! Missing registration of a class used as a virtual parameter in a call:
-//! @code
-//! struct Bulldog : Dog {};
 //!
-//! BOOST_OPENMETHOD_CLASSES(Animal, Dog);
-//!
-//! BOOST_OPENMETHOD(poke, (virtual_ptr<Animal>), void);
-//!
-//! BOOST_OPENMETHOD_OVERRIDE(poke, (virtual_ptr<Dog>), void) { /* ... */ }
-//!
-//! Bulldog hector;
-//! poke(hector); // throws missing_class;
-//! @endcode
+//! include:errors.cpp#missing_class_in_call;missing_class_in_call_use
 //!
 //! @see [Error Handling](xref:ROOT:error_handling.adoc)
 struct missing_class : openmethod_error {
@@ -219,22 +194,11 @@ struct missing_class : openmethod_error {
 //! `Animal`, because they are not registered in a same call to @ref
 //! BOOST_OPENMETHOD_CLASSES.
 //!
-//! @code
-//! BOOST_OPENMETHOD_CLASSES(Animal);
-//! BOOST_OPENMETHOD_CLASSES(Dog);
-//!
-//! BOOST_OPENMETHOD(poke, (virtual_ptr<Animal>), void);
-//!
-//! BOOST_OPENMETHOD_OVERRIDE(poke, (virtual_ptr<Dog>), void) { /* ... */ }
-//!
-//! initialize(); // throws missing_base;
-//! @endcode
+//! include:errors.cpp#missing_base;missing_base_init
 //!
 //! Fix:
 //!
-//! @code
-//! BOOST_OPENMETHOD_CLASSES(Animal, Dog);
-//! @endcode
+//! include:errors.cpp#missing_base_fix
 //!
 //! @see [Error Handling](xref:ROOT:error_handling.adoc)
 struct missing_base : openmethod_error {

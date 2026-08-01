@@ -1889,24 +1889,7 @@ void registry<Policies...>::compiler<Options...>::print(
 //! the program again after setting environment variable
 //! `BOOST_OPENMETHOD_TRACE` to `1` to troubleshoot.
 //!
-//! @code
-//! #include <iostream>
-//!
-//! #include <boost/openmethod.hpp>
-//! #include <boost/openmethod/initialize.hpp>
-//!
-//! int main() {
-//!     namespace bom = boost::openmethod;
-//!     auto report = bom::initialize(bom::trace::from_env()).report;
-//!
-//!     if (report.not_implemented != 0 || report.ambiguous != 0) {
-//!         std::cerr << "missing overriders or ambiguous methods\n";
-//!         return 1;
-//!     }
-//!
-//!     // ...
-//! }
-//! @endcode
+//! include:initialize.cpp#report
 //!
 //! @see [Methods and Overriders](xref:ROOT:basics.adoc)
 //! @see [Shared Libraries](xref:ROOT:shared_libraries.adoc)
