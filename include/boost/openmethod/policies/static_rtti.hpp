@@ -20,8 +20,19 @@ namespace boost::openmethod::policies {
 //! its equivalents for smart pointers).
 //!
 //! @par Example
-//! TODO
-//! include::example$static_rtti.cpp[tag=all]
+//!
+//! Selecting the policy, which has to happen before `<boost/openmethod.hpp>`
+//! is included:
+//!
+//! include:static_rtti.cpp#registry
+//!
+//! The classes and the method need no RTTI, and need not be polymorphic:
+//!
+//! include:static_rtti.cpp#classes
+//!
+//! Every `virtual_ptr` has to be created where the exact class is known:
+//!
+//! include:static_rtti.cpp#dispatch
 //!
 //! @see [Custom RTTI](xref:ROOT:custom_rtti.adoc)
 struct static_rtti : rtti {

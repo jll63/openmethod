@@ -61,6 +61,9 @@ namespace policies {
 //! range of integers. In other words, a lot of space may be wasted in presence
 //! of large sets of type_ids.
 //!
+//! @par Example
+//! include:policies.cpp#fast_perfect_hash
+//!
 //! @see [Registries and Policies](xref:ROOT:registries_and_policies.adoc)
 struct fast_perfect_hash : type_hash {
 

@@ -17,6 +17,9 @@ namespace boost::openmethod::policies {
 //! Throws error as an exception.
 //!
 //!
+//! @par Example
+//! include:policies.cpp#throw_error_handler_registry;throw_error_handler_catch
+//!
 //! @see [Error Handling](xref:ROOT:error_handling.adoc)
 struct throw_error_handler : error_handler {
     //! A ErrorHandlerFn metafunction.

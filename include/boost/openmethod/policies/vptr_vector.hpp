@@ -25,6 +25,9 @@ namespace policies {
 //! If the registry contains the @ref indirect_vptr policy, stores pointers to
 //! pointers to v-tables in the vector.
 //!
+//! @par Example
+//! include:policies.cpp#vptr_vector
+//!
 //! @see [Registries and Policies](xref:ROOT:registries_and_policies.adoc)
 struct vptr_vector : vptr {
   public:
