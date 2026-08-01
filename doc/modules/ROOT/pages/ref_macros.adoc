@@ -8,12 +8,12 @@ uses of the library.
 |===
 | Name
 | Description.
-| xref:reference:BOOST_OPENMETHOD_CLASSES.adoc[*BOOST_OPENMETHOD_CLASSES*]
-| Registers classes.
 | xref:reference:BOOST_OPENMETHOD.adoc[*BOOST_OPENMETHOD*]
 | Declares a method.
 | xref:reference:BOOST_OPENMETHOD_OVERRIDE.adoc[*BOOST_OPENMETHOD_OVERRIDE*]
 | Adds an overrider to a method.
+| xref:reference:BOOST_OPENMETHOD_CLASSES.adoc[*BOOST_OPENMETHOD_CLASSES*]
+| Registers classes.
 | xref:reference:BOOST_OPENMETHOD_INLINE_OVERRIDE.adoc[BOOST_OPENMETHOD_INLINE_OVERRIDE]
 | Adds an overrider to a method as an inline function.
 | xref:reference:BOOST_OPENMETHOD_DECLARE_OVERRIDER.adoc[BOOST_OPENMETHOD_DECLARE_OVERRIDER]

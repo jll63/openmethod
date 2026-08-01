@@ -490,6 +490,45 @@ inline constexpr bool method_not_found = false;
 //! @ref BOOST_OPENMETHOD_DEFAULT_REGISTRY when `<boost/openmethod/core.hpp>` is
 //! included. Subsequently changing it has no retroactive effect.
 //!
+//! @par Examples
+//!
+//! A class and its direct bases must appear together in one call. Take `Cat`
+//! and `Dog`, both derived from `Animal`, and `Bulldog`, derived from `Dog`.
+//! A single call listing all of them describes the hierarchy:
+//!
+//! @code
+//! BOOST_OPENMETHOD_CLASSES(Animal, Cat, Dog, Bulldog);
+//! @endcode
+//!
+//! Several calls do just as well, as long as every class appears alongside its
+//! direct bases. `Dog` is listed twice here, and that is what attaches
+//! `Bulldog` to it:
+//!
+//! @code
+//! BOOST_OPENMETHOD_CLASSES(Animal, Cat, Dog);
+//! BOOST_OPENMETHOD_CLASSES(Dog, Bulldog);
+//! @endcode
+//!
+//! Registering the classes one per call describes no inheritance at all, and
+//! @ref boost::openmethod::initialize reports a
+//! @ref boost::openmethod::missing_base error:
+//!
+//! @code
+//! BOOST_OPENMETHOD_CLASSES(Animal);
+//! BOOST_OPENMETHOD_CLASSES(Cat);
+//! BOOST_OPENMETHOD_CLASSES(Dog); // initialize reports missing_base
+//! @endcode
+//!
+//! Listing a class with an ancestor in place of its direct base is the more
+//! dangerous mistake, because nothing reports it. Below, `Bulldog` is recorded
+//! as derived from `Animal`; an overrider for `Dog` no longer applies to it, so
+//! a call passing a `Bulldog` quietly selects the overrider for `Animal`:
+//!
+//! @code
+//! BOOST_OPENMETHOD_CLASSES(Animal, Cat, Dog);
+//! BOOST_OPENMETHOD_CLASSES(Animal, Bulldog); // OpenMethod thinks Bulldog derives from Animal, not Dog
+//! @endcode
+//!
 //! @param ... The classes to register, optionally followed by the registry.
 //!
 //! @see [Methods and Overriders](xref:ROOT:basics.adoc)
