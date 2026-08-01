@@ -1120,6 +1120,19 @@ detail::registry_state_type<Registry> registry_state<Registry>::st;
 //! contains the `runtime_checks` policy. If an error is detected, it invokes
 //! the @ref error_handler policy if there is  one.
 //!
+//! A registry is identified by its policy list, not by the class that derives
+//! from it. Everything a registry owns is keyed on the `registry`
+//! specialization, which is what @ref registry_type aliases. Two classes built
+//! from the same policies, in the same order, are therefore the same registry:
+//!
+//! include:../examples/registry_identity.cpp#shared
+//!
+//! This matters when a second registry exists to isolate a set of methods from
+//! another, since it would naturally be given the same policies. Give each one
+//! a policy of its own to keep them apart:
+//!
+//! include:../examples/registry_identity.cpp#distinct
+//!
 //! @tparam Policy The policies used in the registry.
 //!
 //! @par Requirements
@@ -1168,9 +1181,11 @@ class registry : public detail::registry_base {
     //! `registry_type` is the `registry` specialization itself - for a
     //! registry defined as a struct deriving from `registry` (like @ref
     //! default_registry), the base class, not the struct. It is the type on
-    //! which the registry's state is keyed. It appears in the explicit
-    //! instantiation / `extern template` declaration pair that shares a
-    //! custom registry's state across shared libraries:
+    //! which the registry's state is keyed. Two structs that derive from the
+    //! same specialization therefore share one state, and are one registry;
+    //! see @ref registry for how to keep two of them apart. It also appears in
+    //! the explicit instantiation / `extern template` declaration pair that
+    //! shares a custom registry's state across shared libraries:
     //! `registry_state<my_registry::registry_type>` (see @ref
     //! registry_state).
     using registry_type = registry;
