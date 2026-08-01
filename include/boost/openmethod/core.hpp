@@ -756,16 +756,7 @@ class virtual_ptr {
     //!
     //! @par Example
     //!
-    //! @code
-    //! struct Animal { virtual ~Animal() { } }; // polymorphic
-    //! struct Dog : Animal {}; // polymorphic
-    //! BOOST_OPENMETHOD_CLASSES(Animal, Dog);
-    //! initialize();
-    //!
-    //! virtual_ptr<Dog> p{nullptr};
-    //! BOOST_TEST(p.get() == nullptr);
-    //! BOOST_TEST(p.vptr() == nullptr);
-    //! @endcode
+    //! include:virtual_ptr.cpp#ctor_nullptr
     //!
     //! @param value A `nullptr`.
     explicit virtual_ptr(std::nullptr_t)
@@ -783,20 +774,7 @@ class virtual_ptr {
     //! @param other A reference to a polymorphic object
     //!
     //! @par Example
-    //! @code
-    //! struct Animal { virtual ~Animal() { } }; // polymorphic
-    //! struct Dog : Animal {}; // polymorphic
-    //! BOOST_OPENMETHOD_CLASSES(Animal, Dog);
-    //! initialize();
-    //!
-    //! Dog snoopy;
-    //! Animal& animal = snoopy;
-    //!
-    //! virtual_ptr<Animal> p = animal;
-    //!
-    //! BOOST_TEST(p.get() == &snoopy);
-    //! BOOST_TEST(p.vptr() == default_registry::static_vptr<Dog>);
-    //! @endcode
+    //! include:virtual_ptr.cpp#ctor_ref
     //!
     //! @par Requirements
     //! @li @c Other must be a polymorphic class, according to the @c rtti
@@ -829,20 +807,7 @@ class virtual_ptr {
     //! `vptr` policy otherwise.
     //!
     //! @par Example
-    //! @code
-    //! struct Animal { virtual ~Animal() { } }; // polymorphic
-    //! struct Dog : Animal {}; // polymorphic
-    //! BOOST_OPENMETHOD_CLASSES(Animal, Dog);
-    //! initialize();
-    //!
-    //! Dog snoopy;
-    //! Animal* animal = &snoopy;
-    //!
-    //! virtual_ptr<Animal> p = animal;
-    //!
-    //! BOOST_TEST(p.get() == &snoopy);
-    //! BOOST_TEST(p.vptr() == default_registry::static_vptr<Dog>);
-    //! @endcode
+    //! include:virtual_ptr.cpp#ctor_pointer
     //!
     //! @param other A pointer to a polymorphic object
     //!
@@ -881,44 +846,15 @@ class virtual_ptr {
     //!
     //! Assigning from a plain virtual_ptr:
     //!
-    //! @code
-    //! struct Animal {}; // polymorphism not required
-    //! struct Dog : Animal {}; // polymorphism not required
-    //! BOOST_OPENMETHOD_CLASSES(Animal, Dog);
-    //! initialize();
-    //!
-    //! Dog snoopy;
-    //! virtual_ptr<Dog> dog = final_virtual_ptr(snoopy);
-    //! virtual_ptr<Animal> p{nullptr};
-    //!
-    //! p = dog;
-    //!
-    //! BOOST_TEST(p.get() == &snoopy);
-    //! BOOST_TEST(p.vptr() == default_registry::static_vptr<Dog>);
-    //! @endcode
+    //! include:virtual_ptr.cpp#non_polymorphic_classes;ctor_vptr
     //!
     //! Assigning from a smart virtual_ptr:
     //!
-    //! @code
-    //! struct Animal {}; // polymorphism not required
-    //! struct Dog : Animal {}; // polymorphism not required
-    //! BOOST_OPENMETHOD_CLASSES(Animal, Dog);
-    //! initialize();
-    //!
-    //! virtual_ptr<std::shared_ptr<Animal>> snoopy = make_shared_virtual<Dog>();
-    //! virtual_ptr<Animal> p = snoopy;
-    //!
-    //! BOOST_TEST(p.get() == snoopy.get());
-    //! BOOST_TEST(p.vptr() == default_registry::static_vptr<Dog>);
-    //! @endcode
+    //! include:virtual_ptr.cpp#non_polymorphic_classes;ctor_shared_vptr
     //!
     //! No construction of a smart `virtual_ptr` from a plain `virtual_ptr`:
     //!
-    //! @code
-    //! static_assert(
-    //!     std::is_constructible_v<
-    //!         shared_virtual_ptr<Animal>, virtual_ptr<Dog>> == false);
-    //! @endcode
+    //! include:virtual_ptr.cpp#ctor_shared_from_plain_rejected
     //!
     //! @param other A virtual_ptr to a type-compatible object
     //!
@@ -940,21 +876,7 @@ class virtual_ptr {
     //! `vptr` policy otherwise.
     //!
     //! @par Example
-    //! @code
-    //! struct Animal { virtual ~Animal() { } }; // polymorphic
-    //! struct Dog : Animal {}; // polymorphic
-    //! BOOST_OPENMETHOD_CLASSES(Animal, Dog);
-    //! initialize();
-    //!
-    //! virtual_ptr<Animal> p{nullptr};
-    //! Dog snoopy;
-    //! Animal& animal = snoopy;
-    //!
-    //! p = animal;
-    //!
-    //! BOOST_TEST(p.get() == &snoopy);
-    //! BOOST_TEST(p.vptr() == default_registry::static_vptr<Dog>);
-    //! @endcode
+    //! include:virtual_ptr.cpp#assign_ref
     //!
     //! @param other A reference to a polymorphic object
     //!
@@ -992,21 +914,7 @@ class virtual_ptr {
     //! `vptr` policy otherwise.
     //!
     //! @par Example
-    //! @code
-    //! struct Animal { virtual ~Animal() { } }; // polymorphic
-    //! struct Dog : Animal {}; // polymorphic
-    //! BOOST_OPENMETHOD_CLASSES(Animal, Dog);
-    //! initialize();
-    //!
-    //! virtual_ptr<Animal> p{nullptr};
-    //! Dog snoopy;
-    //! Animal* animal = &snoopy;
-    //!
-    //! p = animal;
-    //!
-    //! BOOST_TEST(p.get() == &snoopy);
-    //! BOOST_TEST(p.vptr() == default_registry::static_vptr<Dog>);
-    //! @endcode
+    //! include:virtual_ptr.cpp#assign_pointer
     //!
     //! @param other A pointer to a polymorphic object
     //!
@@ -1044,46 +952,15 @@ class virtual_ptr {
     //!
     //! Assigning from a plain virtual_ptr:
     //!
-    //! @code
-    //! struct Animal {}; // polymorphism not required
-    //! struct Dog : Animal {}; // polymorphism not required
-    //! BOOST_OPENMETHOD_CLASSES(Animal, Dog);
-    //! initialize();
-    //!
-    //! Dog snoopy;
-    //! virtual_ptr<Dog> dog = final_virtual_ptr(snoopy);
-    //! virtual_ptr<Animal> p{nullptr};
-    //!
-    //! p = dog;
-    //!
-    //! BOOST_TEST(p.get() == &snoopy);
-    //! BOOST_TEST(p.vptr() == default_registry::static_vptr<Dog>);
-    //! @endcode
+    //! include:virtual_ptr.cpp#non_polymorphic_classes;assign_vptr
     //!
     //! Assigning from a smart virtual_ptr:
     //!
-    //! @code
-    //! struct Animal {}; // polymorphism not required
-    //! struct Dog : Animal {}; // polymorphism not required
-    //! BOOST_OPENMETHOD_CLASSES(Animal, Dog);
-    //! initialize();
-    //!
-    //! virtual_ptr<std::shared_ptr<Animal>> snoopy = make_shared_virtual<Dog>();
-    //! virtual_ptr<Animal> p;
-    //!
-    //! p = snoopy;
-    //!
-    //! BOOST_TEST(p.get() == snoopy.get());
-    //! BOOST_TEST(p.vptr() == default_registry::static_vptr<Dog>);
-    //! @endcode
+    //! include:virtual_ptr.cpp#non_polymorphic_classes;assign_shared_vptr
     //!
     //! No assignment from a plain `virtual_ptr` to a smart `virtual_ptr`:
     //!
-    //! @code
-    //! static_assert(
-    //!     std::is_assignable_v<
-    //!         shared_virtual_ptr<Animal>&, virtual_ptr<Dog>> == false);
-    //! @endcode
+    //! include:virtual_ptr.cpp#assign_shared_from_plain_rejected
     //!
     //! @param other A virtual_ptr to a type-compatible object
     //!
@@ -1229,16 +1106,7 @@ class virtual_ptr<
     //! v-table pointer to `nullptr`.
     //!
     //! @par Example
-    //! @code
-    //! struct Dog {}; // polymorphism not required
-    //! BOOST_OPENMETHOD_CLASSES(Dog);
-    //! initialize();
-    //!
-    //! virtual_ptr<std::shared_ptr<Dog>> p;
-    //! BOOST_TEST(p.get() == nullptr);
-    //! BOOST_TEST(p.vptr() == nullptr);
-    //! @par Example
-    //! @endcode
+    //! include:virtual_ptr.cpp#non_polymorphic_classes;shared_ctor_default
     virtual_ptr()
         : vp(detail::box_vptr<use_indirect_vptrs>(detail::null_vptr)) {
     }
@@ -1249,15 +1117,7 @@ class virtual_ptr<
     //! v-table pointer to `nullptr`.
     //!
     //! @par Example
-    //! @code
-    //! struct Dog {}; // polymorphism not required
-    //! BOOST_OPENMETHOD_CLASSES(Dog);
-    //! initialize();
-    //!
-    //! virtual_ptr<std::shared_ptr<Dog>> p{nullptr};
-    //! BOOST_TEST(p.get() == nullptr);
-    //! BOOST_TEST(p.vptr() == nullptr);
-    //! @endcode
+    //! include:virtual_ptr.cpp#non_polymorphic_classes;shared_ctor_nullptr
     //!
     //! @param value A `nullptr`.
     explicit virtual_ptr(std::nullptr_t)
@@ -1279,18 +1139,7 @@ class virtual_ptr<
     //! according to the dynamic type of `*other`.
     //!
     //! @par Example
-    //! @code
-    //! struct Animal { virtual ~Animal() { } }; // polymorphic
-    //! struct Dog : Animal {}; // polymorphic
-    //! BOOST_OPENMETHOD_CLASSES(Animal, Dog);
-    //! initialize();
-    //!
-    //! const std::shared_ptr<Dog> snoopy = std::make_shared<Dog>();
-    //! virtual_ptr<std::shared_ptr<Animal>> p = snoopy;
-    //!
-    //! BOOST_TEST(p.get() == snoopy.get());
-    //! BOOST_TEST(p.vptr() == default_registry::static_vptr<Dog>);
-    //! @endcode
+    //! include:virtual_ptr.cpp#shared_ctor_const_smart_ptr
     //!
     //! @par Requirements
     //! @li @c SmartPtr and @c Other must be instantiated from the same template -
@@ -1326,18 +1175,7 @@ class virtual_ptr<
     //! according to the dynamic type of `*other`.
     //!
     //! @par Example
-    //! @code
-    //! struct Animal { virtual ~Animal() { } }; // polymorphic
-    //! struct Dog : Animal {}; // polymorphic
-    //! BOOST_OPENMETHOD_CLASSES(Animal, Dog);
-    //! initialize();
-    //!
-    //! std::shared_ptr<Dog> snoopy = std::make_shared<Dog>();
-    //! virtual_ptr<std::shared_ptr<Animal>> p = snoopy;
-    //!
-    //! BOOST_TEST(p.get() == snoopy.get());
-    //! BOOST_TEST(p.vptr() == default_registry::static_vptr<Dog>);
-    //! @endcode
+    //! include:virtual_ptr.cpp#shared_ctor_smart_ptr
     //!
     //! @par Requirements
     //! @li @c SmartPtr and @c Other must be instantiated from the same template -
@@ -1373,21 +1211,7 @@ class virtual_ptr<
     //! according to the dynamic type of `*other`.
     //!
     //! @par Example
-    //! @code
-    //! struct Animal { virtual ~Animal() { } }; // polymorphic
-    //! struct Dog : Animal {}; // polymorphic
-    //! BOOST_OPENMETHOD_CLASSES(Animal, Dog);
-    //! initialize();
-    //!
-    //! std::shared_ptr<Dog> snoopy = std::make_shared<Dog>();
-    //! Dog* moving = snoopy.get();
-    //!
-    //! virtual_ptr<std::shared_ptr<Animal>> p = std::move(snoopy);
-    //!
-    //! BOOST_TEST(p.get() == moving);
-    //! BOOST_TEST(p.vptr() == default_registry::static_vptr<Dog>);
-    //! BOOST_TEST(snoopy.get() == nullptr);
-    //! @endcode
+    //! include:virtual_ptr.cpp#shared_ctor_move_smart_ptr
     //!
     //! @par Requirements
     //! @li @c SmartPtr and @c Other must be instantiated from the same template -
@@ -1423,19 +1247,7 @@ class virtual_ptr<
     //! `Other` is _not_ required to be a pointer to a polymorphic class.
     //!
     //! @par Example
-    //! @code
-    //! struct Animal {}; // polymorphism not required
-    //! struct Dog : Animal {}; // polymorphism not required
-    //! BOOST_OPENMETHOD_CLASSES(Animal, Dog);
-    //! initialize();
-    //!
-    //! const virtual_ptr<std::shared_ptr<Dog>> snoopy = make_shared_virtual<Dog>();
-    //! virtual_ptr<std::shared_ptr<Animal>> p = snoopy;
-    //!
-    //! BOOST_TEST(snoopy.get() != nullptr);
-    //! BOOST_TEST(p.get() == snoopy.get());
-    //! BOOST_TEST(p.vptr() == default_registry::static_vptr<Dog>);
-    //! @endcode
+    //! include:virtual_ptr.cpp#non_polymorphic_classes;shared_ctor_const_vptr
     //!
     //! @par Requirements
     //! @li @c SmartPtr and @c Other must be instantiated from the same template -
@@ -1461,21 +1273,7 @@ class virtual_ptr<
     //! `Other` is _not_ required to be a pointer to a polymorphic class.
     //!
     //! @par Example
-    //! @code
-    //! struct Animal {}; // polymorphism not required
-    //! struct Dog : Animal {}; // polymorphism not required
-    //! BOOST_OPENMETHOD_CLASSES(Animal, Dog);
-    //! initialize();
-    //!
-    //! virtual_ptr<std::shared_ptr<Dog>> snoopy = make_shared_virtual<Dog>();
-    //! Dog* dog = snoopy.get();
-    //!
-    //! virtual_ptr<std::shared_ptr<Animal>> p = std::move(snoopy);
-    //!
-    //! BOOST_TEST(p.get() == dog);
-    //! BOOST_TEST(p.vptr() == default_registry::static_vptr<Dog>);
-    //! BOOST_TEST(snoopy.get() == nullptr);
-    //! @endcode
+    //! include:virtual_ptr.cpp#non_polymorphic_classes;shared_ctor_move_vptr
     //!
     //! @par Requirements
     //! @li @c SmartPtr and @c Other must be instantiated from the same template -
@@ -1502,19 +1300,7 @@ class virtual_ptr<
     //! v-table pointer to `nullptr`.
     //!
     //! @par Example
-    //! @code
-    //! struct Dog {}; // polymorphism not required
-    //! BOOST_OPENMETHOD_CLASSES(Dog);
-    //! initialize();
-    //!
-    //! virtual_ptr<std::shared_ptr<Dog>> p = make_shared_virtual<Dog>();
-    //!
-    //! p = nullptr;
-    //!
-    //! BOOST_TEST(p.get() == nullptr);
-    //! BOOST_TEST(p.vptr() == nullptr);
-    //! BOOST_TEST((p == virtual_ptr<std::shared_ptr<Dog>>()));
-    //! @endcode
+    //! include:virtual_ptr.cpp#non_polymorphic_classes;shared_assign_nullptr
     //!
     //! @param value A `nullptr`.
     virtual_ptr& operator=(std::nullptr_t) {
@@ -1529,17 +1315,7 @@ class virtual_ptr<
     //! according to the dynamic type of `*other`.
     //!
     //! @par Example
-    //! @code
-    //! virtual_ptr<std::shared_ptr<Dog>> snoopy = make_shared_virtual<Dog>();
-    //! virtual_ptr<std::shared_ptr<Dog>> p;
-    //!
-    //! p = snoopy;
-    //!
-    //! BOOST_TEST(p.get() != nullptr);
-    //! BOOST_TEST(p.get() == snoopy.get());
-    //! BOOST_TEST(p.vptr() == default_registry::static_vptr<Dog>);
-    //! BOOST_TEST(snoopy.vptr() == default_registry::static_vptr<Dog>);
-    //! @endcode
+    //! include:virtual_ptr.cpp#shared_assign_smart_ptr
     //!
     //! @par Requirements
     //! @li @c SmartPtr and @c Other must be instantiated from the same template -
@@ -1568,18 +1344,7 @@ class virtual_ptr<
     //! according to the dynamic type of `*other`.
     //!
     //! @par Example
-    //! @code
-    //! virtual_ptr<std::shared_ptr<Dog>> snoopy = make_shared_virtual<Dog>();
-    //! Dog* moving = snoopy.get();
-    //! virtual_ptr<std::shared_ptr<Dog>> p;
-    //!
-    //! p = std::move(snoopy);
-    //!
-    //! BOOST_TEST(p.get() == moving);
-    //! BOOST_TEST(p.vptr() == default_registry::static_vptr<Dog>);
-    //! BOOST_TEST(snoopy.get() == nullptr);
-    //! BOOST_TEST(snoopy.vptr() == nullptr);
-    //! @endcode
+    //! include:virtual_ptr.cpp#shared_assign_move_smart_ptr
     //!
     //! @par Requirements
     //! @li @c SmartPtr and @c Other must be instantiated from the same template -
@@ -1609,22 +1374,7 @@ class virtual_ptr<
     //! `Other` is _not_ required to be a pointer to a polymorphic class.
     //!
     //! @par Example
-    //! @code
-    //! struct Animal {}; // polymorphism not required
-    //! struct Dog : Animal {}; // polymorphism not required
-    //! BOOST_OPENMETHOD_CLASSES(Animal, Dog);
-    //! initialize();
-    //!
-    //! virtual_ptr<std::shared_ptr<Dog>> snoopy = make_shared_virtual<Dog>();
-    //! virtual_ptr<std::shared_ptr<Dog>> p;
-    //!
-    //! p = snoopy;
-    //!
-    //! BOOST_TEST(p.get() != nullptr);
-    //! BOOST_TEST(p.get() == snoopy.get());
-    //! BOOST_TEST(p.vptr() == default_registry::static_vptr<Dog>);
-    //! BOOST_TEST(snoopy.vptr() == default_registry::static_vptr<Dog>);
-    //! @endcode
+    //! include:virtual_ptr.cpp#non_polymorphic_classes;shared_assign_vptr
     //!
     //! @par Requirements
     //! @li @c SmartPtr and @c Other must be instantiated from the same template -
@@ -1653,22 +1403,7 @@ class virtual_ptr<
     //! `Other` is _not_ required to be a pointer to a polymorphic class.
     //!
     //! @par Example
-    //! @code
-    //! struct Animal {}; // polymorphism not required
-    //! struct Dog : Animal {}; // polymorphism not required
-    //! BOOST_OPENMETHOD_CLASSES(Animal, Dog);
-    //! initialize();
-    //!
-    //! const virtual_ptr<std::shared_ptr<Dog>> snoopy = make_shared_virtual<Dog>();
-    //! virtual_ptr<std::shared_ptr<Dog>> p;
-    //!
-    //! p = snoopy;
-    //!
-    //! BOOST_TEST(p.get() != nullptr);
-    //! BOOST_TEST(p.get() == snoopy.get());
-    //! BOOST_TEST(p.vptr() == default_registry::static_vptr<Dog>);
-    //! BOOST_TEST(snoopy.vptr() == default_registry::static_vptr<Dog>);
-    //! @endcode
+    //! include:virtual_ptr.cpp#non_polymorphic_classes;shared_assign_const_vptr
     //!
     //! @par Requirements
     //! @li @c SmartPtr and @c Other must be instantiated from the same template -
@@ -1696,24 +1431,7 @@ class virtual_ptr<
     //! `Other` is _not_ required to be a pointer to a polymorphic class.
     //!
     //! @par Example
-    //! @code
-    //! struct Animal {}; // polymorphism not required
-    //! struct Dog : Animal {}; // polymorphism not required
-    //! BOOST_OPENMETHOD_CLASSES(Animal, Dog);
-    //! initialize();
-    //!
-    //! virtual_ptr<std::shared_ptr<Dog>> snoopy =
-    //!     make_shared_virtual<Dog>();
-    //! Dog* moving = snoopy.get();
-    //! virtual_ptr<std::shared_ptr<Dog>> p;
-    //!
-    //! p = std::move(snoopy);
-    //!
-    //! BOOST_TEST(p.get() == moving);
-    //! BOOST_TEST(p.vptr() == default_registry::static_vptr<Dog>);
-    //! BOOST_TEST(snoopy.get() == nullptr);
-    //! BOOST_TEST(snoopy.vptr() == nullptr);
-    //! @endcode
+    //! include:virtual_ptr.cpp#non_polymorphic_classes;shared_assign_move_vptr
     //!
     //! @par Requirements
     //! @li @c SmartPtr and @c Other must be instantiated from the same template -
