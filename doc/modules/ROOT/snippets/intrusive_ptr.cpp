@@ -62,15 +62,32 @@ BOOST_OPENMETHOD_OVERRIDE(
 
 } // namespace by_reference
 
+namespace vptr {
+
+BOOST_OPENMETHOD(poke, (boost_intrusive_virtual_ptr<Animal>), std::string);
+
+BOOST_OPENMETHOD_OVERRIDE(
+    poke, (boost_intrusive_virtual_ptr<Dog> animal), std::string) {
+    return "bark";
+}
+
+BOOST_OPENMETHOD_OVERRIDE(
+    poke, (boost_intrusive_virtual_ptr<Cat> animal), std::string) {
+    return "hiss";
+}
+
+} // namespace vptr
+
 BOOST_AUTO_TEST_CASE(intrusive_ptr_examples) {
     initialize();
 
     {
+        using namespace vptr;
         // tag::make_boost_intrusive_virtual[]
         boost_intrusive_virtual_ptr<Animal> animal =
             make_boost_intrusive_virtual<Dog>();
 
-        BOOST_TEST(animal.vptr() == default_registry::static_vptr<Dog>);
+        BOOST_TEST(poke(animal) == "bark");
         // end::make_boost_intrusive_virtual[]
     }
 

@@ -73,14 +73,43 @@ BOOST_OPENMETHOD_OVERRIDE(poke, (std::unique_ptr<Cat> animal), std::string) {
 
 } // namespace unique
 
+namespace shared_vptr {
+
+BOOST_OPENMETHOD(poke, (shared_virtual_ptr<Animal>), std::string);
+
+BOOST_OPENMETHOD_OVERRIDE(poke, (shared_virtual_ptr<Dog> animal), std::string) {
+    return "bark";
+}
+
+BOOST_OPENMETHOD_OVERRIDE(poke, (shared_virtual_ptr<Cat> animal), std::string) {
+    return "hiss";
+}
+
+} // namespace shared_vptr
+
+namespace unique_vptr {
+
+BOOST_OPENMETHOD(poke, (unique_virtual_ptr<Animal>), std::string);
+
+BOOST_OPENMETHOD_OVERRIDE(poke, (unique_virtual_ptr<Dog> animal), std::string) {
+    return "bark";
+}
+
+BOOST_OPENMETHOD_OVERRIDE(poke, (unique_virtual_ptr<Cat> animal), std::string) {
+    return "hiss";
+}
+
+} // namespace unique_vptr
+
 BOOST_AUTO_TEST_CASE(shared_ptr_examples) {
     initialize();
 
     {
+        using namespace shared_vptr;
         // tag::make_shared_virtual[]
         shared_virtual_ptr<Animal> animal = make_shared_virtual<Dog>();
 
-        BOOST_TEST(animal.vptr() == default_registry::static_vptr<Dog>);
+        BOOST_TEST(poke(animal) == "bark");
         // end::make_shared_virtual[]
     }
 
@@ -116,10 +145,11 @@ BOOST_AUTO_TEST_CASE(unique_ptr_examples) {
     initialize();
 
     {
+        using namespace unique_vptr;
         // tag::make_unique_virtual[]
         unique_virtual_ptr<Animal> animal = make_unique_virtual<Dog>();
 
-        BOOST_TEST(animal.vptr() == default_registry::static_vptr<Dog>);
+        BOOST_TEST(poke(std::move(animal)) == "bark");
         // end::make_unique_virtual[]
     }
 
