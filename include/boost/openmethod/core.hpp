@@ -608,6 +608,9 @@ inline vptr_type null_vptr = nullptr;
 //! @li @ref final_error The static and dynamic types of the object are
 //! different.
 //!
+//! @par Example
+//! include:virtual_ptr.cpp#non_polymorphic_classes;final_virtual_ptr
+//!
 //! @tparam Registry A @ref registry.
 //! @tparam Arg The type of the argument.
 //! @param obj A reference to an object.
@@ -1101,20 +1104,7 @@ class virtual_ptr {
     //! Set both object and v-table pointers to `nullptr`.
     //!
     //! @par Example
-    //! struct Animal {}; // polymorphism not required
-    //! struct Dog : Animal {}; // polymorphism not required
-    //! BOOST_OPENMETHOD_CLASSES(Animal, Dog);
-    //! initialize();
-    //!
-    //! Dog snoopy;
-    //! virtual_ptr<Animal> p = final_virtual_ptr(snoopy);
-    //!
-    //! p = nullptr;
-    //!
-    //! BOOST_TEST(p.get() == nullptr);
-    //! BOOST_TEST(p.vptr() == nullptr);
-    //!     //! @code
-    //! @endcode
+    //! include:virtual_ptr.cpp#assign_nullptr
     virtual_ptr& operator=(std::nullptr_t) {
         obj = nullptr;
         vp = detail::box_vptr<use_indirect_vptrs>(detail::null_vptr);
@@ -1152,8 +1142,7 @@ class virtual_ptr {
     //! Cast to another `virtual_ptr` type
     //!
     //! @par Example
-    //! @code
-    //! @endcode
+    //! include:virtual_ptr.cpp#cast
     //!
     //! @tparam Other The target class of the cast
     //! @return A `virtual_ptr<Other, Registry>` pointing to the same object

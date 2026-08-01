@@ -45,10 +45,18 @@ inherit-base-members: never
 private-bases: false
 auto-function-metadata: false
 
-# Template overrides, layered on top of the built-in addons. See the header
-# comment in the overridden file for what it changes and why.
+# Template overrides and extension scripts, layered on top of the built-in
+# addons. See the header comment in each file for what it does and why.
 addons-supplemental:
   - mrdocs-addons
+
+# `include:<path>[#<tag>[;<tag>...]]` alone in a paragraph of a doc comment is
+# replaced by the file, or its `// tag::name[]` regions, as a code block. See
+# mrdocs-addons/extensions/include.lua. `root` is relative to this file.
+transform-options:
+  include:
+    root: modules/ROOT/snippets
+    lang: cpp
 
 # Generator
 generate: adoc
