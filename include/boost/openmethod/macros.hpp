@@ -174,6 +174,10 @@ inline constexpr bool method_not_found = false;
 //! `<boost/openmethod/core.hpp>` is included. Changing the value of this symbol
 //! has no effect after that point.
 //!
+//! @par Example
+//!
+//! include:macros.cpp#declare;call
+//!
 //! @par Implementation Notes
 //!
 //! The macro creates several additional constructs:
