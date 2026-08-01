@@ -464,7 +464,27 @@ inline constexpr bool method_not_found = false;
 //! @ref BOOST_OPENMETHOD_OVERRIDE, except that the overrider is marked
 //! `inline`.
 //!
+//! Use it for an overrider defined in a header, where the same definition
+//! reaches more than one translation unit. `inline` is what makes the repeated
+//! definition legal, and it lets @ref boost::openmethod::initialize merge the
+//! repeated registrations. @ref BOOST_OPENMETHOD_OVERRIDE would instead record
+//! them as distinct overriders for the same class, making the call ambiguous.
+//!
 //! @note `ID` must be an *identifier*. Qualified names are not allowed.
+//!
+//! @par Example
+//!
+//! A header that declares a method and supplies a default overrider for it.
+//! Every translation unit including it gets the same definition:
+//!
+//! include:../examples/rolex/3/roles.hpp#content
+//!
+//! A translation unit that includes the header adds a more specialized
+//! overrider of its own. That one is defined once, so it uses
+//! @ref BOOST_OPENMETHOD_OVERRIDE; it reaches the header's overrider through
+//! @ref BOOST_OPENMETHOD_OVERRIDER:
+//!
+//! include:../examples/rolex/3/salesman.cpp#content
 //!
 //! @param ID The method's name.
 //! @param PARAMETERS The overrider's parameter list, in parentheses.
