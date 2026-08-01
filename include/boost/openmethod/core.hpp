@@ -844,13 +844,13 @@ class virtual_ptr {
     //!
     //! @par Examples
     //!
-    //! Assigning from a plain virtual_ptr:
+    //! Constructing from a plain `virtual_ptr`:
     //!
     //! include:virtual_ptr.cpp#non_polymorphic_classes;ctor_vptr
     //!
-    //! Assigning from a smart virtual_ptr:
+    //! Constructing from a smart `virtual_ptr`:
     //!
-    //! include:virtual_ptr.cpp#non_polymorphic_classes;ctor_shared_vptr
+    //! include:virtual_ptr.cpp#ctor_shared_vptr
     //!
     //! No construction of a smart `virtual_ptr` from a plain `virtual_ptr`:
     //!
@@ -950,13 +950,13 @@ class virtual_ptr {
     //!
     //! @par Examples
     //!
-    //! Assigning from a plain virtual_ptr:
+    //! Assigning from a plain `virtual_ptr`:
     //!
     //! include:virtual_ptr.cpp#non_polymorphic_classes;assign_vptr
     //!
-    //! Assigning from a smart virtual_ptr:
+    //! Assigning from a smart `virtual_ptr`:
     //!
-    //! include:virtual_ptr.cpp#non_polymorphic_classes;assign_shared_vptr
+    //! include:virtual_ptr.cpp#assign_shared_vptr
     //!
     //! No assignment from a plain `virtual_ptr` to a smart `virtual_ptr`:
     //!
