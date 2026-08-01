@@ -401,6 +401,10 @@ inline constexpr bool method_not_found = false;
 //!
 //! @note `ID` must be an *identifier*. Qualified names are not allowed.
 //!
+//! @par Example
+//!
+//! include:macros.cpp#declare;override;call
+//!
 //! @par Implementation Notes
 //!
 //! The macro creates additional entities in the current scope.

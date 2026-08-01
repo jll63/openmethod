@@ -26,6 +26,7 @@ BOOST_OPENMETHOD_CLASSES(Animal, Cat, Dog);
 BOOST_OPENMETHOD(poke, (virtual_ptr<Animal> animal, std::ostream& os), void);
 // end::declare[]
 
+// tag::override[]
 BOOST_OPENMETHOD_OVERRIDE(
     poke, (virtual_ptr<Cat> animal, std::ostream& os), void) {
     os << "hiss";
@@ -35,6 +36,7 @@ BOOST_OPENMETHOD_OVERRIDE(
     poke, (virtual_ptr<Dog> animal, std::ostream& os), void) {
     os << "bark";
 }
+// end::override[]
 
 BOOST_AUTO_TEST_CASE(macro_examples) {
     initialize();
