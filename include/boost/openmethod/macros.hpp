@@ -176,7 +176,8 @@ inline constexpr bool method_not_found = false;
 //!
 //! @par Example
 //!
-//! include:macros.cpp#declare;call
+//! See [BOOST_OPENMETHOD_OVERRIDE](xref:reference:BOOST_OPENMETHOD_OVERRIDE.adoc#_example)
+//! for an example.
 //!
 //! @par Implementation Notes
 //!
