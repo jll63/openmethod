@@ -1,0 +1,104 @@
+// Copyright (c) 2018-2025 Jean-Louis Leroy
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE_1_0.txt
+// or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+#include <boost/openmethod.hpp>
+#include <boost/openmethod/initialize.hpp>
+#include <boost/openmethod/interop/boost_intrusive_ptr.hpp>
+
+#include <boost/smart_ptr/intrusive_ptr.hpp>
+#include <boost/smart_ptr/intrusive_ref_counter.hpp>
+
+#define BOOST_TEST_MODULE openmethod
+#include <boost/test/unit_test.hpp>
+
+using namespace boost::openmethod;
+
+// tag::classes[]
+struct Animal : boost::intrusive_ref_counter<Animal> {
+    virtual ~Animal() = default;
+};
+struct Dog : Animal {};
+struct Cat : Animal {};
+
+BOOST_OPENMETHOD_CLASSES(Animal, Dog, Cat);
+// end::classes[]
+
+namespace by_value {
+
+// tag::by_value[]
+BOOST_OPENMETHOD(poke, (virtual_<boost::intrusive_ptr<Animal>>), std::string);
+
+BOOST_OPENMETHOD_OVERRIDE(
+    poke, (boost::intrusive_ptr<Dog> animal), std::string) {
+    return "bark";
+}
+
+BOOST_OPENMETHOD_OVERRIDE(
+    poke, (boost::intrusive_ptr<Cat> animal), std::string) {
+    return "hiss";
+}
+// end::by_value[]
+
+} // namespace by_value
+
+namespace by_reference {
+
+// tag::by_reference[]
+BOOST_OPENMETHOD(
+    poke, (virtual_<const boost::intrusive_ptr<Animal>&>), std::string);
+
+BOOST_OPENMETHOD_OVERRIDE(
+    poke, (const boost::intrusive_ptr<Dog>& animal), std::string) {
+    return "bark";
+}
+
+BOOST_OPENMETHOD_OVERRIDE(
+    poke, (const boost::intrusive_ptr<Cat>& animal), std::string) {
+    return "hiss";
+}
+// end::by_reference[]
+
+} // namespace by_reference
+
+BOOST_AUTO_TEST_CASE(intrusive_ptr_examples) {
+    initialize();
+
+    {
+        // tag::make_boost_intrusive_virtual[]
+        boost_intrusive_virtual_ptr<Animal> animal =
+            make_boost_intrusive_virtual<Dog>();
+
+        BOOST_TEST(animal.vptr() == default_registry::static_vptr<Dog>);
+        // end::make_boost_intrusive_virtual[]
+    }
+
+    {
+        // tag::boost_intrusive_virtual_ptr_alias[]
+        boost_intrusive_virtual_ptr<Animal> animal =
+            make_boost_intrusive_virtual<Dog>();
+        boost::intrusive_ptr<Animal> owner = animal.pointer();
+
+        BOOST_TEST(owner->use_count() == 2);
+        // end::boost_intrusive_virtual_ptr_alias[]
+    }
+
+    {
+        using namespace by_value;
+        // tag::by_value_call[]
+        BOOST_TEST(poke(boost::intrusive_ptr<Animal>(new Dog)) == "bark");
+        BOOST_TEST(poke(boost::intrusive_ptr<Animal>(new Cat)) == "hiss");
+        // end::by_value_call[]
+    }
+
+    {
+        using namespace by_reference;
+        // tag::by_reference_call[]
+        const boost::intrusive_ptr<Animal> snoopy(new Dog);
+
+        BOOST_TEST(poke(snoopy) == "bark");
+        BOOST_TEST(snoopy->use_count() == 1);
+        // end::by_reference_call[]
+    }
+}

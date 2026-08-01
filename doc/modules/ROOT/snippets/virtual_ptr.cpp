@@ -421,3 +421,76 @@ BOOST_AUTO_TEST_CASE(shared_virtual_ptr_examples) {
         // end::shared_assign_move_vptr[]
     }
 }
+
+BOOST_AUTO_TEST_CASE(unique_virtual_ptr_examples) {
+    initialize();
+
+    {
+        using namespace polymorphic_classes;
+        // tag::unique_copy_rejected[]
+        static_assert(
+            std::is_constructible_v<
+                unique_virtual_ptr<Animal>, const std::unique_ptr<Dog>&> ==
+            false);
+        // end::unique_copy_rejected[]
+    }
+
+    {
+        using namespace polymorphic_classes;
+        // tag::unique_ctor_move_smart_ptr[]
+        std::unique_ptr<Dog> snoopy = std::make_unique<Dog>();
+        Dog* moving = snoopy.get();
+
+        unique_virtual_ptr<Animal> p = std::move(snoopy);
+
+        BOOST_TEST(p.get() == moving);
+        BOOST_TEST(p.vptr() == default_registry::static_vptr<Dog>);
+        BOOST_TEST(snoopy.get() == nullptr);
+        // end::unique_ctor_move_smart_ptr[]
+    }
+
+    {
+        using namespace non_polymorphic_classes;
+        // tag::unique_ctor_move_vptr[]
+        unique_virtual_ptr<Dog> snoopy = make_unique_virtual<Dog>();
+        Dog* moving = snoopy.get();
+
+        unique_virtual_ptr<Animal> p = std::move(snoopy);
+
+        BOOST_TEST(p.get() == moving);
+        BOOST_TEST(p.vptr() == default_registry::static_vptr<Dog>);
+        BOOST_TEST(snoopy.get() == nullptr);
+        // end::unique_ctor_move_vptr[]
+    }
+
+    {
+        using namespace polymorphic_classes;
+        // tag::unique_assign_move_smart_ptr[]
+        std::unique_ptr<Dog> snoopy = std::make_unique<Dog>();
+        Dog* moving = snoopy.get();
+        unique_virtual_ptr<Animal> p;
+
+        p = std::move(snoopy);
+
+        BOOST_TEST(p.get() == moving);
+        BOOST_TEST(p.vptr() == default_registry::static_vptr<Dog>);
+        BOOST_TEST(snoopy.get() == nullptr);
+        // end::unique_assign_move_smart_ptr[]
+    }
+
+    {
+        using namespace non_polymorphic_classes;
+        // tag::unique_assign_move_vptr[]
+        unique_virtual_ptr<Dog> snoopy = make_unique_virtual<Dog>();
+        Dog* moving = snoopy.get();
+        unique_virtual_ptr<Dog> p;
+
+        p = std::move(snoopy);
+
+        BOOST_TEST(p.get() == moving);
+        BOOST_TEST(p.vptr() == default_registry::static_vptr<Dog>);
+        BOOST_TEST(snoopy.get() == nullptr);
+        BOOST_TEST(snoopy.vptr() == nullptr);
+        // end::unique_assign_move_vptr[]
+    }
+}

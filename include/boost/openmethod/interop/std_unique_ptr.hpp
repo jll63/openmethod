@@ -14,6 +14,9 @@ namespace boost::openmethod {
 
 //! Specialize virtual_traits for std::unique_ptr by value.
 //!
+//! @par Example
+//! include:smart_pointers.cpp#classes;unique_by_value
+//!
 //! @tparam Class A class type, possibly cv-qualified.
 //! @tparam Registry A @ref registry.
 //!
@@ -65,6 +68,9 @@ struct virtual_traits<std::unique_ptr<Class>, Registry> {
 
 //! Alias for a `virtual_ptr<std::unique_ptr<T>>`.
 //!
+//! @par Example
+//! include:smart_pointers.cpp#unique_virtual_ptr_alias
+//!
 //! @see [Smart Pointers](xref:ROOT:smart_pointers.adoc)
 template<class Class, class Registry = BOOST_OPENMETHOD_DEFAULT_REGISTRY>
 using unique_virtual_ptr = virtual_ptr<std::unique_ptr<Class>, Registry>;
@@ -83,6 +89,9 @@ using unique_virtual_ptr = virtual_ptr<std::unique_ptr<Class>, Registry>;
 //! @param args Arguments to pass to the constructor of `Class`.
 //! @return A `unique_virtual_ptr<Class, Registry>` pointing to a newly
 //! created object of type `Class`.
+//!
+//! @par Example
+//! include:smart_pointers.cpp#make_unique_virtual
 //!
 //! @see [Smart Pointers](xref:ROOT:smart_pointers.adoc)
 template<

@@ -14,6 +14,9 @@ namespace boost::openmethod {
 
 //! Specialize virtual_traits for boost::intrusive_ptr.
 //!
+//! @par Example
+//! include:intrusive_ptr.cpp#classes;by_value
+//!
 //! @tparam Class A class type, possibly cv-qualified.
 //! @tparam Registry A @ref registry.
 //!
@@ -61,6 +64,9 @@ struct virtual_traits<boost::intrusive_ptr<Class>, Registry> {
 };
 
 //! Specialize virtual_traits for const boost::intrusive_ptr&.
+//!
+//! @par Example
+//! include:intrusive_ptr.cpp#classes;by_reference
 //!
 //! @tparam Class A class type, possibly cv-qualified.
 //! @tparam Registry A @ref registry.
@@ -119,6 +125,9 @@ struct virtual_traits<const boost::intrusive_ptr<Class>&, Registry> {
 
 //! Alias for a `virtual_ptr<boost::intrusive_ptr<T>>`.
 //!
+//! @par Example
+//! include:intrusive_ptr.cpp#boost_intrusive_virtual_ptr_alias
+//!
 //! @see [Smart Pointers](xref:ROOT:smart_pointers.adoc)
 template<class Class, class Registry = BOOST_OPENMETHOD_DEFAULT_REGISTRY>
 using boost_intrusive_virtual_ptr =
@@ -138,6 +147,9 @@ using boost_intrusive_virtual_ptr =
 //! @param args Arguments to pass to the constructor of `Class`.
 //! @return A `boost_intrusive_virtual_ptr<Class, Registry>` pointing to a newly
 //! created object of type `Class`.
+//!
+//! @par Example
+//! include:intrusive_ptr.cpp#make_boost_intrusive_virtual
 //!
 //! @see [Smart Pointers](xref:ROOT:smart_pointers.adoc)
 template<

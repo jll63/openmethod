@@ -1,0 +1,143 @@
+// Copyright (c) 2018-2025 Jean-Louis Leroy
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE_1_0.txt
+// or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+#include <boost/openmethod.hpp>
+#include <boost/openmethod/initialize.hpp>
+#include <boost/openmethod/interop/std_shared_ptr.hpp>
+#include <boost/openmethod/interop/std_unique_ptr.hpp>
+
+#define BOOST_TEST_MODULE openmethod
+#include <boost/test/unit_test.hpp>
+
+using namespace boost::openmethod;
+
+// tag::classes[]
+struct Animal {
+    virtual ~Animal() = default;
+};
+struct Dog : Animal {};
+struct Cat : Animal {};
+
+BOOST_OPENMETHOD_CLASSES(Animal, Dog, Cat);
+// end::classes[]
+
+namespace by_value {
+
+// tag::shared_by_value[]
+BOOST_OPENMETHOD(poke, (virtual_<std::shared_ptr<Animal>>), std::string);
+
+BOOST_OPENMETHOD_OVERRIDE(poke, (std::shared_ptr<Dog> animal), std::string) {
+    return "bark";
+}
+
+BOOST_OPENMETHOD_OVERRIDE(poke, (std::shared_ptr<Cat> animal), std::string) {
+    return "hiss";
+}
+// end::shared_by_value[]
+
+} // namespace by_value
+
+namespace by_reference {
+
+// tag::shared_by_reference[]
+BOOST_OPENMETHOD(poke, (virtual_<const std::shared_ptr<Animal>&>), std::string);
+
+BOOST_OPENMETHOD_OVERRIDE(
+    poke, (const std::shared_ptr<Dog>& animal), std::string) {
+    return "bark";
+}
+
+BOOST_OPENMETHOD_OVERRIDE(
+    poke, (const std::shared_ptr<Cat>& animal), std::string) {
+    return "hiss";
+}
+// end::shared_by_reference[]
+
+} // namespace by_reference
+
+namespace unique {
+
+// tag::unique_by_value[]
+BOOST_OPENMETHOD(poke, (virtual_<std::unique_ptr<Animal>>), std::string);
+
+BOOST_OPENMETHOD_OVERRIDE(poke, (std::unique_ptr<Dog> animal), std::string) {
+    return "bark";
+}
+
+BOOST_OPENMETHOD_OVERRIDE(poke, (std::unique_ptr<Cat> animal), std::string) {
+    return "hiss";
+}
+// end::unique_by_value[]
+
+} // namespace unique
+
+BOOST_AUTO_TEST_CASE(shared_ptr_examples) {
+    initialize();
+
+    {
+        // tag::make_shared_virtual[]
+        shared_virtual_ptr<Animal> animal = make_shared_virtual<Dog>();
+
+        BOOST_TEST(animal.vptr() == default_registry::static_vptr<Dog>);
+        // end::make_shared_virtual[]
+    }
+
+    {
+        // tag::shared_virtual_ptr_alias[]
+        shared_virtual_ptr<Animal> animal = make_shared_virtual<Dog>();
+        std::shared_ptr<Animal> owner = animal.pointer();
+
+        BOOST_TEST(owner.use_count() == 2);
+        // end::shared_virtual_ptr_alias[]
+    }
+
+    {
+        using namespace by_value;
+        // tag::shared_by_value_call[]
+        BOOST_TEST(poke(std::make_shared<Dog>()) == "bark");
+        BOOST_TEST(poke(std::make_shared<Cat>()) == "hiss");
+        // end::shared_by_value_call[]
+    }
+
+    {
+        using namespace by_reference;
+        // tag::shared_by_reference_call[]
+        const std::shared_ptr<Animal> snoopy = std::make_shared<Dog>();
+
+        BOOST_TEST(poke(snoopy) == "bark");
+        BOOST_TEST(snoopy.use_count() == 1);
+        // end::shared_by_reference_call[]
+    }
+}
+
+BOOST_AUTO_TEST_CASE(unique_ptr_examples) {
+    initialize();
+
+    {
+        // tag::make_unique_virtual[]
+        unique_virtual_ptr<Animal> animal = make_unique_virtual<Dog>();
+
+        BOOST_TEST(animal.vptr() == default_registry::static_vptr<Dog>);
+        // end::make_unique_virtual[]
+    }
+
+    {
+        // tag::unique_virtual_ptr_alias[]
+        unique_virtual_ptr<Animal> animal = make_unique_virtual<Dog>();
+        unique_virtual_ptr<Animal> owner = std::move(animal);
+
+        BOOST_TEST(owner.get() != nullptr);
+        BOOST_TEST(animal.get() == nullptr);
+        // end::unique_virtual_ptr_alias[]
+    }
+
+    {
+        using namespace unique;
+        // tag::unique_by_value_call[]
+        BOOST_TEST(poke(std::make_unique<Dog>()) == "bark");
+        BOOST_TEST(poke(std::make_unique<Cat>()) == "hiss");
+        // end::unique_by_value_call[]
+    }
+}

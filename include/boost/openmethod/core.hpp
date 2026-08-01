@@ -1138,8 +1138,16 @@ class virtual_ptr<
     //! Set the object pointer with a copy of `other`. Set the v-table pointer
     //! according to the dynamic type of `*other`.
     //!
-    //! @par Example
+    //! @par Examples
+    //!
+    //! Constructing from a `std::shared_ptr`:
+    //!
     //! include:virtual_ptr.cpp#shared_ctor_const_smart_ptr
+    //!
+    //! A move-only smart pointer cannot be copied from. Use the move
+    //! constructor instead:
+    //!
+    //! include:virtual_ptr.cpp#unique_copy_rejected
     //!
     //! @par Requirements
     //! @li @c SmartPtr and @c Other must be instantiated from the same template -
@@ -1210,8 +1218,15 @@ class virtual_ptr<
     //! Move object pointer from `other` to `this`. Set the v-table pointer
     //! according to the dynamic type of `*other`.
     //!
-    //! @par Example
+    //! @par Examples
+    //!
+    //! Move-constructing from a `std::shared_ptr`:
+    //!
     //! include:virtual_ptr.cpp#shared_ctor_move_smart_ptr
+    //!
+    //! Move-constructing from a `std::unique_ptr`:
+    //!
+    //! include:virtual_ptr.cpp#unique_ctor_move_smart_ptr
     //!
     //! @par Requirements
     //! @li @c SmartPtr and @c Other must be instantiated from the same template -
@@ -1272,8 +1287,15 @@ class virtual_ptr<
     //!
     //! `Other` is _not_ required to be a pointer to a polymorphic class.
     //!
-    //! @par Example
+    //! @par Examples
+    //!
+    //! Move-constructing from a shared `virtual_ptr`:
+    //!
     //! include:virtual_ptr.cpp#non_polymorphic_classes;shared_ctor_move_vptr
+    //!
+    //! Move-constructing from a unique `virtual_ptr`:
+    //!
+    //! include:virtual_ptr.cpp#unique_ctor_move_vptr
     //!
     //! @par Requirements
     //! @li @c SmartPtr and @c Other must be instantiated from the same template -
@@ -1343,8 +1365,15 @@ class virtual_ptr<
     //! Move object pointer from `other` to `this`. Set the v-table pointer
     //! according to the dynamic type of `*other`.
     //!
-    //! @par Example
+    //! @par Examples
+    //!
+    //! Move-assigning from a `std::shared_ptr`:
+    //!
     //! include:virtual_ptr.cpp#shared_assign_move_smart_ptr
+    //!
+    //! Move-assigning from a `std::unique_ptr`:
+    //!
+    //! include:virtual_ptr.cpp#unique_assign_move_smart_ptr
     //!
     //! @par Requirements
     //! @li @c SmartPtr and @c Other must be instantiated from the same template -
@@ -1430,8 +1459,15 @@ class virtual_ptr<
     //!
     //! `Other` is _not_ required to be a pointer to a polymorphic class.
     //!
-    //! @par Example
+    //! @par Examples
+    //!
+    //! Move-assigning from a shared `virtual_ptr`:
+    //!
     //! include:virtual_ptr.cpp#non_polymorphic_classes;shared_assign_move_vptr
+    //!
+    //! Move-assigning from a unique `virtual_ptr`:
+    //!
+    //! include:virtual_ptr.cpp#unique_assign_move_vptr
     //!
     //! @par Requirements
     //! @li @c SmartPtr and @c Other must be instantiated from the same template -
