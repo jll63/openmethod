@@ -102,6 +102,11 @@ struct indirect_registry : default_registry::with<policies::indirect_vptr> {};
 //! #include <boost/openmethod.hpp>
 //! @endcode
 //!
+//! @note The error goes to the registry's
+//! @ref boost::openmethod::policies::error_handler policy, which writes the
+//! description shown in the comments; the program is then terminated. A
+//! handler may throw instead, to keep the program running.
+//!
 //! The checks catch what @ref boost::openmethod::initialize cannot. Below,
 //! `Bulldog` is never registered; nothing is amiss until a call passes one,
 //! and only then is @ref boost::openmethod::missing_class reported:

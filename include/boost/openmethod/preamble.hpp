@@ -158,6 +158,11 @@ struct not_initialized : openmethod_error {
 //!
 //! @par Examples
 //!
+//! @note The error goes to the registry's
+//! @ref boost::openmethod::policies::error_handler policy, which writes the
+//! description shown in the comments; the program is then terminated. A
+//! handler may throw instead, to keep the program running.
+//!
 //! Missing registration of a class used as a virtual parameter in a method:
 //!
 //! include:errors.cpp#missing_class_in_method;missing_class_in_method_init
@@ -190,6 +195,12 @@ struct missing_class : openmethod_error {
 //! parameter list.
 //!
 //! @par Example
+//!
+//! @note The error goes to the registry's
+//! @ref boost::openmethod::policies::error_handler policy, which writes the
+//! description shown in the comments; the program is then terminated. A
+//! handler may throw instead, to keep the program running.
+//!
 //! In the following code, OpenMethod cannot infer that `Dog` is derived from
 //! `Animal`, because they are not registered in a same call to @ref
 //! BOOST_OPENMETHOD_CLASSES.
