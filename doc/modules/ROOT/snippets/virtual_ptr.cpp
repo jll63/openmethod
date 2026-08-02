@@ -42,7 +42,7 @@ BOOST_OPENMETHOD_OVERRIDE(poke, (virtual_ptr<Cat> animal), std::string) {
 namespace non_polymorphic_classes {
 
 // tag::non_polymorphic_classes[]
-// classes need not be polymorphic
+// classes not required to be polymorphic
 struct Animal {};
 struct Cat : Animal {};
 struct Dog : Animal {};
