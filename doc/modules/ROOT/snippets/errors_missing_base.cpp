@@ -25,7 +25,8 @@ BOOST_OPENMETHOD_CLASSES(Dog);
 
 BOOST_OPENMETHOD(poke, (virtual_ptr<Animal>), void);
 
-BOOST_OPENMETHOD_OVERRIDE(poke, (virtual_ptr<Dog>), void) { /* ... */
+BOOST_OPENMETHOD_OVERRIDE(poke, (virtual_ptr<Dog>), void) {
+    // ...
 }
 // end::classes[]
 
