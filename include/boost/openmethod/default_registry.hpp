@@ -92,6 +92,25 @@ struct indirect_registry : default_registry::with<policies::indirect_vptr> {};
 //! `<boost/openmethod/default_registry.hpp>` to enable runtime checks. See
 //! @ref boost::openmethod::default_registry for details.
 //!
+//! @par Example
+//!
+//! Define the symbol before including the library, or on the compiler command
+//! line:
+//!
+//! @code
+//! #define BOOST_OPENMETHOD_ENABLE_RUNTIME_CHECKS
+//! #include <boost/openmethod.hpp>
+//! @endcode
+//!
+//! The checks catch what @ref boost::openmethod::initialize cannot. Below,
+//! `Bulldog` is never registered; nothing is amiss until a call passes one,
+//! and only then is @ref boost::openmethod::missing_class reported:
+//!
+//! include:errors.cpp#missing_class_in_call;missing_class_in_call_use
+//!
+//! Without the checks the same call proceeds on a v-table pointer that was
+//! never set up, and the behavior is undefined.
+//!
 //! @see [Registries and Policies](xref:ROOT:registries_and_policies.adoc)
 #define BOOST_OPENMETHOD_ENABLE_RUNTIME_CHECKS
 #endif

@@ -39,9 +39,13 @@ struct marker final : marker_category {
     struct fn {};
 };
 
+// `runtime_checks` is named explicitly rather than left to
+// BOOST_OPENMETHOD_ENABLE_RUNTIME_CHECKS, which only a debug build defines:
+// the class missing from a *call* is caught by that policy, so without it the
+// last example below would proceed on a v-table pointer that was never set up.
 template<int N>
-using throwing =
-    default_registry::with<marker<N>, policies::throw_error_handler>;
+using throwing = default_registry::with<
+    marker<N>, policies::runtime_checks, policies::throw_error_handler>;
 
 namespace missing_parameter_class {
 
