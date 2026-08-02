@@ -609,7 +609,9 @@ inline vptr_type null_vptr = nullptr;
 //! different.
 //!
 //! @par Example
-//! include:virtual_ptr.cpp#non_polymorphic_classes;final_virtual_ptr
+//!
+//! See [the default-registry overload](xref:reference:boost/openmethod/final_virtual_ptr-08.adoc#_example)
+//! for an example.
 //!
 //! @tparam Registry A @ref registry.
 //! @tparam Arg The type of the argument.
@@ -671,6 +673,10 @@ inline auto final_virtual_ptr(Arg&& obj) {
 //!
 //! This is an overload of `final_virtual_ptr` that uses the default
 //! registry as the `Registry` template parameter.
+//!
+//! @par Example
+//!
+//! include:virtual_ptr.cpp#non_polymorphic_classes;final_virtual_ptr
 //!
 //! @see @ref final_virtual_ptr
 // We could give a default value to Registry in the main template, but gcc

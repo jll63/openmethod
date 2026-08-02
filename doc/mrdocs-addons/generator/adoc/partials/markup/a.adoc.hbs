@@ -21,6 +21,11 @@
     it, hence the extra `../`. At the root the href is passed through unchanged,
     so those links stay real xrefs and Antora still validates them.
 
+    The `xref:reference:` branch below is the same treatment for a link from one
+    reference page to another - a doc comment reaching a specific overload's
+    Example section, say. Those targets are already relative to the reference
+    module root, so no extra `../` is needed.
+
     Delete this file once #1245 is resolved upstream.
 
     Do not relativize links as asciidoc does not support it.
@@ -34,6 +39,12 @@
 {{~else if (starts_with href "xref:ROOT:")~}}
 {{~#if @root.page.relfileprefix~}}
     link:{{{@root.page.relfileprefix}}}../{{{replace (remove_prefix href "xref:ROOT:") ".adoc" ".html"}}}[{{> @partial-block }}]
+{{~else~}}
+    {{{href}}}[{{> @partial-block }}]
+{{~/if~}}
+{{~else if (starts_with href "xref:reference:")~}}
+{{~#if @root.page.relfileprefix~}}
+    link:{{{@root.page.relfileprefix}}}{{{replace (remove_prefix href "xref:reference:") ".adoc" ".html"}}}[{{> @partial-block }}]
 {{~else~}}
     {{{href}}}[{{> @partial-block }}]
 {{~/if~}}
