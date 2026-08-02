@@ -12,6 +12,8 @@
 #define BOOST_TEST_MODULE openmethod
 #include <boost/test/unit_test.hpp>
 
+#include "capture.hpp"
+
 using namespace boost::openmethod;
 
 // tag::classes[]
@@ -33,13 +35,17 @@ BOOST_OPENMETHOD_OVERRIDE(trick, (Dog&), std::string) {
 // end::classes[]
 
 BOOST_AUTO_TEST_CASE(inplace_vptr_examples) {
+    capture_cout cout;
+
     // tag::dispatch[]
     initialize();
 
     std::unique_ptr<Animal> a = std::make_unique<Cat>();
     std::unique_ptr<Animal> b = std::make_unique<Dog>();
 
-    BOOST_TEST(trick(*a) == "sulk");
-    BOOST_TEST(trick(*b) == "spin");
+    std::cout << trick(*a) << "\n"; // sulk
+    std::cout << trick(*b) << "\n"; // spin
     // end::dispatch[]
+
+    BOOST_TEST(cout.str() == "sulk\nspin\n");
 }

@@ -111,7 +111,7 @@ struct indirect_registry : default_registry::with<policies::indirect_vptr> {};
 //! `Bulldog` is never registered; nothing is amiss until a call passes one,
 //! and only then is @ref boost::openmethod::missing_class reported:
 //!
-//! include:errors.cpp#missing_class_in_call;missing_class_in_call_use
+//! include:errors_missing_class_call.cpp#classes;use
 //!
 //! Without the checks the same call proceeds on a v-table pointer that was
 //! never set up, and the behavior is undefined.

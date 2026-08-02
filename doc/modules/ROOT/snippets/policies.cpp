@@ -14,6 +14,8 @@
 #define BOOST_TEST_MODULE openmethod
 #include <boost/test/unit_test.hpp>
 
+#include "capture.hpp"
+
 using namespace boost::openmethod;
 
 struct Animal {
@@ -184,14 +186,17 @@ BOOST_AUTO_TEST_CASE(rtti_and_storage) {
     {
         using namespace std_rtti_demo;
         initialize<dynamic_registry>();
+        capture_cout cout;
 
         // tag::std_rtti_dispatch[]
         Dog snoopy;
         Animal& animal = snoopy;
 
-        BOOST_TEST(
-            trick(virtual_ptr<Animal, dynamic_registry>(animal)) == "spin");
+        std::cout << trick(virtual_ptr<Animal, dynamic_registry>(animal))
+                  << "\n"; // spin
         // end::std_rtti_dispatch[]
+
+        BOOST_TEST(cout.str() == "spin\n");
     }
 
     {
@@ -235,6 +240,8 @@ BOOST_AUTO_TEST_CASE(error_handlers) {
         using namespace default_error_handler_demo;
         initialize<handled_registry>();
 
+        capture_cerr cerr;
+
         // tag::default_error_handler_set[]
         handled_registry::error_handler::set([](const auto& error) {
             if (std::holds_alternative<no_overrider>(error)) {
@@ -244,21 +251,32 @@ BOOST_AUTO_TEST_CASE(error_handlers) {
 
         Cat felix;
 
-        BOOST_CHECK_THROW(
-            trick(virtual_ptr<Animal, handled_registry>(felix)),
-            std::runtime_error);
+        try {
+            trick(virtual_ptr<Animal, handled_registry>(felix));
+        } catch (const std::runtime_error& error) {
+            std::cerr << error.what() << "\n"; // not implemented
+        }
         // end::default_error_handler_set[]
+
+        BOOST_TEST(cerr.str() == "not implemented\n");
     }
 
     {
         using namespace throw_error_handler_demo;
         initialize<throwing_registry>();
 
+        capture_cerr cerr;
+
         // tag::throw_error_handler_catch[]
         Cat felix;
 
-        BOOST_CHECK_THROW(
-            trick(virtual_ptr<Animal, throwing_registry>(felix)), no_overrider);
+        try {
+            trick(virtual_ptr<Animal, throwing_registry>(felix));
+        } catch (const no_overrider&) {
+            std::cerr << "no overrider for Cat\n";
+        }
         // end::throw_error_handler_catch[]
+
+        BOOST_TEST(cerr.str() == "no overrider for Cat\n");
     }
 }

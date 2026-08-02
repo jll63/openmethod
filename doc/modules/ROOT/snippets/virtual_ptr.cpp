@@ -11,6 +11,8 @@
 #define BOOST_TEST_MODULE openmethod
 #include <boost/test/unit_test.hpp>
 
+#include "capture.hpp"
+
 using namespace boost::openmethod;
 
 namespace polymorphic_classes {
@@ -40,7 +42,7 @@ BOOST_OPENMETHOD_OVERRIDE(poke, (virtual_ptr<Cat> animal), std::string) {
 namespace non_polymorphic_classes {
 
 // tag::non_polymorphic_classes[]
-// polymorphism not required
+// classes need not be polymorphic
 struct Animal {};
 struct Cat : Animal {};
 struct Dog : Animal {};
@@ -234,16 +236,19 @@ BOOST_AUTO_TEST_CASE(virtual_ptr_examples) {
 
     {
         using namespace non_polymorphic_classes;
+        capture_cout cout;
 
         // tag::final_virtual_ptr[]
         Dog snoopy;
         virtual_ptr<Animal> animal = final_virtual_ptr(snoopy);
-        BOOST_TEST(poke(animal) == "bark");
+        std::cout << poke(animal) << "\n"; // bark
 
         Cat felix;
         animal = final_virtual_ptr(felix);
-        BOOST_TEST(poke(animal) == "hiss");
+        std::cout << poke(animal) << "\n"; // hiss
         // end::final_virtual_ptr[]
+
+        BOOST_TEST(cout.str() == "bark\nhiss\n");
     }
 }
 

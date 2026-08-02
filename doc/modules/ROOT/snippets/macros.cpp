@@ -12,6 +12,8 @@
 #define BOOST_TEST_MODULE openmethod
 #include <boost/test/unit_test.hpp>
 
+#include "capture.hpp"
+
 using namespace boost::openmethod;
 
 struct Animal {
@@ -41,8 +43,7 @@ BOOST_OPENMETHOD_OVERRIDE(
 BOOST_AUTO_TEST_CASE(macro_examples) {
     initialize();
 
-    std::ostringstream captured;
-    auto* previous = std::cout.rdbuf(captured.rdbuf());
+    capture_cout cout;
 
     // tag::call[]
     Cat felix;
@@ -54,7 +55,5 @@ BOOST_AUTO_TEST_CASE(macro_examples) {
     poke(b, std::cout); // bark
     // end::call[]
 
-    std::cout.rdbuf(previous);
-
-    BOOST_TEST(captured.str() == "hissbark");
+    BOOST_TEST(cout.str() == "hissbark");
 }

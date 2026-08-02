@@ -11,6 +11,8 @@
 #define BOOST_TEST_MODULE openmethod
 #include <boost/test/unit_test.hpp>
 
+#include "capture.hpp"
+
 using namespace boost::openmethod;
 
 // tag::classes[]
@@ -106,11 +108,15 @@ BOOST_AUTO_TEST_CASE(shared_ptr_examples) {
 
     {
         using namespace shared_vptr;
+        capture_cout cout;
+
         // tag::make_shared_virtual[]
         shared_virtual_ptr<Animal> animal = make_shared_virtual<Dog>();
 
-        BOOST_TEST(poke(animal) == "bark");
+        std::cout << poke(animal) << "\n"; // bark
         // end::make_shared_virtual[]
+
+        BOOST_TEST(cout.str() == "bark\n");
     }
 
     {
@@ -124,20 +130,29 @@ BOOST_AUTO_TEST_CASE(shared_ptr_examples) {
 
     {
         using namespace by_value;
+        capture_cout cout;
+
         // tag::shared_by_value_call[]
-        BOOST_TEST(poke(std::make_shared<Dog>()) == "bark");
-        BOOST_TEST(poke(std::make_shared<Cat>()) == "hiss");
+        std::cout << poke(std::make_shared<Dog>()) << "\n"; // bark
+        std::cout << poke(std::make_shared<Cat>()) << "\n"; // hiss
         // end::shared_by_value_call[]
+
+        BOOST_TEST(cout.str() == "bark\nhiss\n");
     }
 
     {
         using namespace by_reference;
+        capture_cout cout;
+
         // tag::shared_by_reference_call[]
         const std::shared_ptr<Animal> snoopy = std::make_shared<Dog>();
 
-        BOOST_TEST(poke(snoopy) == "bark");
+        std::cout << poke(snoopy) << "\n"; // bark
+
         BOOST_TEST(snoopy.use_count() == 1);
         // end::shared_by_reference_call[]
+
+        BOOST_TEST(cout.str() == "bark\n");
     }
 }
 
@@ -146,11 +161,15 @@ BOOST_AUTO_TEST_CASE(unique_ptr_examples) {
 
     {
         using namespace unique_vptr;
+        capture_cout cout;
+
         // tag::make_unique_virtual[]
         unique_virtual_ptr<Animal> animal = make_unique_virtual<Dog>();
 
-        BOOST_TEST(poke(std::move(animal)) == "bark");
+        std::cout << poke(std::move(animal)) << "\n"; // bark
         // end::make_unique_virtual[]
+
+        BOOST_TEST(cout.str() == "bark\n");
     }
 
     {
@@ -165,9 +184,13 @@ BOOST_AUTO_TEST_CASE(unique_ptr_examples) {
 
     {
         using namespace unique;
+        capture_cout cout;
+
         // tag::unique_by_value_call[]
-        BOOST_TEST(poke(std::make_unique<Dog>()) == "bark");
-        BOOST_TEST(poke(std::make_unique<Cat>()) == "hiss");
+        std::cout << poke(std::make_unique<Dog>()) << "\n"; // bark
+        std::cout << poke(std::make_unique<Cat>()) << "\n"; // hiss
         // end::unique_by_value_call[]
+
+        BOOST_TEST(cout.str() == "bark\nhiss\n");
     }
 }

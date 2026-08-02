@@ -13,6 +13,8 @@
 #define BOOST_TEST_MODULE openmethod
 #include <boost/test/unit_test.hpp>
 
+#include "capture.hpp"
+
 using namespace boost::openmethod;
 
 // tag::classes[]
@@ -83,12 +85,16 @@ BOOST_AUTO_TEST_CASE(intrusive_ptr_examples) {
 
     {
         using namespace vptr;
+        capture_cout cout;
+
         // tag::make_boost_intrusive_virtual[]
         boost_intrusive_virtual_ptr<Animal> animal =
             make_boost_intrusive_virtual<Dog>();
 
-        BOOST_TEST(poke(animal) == "bark");
+        std::cout << poke(animal) << "\n"; // bark
         // end::make_boost_intrusive_virtual[]
+
+        BOOST_TEST(cout.str() == "bark\n");
     }
 
     {
@@ -103,19 +109,30 @@ BOOST_AUTO_TEST_CASE(intrusive_ptr_examples) {
 
     {
         using namespace by_value;
+        capture_cout cout;
+
         // tag::by_value_call[]
-        BOOST_TEST(poke(boost::intrusive_ptr<Animal>(new Dog)) == "bark");
-        BOOST_TEST(poke(boost::intrusive_ptr<Animal>(new Cat)) == "hiss");
+        std::cout << poke(boost::intrusive_ptr<Animal>(new Dog))
+                  << "\n"; // bark
+        std::cout << poke(boost::intrusive_ptr<Animal>(new Cat))
+                  << "\n"; // hiss
         // end::by_value_call[]
+
+        BOOST_TEST(cout.str() == "bark\nhiss\n");
     }
 
     {
         using namespace by_reference;
+        capture_cout cout;
+
         // tag::by_reference_call[]
         const boost::intrusive_ptr<Animal> snoopy(new Dog);
 
-        BOOST_TEST(poke(snoopy) == "bark");
+        std::cout << poke(snoopy) << "\n"; // bark
+
         BOOST_TEST(snoopy->use_count() == 1);
         // end::by_reference_call[]
+
+        BOOST_TEST(cout.str() == "bark\n");
     }
 }

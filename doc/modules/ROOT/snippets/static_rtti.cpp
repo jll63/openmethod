@@ -23,6 +23,8 @@ struct static_registry
 #define BOOST_TEST_MODULE openmethod
 #include <boost/test/unit_test.hpp>
 
+#include "capture.hpp"
+
 using namespace boost::openmethod::aliases;
 
 // tag::classes[]
@@ -46,13 +48,16 @@ BOOST_OPENMETHOD_OVERRIDE(trick, (virtual_ptr<Cat>), std::string) {
 
 BOOST_AUTO_TEST_CASE(static_rtti_examples) {
     boost::openmethod::initialize();
+    capture_cout cout;
 
     // tag::dispatch[]
     // the exact class must be known where the pointer is created
     unique_virtual_ptr<Animal> a = make_unique_virtual<Cat>();
     unique_virtual_ptr<Animal> b = make_unique_virtual<Dog>();
 
-    BOOST_TEST(trick(a) == "sulk");
-    BOOST_TEST(trick(b) == "spin");
+    std::cout << trick(a) << "\n"; // sulk
+    std::cout << trick(b) << "\n"; // spin
     // end::dispatch[]
+
+    BOOST_TEST(cout.str() == "sulk\nspin\n");
 }

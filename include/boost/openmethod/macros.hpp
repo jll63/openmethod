@@ -301,10 +301,11 @@ inline constexpr bool method_not_found = false;
 //!
 //! @li A specialization of the container for the overrider:
 //! @code
-//! struct BOOST_OPENMETHOD_OVERRIDERS(ID)<RETURN_TYPE(PARAMETERS...)> { static
-//!     auto fn(PARAMETERS...) -> RETURN_TYPE; static auto has_next() -> bool;
-//!     template<typename... Args> static auto next(typename... Args) ->
-//!     RETURN_TYPE;
+//! struct BOOST_OPENMETHOD_OVERRIDERS(ID)<RETURN_TYPE(PARAMETERS...)> {
+//!     static auto fn(PARAMETERS...) -> RETURN_TYPE;
+//!     static auto has_next() -> bool;
+//!     template<typename... Args>
+//!     static auto next(typename... Args) -> RETURN_TYPE;
 //! };
 //! @endcode
 //!

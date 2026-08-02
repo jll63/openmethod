@@ -165,15 +165,15 @@ struct not_initialized : openmethod_error {
 //!
 //! Missing registration of a class used as a virtual parameter in a method:
 //!
-//! include:errors.cpp#missing_class_in_method;missing_class_in_method_init
+//! include:errors_missing_class_method.cpp#classes;init
 //!
 //! Missing registration of a class used as a virtual parameter in an overrider:
 //!
-//! include:errors.cpp#missing_class_in_overrider;missing_class_in_overrider_init
+//! include:errors_missing_class_overrider.cpp#classes;init
 //!
 //! Missing registration of a class used as a virtual parameter in a call:
 //!
-//! include:errors.cpp#missing_class_in_call;missing_class_in_call_use
+//! include:errors_missing_class_call.cpp#classes;use
 //!
 //! @see [Error Handling](xref:ROOT:error_handling.adoc)
 struct missing_class : openmethod_error {
@@ -205,11 +205,11 @@ struct missing_class : openmethod_error {
 //! `Animal`, because they are not registered in a same call to @ref
 //! BOOST_OPENMETHOD_CLASSES.
 //!
-//! include:errors.cpp#missing_base;missing_base_init
+//! include:errors_missing_base.cpp#classes;init
 //!
 //! Fix:
 //!
-//! include:errors.cpp#missing_base_fix
+//! include:errors_missing_class_call.cpp#fix
 //!
 //! @see [Error Handling](xref:ROOT:error_handling.adoc)
 struct missing_base : openmethod_error {
