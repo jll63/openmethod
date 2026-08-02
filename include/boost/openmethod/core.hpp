@@ -599,6 +599,14 @@ inline vptr_type null_vptr = nullptr;
 //!
 //! `Class` is _not_ required to be polymorphic.
 //!
+//! Nothing is looked up at runtime. Constructing a `virtual_ptr` from a
+//! reference or a pointer reads the object's dynamic type through the
+//! registry's `rtti` policy, then finds the v-table through its `vptr` policy;
+//! here the v-table pointer is a static variable, read directly. It is also
+//! the only way to create a `virtual_ptr` in a registry that uses
+//! @ref policies::static_rtti, which has no dynamic type to consult and
+//! disables the constructors that would need one.
+//!
 //! If runtime checks are enabled, and the argument is polymorphic, checks if
 //! the static and dynamic types are the same. If not, calls the error handler
 //! with a @ref final_error value, then terminates the program with @ref abort.
