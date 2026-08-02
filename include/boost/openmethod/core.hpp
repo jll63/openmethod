@@ -590,7 +590,7 @@ inline vptr_type null_vptr = nullptr;
 
 } // namespace detail
 
-//! Creates a `virtual_ptr` for an object of a known dynamic type.
+//! Create a `virtual_ptr` for an object of a known exact class.
 //!
 //! Creates a @ref virtual_ptr to an object, setting its v-table pointer
 //! according to the declared type of its argument. Assumes that the static and
@@ -669,7 +669,7 @@ inline auto final_virtual_ptr(Arg&& obj) {
         detail::box_vptr<VirtualPtr::use_indirect_vptrs>(vptr));
 }
 
-//! Create a `virtual_ptr` for an object of a known dynamic type.
+//! Create a `virtual_ptr` for an object of a known exact class.
 //!
 //! This is an overload of `final_virtual_ptr` that uses the default
 //! registry as the `Registry` template parameter.
@@ -1041,7 +1041,7 @@ class virtual_ptr {
             traits::template cast<Other&>(*obj), vp);
     }
 
-    //! Construct a `virtual_ptr` from a reference to an object
+    //! Construct a `virtual_ptr` for an object of a known exact class
     //!
     //! This function forwards to @ref final_virtual_ptr.
     //!
@@ -1564,7 +1564,8 @@ class virtual_ptr<
             traits::template cast<other_smart_ptr>(std::move(obj)), vp);
     }
 
-    //! Construct a `virtual_ptr` from a smart pointer to an object
+    //! Construct a `virtual_ptr` from a smart pointer to an object of a known
+    //! exact class
     //!
     //! This function forwards to @ref final_virtual_ptr.
     //!
