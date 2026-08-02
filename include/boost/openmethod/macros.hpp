@@ -569,7 +569,8 @@ inline constexpr bool method_not_found = false;
 //!
 //! @code
 //! BOOST_OPENMETHOD_CLASSES(Animal, Cat, Dog);
-//! BOOST_OPENMETHOD_CLASSES(Animal, Bulldog); // OpenMethod thinks Bulldog derives from Animal, not Dog
+//! BOOST_OPENMETHOD_CLASSES(Animal, Bulldog);
+//! // OpenMethod believes that Bulldog derives from Animal, not Dog
 //! @endcode
 //!
 //! @param ... The classes to register, optionally followed by the registry.
