@@ -94,7 +94,7 @@ class vptr_map : public vptr {
         //! @return A reference to a the v-table pointer for `Class`.
         template<class Class>
         static auto dynamic_vptr(const Class& arg) -> const vptr_type& {
-            return type_vptr(Registry::rtti::dynamic_type(arg));
+            return vptr(Registry::rtti::dynamic_type(arg));
         }
 
         //! Returns a *reference* to a v-table pointer for a type.
@@ -107,7 +107,7 @@ class vptr_map : public vptr {
         //!
         //! @param type A `type_id`.
         //! @return A reference to a the v-table pointer for `type`.
-        static auto type_vptr(type_id type) -> const vptr_type& {
+        static auto vptr(type_id type) -> const vptr_type& {
             auto iter = st().vptrs.find(type);
 
             if constexpr (Registry::has_runtime_checks) {

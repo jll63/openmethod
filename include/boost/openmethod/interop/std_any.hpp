@@ -62,7 +62,7 @@ struct virtual_traits<const std::any&, Registry> {
     //! @param arg A reference to a const `any`.
     //! @return A reference to the v-table pointer for the stored value.
     static auto dynamic_vptr(const std::any& arg) -> const vptr_type& {
-        return Registry::vptr::type_vptr(&arg.type());
+        return Registry::vptr::vptr(&arg.type());
     }
 
     //! Cast to a type.
@@ -114,7 +114,7 @@ struct virtual_traits<std::any&, Registry> {
     //! @param arg A reference to a `std::any`.
     //! @return A reference to the v-table pointer for the stored value.
     static auto dynamic_vptr(const std::any& arg) -> const vptr_type& {
-        return Registry::vptr::type_vptr(&arg.type());
+        return Registry::vptr::vptr(&arg.type());
     }
 
     //! Cast to a type.
@@ -167,7 +167,7 @@ struct virtual_traits<std::any&&, Registry> {
     //! @param arg A reference to a const `any`.
     //! @return A reference to a the v-table pointer for `Class`.
     static auto dynamic_vptr(const std::any& arg) -> const vptr_type& {
-        return Registry::vptr::type_vptr(&arg.type());
+        return Registry::vptr::vptr(&arg.type());
     }
 
     //! Cast to a type.
