@@ -284,9 +284,8 @@ inline constexpr bool method_not_found = false;
 //!
 //! include:../examples/rolex/2/employee.cpp#content
 //!
-//! An overrider that is defined in one place needs no split, and uses
-//! @ref BOOST_OPENMETHOD_OVERRIDE. This one reaches the overrider declared in
-//! the header through @ref BOOST_OPENMETHOD_OVERRIDER:
+//! This specific overrider can be called from other overriders explictly. No
+//! dynamic dispatch is performed.
 //!
 //! include:../examples/rolex/2/salesman.cpp#content
 //!
@@ -302,11 +301,10 @@ inline constexpr bool method_not_found = false;
 //!
 //! @li A specialization of the container for the overrider:
 //! @code
-//! struct BOOST_OPENMETHOD_OVERRIDERS(ID)<RETURN_TYPE(PARAMETERS...)> {
-//!     static auto fn(PARAMETERS...) -> RETURN_TYPE;
-//!     static auto has_next() -> bool;
-//!     template<typename... Args>
-//!     static auto next(typename... Args) -> RETURN_TYPE;
+//! struct BOOST_OPENMETHOD_OVERRIDERS(ID)<RETURN_TYPE(PARAMETERS...)> { static
+//!     auto fn(PARAMETERS...) -> RETURN_TYPE; static auto has_next() -> bool;
+//!     template<typename... Args> static auto next(typename... Args) ->
+//!     RETURN_TYPE;
 //! };
 //! @endcode
 //!
