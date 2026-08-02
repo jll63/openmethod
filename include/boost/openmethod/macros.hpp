@@ -271,6 +271,25 @@ inline constexpr bool method_not_found = false;
 //!
 //! @note `ID` must be an *identifier*. Qualified names are not allowed.
 //!
+//! @par Example
+//!
+//! Use this macro, rather than @ref BOOST_OPENMETHOD_OVERRIDE, to split an
+//! overrider across a header and an implementation file. The header declares
+//! the overrider without a body:
+//!
+//! include:../examples/rolex/2/roles.hpp#content
+//!
+//! The implementation file supplies the body with
+//! @ref BOOST_OPENMETHOD_DEFINE_OVERRIDER:
+//!
+//! include:../examples/rolex/2/employee.cpp#content
+//!
+//! An overrider that is defined in one place needs no split, and uses
+//! @ref BOOST_OPENMETHOD_OVERRIDE. This one reaches the overrider declared in
+//! the header through @ref BOOST_OPENMETHOD_OVERRIDER:
+//!
+//! include:../examples/rolex/2/salesman.cpp#content
+//!
 //! @par Implementation Notes
 //!
 //! The macro creates additional entities in the current scope.
@@ -351,6 +370,11 @@ inline constexpr bool method_not_found = false;
 //! implementation file, and followed by a function body.
 //!
 //! @note `ID` must be an *identifier*. Qualified names are not allowed.
+//!
+//! @par Example
+//!
+//! See [BOOST_OPENMETHOD_DECLARE_OVERRIDER](xref:reference:BOOST_OPENMETHOD_DECLARE_OVERRIDER.adoc#_example)
+//! for an example.
 //!
 //! @param ID The method's name.
 //! @param PARAMETERS The overrider's parameter list, in parentheses.
