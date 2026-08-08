@@ -22,5 +22,6 @@ BOOST_OPENMETHOD_REGISTER(use_std_any_types<Dog>);
 BOOST_OPENMETHOD(name, (virtual_std_any), std::string);
 
 int main() {
-    return 0;
+    auto dog = make_std_any_virtual<Dog>(Dog{"Snoopy"});
+    return name(dog).size();
 }
