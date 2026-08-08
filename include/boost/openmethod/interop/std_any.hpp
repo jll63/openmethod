@@ -219,12 +219,9 @@ struct virtual_traits<std::any&&, Registry> {
 //! followed by a @ref registry.
 template<typename... T>
 struct use_std_any_types
-    : detail::use_class_aux<
-          typename detail::extract_registry<T...>::registry,
-          mp11::mp_list<std::any, std::any>>,
-      detail::use_class_aux<
-          typename detail::extract_registry<T...>::registry,
-          mp11::mp_list<T, std::any>>... {};
+    : detail::use_any_types_aux<
+          typename detail::extract_registry<T...>::registry, std::any,
+          typename detail::extract_registry<T...>::others> {};
 
 //! Alias for a `virtual_any<std::any>`, in the default registry.
 //!

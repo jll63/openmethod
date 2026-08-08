@@ -24,6 +24,17 @@ struct is_virtual_any_aux : std::false_type {};
 template<class Any, class Registry>
 struct is_virtual_any_aux<virtual_any<Any, Registry>> : std::true_type {};
 
+// Common implementation for the use_*_any_types registrars: register Root
+// as a class, and each element of the Classes list as a class derived
+// from Root.
+template<class Registry, class Root, class Classes>
+struct use_any_types_aux;
+
+template<class Registry, class Root, class... Class>
+struct use_any_types_aux<Registry, Root, boost::mp11::mp_list<Class...>>
+    : use_class_aux<Registry, boost::mp11::mp_list<Root, Root>>,
+      use_class_aux<Registry, boost::mp11::mp_list<Class, Root>>... {};
+
 } // namespace detail
 
 //! A wide `any`, combining an `any` and a pointer to a v-table.

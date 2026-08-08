@@ -250,12 +250,9 @@ struct virtual_traits<boost::any&&, Registry> {
 //! followed by a @ref registry.
 template<typename... T>
 struct use_boost_any_types
-    : detail::use_class_aux<
-          typename detail::extract_registry<T...>::registry,
-          mp11::mp_list<boost::any, boost::any>>,
-      detail::use_class_aux<
-          typename detail::extract_registry<T...>::registry,
-          mp11::mp_list<T, boost::any>>... {};
+    : detail::use_any_types_aux<
+          typename detail::extract_registry<T...>::registry, boost::any,
+          typename detail::extract_registry<T...>::others> {};
 
 //! Alias for a `virtual_any<boost::any>`, in the default registry.
 //!
