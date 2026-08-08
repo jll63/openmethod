@@ -13,61 +13,51 @@
 #include <boost/openmethod.hpp>
 #include <boost/openmethod/interop/std_any.hpp>
 
-using namespace boost::openmethod::aliases;
+using namespace boost::openmethod;
 
 struct Dog {
-    Dog(std::string name) : name(std::move(name)) {}
-    std::string name;
-};
-
-struct Cat {
-    Cat(std::string name) : name(std::move(name)) {}
     std::string name;
 };
 
 // `std::any` becomes the common base of the types it may contain.
-BOOST_OPENMETHOD_REGISTER(use_std_any_types<Dog, Cat, int>);
+BOOST_OPENMETHOD_REGISTER(use_std_any_types<Dog, std::string, int, float>);
 
-BOOST_OPENMETHOD(poke, (const virtual_std_any&), std::string);
+BOOST_OPENMETHOD(name, (virtual_<const std::any&>), std::string);
 
 // An overrider takes the contained value...
-BOOST_OPENMETHOD_OVERRIDE(poke, (const Dog& dog), std::string) {
-    return dog.name + " barks";
+BOOST_OPENMETHOD_OVERRIDE(name, (const Dog& dog), std::string) {
+    return dog.name + " the dog";
 }
 
-BOOST_OPENMETHOD_OVERRIDE(poke, (const Cat& cat), std::string) {
-    return cat.name + " hisses";
+BOOST_OPENMETHOD_OVERRIDE(name, (const std::string& name), std::string) {
+    return name;
 }
 
-// ...or the `virtual_any` itself, which makes it a catch-all.
-BOOST_OPENMETHOD_OVERRIDE(poke, (const virtual_std_any& value), std::string) {
-    return value.get().has_value() ? "it does nothing" : "nothing happens";
+BOOST_OPENMETHOD_OVERRIDE(name, (const int& value), std::string) {
+    return std::to_string(value) + " the integer";
+}
+
+// ...or the `any` itself, which makes it a catch-all.
+BOOST_OPENMETHOD_OVERRIDE(name, (const std::any&), std::string) {
+    return "something else";
 }
 
 #include <boost/openmethod/initialize.hpp>
 
 int main() {
-    boost::openmethod::initialize();
+    initialize();
 
-    // From an existing `any`: the v-table pointer is looked up from the type
-    // of the value it contains.
-    std::any snoopy_any = Dog("Snoopy");
-    virtual_std_any snoopy = snoopy_any;
+    std::any spot = Dog{"Spot"};
+    std::any felix = std::string("Felix the cat");
+    std::any answer = 42;
+    std::any pi = 3.14f;
 
-    // From a value: the type is known at compile time, so the v-table pointer
-    // is read from a static variable, with no lookup.
-    virtual_std_any felix = Cat("Felix");
+    std::cout << name(spot) << "\n";   // Spot the dog
+    std::cout << name(felix) << "\n";  // Felix the cat
+    std::cout << name(answer) << "\n"; // 42 the integer
 
-    // Same, constructing the value in place.
-    auto hector = make_std_any_virtual<Dog>("Hector");
-
-    std::cout << poke(snoopy) << "\n"; // Snoopy barks
-    std::cout << poke(felix) << "\n";  // Felix hisses
-    std::cout << poke(hector) << "\n"; // Hector barks
-
-    // `int` is registered, but has no overrider of its own: the catch-all
-    // applies. The value converts to a temporary `virtual_std_any` at the
-    // call site.
-    std::cout << poke(42) << "\n";     // it does nothing
+    // `float` is registered, but has no overrider of its own, so the
+    // catch-all applies.
+    std::cout << name(pi) << "\n";     // something else
 }
 // end::content[]

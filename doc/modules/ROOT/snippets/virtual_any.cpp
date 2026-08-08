@@ -23,38 +23,32 @@ namespace std_any {
 
 // tag::classes[]
 struct Dog {
-    Dog(std::string name) : name(std::move(name)) {
-    }
-
-    std::string name;
-};
-
-struct Cat {
-    Cat(std::string name) : name(std::move(name)) {
-    }
-
     std::string name;
 };
 
 // `std::any` becomes the common base of the types it may contain.
-BOOST_OPENMETHOD_REGISTER(use_std_any_types<Dog, Cat, int>);
+BOOST_OPENMETHOD_REGISTER(use_std_any_types<Dog, std::string, int, float>);
 // end::classes[]
 
 // tag::method[]
-BOOST_OPENMETHOD(poke, (const virtual_std_any&), std::string);
+BOOST_OPENMETHOD(name, (const virtual_std_any&), std::string);
 
 // An overrider takes the contained value...
-BOOST_OPENMETHOD_OVERRIDE(poke, (const Dog& dog), std::string) {
-    return dog.name + " barks";
+BOOST_OPENMETHOD_OVERRIDE(name, (const Dog& dog), std::string) {
+    return dog.name + " the dog";
 }
 
-BOOST_OPENMETHOD_OVERRIDE(poke, (const Cat& cat), std::string) {
-    return cat.name + " hisses";
+BOOST_OPENMETHOD_OVERRIDE(name, (const std::string& name), std::string) {
+    return name;
+}
+
+BOOST_OPENMETHOD_OVERRIDE(name, (const int& value), std::string) {
+    return std::to_string(value) + " the integer";
 }
 
 // ...or the `virtual_any` itself, which makes it a catch-all.
-BOOST_OPENMETHOD_OVERRIDE(poke, (const virtual_std_any& value), std::string) {
-    return value.get().has_value() ? "it does nothing" : "nothing happens";
+BOOST_OPENMETHOD_OVERRIDE(name, (const virtual_std_any& value), std::string) {
+    return value.get().has_value() ? "something else" : "nothing";
 }
 // end::method[]
 
@@ -64,20 +58,21 @@ namespace boost_any {
 
 // tag::boost_classes[]
 struct Dog {
-    Dog(std::string name) : name(std::move(name)) {
-    }
-
     std::string name;
 };
 
 // `boost::any` is a root class of its own, distinct from the one used for
 // `std::any`, so both may be used in the same program and registry.
-BOOST_OPENMETHOD_REGISTER(use_boost_any_types<Dog>);
+BOOST_OPENMETHOD_REGISTER(use_boost_any_types<Dog, std::string>);
 
-BOOST_OPENMETHOD(poke, (const virtual_boost_any&), std::string);
+BOOST_OPENMETHOD(name, (const virtual_boost_any&), std::string);
 
-BOOST_OPENMETHOD_OVERRIDE(poke, (const Dog& dog), std::string) {
-    return dog.name + " barks";
+BOOST_OPENMETHOD_OVERRIDE(name, (const Dog& dog), std::string) {
+    return dog.name + " the dog";
+}
+
+BOOST_OPENMETHOD_OVERRIDE(name, (const std::string& name), std::string) {
+    return name;
 }
 // end::boost_classes[]
 
@@ -92,85 +87,85 @@ BOOST_AUTO_TEST_CASE(std_any_examples) {
         capture_cout cout;
 
         // tag::dispatch[]
-        virtual_std_any snoopy = Dog("Snoopy");
+        virtual_std_any spot = Dog{"Spot"};
 
-        std::cout << poke(snoopy) << "\n"; // Snoopy barks
+        std::cout << name(spot) << "\n"; // Spot the dog
 
-        // `int` is registered, but has no overrider of its own, so the
+        // `float` is registered, but has no overrider of its own, so the
         // catch-all applies. The value converts to a temporary
         // `virtual_std_any` at the call site.
-        std::cout << poke(42) << "\n"; // it does nothing
+        std::cout << name(3.14f) << "\n"; // something else
         // end::dispatch[]
 
-        BOOST_TEST(cout.str() == "Snoopy barks\nit does nothing\n");
+        BOOST_TEST(cout.str() == "Spot the dog\nsomething else\n");
     }
 
     {
         capture_cout cout;
 
         // tag::from_any[]
-        std::any snoopy_any = Dog("Snoopy");
+        std::any spot_any = Dog{"Spot"};
 
         // the v-table pointer is looked up from the type of the value the
         // `any` contains
-        virtual_std_any snoopy = snoopy_any;
+        virtual_std_any spot = spot_any;
 
-        std::cout << poke(snoopy) << "\n"; // Snoopy barks
+        std::cout << name(spot) << "\n"; // Spot the dog
         // end::from_any[]
 
-        BOOST_TEST(cout.str() == "Snoopy barks\n");
+        BOOST_TEST(cout.str() == "Spot the dog\n");
     }
 
     {
         capture_cout cout;
 
         // tag::from_value[]
-        // `Cat` is known at compile time, so the v-table pointer is read
+        // the type is known at compile time, so the v-table pointer is read
         // from a static variable - there is no lookup
-        virtual_std_any felix = Cat("Felix");
+        virtual_std_any answer = 42;
 
-        std::cout << poke(felix) << "\n"; // Felix hisses
+        std::cout << name(answer) << "\n"; // 42 the integer
         // end::from_value[]
 
-        BOOST_TEST(cout.str() == "Felix hisses\n");
+        BOOST_TEST(cout.str() == "42 the integer\n");
     }
 
     {
         capture_cout cout;
 
         // tag::emplace[]
-        virtual_std_any animal;
+        virtual_std_any value;
 
-        animal.emplace<Cat>("Felix");
+        value.emplace<std::string>("Felix the cat");
 
-        std::cout << poke(animal) << "\n"; // Felix hisses
+        std::cout << name(value) << "\n"; // Felix the cat
         // end::emplace[]
 
-        BOOST_TEST(cout.str() == "Felix hisses\n");
+        BOOST_TEST(cout.str() == "Felix the cat\n");
     }
 
     {
         capture_cout cout;
 
         // tag::make_any_virtual[]
-        auto felix = make_any_virtual<Cat, std::any>("Felix");
+        auto felix = make_any_virtual<std::string, std::any>("Felix the cat");
 
-        std::cout << poke(felix) << "\n"; // Felix hisses
+        std::cout << name(felix) << "\n"; // Felix the cat
         // end::make_any_virtual[]
 
-        BOOST_TEST(cout.str() == "Felix hisses\n");
+        BOOST_TEST(cout.str() == "Felix the cat\n");
     }
 
     {
         capture_cout cout;
 
         // tag::make_std_any_virtual[]
-        auto snoopy = make_std_any_virtual<Dog>("Snoopy");
+        auto felix = make_std_any_virtual<std::string>("Felix the cat");
 
-        std::cout << poke(snoopy) << "\n"; // Snoopy barks
+        std::cout << name(felix) << "\n"; // Felix the cat
         // end::make_std_any_virtual[]
 
-        BOOST_TEST(cout.str() == "Snoopy barks\n");
+        BOOST_TEST(cout.str() == "Felix the cat\n");
     }
 }
 
@@ -183,11 +178,11 @@ BOOST_AUTO_TEST_CASE(boost_any_examples) {
         capture_cout cout;
 
         // tag::boost_dispatch[]
-        auto snoopy = make_boost_any_virtual<Dog>("Snoopy");
+        auto felix = make_boost_any_virtual<std::string>("Felix the cat");
 
-        std::cout << poke(snoopy) << "\n"; // Snoopy barks
+        std::cout << name(felix) << "\n"; // Felix the cat
         // end::boost_dispatch[]
 
-        BOOST_TEST(cout.str() == "Snoopy barks\n");
+        BOOST_TEST(cout.str() == "Felix the cat\n");
     }
 }
