@@ -1,0 +1,131 @@
+
+[#interop_type_erasure]
+## Interoperation with Boost.TypeErasure
+
+link:https://www.boost.org/doc/libs/release/doc/html/boost_typeerasure.html[Boost.TypeErasure]'s
+`any` erases the type of its content, like `std::any`, but couples that with a
+Concept: a compile-time list of the operations the content must support.
+OpenMethod can dispatch on the type bound to such an `any`, in the same manner
+as for a plain `any` - see xref:interop_any.adoc[Interoperation with `any`].
+
+Support is provided by `<boost/openmethod/interop/boost_type_erasure.hpp>`. It
+is not included by `<boost/openmethod.hpp>`, so it must be included explicitly.
+
+### `type_erasure::any`
+
+Dispatch resolves on the type returned by `boost::type_erasure::typeid_of`, so
+the only requirement placed on the Concept is that it contain
+`boost::type_erasure::typeid_<>` - which `relaxed` already implies.
+
+The types the `any` may bind have to be registered.
+cpp:use_type_erasure_types[] does that, registering the owning flavor -
+`any<Concept>` - as a class, and each of the types as a class derived from it.
+Each Concept gets a root of its own, so `any`s with different Concepts - and
+the plain `any`s - can coexist in the same registry. A type that is not
+registered cannot be dispatched on; a call with such a value bound to the
+`any` is a cpp:missing_class[] error - see
+xref:error_handling.adoc[Error Handling].
+
+The `any` is passed wrapped in `virtual_`, and overriders receive the _bound_
+value - or, for a catch-all overrider, the `any` itself:
+
+[source,c++]
+----
+include::example$type_erasure.cpp[tag=content]
+----
+
+#### Reference categories
+
+The owning flavor is passed by reference, in any of the three categories -
+passing it by value would copy the bound value on every call, and is rejected
+at compile time. The category determines what the overriders may take:
+
+[cols="1,2"]
+|===
+| Method parameter | Overrider parameter
+
+| `virtual_<const any<Concept>&>`
+| `const Dog&`, `Dog`
+
+| `virtual_<any<Concept>&>`
+| `Dog&`, `const Dog&`, `Dog`
+
+| `virtual_<any<Concept>&&>`
+| `Dog&&`, `const Dog&`, `Dog`
+|===
+
+The mutable lvalue reference has the same limitation as `virtual_<std::any&>`:
+xref:reference:BOOST_OPENMETHOD_OVERRIDE.adoc[BOOST_OPENMETHOD_OVERRIDE]
+cannot locate the method, because nothing binds a temporary `any` to a mutable
+lvalue reference - see the
+xref:interop_any.adoc#interop_any[explanation there]. Those overriders are
+registered with the core API instead:
+
+```c++
+using bump_method =
+    BOOST_OPENMETHOD_TYPE(bump, (virtual_<any<Concept>&>), std::string);
+
+auto bump_dog(Dog& dog) -> std::string {
+    dog.name += " Jr.";
+    return dog.name;
+}
+
+BOOST_OPENMETHOD_REGISTER(bump_method::override<bump_dog>);
+```
+
+`boost::type_erasure::any_cast` has no rvalue overload, so, in the rvalue
+case, moving the value out of the `any` is performed by the interop code
+itself: an overrider taking `Dog&&` receives the bound value ready to be moved
+from, and the `any` still owns the moved-from object afterwards.
+
+#### The reference-wrapper flavors
+
+Boost.TypeErasure also has non-owning flavors, `any<Concept, _self&>` and
+`any<Concept, const _self&>`, which hold a _reference_ to a value stored
+elsewhere. They are cheap, two-word handles, and, unlike the owning flavor,
+they are passed by value - the idiomatic way to use them as parameters.
+Modifications made through a mutable-reference wrapper reach the referent:
+
+[source,c++]
+----
+include::example$type_erasure_ref.cpp[tag=content]
+----
+
+Dispatch is on the type _bound at construction_ of the wrapper - never on the
+C++ RTTI dynamic type of the referent. The rvalue-reference flavor
+(`any<Concept, _self&&>`), and placeholders other than `_self`, are not
+supported.
+
+#### `virtual_any`
+
+Every call above looks the v-table up in a hash table, keyed on the type the
+`any` binds. cpp:virtual_any[] works for a `type_erasure::any` exactly as it
+does for a `std::any`: `virtual_any<any<Concept>>` bundles the `any` with the
+v-table pointer for the value inside it, acquiring it once, on construction -
+or not at all, when it is built from a value or by cpp:make_any_virtual[],
+since the type is then known at compile time:
+
+```c++
+BOOST_OPENMETHOD(name, (const virtual_any<erased>&), std::string);
+
+// from an `any`: one lookup, at construction
+virtual_any<erased> spot = erased(Dog{"Spot"});
+
+// from a value, or with make_any_virtual: no lookup at all
+virtual_any<erased> rex = Dog{"Rex"};
+auto snoopy = make_any_virtual<Dog, erased>(Dog{"Snoopy"});
+```
+
+The Concept must contain `relaxed` - `virtual_any`'s default constructor and
+assignment rely on it - and `copy_constructible<>`, for copies.
+
+For the same reason as for `std::any`, cpp:final_virtual_ptr[] is _deleted_
+for `type_erasure::any`: it would silently produce the v-table of the root
+class rather than the one for the bound value.
+
+#### Empty `any`s
+
+An empty relaxed `any` reports `typeid(void)`, which is not a registered
+class, so dispatching on it is a cpp:missing_class[] error. A catch-all
+overrider does not help: dispatch never reaches it. Check with
+`boost::type_erasure::is_empty` before calling.

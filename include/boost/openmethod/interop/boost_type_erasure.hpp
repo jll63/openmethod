@@ -125,6 +125,8 @@ struct validate_method_parameter<
 //! @tparam C The `any`'s Concept.
 //! @tparam T The `any`'s placeholder.
 //! @tparam Registry A @ref registry.
+//!
+//! @see [Interoperation with Boost.TypeErasure](xref:ROOT:interop_type_erasure.adoc)
 template<class C, typename T, class Registry>
 struct virtual_traits<const boost::type_erasure::any<C, T>&, Registry> {
     //! The type used for dispatch: the owning flavor for `C`.
@@ -188,6 +190,8 @@ struct virtual_traits<const boost::type_erasure::any<C, T>&, Registry> {
 //! @tparam C The `any`'s Concept.
 //! @tparam T The `any`'s placeholder.
 //! @tparam Registry A @ref registry.
+//!
+//! @see [Interoperation with Boost.TypeErasure](xref:ROOT:interop_type_erasure.adoc)
 template<class C, typename T, class Registry>
 struct virtual_traits<boost::type_erasure::any<C, T>&, Registry> {
     //! The type used for dispatch: the owning flavor for `C`.
@@ -251,6 +255,8 @@ struct virtual_traits<boost::type_erasure::any<C, T>&, Registry> {
 //! @tparam C The `any`'s Concept.
 //! @tparam T The `any`'s placeholder.
 //! @tparam Registry A @ref registry.
+//!
+//! @see [Interoperation with Boost.TypeErasure](xref:ROOT:interop_type_erasure.adoc)
 template<class C, typename T, class Registry>
 struct virtual_traits<boost::type_erasure::any<C, T>&&, Registry> {
     //! The type used for dispatch: the owning flavor for `C`.
@@ -324,6 +330,8 @@ struct virtual_traits<boost::type_erasure::any<C, T>&&, Registry> {
 //! @tparam C The `any`'s Concept.
 //! @tparam T The referent placeholder (`_self` for `any<C, _self&>`).
 //! @tparam Registry A @ref registry.
+//!
+//! @see [Interoperation with Boost.TypeErasure](xref:ROOT:interop_type_erasure.adoc)
 template<class C, typename T, class Registry>
 struct virtual_traits<boost::type_erasure::any<C, T&>, Registry> {
     //! The type used for dispatch: the owning flavor for `C`.
@@ -388,6 +396,8 @@ struct virtual_traits<boost::type_erasure::any<C, T&>, Registry> {
 //! @tparam T The referent placeholder (`_self` for
 //! `any<C, const _self&>`).
 //! @tparam Registry A @ref registry.
+//!
+//! @see [Interoperation with Boost.TypeErasure](xref:ROOT:interop_type_erasure.adoc)
 template<class C, typename T, class Registry>
 struct virtual_traits<boost::type_erasure::any<C, const T&>, Registry> {
     //! The type used for dispatch: the owning flavor for `C`.
@@ -454,6 +464,11 @@ struct virtual_traits<boost::type_erasure::any<C, const T&>, Registry> {
 //! @tparam Any A `boost::type_erasure::any` type.
 //! @tparam T... The types that may be bound to the `any`, optionally
 //! followed by a @ref registry.
+//!
+//! @par Example
+//! include:type_erasure.cpp#classes
+//!
+//! @see [Interoperation with Boost.TypeErasure](xref:ROOT:interop_type_erasure.adoc)
 template<class Any, typename... T>
 struct use_type_erasure_types
     : detail::use_any_types_aux<
