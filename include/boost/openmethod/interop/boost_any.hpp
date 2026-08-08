@@ -8,6 +8,7 @@
 
 #include <boost/any.hpp>
 #include <boost/openmethod/core.hpp>
+#include <boost/openmethod/interop/virtual_any.hpp>
 
 namespace boost::openmethod {
 
@@ -237,6 +238,57 @@ struct use_boost_any_types
       detail::use_class_aux<
           typename detail::extract_registry<T...>::registry,
           mp11::mp_list<T, boost::any>>... {};
+
+//! Alias for a `virtual_any<boost::any>`, in the default registry.
+//!
+//! With another registry, use `virtual_any<boost::any, Registry>` directly.
+using virtual_boost_any = virtual_any<boost::any>;
+
+//! Create a new object and return a `virtual_boost_any` containing it.
+//!
+//! Create a `Class` from `args`, store it in a `boost::any`, and return a
+//! @ref virtual_any with its v-table pointer set to the
+//! @ref registry::static_vptr for `Class` - no hash table lookup is
+//! involved.
+//!
+//! @tparam Class The type of the value to create.
+//! @tparam Registry A @ref registry.
+//! @tparam T Types of the arguments to pass to the constructor of
+//! `Class`.
+//! @param args Arguments to pass to the constructor of `Class`.
+//! @return A `virtual_any<boost::any, Registry>` containing a newly created
+//! `Class`.
+template<
+    class Class, class Registry = BOOST_OPENMETHOD_DEFAULT_REGISTRY,
+    typename... T>
+inline auto
+make_boost_any_virtual(T&&... args) -> virtual_any<boost::any, Registry> {
+    return make_any_virtual<Class, boost::any, Registry>(
+        std::forward<T>(args)...);
+}
+
+// The primary final_virtual_ptr would silently use static_vptr<boost::any>
+// - the v-table of the `any` root class, not of the contained value.
+// Delete the combination. Both call forms need covering: the non-template
+// overloads catch calls that deduce the default registry, and are removed
+// from consideration when an explicit template argument list is given, so
+// the Registry-only templates - more specialized than the primary - catch
+// those.
+
+template<class Registry>
+void final_virtual_ptr(const boost::any&) = delete;
+template<class Registry>
+void final_virtual_ptr(boost::any&) = delete;
+template<class Registry>
+void final_virtual_ptr(boost::any&&) = delete;
+void final_virtual_ptr(const boost::any&) = delete;
+void final_virtual_ptr(boost::any&) = delete;
+void final_virtual_ptr(boost::any&&) = delete;
+
+namespace aliases {
+using boost::openmethod::make_boost_any_virtual;
+using boost::openmethod::virtual_boost_any;
+} // namespace aliases
 
 } // namespace boost::openmethod
 

@@ -163,6 +163,12 @@ openmethod_compile_fail_test(
     compile_fail_boost_any_const_ref_to_mutable_ref "no matching")
 openmethod_compile_fail_test(
     compile_fail_boost_any_mutable_ref_to_rvalue_ref "no matching")
+openmethod_compile_fail_test(
+    compile_fail_virtual_any_by_value "virtual_any must be passed by reference")
+# "use of a deleted function" on gcc, "call to deleted function" on clang,
+# "attempting to reference a deleted function" on MSVC.
+openmethod_compile_fail_test(
+    compile_fail_final_virtual_ptr_std_any "deleted function")
 
 if (TARGET Boost::dll)
     add_subdirectory(dynamic_loading)
