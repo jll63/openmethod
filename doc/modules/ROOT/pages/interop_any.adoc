@@ -1,11 +1,10 @@
 
-[#interop]
-## Interoperation with Other Libraries
+[#interop_any]
+## Interoperation with `any`
 
-Some libraries hand us a value whose type is not visible in the static type of
-the variable that holds it - a type-erased container, or a pointer class of
-their own. This section covers the constructs that let a method look through
-such a wrapper and dispatch on what is really inside.
+A value held in an `any` has a type that is not visible in the static type of
+the variable holding the `any`. This section covers the constructs that let a
+method look through the wrapper and dispatch on what is really inside.
 
 ### `any`
 

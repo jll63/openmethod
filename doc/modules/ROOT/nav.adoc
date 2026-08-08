@@ -13,7 +13,7 @@
 ** xref:custom_rtti.adoc[Custom RTTI]
 ** xref:error_handling.adoc[Error Handling]
 ** xref:virtual_ptr_alt.adoc[Virtual Pointer Alternatives]
-** xref:interop.adoc[Interoperation with Other Libraries]
+** xref:interop_any.adoc[Interoperation with `any`]
 ** xref:shared_libraries.adoc[Shared Libraries]
 * xref:reference:index.adoc[Reference]
 ** xref:ref_headers.adoc[Headers]

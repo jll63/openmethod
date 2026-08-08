@@ -221,7 +221,7 @@ struct virtual_traits<std::any&&, Registry> {
 //! @par Example
 //! include:virtual_any.cpp#classes
 //!
-//! @see [Interoperation with Other Libraries](xref:ROOT:interop.adoc)
+//! @see [Interoperation with `any`](xref:ROOT:interop_any.adoc)
 template<typename... T>
 struct use_std_any_types
     : detail::use_class_aux<
@@ -235,7 +235,7 @@ struct use_std_any_types
 //!
 //! With another registry, use `virtual_any<std::any, Registry>` directly.
 //!
-//! @see [Interoperation with Other Libraries](xref:ROOT:interop.adoc)
+//! @see [Interoperation with `any`](xref:ROOT:interop_any.adoc)
 using virtual_std_any = virtual_any<std::any>;
 
 //! Create a new object and return a `virtual_std_any` containing it.
@@ -256,7 +256,7 @@ using virtual_std_any = virtual_any<std::any>;
 //! @par Example
 //! include:virtual_any.cpp#make_std_any_virtual
 //!
-//! @see [Interoperation with Other Libraries](xref:ROOT:interop.adoc)
+//! @see [Interoperation with `any`](xref:ROOT:interop_any.adoc)
 template<
     class Class, class Registry = BOOST_OPENMETHOD_DEFAULT_REGISTRY,
     typename... T>

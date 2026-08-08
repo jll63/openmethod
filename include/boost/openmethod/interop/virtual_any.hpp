@@ -61,7 +61,7 @@ struct is_virtual_any_aux<virtual_any<Any, Registry>> : std::true_type {};
 //! @par Example
 //! include:virtual_any.cpp#classes;method;dispatch
 //!
-//! @see [Interoperation with Other Libraries](xref:ROOT:interop.adoc)
+//! @see [Interoperation with `any`](xref:ROOT:interop_any.adoc)
 template<class Any, class Registry>
 class virtual_any {
     static constexpr bool use_indirect_vptrs = Registry::has_indirect_vptr;
@@ -509,7 +509,7 @@ struct select_overrider_virtual_type_aux<
 //! @par Example
 //! include:virtual_any.cpp#make_any_virtual
 //!
-//! @see [Interoperation with Other Libraries](xref:ROOT:interop.adoc)
+//! @see [Interoperation with `any`](xref:ROOT:interop_any.adoc)
 template<
     class Class, class Any, class Registry = BOOST_OPENMETHOD_DEFAULT_REGISTRY,
     typename... T>
