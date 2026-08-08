@@ -71,7 +71,9 @@ struct virtual_traits<const boost::any&, Registry> {
 
     //! Cast to a type.
     //!
-    //! Extracts the stored value using `boost::any_cast`.
+    //! If `U` is the `any` itself (by any reference category), returns
+    //! `arg` unchanged, which is how a catch-all overrider is written.
+    //! Otherwise, extracts the stored value using `boost::any_cast`.
     //!
     //! Since the `any` argument is const, `U` cannot be a mutable reference.
     //! `boost::any_cast` rewrites `U` to a const reference for a const `any`,
@@ -87,7 +89,13 @@ struct virtual_traits<const boost::any&, Registry> {
             !std::is_reference_v<U> ||
             std::is_const_v<std::remove_reference_t<U>>>>
     static auto cast(const boost::any& arg) -> decltype(auto) {
-        return boost::any_cast<U>(arg);
+        if constexpr (std::is_same_v<
+                          std::remove_cv_t<std::remove_reference_t<U>>,
+                          boost::any>) {
+            return (arg);
+        } else {
+            return boost::any_cast<U>(arg);
+        }
     }
 };
 
@@ -134,7 +142,9 @@ struct virtual_traits<boost::any&, Registry> {
 
     //! Cast to a type.
     //!
-    //! Extracts the stored value using `boost::any_cast`. Supports mutable
+    //! If `U` is the `any` itself (by any reference category), returns
+    //! `arg` unchanged, which is how a catch-all overrider is written.
+    //! Otherwise, extracts the stored value using `boost::any_cast`. Supports mutable
     //! references (e.g. `Dog&`) because the `any` argument is not const;
     //! modifications through the result are visible through the `any`.
     //!
@@ -150,7 +160,13 @@ struct virtual_traits<boost::any&, Registry> {
     template<
         typename U, typename = std::enable_if_t<!std::is_rvalue_reference_v<U>>>
     static auto cast(boost::any& arg) -> decltype(auto) {
-        return boost::any_cast<U>(arg);
+        if constexpr (std::is_same_v<
+                          std::remove_cv_t<std::remove_reference_t<U>>,
+                          boost::any>) {
+            return (arg);
+        } else {
+            return boost::any_cast<U>(arg);
+        }
     }
 };
 
@@ -197,7 +213,9 @@ struct virtual_traits<boost::any&&, Registry> {
 
     //! Cast to a type.
     //!
-    //! Extracts the stored value using `boost::any_cast`.
+    //! If `U` is the `any` itself (by any reference category), returns
+    //! `arg` unchanged, which is how a catch-all overrider is written.
+    //! Otherwise, extracts the stored value using `boost::any_cast`.
     //!
     //! `U` cannot be a mutable lvalue reference: that would bind a reference
     //! to the value contained in a temporary. Boost.Any rejects it with a
@@ -213,7 +231,13 @@ struct virtual_traits<boost::any&&, Registry> {
             !std::is_lvalue_reference_v<U> ||
             std::is_const_v<std::remove_reference_t<U>>>>
     static auto cast(boost::any&& arg) -> decltype(auto) {
-        return boost::any_cast<U>(std::move(arg));
+        if constexpr (std::is_same_v<
+                          std::remove_cv_t<std::remove_reference_t<U>>,
+                          boost::any>) {
+            return std::move(arg);
+        } else {
+            return boost::any_cast<U>(std::move(arg));
+        }
     }
 };
 
