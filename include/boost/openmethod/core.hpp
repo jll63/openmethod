@@ -539,7 +539,7 @@ decltype(auto) acquire_vptr(const ArgType& arg) {
                              type_id>) {
         return virtual_traits<const ArgType&, Registry>::vptr(arg);
     } else {
-        return Registry::template policy<policies::vptr>::vptr(arg);
+        return Registry::template policy<policies::vptr>::dynamic_vptr(arg);
     }
 }
 
