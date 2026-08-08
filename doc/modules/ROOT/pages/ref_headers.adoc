@@ -72,7 +72,7 @@ Provides a `virtual_traits` specialization that makes it possible to use a
 `boost::intrusive_ptr` in place of a raw pointer or reference in virtual parameters.
 
 [#virtual_any]
-### link:{{BASE_URL}}/include/boost/openmethod/interop/virtual_any.hpp[<boost/openmethod/interop/virtual_any.hpp>]
+### link:{base-url}/include/boost/openmethod/interop/virtual_any.hpp[<boost/openmethod/interop/virtual_any.hpp>]
 
 Provides `virtual_any`, a wide `any` that combines an `any`, held by value,
 with a pointer to the v-table for the contained value - like `virtual_ptr`
@@ -86,7 +86,7 @@ with an `any`-like interface, given `virtual_traits` specializations for its
 reference types.
 
 [#std_any]
-### link:{{BASE_URL}}/include/boost/openmethod/interop/std_any.hpp[<boost/openmethod/interop/std_any.hpp>]
+### link:{base-url}/include/boost/openmethod/interop/std_any.hpp[<boost/openmethod/interop/std_any.hpp>]
 
 Provides `virtual_traits` specializations that make it possible to use a `std::any` -
 by const reference, by mutable reference, or by rvalue reference - in virtual
@@ -98,7 +98,7 @@ parameters. Dispatch is on the type of the contained value. Also provides
 use the v-table of the `any` root class instead of the contained value's.
 
 [#boost_any]
-### link:{{BASE_URL}}/include/boost/openmethod/interop/boost_any.hpp[<boost/openmethod/interop/boost_any.hpp>]
+### link:{base-url}/include/boost/openmethod/interop/boost_any.hpp[<boost/openmethod/interop/boost_any.hpp>]
 
 Provides `virtual_traits` specializations that make it possible to use a `boost::any` -
 by const reference, by mutable reference, or by rvalue reference - in virtual
