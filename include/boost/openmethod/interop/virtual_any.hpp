@@ -225,8 +225,18 @@ class virtual_any {
     }
 
 #ifndef __MRDOCS__
-    friend auto
-    boost_openmethod_vptr(const virtual_any& va, Registry*) -> vptr_type {
+    // The parameter is deduced, and constrained to be exactly this
+    // `virtual_any`, so that the function is not viable for a type that
+    // is merely convertible to it. MSVC, in its default (permissive)
+    // mode, injects friend functions into the enclosing namespace, where
+    // ordinary lookup finds them. An unconstrained `const virtual_any&`
+    // parameter would then make this a candidate for a plain `Any`,
+    // which converts implicitly to `virtual_any` - and the conversion
+    // acquires the v-table pointer, which calls this function, ad
+    // infinitum.
+    template<class Self>
+    friend auto boost_openmethod_vptr(const Self& va, Registry*)
+        -> std::enable_if_t<std::is_same_v<Self, virtual_any>, vptr_type> {
         return detail::unbox_vptr(va.vp);
     }
 #endif
