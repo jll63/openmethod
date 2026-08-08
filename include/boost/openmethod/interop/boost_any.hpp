@@ -64,7 +64,7 @@ struct virtual_traits<const boost::any&, Registry> {
     //!
     //! @param arg A reference to a const `any`.
     //! @return A reference to the v-table pointer for the stored value.
-    static auto dynamic_vptr(const boost::any& arg) -> const vptr_type& {
+    static auto vptr(const boost::any& arg) -> const vptr_type& {
         return Registry::vptr::vptr(&arg.type());
     }
 
@@ -127,7 +127,7 @@ struct virtual_traits<boost::any&, Registry> {
     //!
     //! @param arg A reference to a `boost::any`.
     //! @return A reference to the v-table pointer for the stored value.
-    static auto dynamic_vptr(const boost::any& arg) -> const vptr_type& {
+    static auto vptr(const boost::any& arg) -> const vptr_type& {
         return Registry::vptr::vptr(&arg.type());
     }
 
@@ -190,7 +190,7 @@ struct virtual_traits<boost::any&&, Registry> {
     //!
     //! @param arg A reference to a `boost::any`.
     //! @return A reference to the v-table pointer for the stored value.
-    static auto dynamic_vptr(const boost::any& arg) -> const vptr_type& {
+    static auto vptr(const boost::any& arg) -> const vptr_type& {
         return Registry::vptr::vptr(&arg.type());
     }
 

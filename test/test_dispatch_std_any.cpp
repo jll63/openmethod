@@ -27,7 +27,7 @@ namespace BOOST_OPENMETHOD_GENSYM {
 // -----------------------------------------------------------------------------
 // pass virtual args as const std::any& (const ref)
 
-static_assert(detail::has_dynamic_vptr<
+static_assert(detail::has_vptr<
               virtual_traits<const std::any&, default_registry>, type_id>);
 
 MAKE_CLASSES();
@@ -66,7 +66,7 @@ namespace BOOST_OPENMETHOD_GENSYM {
 // -----------------------------------------------------------------------------
 // pass virtual args as std::any& (mutable ref)
 
-static_assert(detail::has_dynamic_vptr<
+static_assert(detail::has_vptr<
               virtual_traits<std::any&, default_registry>, type_id>);
 
 MAKE_CLASSES();
@@ -129,7 +129,7 @@ namespace BOOST_OPENMETHOD_GENSYM {
 // -----------------------------------------------------------------------------
 // pass virtual args as std::any&& (xvalue ref)
 
-static_assert(detail::has_dynamic_vptr<
+static_assert(detail::has_vptr<
               virtual_traits<std::any&&, default_registry>, type_id>);
 
 MAKE_CLASSES();
