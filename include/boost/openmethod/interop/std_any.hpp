@@ -1,0 +1,258 @@
+// Copyright (c) 2018-2026 Jean-Louis Leroy
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE_1_0.txt
+// or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+#ifndef BOOST_OPENMETHOD_INTEROP_STD_ANY_HPP
+#define BOOST_OPENMETHOD_INTEROP_STD_ANY_HPP
+
+#include <any>
+#include <boost/openmethod/core.hpp>
+#include <boost/openmethod/interop/virtual_any.hpp>
+
+namespace boost::openmethod {
+
+namespace detail {
+
+template<class Registry>
+struct validate_method_parameter<virtual_<const std::any&>, Registry, void>
+    : std::true_type {};
+
+template<class Registry>
+struct validate_method_parameter<virtual_<std::any&>, Registry, void>
+    : std::true_type {};
+
+template<class Registry>
+struct validate_method_parameter<virtual_<std::any&&>, Registry, void>
+    : std::true_type {};
+
+} // namespace detail
+
+//! Specialize virtual_traits for `const std::any&` (const reference).
+//!
+//! Dispatch is based on the runtime type of the value stored in the `any`,
+//! obtained via `std::any::type()`.
+//!
+//! @tparam Registry A @ref registry.
+template<class Registry>
+struct virtual_traits<const std::any&, Registry> {
+    //! The type used for dispatch.
+    using virtual_type = std::any;
+
+    //! Returns a const reference to the `any` argument.
+    //! @param arg A reference to a `std::any`.
+    //! @return A const reference to `arg`.
+    static auto peek(const std::any& arg) -> const std::any& {
+        return arg;
+    }
+
+    //! Returns a *reference* to a v-table pointer for an object.
+    //!
+    //! Acquires the dynamic @ref type_id of `arg`, using the registry's
+    //! @ref rtti policy.
+    //!
+    //! If the registry has a @ref type_hash policy, uses it to convert the
+    //! type id to an index; otherwise, uses the type_id as the index.
+    //!
+    //! If the registry contains the @ref runtime_checks policy, verifies
+    //! that the index falls within the limits of the vector. If it does
+    //! not, and if the registry contains a @ref error_handler policy, calls
+    //! its @ref error function with a @ref missing_class value, then
+    //! terminates the program with @ref abort.
+    //!
+    //! @param arg A reference to a const `any`.
+    //! @return A reference to the v-table pointer for the stored value.
+    static auto vptr(const std::any& arg) -> const vptr_type& {
+        return Registry::vptr::vptr(&arg.type());
+    }
+
+    //! Cast to a type.
+    //!
+    //! Extracts the stored value using `std::any_cast`. Since the `any`
+    //! argument is const, `U` cannot be a mutable reference.
+    //!
+    //! @tparam U The target type (e.g. `const Dog&`, `Dog`).
+    //! @param arg A reference to a const `std::any` method argument.
+    //! @return The value stored in `arg`, cast to `U`.
+    template<typename U>
+    static auto cast(const std::any& arg) -> decltype(auto) {
+        return std::any_cast<U>(arg);
+    }
+};
+
+//! Specialize virtual_traits for `std::any&` (mutable reference).
+//!
+//! Dispatch is based on the runtime type of the value stored in the `any`,
+//! obtained via `std::any::type()`.
+//!
+//! @tparam Registry A @ref registry.
+template<class Registry>
+struct virtual_traits<std::any&, Registry> {
+    //! The type used for dispatch.
+    using virtual_type = std::any;
+
+    //! Returns a const reference to the `any` argument.
+    //! @param arg A reference to a `std::any`.
+    //! @return A const reference to `arg`.
+    static auto peek(const std::any& arg) -> const std::any& {
+        return arg;
+    }
+
+    //! Returns a *reference* to a v-table pointer for an object.
+    //!
+    //! Acquires the @ref type_id of the value stored in `arg`, using
+    //! `std::any::type()`.
+    //!
+    //! If the registry has a @ref type_hash policy, uses it to convert the
+    //! type id to an index; otherwise, uses the type_id as the index.
+    //!
+    //! If the registry contains the @ref runtime_checks policy, verifies
+    //! that the index falls within the limits of the vector. If it does
+    //! not, and if the registry contains a @ref error_handler policy, calls
+    //! its @ref error function with a @ref missing_class value, then
+    //! terminates the program with @ref abort.
+    //!
+    //! @param arg A reference to a `std::any`.
+    //! @return A reference to the v-table pointer for the stored value.
+    static auto vptr(const std::any& arg) -> const vptr_type& {
+        return Registry::vptr::vptr(&arg.type());
+    }
+
+    //! Cast to a type.
+    //!
+    //! Extracts the stored value using `std::any_cast`. Supports mutable
+    //! references (e.g. `Dog&`) because the `any` argument is not const;
+    //! modifications through the result are visible through the `any`.
+    //!
+    //! @tparam U The target type (e.g. `Dog&`, `const Dog&`, `Dog`).
+    //! @param arg A mutable reference to the `std::any` method argument.
+    //! @return The value stored in `arg`, cast to `U`.
+    template<typename U>
+    static auto cast(std::any& arg) -> decltype(auto) {
+        return std::any_cast<U>(arg);
+    }
+};
+
+//! Specialize virtual_traits for `std::any&&` (xvalue reference).
+//!
+//! Dispatch is based on the runtime type of the value stored in the `any`,
+//! obtained via `std::any::type()`.
+//!
+//! @tparam Registry A @ref registry.
+template<class Registry>
+struct virtual_traits<std::any&&, Registry> {
+    //! The type used for dispatch.
+    using virtual_type = std::any;
+
+    //! Returns a const reference to the `any` argument.
+    //! @param arg A reference to a `std::any`.
+    //! @return A const reference to `arg`.
+    static auto peek(const std::any& arg) -> const std::any& {
+        return arg;
+    }
+
+    //! Returns a *reference* to a v-table pointer for an object.
+    //!
+    //! Acquires the dynamic @ref type_id of `arg`, using the registry's
+    //! @ref rtti policy.
+    //!
+    //! If the registry has a @ref type_hash policy, uses it to convert the
+    //! type id to an index; otherwise, uses the type_id as the index.
+    //!
+    //! If the registry contains the @ref runtime_checks policy, verifies
+    //! that the index falls within the limits of the vector. If it does
+    //! not, and if the registry contains a @ref error_handler policy, calls
+    //! its @ref error function with a @ref missing_class value, then
+    //! terminates the program with @ref abort.
+    //!
+    //! @param arg A reference to a const `any`.
+    //! @return A reference to a the v-table pointer for `Class`.
+    static auto vptr(const std::any& arg) -> const vptr_type& {
+        return Registry::vptr::vptr(&arg.type());
+    }
+
+    //! Cast to a type.
+    //!
+    //! Extracts the stored value using `std::any_cast`.
+    //!
+    //! @tparam U The target type (e.g. `Dog&`, `const Dog&`, `Dog`).
+    //! @param arg An rvalue reference to the `std::any` method argument.
+    //! @return The value stored in `arg`, cast to `U`.
+    template<typename U>
+    static auto cast(std::any&& arg) -> decltype(auto) {
+        return std::any_cast<U>(std::move(arg));
+    }
+};
+
+//! Register the types that a `std::any` virtual parameter may contain.
+//!
+//! Registers `std::any` as a class, and each `T` as a class derived from
+//! `std::any`. This makes the contained types visible to the dispatch
+//! machinery, which resolves a call on the `type_id` returned by
+//! `std::any::type()`.
+//!
+//! @tparam T... The types that may be stored in the `any`, optionally
+//! followed by a @ref registry.
+template<typename... T>
+struct use_std_any_types
+    : detail::use_class_aux<
+          typename detail::extract_registry<T...>::registry,
+          mp11::mp_list<std::any, std::any>>,
+      detail::use_class_aux<
+          typename detail::extract_registry<T...>::registry,
+          mp11::mp_list<T, std::any>>... {};
+
+//! Alias for a `virtual_any<std::any>`, in the default registry.
+//!
+//! With another registry, use `virtual_any<std::any, Registry>` directly.
+using virtual_std_any = virtual_any<std::any>;
+
+//! Create a new object and return a `virtual_std_any` containing it.
+//!
+//! Create a `Class` from `args`, store it in a `std::any`, and return a
+//! @ref virtual_any with its v-table pointer set to the
+//! @ref registry::static_vptr for `Class` - no hash table lookup is
+//! involved.
+//!
+//! @tparam Class The type of the value to create.
+//! @tparam Registry A @ref registry.
+//! @tparam T Types of the arguments to pass to the constructor of
+//! `Class`.
+//! @param args Arguments to pass to the constructor of `Class`.
+//! @return A `virtual_any<std::any, Registry>` containing a newly created
+//! `Class`.
+template<
+    class Class, class Registry = BOOST_OPENMETHOD_DEFAULT_REGISTRY,
+    typename... T>
+inline auto
+make_std_any_virtual(T&&... args) -> virtual_any<std::any, Registry> {
+    return make_any_virtual<Class, std::any, Registry>(
+        std::forward<T>(args)...);
+}
+
+// The primary final_virtual_ptr would silently use static_vptr<std::any>
+// - the v-table of the `any` root class, not of the contained value.
+// Delete the combination. Both call forms need covering: the non-template
+// overloads catch calls that deduce the default registry, and are removed
+// from consideration when an explicit template argument list is given, so
+// the Registry-only templates - more specialized than the primary - catch
+// those.
+
+template<class Registry>
+void final_virtual_ptr(const std::any&) = delete;
+template<class Registry>
+void final_virtual_ptr(std::any&) = delete;
+template<class Registry>
+void final_virtual_ptr(std::any&&) = delete;
+void final_virtual_ptr(const std::any&) = delete;
+void final_virtual_ptr(std::any&) = delete;
+void final_virtual_ptr(std::any&&) = delete;
+
+namespace aliases {
+using boost::openmethod::make_std_any_virtual;
+using boost::openmethod::virtual_std_any;
+} // namespace aliases
+
+} // namespace boost::openmethod
+
+#endif

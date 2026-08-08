@@ -526,12 +526,18 @@ constexpr bool has_vptr_fn = std::is_same_v<
         std::declval<const Class&>(), std::declval<Registry*>())),
     vptr_type>;
 
+BOOST_OPENMETHOD_DETAIL_HAS_STATIC_FN(vptr);
+
 template<class Registry, class ArgType>
 decltype(auto) acquire_vptr(const ArgType& arg) {
     Registry::require_initialized();
 
-    if constexpr (detail::has_vptr_fn<ArgType, Registry>) {
+    if constexpr (has_vptr_fn<ArgType, Registry>) {
         return boost_openmethod_vptr(arg, static_cast<Registry*>(nullptr));
+    } else if constexpr (has_vptr<
+                             virtual_traits<const ArgType&, Registry>,
+                             type_id>) {
+        return virtual_traits<const ArgType&, Registry>::vptr(arg);
     } else {
         return Registry::template policy<policies::vptr>::dynamic_vptr(arg);
     }
@@ -2341,7 +2347,7 @@ class method<Id, ReturnType(Parameters...), Registry>
 
     void resolve_type_ids();
 
-    template<typename ArgType>
+    template<typename MethodArg, typename ArgType>
     auto vptr(const ArgType& arg) const -> vptr_type;
 
     template<typename MethodArgList, typename ArgType, typename... MoreArgTypes>
@@ -2495,7 +2501,7 @@ method<Id, ReturnType(Parameters...), Registry>::operator()(
     typename BOOST_OPENMETHOD_DETAIL_UNLESS_MRDOCS
         StripVirtualDecorator<Parameters>::type... args) const -> ReturnType {
     using namespace detail;
-    auto pf = resolve(parameter_traits<Parameters, Registry>::peek(args)...);
+    auto pf = resolve(args...);
 
     return pf(std::forward<typename StripVirtualDecorator<Parameters>::type>(
         args)...);
@@ -2527,13 +2533,23 @@ BOOST_FORCEINLINE
 
 template<
     typename Id, typename... Parameters, typename ReturnType, class Registry>
-template<typename ArgType>
+template<typename MethodArg, typename ArgType>
 BOOST_FORCEINLINE auto method<Id, ReturnType(Parameters...), Registry>::vptr(
     const ArgType& arg) const -> vptr_type {
     if constexpr (detail::is_virtual_ptr<ArgType>) {
         return arg.vptr();
     } else {
-        return detail::acquire_vptr<Registry>(arg);
+        decltype(auto) obj = virtual_traits<MethodArg, Registry>::peek(arg);
+
+        if constexpr (detail::has_vptr_fn<decltype(obj), Registry>) {
+            return boost_openmethod_vptr(obj, static_cast<Registry*>(nullptr));
+        } else if constexpr (detail::has_vptr<
+                                 virtual_traits<MethodArg, Registry>,
+                                 type_id>) {
+            return virtual_traits<MethodArg, Registry>::vptr(obj);
+        } else {
+            return Registry::template policy<policies::vptr>::dynamic_vptr(obj);
+        }
     }
 }
 
@@ -2550,7 +2566,7 @@ method<Id, ReturnType(Parameters...), Registry>::resolve_uni(
     using namespace boost::mp11;
 
     if constexpr (is_virtual<mp_first<MethodArgList>>::value) {
-        vptr_type vtbl = vptr<ArgType>(arg);
+        vptr_type vtbl = vptr<remove_virtual_<mp_first<MethodArgList>>>(arg);
         return vtbl[this->slots_strides[0]];
     } else {
         return resolve_uni<mp_rest<MethodArgList>>(more_args...);
@@ -2569,7 +2585,7 @@ method<Id, ReturnType(Parameters...), Registry>::resolve_multi_first(
     using namespace boost::mp11;
 
     if constexpr (is_virtual<mp_first<MethodArgList>>::value) {
-        vptr_type vtbl = vptr<ArgType>(arg);
+        vptr_type vtbl = vptr<remove_virtual_<mp_first<MethodArgList>>>(arg);
         std::size_t slot = this->slots_strides[0];
 
         // The first virtual parameter is special.  Since its stride is
@@ -2599,7 +2615,7 @@ method<Id, ReturnType(Parameters...), Registry>::resolve_multi_next(
     using namespace boost::mp11;
 
     if constexpr (is_virtual<mp_first<MethodArgList>>::value) {
-        vptr_type vtbl = vptr<ArgType>(arg);
+        vptr_type vtbl = vptr<remove_virtual_<mp_first<MethodArgList>>>(arg);
         std::size_t slot = this->slots_strides[VirtualArg];
         std::size_t stride = this->slots_strides[Arity + VirtualArg - 1];
         dispatch = dispatch + vtbl[slot].i * stride;
