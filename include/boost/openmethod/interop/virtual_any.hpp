@@ -57,6 +57,11 @@ struct is_virtual_any_aux<virtual_any<Any, Registry>> : std::true_type {};
 //!
 //! @tparam Any An `any` type.
 //! @tparam Registry A @ref registry.
+//!
+//! @par Example
+//! include:virtual_any.cpp#classes;method;dispatch
+//!
+//! @see [Interoperation with Other Libraries](xref:ROOT:interop.adoc)
 template<class Any, class Registry>
 class virtual_any {
     static constexpr bool use_indirect_vptrs = Registry::has_indirect_vptr;
@@ -81,6 +86,9 @@ class virtual_any {
     //! value, using `virtual_traits<const Any&, Registry>::vptr`.
     //!
     //! @param other An `any`.
+    //!
+    //! @par Example
+    //! include:virtual_any.cpp#from_any
     virtual_any(const Any& other)
         : obj(other), vp(detail::box_vptr<use_indirect_vptrs>(
                           detail::acquire_vptr<Registry>(obj))) {
@@ -106,6 +114,9 @@ class virtual_any {
     //!
     //! @tparam T The type of the value.
     //! @param value The value to store.
+    //!
+    //! @par Example
+    //! include:virtual_any.cpp#from_value
     template<
         typename T,
         typename = std::enable_if_t<
@@ -205,6 +216,9 @@ class virtual_any {
     //! @tparam Class The type of the value to construct.
     //! @tparam T Types of the arguments to pass to the constructor.
     //! @param args Arguments to pass to the constructor of `Class`.
+    //!
+    //! @par Example
+    //! include:virtual_any.cpp#emplace
     template<class Class, typename... T>
     auto emplace(T&&... args) -> void {
         obj = Class(std::forward<T>(args)...);
@@ -491,6 +505,11 @@ struct select_overrider_virtual_type_aux<
 //! @param args Arguments to pass to the constructor of `Class`.
 //! @return A `virtual_any<Any, Registry>` containing a newly created
 //! `Class`.
+//!
+//! @par Example
+//! include:virtual_any.cpp#make_any_virtual
+//!
+//! @see [Interoperation with Other Libraries](xref:ROOT:interop.adoc)
 template<
     class Class, class Any, class Registry = BOOST_OPENMETHOD_DEFAULT_REGISTRY,
     typename... T>
