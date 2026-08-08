@@ -68,7 +68,9 @@ struct virtual_traits<const std::any&, Registry> {
 
     //! Cast to a type.
     //!
-    //! Extracts the stored value using `std::any_cast`. Since the `any`
+    //! If `U` is `std::any` itself (by value or const reference), returns
+    //! `arg` unchanged - the catch-all overrider case. Otherwise,
+    //! extracts the stored value using `std::any_cast`. Since the `any`
     //! argument is const, `U` cannot be a mutable reference.
     //!
     //! @tparam U The target type (e.g. `const Dog&`, `Dog`).
@@ -76,7 +78,13 @@ struct virtual_traits<const std::any&, Registry> {
     //! @return The value stored in `arg`, cast to `U`.
     template<typename U>
     static auto cast(const std::any& arg) -> decltype(auto) {
-        return std::any_cast<U>(arg);
+        if constexpr (std::is_same_v<
+                          std::remove_cv_t<std::remove_reference_t<U>>,
+                          std::any>) {
+            return (arg);
+        } else {
+            return std::any_cast<U>(arg);
+        }
     }
 };
 
@@ -120,7 +128,9 @@ struct virtual_traits<std::any&, Registry> {
 
     //! Cast to a type.
     //!
-    //! Extracts the stored value using `std::any_cast`. Supports mutable
+    //! If `U` is `std::any` itself (by reference or by value), returns
+    //! `arg` unchanged - the catch-all overrider case. Otherwise,
+    //! extracts the stored value using `std::any_cast`. Supports mutable
     //! references (e.g. `Dog&`) because the `any` argument is not const;
     //! modifications through the result are visible through the `any`.
     //!
@@ -129,7 +139,13 @@ struct virtual_traits<std::any&, Registry> {
     //! @return The value stored in `arg`, cast to `U`.
     template<typename U>
     static auto cast(std::any& arg) -> decltype(auto) {
-        return std::any_cast<U>(arg);
+        if constexpr (std::is_same_v<
+                          std::remove_cv_t<std::remove_reference_t<U>>,
+                          std::any>) {
+            return (arg);
+        } else {
+            return std::any_cast<U>(arg);
+        }
     }
 };
 
@@ -173,14 +189,22 @@ struct virtual_traits<std::any&&, Registry> {
 
     //! Cast to a type.
     //!
-    //! Extracts the stored value using `std::any_cast`.
+    //! If `U` is `std::any` itself, returns `arg` unchanged - the
+    //! catch-all overrider case. Otherwise, extracts the stored value
+    //! using `std::any_cast`.
     //!
-    //! @tparam U The target type (e.g. `Dog&`, `const Dog&`, `Dog`).
+    //! @tparam U The target type (e.g. `Dog&&`, `const Dog&`, `Dog`).
     //! @param arg An rvalue reference to the `std::any` method argument.
     //! @return The value stored in `arg`, cast to `U`.
     template<typename U>
     static auto cast(std::any&& arg) -> decltype(auto) {
-        return std::any_cast<U>(std::move(arg));
+        if constexpr (std::is_same_v<
+                          std::remove_cv_t<std::remove_reference_t<U>>,
+                          std::any>) {
+            return std::move(arg);
+        } else {
+            return std::any_cast<U>(std::move(arg));
+        }
     }
 };
 

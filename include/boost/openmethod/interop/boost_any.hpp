@@ -87,7 +87,13 @@ struct virtual_traits<const boost::any&, Registry> {
             !std::is_reference_v<U> ||
             std::is_const_v<std::remove_reference_t<U>>>>
     static auto cast(const boost::any& arg) -> decltype(auto) {
-        return boost::any_cast<U>(arg);
+        if constexpr (std::is_same_v<
+                          std::remove_cv_t<std::remove_reference_t<U>>,
+                          boost::any>) {
+            return (arg);
+        } else {
+            return boost::any_cast<U>(arg);
+        }
     }
 };
 
@@ -150,7 +156,13 @@ struct virtual_traits<boost::any&, Registry> {
     template<
         typename U, typename = std::enable_if_t<!std::is_rvalue_reference_v<U>>>
     static auto cast(boost::any& arg) -> decltype(auto) {
-        return boost::any_cast<U>(arg);
+        if constexpr (std::is_same_v<
+                          std::remove_cv_t<std::remove_reference_t<U>>,
+                          boost::any>) {
+            return (arg);
+        } else {
+            return boost::any_cast<U>(arg);
+        }
     }
 };
 
@@ -213,7 +225,13 @@ struct virtual_traits<boost::any&&, Registry> {
             !std::is_lvalue_reference_v<U> ||
             std::is_const_v<std::remove_reference_t<U>>>>
     static auto cast(boost::any&& arg) -> decltype(auto) {
-        return boost::any_cast<U>(std::move(arg));
+        if constexpr (std::is_same_v<
+                          std::remove_cv_t<std::remove_reference_t<U>>,
+                          boost::any>) {
+            return std::move(arg);
+        } else {
+            return boost::any_cast<U>(std::move(arg));
+        }
     }
 };
 

@@ -49,6 +49,15 @@ BOOST_OPENMETHOD_OVERRIDE(name, (const int& value), std::string) {
     return os.str();
 }
 
+// A catch-all overrider may take the `any` itself; the argument is passed
+// through unchanged, instead of going through boost::any_cast, which
+// would throw unless the `any` contains an `any`.
+use_boost_any_types<double> BOOST_OPENMETHOD_GENSYM;
+
+BOOST_OPENMETHOD_OVERRIDE(name, (const boost::any& arg), std::string) {
+    return !arg.empty() ? "something" : "nothing";
+}
+
 BOOST_AUTO_TEST_CASE(boost_any_by_const_ref) {
     initialize(trace());
 
@@ -59,6 +68,10 @@ BOOST_AUTO_TEST_CASE(boost_any_by_const_ref) {
     BOOST_TEST(name(spot) == "Spot the dog");
     BOOST_TEST(name(felix) == "Felix the cat");
     BOOST_TEST(name(answer) == "42 the integer");
+
+    // `double` is registered but has no specific overrider: the catch-all,
+    // registered for the `boost::any` root, applies
+    BOOST_TEST(name(boost::any(1.5)) == "something");
 }
 } // namespace BOOST_OPENMETHOD_GENSYM
 
