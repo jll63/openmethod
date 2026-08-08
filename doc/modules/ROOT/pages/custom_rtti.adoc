@@ -124,7 +124,7 @@ include::{example}/1/custom_rtti.cpp[tag=registry]
 ----
 
 Defining macro
-xref:BOOST_OPENMETHOD_DEFAULT_REGISTRY.adoc[BOOST_OPENMETHOD_DEFAULT_REGISTRY]
+xref:reference:BOOST_OPENMETHOD_DEFAULT_REGISTRY.adoc[BOOST_OPENMETHOD_DEFAULT_REGISTRY]
 sets the default registry used by all library components that need one.
 
 Next, we include the main header.

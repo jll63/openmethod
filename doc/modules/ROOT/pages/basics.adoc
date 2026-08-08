@@ -15,7 +15,7 @@ class that points to an instance of `Class`. `virtual_ptr` is defined in the lib
 `boost::openmethod`.
 
 To create an open-method that implements the `postfix` operation, we use the
-xref:BOOST_OPENMETHOD.adoc[BOOST_OPENMETHOD] macro:
+xref:reference:BOOST_OPENMETHOD.adoc[BOOST_OPENMETHOD] macro:
 
 ```c++
 BOOST_OPENMETHOD(
@@ -35,7 +35,7 @@ inline auto postfix(virtual_ptr<const Node> node, std::ostream& os) -> void {
 ```
 
 Before we can call the method, we need to define overriders. For that we use the
-xref:BOOST_OPENMETHOD_OVERRIDE.adoc[BOOST_OPENMETHOD_OVERRIDE] macro:
+xref:reference:BOOST_OPENMETHOD_OVERRIDE.adoc[BOOST_OPENMETHOD_OVERRIDE] macro:
 
 [source,cpp]
 ----
@@ -70,7 +70,7 @@ There are two more things we need to do.
 OpenMethod is a library, not a compiler. It needs to be informed of all the
 classes that may be used as virtual parameters, and in method calls, and their
 inheritance relationships. We provide that information with the
-xref:BOOST_OPENMETHOD_CLASSES.adoc[BOOST_OPENMETHOD_CLASSES] macro:
+xref:reference:BOOST_OPENMETHOD_CLASSES.adoc[BOOST_OPENMETHOD_CLASSES] macro:
 
 
 [source,cpp]

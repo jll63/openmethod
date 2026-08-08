@@ -71,7 +71,9 @@ struct virtual_traits<const boost::any&, Registry> {
 
     //! Cast to a type.
     //!
-    //! Extracts the stored value using `boost::any_cast`.
+    //! If `U` is the `any` itself (by any reference category), returns
+    //! `arg` unchanged, which is how a catch-all overrider is written.
+    //! Otherwise, extracts the stored value using `boost::any_cast`.
     //!
     //! Since the `any` argument is const, `U` cannot be a mutable reference.
     //! `boost::any_cast` rewrites `U` to a const reference for a const `any`,
@@ -140,7 +142,9 @@ struct virtual_traits<boost::any&, Registry> {
 
     //! Cast to a type.
     //!
-    //! Extracts the stored value using `boost::any_cast`. Supports mutable
+    //! If `U` is the `any` itself (by any reference category), returns
+    //! `arg` unchanged, which is how a catch-all overrider is written.
+    //! Otherwise, extracts the stored value using `boost::any_cast`. Supports mutable
     //! references (e.g. `Dog&`) because the `any` argument is not const;
     //! modifications through the result are visible through the `any`.
     //!
@@ -209,7 +213,9 @@ struct virtual_traits<boost::any&&, Registry> {
 
     //! Cast to a type.
     //!
-    //! Extracts the stored value using `boost::any_cast`.
+    //! If `U` is the `any` itself (by any reference category), returns
+    //! `arg` unchanged, which is how a catch-all overrider is written.
+    //! Otherwise, extracts the stored value using `boost::any_cast`.
     //!
     //! `U` cannot be a mutable lvalue reference: that would bind a reference
     //! to the value contained in a temporary. Boost.Any rejects it with a
@@ -248,6 +254,11 @@ struct virtual_traits<boost::any&&, Registry> {
 //!
 //! @tparam T... The types that may be stored in the `any`, optionally
 //! followed by a @ref registry.
+//!
+//! @par Example
+//! include:virtual_any.cpp#boost_classes;boost_dispatch
+//!
+//! @see [Interoperation with `any`](xref:ROOT:interop_any.adoc)
 template<typename... T>
 struct use_boost_any_types
     : detail::use_any_types_aux<
@@ -257,6 +268,8 @@ struct use_boost_any_types
 //! Alias for a `virtual_any<boost::any>`, in the default registry.
 //!
 //! With another registry, use `virtual_any<boost::any, Registry>` directly.
+//!
+//! @see [Interoperation with `any`](xref:ROOT:interop_any.adoc)
 using virtual_boost_any = virtual_any<boost::any>;
 
 //! Create a new object and return a `virtual_boost_any` containing it.
@@ -273,6 +286,11 @@ using virtual_boost_any = virtual_any<boost::any>;
 //! @param args Arguments to pass to the constructor of `Class`.
 //! @return A `virtual_any<boost::any, Registry>` containing a newly created
 //! `Class`.
+//!
+//! @par Example
+//! include:virtual_any.cpp#boost_dispatch
+//!
+//! @see [Interoperation with `any`](xref:ROOT:interop_any.adoc)
 template<
     class Class, class Registry = BOOST_OPENMETHOD_DEFAULT_REGISTRY,
     typename... T>
@@ -302,6 +320,7 @@ void final_virtual_ptr(boost::any&&) = delete;
 
 namespace aliases {
 using boost::openmethod::make_boost_any_virtual;
+using boost::openmethod::use_boost_any_types;
 using boost::openmethod::virtual_boost_any;
 } // namespace aliases
 

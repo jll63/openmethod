@@ -186,3 +186,117 @@ BOOST_AUTO_TEST_CASE(std_any_by_xvalue_ref) {
     BOOST_TEST(std::any_cast<const int&>(answer) == 42);
 }
 } // namespace BOOST_OPENMETHOD_GENSYM
+
+namespace BOOST_OPENMETHOD_GENSYM {
+
+// -----------------------------------------------------------------------------
+// catch-all overriders
+
+#define MAKE_CATCH_ALL_CLASSES()                                               \
+    struct Dog {                                                               \
+        std::string name;                                                      \
+    };                                                                         \
+                                                                               \
+    use_std_any_types<Dog, float> BOOST_OPENMETHOD_GENSYM;
+
+MAKE_CATCH_ALL_CLASSES();
+
+// An overrider may take the `any` itself. Since every registered type
+// derives from it, such an overrider is a catch-all, applying to any
+// contained type that has no more specific overrider.
+
+BOOST_OPENMETHOD(name, (virtual_<const std::any&>), std::string);
+
+BOOST_OPENMETHOD_OVERRIDE(name, (const Dog& dog), std::string) {
+    return dog.name + " the dog";
+}
+
+BOOST_OPENMETHOD_OVERRIDE(name, (const std::any&), std::string) {
+    return "something else";
+}
+
+BOOST_OPENMETHOD(bump, (virtual_<std::any&>), std::string);
+
+using bump_method =
+    BOOST_OPENMETHOD_TYPE(bump, (virtual_<std::any&>), std::string);
+
+auto bump_dog(Dog& dog) -> std::string {
+    dog.name += " Jr.";
+    return dog.name + " the dog";
+}
+
+auto bump_any(std::any&) -> std::string {
+    return "something else";
+}
+
+BOOST_OPENMETHOD_REGISTER(bump_method::override<bump_dog>);
+BOOST_OPENMETHOD_REGISTER(bump_method::override<bump_any>);
+
+BOOST_OPENMETHOD(steal, (virtual_<std::any&&>), std::string);
+
+BOOST_OPENMETHOD_OVERRIDE(steal, (Dog && dog), std::string) {
+    Dog stolen(std::move(dog));
+    return stolen.name + " the dog";
+}
+
+BOOST_OPENMETHOD_OVERRIDE(steal, (std::any&&), std::string) {
+    return "something else";
+}
+
+BOOST_AUTO_TEST_CASE(std_any_catch_all) {
+    initialize(trace());
+
+    std::any spot(Dog{"Spot"});
+    std::any pi(3.14f);
+
+    BOOST_TEST(name(spot) == "Spot the dog");
+    BOOST_TEST(name(pi) == "something else");
+
+    BOOST_TEST(bump(spot) == "Spot Jr. the dog");
+    BOOST_TEST(bump(pi) == "something else");
+
+    BOOST_TEST(steal(std::any(Dog{"Fido"})) == "Fido the dog");
+    BOOST_TEST(steal(std::move(pi)) == "something else");
+}
+} // namespace BOOST_OPENMETHOD_GENSYM
+
+namespace BOOST_OPENMETHOD_GENSYM {
+
+// -----------------------------------------------------------------------------
+// `any` and ordinary virtual parameters mixed in one method
+
+MAKE_CATCH_ALL_CLASSES();
+
+struct Animal {
+    virtual ~Animal() {
+    }
+};
+
+struct Cat : Animal {};
+
+BOOST_OPENMETHOD_CLASSES(Animal, Cat);
+
+BOOST_OPENMETHOD(
+    meet, (virtual_<const std::any&>, virtual_ptr<const Animal>), std::string);
+
+BOOST_OPENMETHOD_OVERRIDE(
+    meet, (const Dog& dog, virtual_ptr<const Cat>), std::string) {
+    return dog.name + " meets a cat";
+}
+
+BOOST_OPENMETHOD_OVERRIDE(
+    meet, (const std::any&, virtual_ptr<const Animal>), std::string) {
+    return "someone meets an animal";
+}
+
+BOOST_AUTO_TEST_CASE(std_any_mixed_with_virtual_ptr) {
+    initialize(trace());
+
+    std::any spot(Dog{"Spot"});
+    std::any pi(3.14f);
+    Cat felix;
+
+    BOOST_TEST(meet(spot, felix) == "Spot meets a cat");
+    BOOST_TEST(meet(pi, felix) == "someone meets an animal");
+}
+} // namespace BOOST_OPENMETHOD_GENSYM

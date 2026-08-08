@@ -25,6 +25,17 @@ exclude-symbols:
   - 'boost::openmethod::boost_openmethod_registry'
   - 'boost::openmethod::registry_state::st'
 
+# Macros. Only the public macros carry a doc comment, and with
+# `extract-all-macros` off (the default) MrDocs extracts only documented ones.
+# The patterns below make that explicit: the library's own implementation
+# macros are never documented, whatever they are called.
+include-macros:
+  - 'BOOST_OPENMETHOD*'
+exclude-macros:
+  - 'BOOST_OPENMETHOD_DETAIL_*'
+  - 'BOOST_OPENMETHOD_GENSYM'
+  - 'BOOST_OPENMETHOD_GUIDE'
+
 sort-members: false
 # sort-namespace-members-by: location
 extract-friends: false
@@ -33,6 +44,19 @@ inherit-base-members: never
 # Metadata Extraction
 private-bases: false
 auto-function-metadata: false
+
+# Template overrides and extension scripts, layered on top of the built-in
+# addons. See the header comment in each file for what it does and why.
+addons-supplemental:
+  - mrdocs-addons
+
+# `include:<path>[#<tag>[;<tag>...]]` alone in a paragraph of a doc comment is
+# replaced by the file, or its `// tag::name[]` regions, as a code block. See
+# mrdocs-addons/extensions/include.lua. `root` is relative to this file.
+transform-options:
+  include:
+    root: modules/ROOT/snippets
+    lang: cpp
 
 # Generator
 generate: adoc

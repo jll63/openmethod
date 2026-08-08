@@ -62,10 +62,24 @@ fi
 
 cd "$SCRIPT_DIR"
 
+# MrDocs takes its own base-url - the one behind the "Declared in <header>" link
+# on every reference page - from mrdocs.yml, and the Antora extension invokes it
+# with a fixed argument list, so there is no way to pass the commit other than
+# editing the file. Restore it from an EXIT trap rather than at the end of the
+# script: without one, a failed build leaves mrdocs.yml patched, and the next
+# run backs up the patched file and loses the original.
+restore_mrdocs_yml() {
+  if [ -f "$SCRIPT_DIR/mrdocs.yml.bak" ]; then
+    mv -f "$SCRIPT_DIR/mrdocs.yml.bak" "$SCRIPT_DIR/mrdocs.yml"
+    echo "Restored original mrdocs.yml"
+  fi
+}
+
 if [ -n "${REPOSITORY}" ] && [ -n "${SHA}" ]; then
   BASE_URL="https://github.com/${REPOSITORY}/blob/${SHA}"
   echo "Setting base-url to $BASE_URL"
   cp mrdocs.yml mrdocs.yml.bak
+  trap restore_mrdocs_yml EXIT
   perl -i -pe 's{^\s*base-url:.*$}{base-url: '"$BASE_URL/"'}' mrdocs.yml
 else
   echo "REPOSITORY or SHA not set; skipping base-url modification"
@@ -78,26 +92,23 @@ npm ci
 echo "Building docs in custom dir..."
 PATH="$(pwd)/node_modules/.bin:${PATH}"
 export PATH
-npx antora --clean --fetch "$PLAYBOOK" --stacktrace # --log-level all
+
+# ref_headers.adoc links each header to its source with `link:{base-url}/...`.
+# Point that at the exact commit when we know it; otherwise antora.yml's
+# fallback applies. A command-line attribute outranks the one in antora.yml.
+ANTORA_ATTRS=()
+if [ -n "${BASE_URL:-}" ]; then
+  ANTORA_ATTRS+=(--attribute "base-url=$BASE_URL")
+fi
+
+npx antora --clean --fetch "$PLAYBOOK" "${ANTORA_ATTRS[@]}" --stacktrace # --log-level all
 
 echo "Fixing links to non-mrdocs URIs..."
 echo "BRANCH='${BRANCH:-}'"
 echo "BASE_URL='${BASE_URL:-}'"
 
 for f in $(find html -name '*.html'); do
-  perl -i -pe "s{&lcub;&lcub;(.*?)&rcub;&rcub;}{<a href=\"../../../\$1.html\">\$1</a>}g" "$f"
   perl -i -pe "s{<a href=\"motivation.html\">Boost.OpenMethod</a>}{<a href=\"https://www.boost.org/library/${BRANCH}/openmethod/\">Boost.OpenMethod</a>}g" "$f"
 done
-
-if [ -n "${BASE_URL:-}" ]; then
-  if [ -f mrdocs.yml.bak ]; then
-    mv -f mrdocs.yml.bak mrdocs.yml
-    echo "Restored original mrdocs.yml"
-  else
-    echo "mrdocs.yml.bak not found; skipping restore"
-  fi
-  perl -i -pe "s[{{BASE_URL}}][$BASE_URL]g" \
-    html/openmethod/ref_headers.html html/openmethod/BOOST_OPENMETHOD*.html
-fi
 
 echo "Done"

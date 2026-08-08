@@ -68,10 +68,10 @@ struct virtual_traits<const std::any&, Registry> {
 
     //! Cast to a type.
     //!
-    //! If `U` is `std::any` itself (by value or const reference), returns
-    //! `arg` unchanged - the catch-all overrider case. Otherwise,
-    //! extracts the stored value using `std::any_cast`. Since the `any`
-    //! argument is const, `U` cannot be a mutable reference.
+    //! If `U` is the `any` itself (by any reference category), returns
+    //! `arg` unchanged, which is how a catch-all overrider is written.
+    //! Otherwise, extracts the stored value using `std::any_cast`. Since
+    //! the `any` argument is const, `U` cannot be a mutable reference.
     //!
     //! @tparam U The target type (e.g. `const Dog&`, `Dog`).
     //! @param arg A reference to a const `std::any` method argument.
@@ -128,11 +128,11 @@ struct virtual_traits<std::any&, Registry> {
 
     //! Cast to a type.
     //!
-    //! If `U` is `std::any` itself (by reference or by value), returns
-    //! `arg` unchanged - the catch-all overrider case. Otherwise,
-    //! extracts the stored value using `std::any_cast`. Supports mutable
-    //! references (e.g. `Dog&`) because the `any` argument is not const;
-    //! modifications through the result are visible through the `any`.
+    //! If `U` is the `any` itself, returns `arg` unchanged, which is how a
+    //! catch-all overrider is written. Otherwise, extracts the stored value
+    //! using `std::any_cast`. Supports mutable references (e.g. `Dog&`)
+    //! because the `any` argument is not const; modifications through the
+    //! result are visible through the `any`.
     //!
     //! @tparam U The target type (e.g. `Dog&`, `const Dog&`, `Dog`).
     //! @param arg A mutable reference to the `std::any` method argument.
@@ -189,8 +189,8 @@ struct virtual_traits<std::any&&, Registry> {
 
     //! Cast to a type.
     //!
-    //! If `U` is `std::any` itself, returns `arg` unchanged - the
-    //! catch-all overrider case. Otherwise, extracts the stored value
+    //! If `U` is the `any` itself, returns `arg` unchanged, which is how a
+    //! catch-all overrider is written. Otherwise, extracts the stored value
     //! using `std::any_cast`.
     //!
     //! @tparam U The target type (e.g. `Dog&&`, `const Dog&`, `Dog`).
@@ -217,6 +217,11 @@ struct virtual_traits<std::any&&, Registry> {
 //!
 //! @tparam T... The types that may be stored in the `any`, optionally
 //! followed by a @ref registry.
+//!
+//! @par Example
+//! include:virtual_any.cpp#classes
+//!
+//! @see [Interoperation with `any`](xref:ROOT:interop_any.adoc)
 template<typename... T>
 struct use_std_any_types
     : detail::use_any_types_aux<
@@ -226,6 +231,8 @@ struct use_std_any_types
 //! Alias for a `virtual_any<std::any>`, in the default registry.
 //!
 //! With another registry, use `virtual_any<std::any, Registry>` directly.
+//!
+//! @see [Interoperation with `any`](xref:ROOT:interop_any.adoc)
 using virtual_std_any = virtual_any<std::any>;
 
 //! Create a new object and return a `virtual_std_any` containing it.
@@ -242,6 +249,11 @@ using virtual_std_any = virtual_any<std::any>;
 //! @param args Arguments to pass to the constructor of `Class`.
 //! @return A `virtual_any<std::any, Registry>` containing a newly created
 //! `Class`.
+//!
+//! @par Example
+//! include:virtual_any.cpp#make_std_any_virtual
+//!
+//! @see [Interoperation with `any`](xref:ROOT:interop_any.adoc)
 template<
     class Class, class Registry = BOOST_OPENMETHOD_DEFAULT_REGISTRY,
     typename... T>
@@ -271,6 +283,7 @@ void final_virtual_ptr(std::any&&) = delete;
 
 namespace aliases {
 using boost::openmethod::make_std_any_virtual;
+using boost::openmethod::use_std_any_types;
 using boost::openmethod::virtual_std_any;
 } // namespace aliases
 
