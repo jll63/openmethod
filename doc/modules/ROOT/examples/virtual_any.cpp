@@ -13,7 +13,7 @@
 #include <boost/openmethod.hpp>
 #include <boost/openmethod/interop/std_any.hpp>
 
-using namespace boost::openmethod;
+using namespace boost::openmethod::aliases;
 
 struct Dog {
     Dog(std::string name) : name(std::move(name)) {}
@@ -47,7 +47,7 @@ BOOST_OPENMETHOD_OVERRIDE(poke, (const virtual_std_any& value), std::string) {
 #include <boost/openmethod/initialize.hpp>
 
 int main() {
-    initialize();
+    boost::openmethod::initialize();
 
     // From an existing `any`: the v-table pointer is looked up from the type
     // of the value it contains.

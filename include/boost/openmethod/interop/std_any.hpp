@@ -262,6 +262,7 @@ void final_virtual_ptr(std::any&&) = delete;
 
 namespace aliases {
 using boost::openmethod::make_std_any_virtual;
+using boost::openmethod::use_std_any_types;
 using boost::openmethod::virtual_std_any;
 } // namespace aliases
 
