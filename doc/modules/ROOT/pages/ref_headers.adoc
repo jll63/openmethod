@@ -110,7 +110,7 @@ parameters. Dispatch is on the type of the contained value. Also provides
 use the v-table of the `any` root class instead of the contained value's.
 
 [#boost_type_erasure]
-### link:{{BASE_URL}}/include/boost/openmethod/interop/boost_type_erasure.hpp[<boost/openmethod/interop/boost_type_erasure.hpp>]
+### link:{base-url}/include/boost/openmethod/interop/boost_type_erasure.hpp[<boost/openmethod/interop/boost_type_erasure.hpp>]
 
 Provides `virtual_traits` specializations that make it possible to use a
 `boost::type_erasure::any` in virtual parameters: the owning flavor by const,
