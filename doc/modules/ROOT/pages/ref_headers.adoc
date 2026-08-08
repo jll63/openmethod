@@ -109,6 +109,22 @@ parameters. Dispatch is on the type of the contained value. Also provides
 `final_virtual_ptr` overloads for `boost::any`, which would otherwise silently
 use the v-table of the `any` root class instead of the contained value's.
 
+[#boost_type_erasure]
+### link:{{BASE_URL}}/include/boost/openmethod/interop/boost_type_erasure.hpp[<boost/openmethod/interop/boost_type_erasure.hpp>]
+
+Provides `virtual_traits` specializations that make it possible to use a
+`boost::type_erasure::any` in virtual parameters: the owning flavor by const,
+mutable or rvalue reference, and the reference-wrapper flavors
+(`any<Concept, _self&>`, `any<Concept, const _self&>`) by value. Dispatch is on
+the type of the bound value, obtained via `boost::type_erasure::typeid_of`; the
+Concept must contain `boost::type_erasure::typeid_<>`, which `relaxed` implies.
+Also provides `use_type_erasure_types`, which registers the types that may be
+bound; `virtual_any<any<Concept>>` works as well, and looks the v-table pointer
+up only once, at construction. In addition, the header deletes the
+`final_virtual_ptr` overloads for `boost::type_erasure::any`, which would
+otherwise silently use the v-table of the `any` root class instead of the bound
+value's.
+
 *The headers below are for advanced use*.
 
 ## Pre-Core Headers

@@ -21,6 +21,7 @@ project
 
     <library>/boost/openmethod//boost_openmethod
     <library>/boost/any//boost_any
+    <library>/boost/type_erasure//boost_type_erasure
 
     <warnings>extra
 

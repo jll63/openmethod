@@ -169,6 +169,13 @@ openmethod_compile_fail_test(
 # "attempting to reference a deleted function" on MSVC.
 openmethod_compile_fail_test(
     compile_fail_final_virtual_ptr_std_any "deleted function")
+openmethod_compile_fail_test(
+    compile_fail_type_erasure_by_value
+    "an owning type_erasure::any must be passed by reference")
+openmethod_compile_fail_test(
+    compile_fail_type_erasure_const_ref_to_mutable_ref "no matching")
+openmethod_compile_fail_test(
+    compile_fail_final_virtual_ptr_type_erasure "deleted function")
 
 if (TARGET Boost::dll)
     add_subdirectory(dynamic_loading)
