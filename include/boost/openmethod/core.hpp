@@ -536,7 +536,7 @@ decltype(auto) acquire_vptr(const ArgType& arg) {
         return boost_openmethod_vptr(arg, static_cast<Registry*>(nullptr));
     } else if constexpr (has_vptr<
                              virtual_traits<const ArgType&, Registry>,
-                             type_id>) {
+                             const ArgType&>) {
         return virtual_traits<const ArgType&, Registry>::vptr(arg);
     } else {
         return Registry::template policy<policies::vptr>::dynamic_vptr(arg);
@@ -2545,7 +2545,7 @@ BOOST_FORCEINLINE auto method<Id, ReturnType(Parameters...), Registry>::vptr(
             return boost_openmethod_vptr(obj, static_cast<Registry*>(nullptr));
         } else if constexpr (detail::has_vptr<
                                  virtual_traits<MethodArg, Registry>,
-                                 type_id>) {
+                                 decltype(obj)>) {
             return virtual_traits<MethodArg, Registry>::vptr(obj);
         } else {
             return Registry::template policy<policies::vptr>::dynamic_vptr(obj);
