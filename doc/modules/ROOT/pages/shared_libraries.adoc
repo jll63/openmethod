@@ -2,8 +2,8 @@
 
 [#shared_libraries]
 
-This section discusses how OpenMethod interoperates with shared libraries on
-Linux, other POSIX-like platforms, and Windows.
+OpenMethod interoperates with shared libraries on Linux, other POSIX-like
+platforms, and Windows.
 
 OpenMethod uses global data to keep track of methods, overriders and classes,
 all managed by static constructors and destructors. cpp:initialize[] uses that
@@ -21,13 +21,13 @@ Each takes the registry as an argument, so they can be used to manage
 |===
 | Macro | Where
 
-| xref:BOOST_OPENMETHOD_IMPORT_REGISTRY.adoc[BOOST_OPENMETHOD_IMPORT_REGISTRY]
+| xref:reference:BOOST_OPENMETHOD_IMPORT_REGISTRY.adoc[BOOST_OPENMETHOD_IMPORT_REGISTRY]
 | header; every translation unit of a _client_ module
 
-| xref:BOOST_OPENMETHOD_EXPORT_REGISTRY.adoc[BOOST_OPENMETHOD_EXPORT_REGISTRY]
+| xref:reference:BOOST_OPENMETHOD_EXPORT_REGISTRY.adoc[BOOST_OPENMETHOD_EXPORT_REGISTRY]
 | header; every translation unit of the _owning_ module
 
-| xref:BOOST_OPENMETHOD_INSTANTIATE_REGISTRY.adoc[BOOST_OPENMETHOD_INSTANTIATE_REGISTRY]
+| xref:reference:BOOST_OPENMETHOD_INSTANTIATE_REGISTRY.adoc[BOOST_OPENMETHOD_INSTANTIATE_REGISTRY]
 | exactly one `.cpp` of the owning module
 |===
 
@@ -240,7 +240,7 @@ registry that contains the cpp:indirect_vptr[] policy.
 `<boost/openmethod/default_registry.hpp>` provides an cpp:indirect_registry[]
 that has the same policies as `default_registry`, plus `indirect_vptr`. Make it
 the registry the `BOOST_OPENMETHOD` macros use by defining
-xref:BOOST_OPENMETHOD_DEFAULT_REGISTRY.adoc[BOOST_OPENMETHOD_DEFAULT_REGISTRY]
+xref:reference:BOOST_OPENMETHOD_DEFAULT_REGISTRY.adoc[BOOST_OPENMETHOD_DEFAULT_REGISTRY]
 _before_ including `<boost/openmethod.hpp>`.
 
 The `indirect_vptr` example does that in the header both modules share, rather

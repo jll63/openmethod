@@ -60,15 +60,15 @@ class inplace_vptr_base_tag {};
 
 //! Embed a v-table pointer in a class.
 //!
-//! `inplace_vptr_base` is a [CRTP
-//! mixin](https://en.wikipedia.org/wiki/Curiously_recurring_template_pattern)
-//! that embeds a v-table pointer at the root of a class hierarchy. It also
-//! declares a @ref boost_openmethod_vptr free function that returns the v-table
-//! pointer stored in the object.
+//! `inplace_vptr_base` is a
+//! [CRTP](https://en.wikipedia.org/wiki/Curiously_recurring_template_pattern)
+//! mixin that embeds a v-table pointer at the root of a class hierarchy. It
+//! also declares a @ref boost_openmethod_vptr free function that returns the
+//! v-table pointer stored in the object.
 //!
 //! `inplace_vptr_base` registers the class in `Registry`. It is not necessary
 //! to register the class with @ref use_class or
-//! {{BOOST_OPENMETHOD_REGISTER}}
+//! @ref BOOST_OPENMETHOD_REGISTER.
 //!
 //! The v-table pointer is obtained directly from the `Registry`\'s @ref
 //! static_vptr variable. No hashing is involved. If all the classes in
@@ -81,49 +81,16 @@ class inplace_vptr_base_tag {};
 //! to @ref initialize.
 //!
 //! The default value of `Registry` can be changed by defining
-//! {{BOOST_OPENMETHOD_DEFAULT_REGISTRY}}
+//! @ref BOOST_OPENMETHOD_DEFAULT_REGISTRY.
 //!
 //! @tparam Class The class in which to embed the v-table pointer.
 //! @tparam Registry The @ref registry in which `Class` and its derived classes
 //! are registered.
 //!
 //! @par Example
-//! @code
-//! #include <boost/openmethod.hpp>
-//! #include <boost/openmethod/inplace_vptr.hpp>
-//! #include <boost/openmethod/initialize.hpp>
+//! include:inplace_vptr.cpp#classes;dispatch
 //!
-//! using namespace boost::openmethod;
-//!
-//! struct Animal : inplace_vptr_base<Animal> {};
-//!
-//! struct Cat : Animal, inplace_vptr_derived<Cat, Animal> {};
-//!
-//! struct Dog : Animal, inplace_vptr_derived<Dog, Animal> {};
-//!
-//! BOOST_OPENMETHOD(
-//!     poke, (virtual_<Animal&> animal, std::ostream& os), void);
-//!
-//! BOOST_OPENMETHOD_OVERRIDE(poke, (Cat&, std::ostream& os), void) {
-//!     os << "hiss\n";
-//! }
-//!
-//! BOOST_OPENMETHOD_OVERRIDE(poke, (Dog&, std::ostream& os), void) {
-//!     os << "bark\n";
-//! }
-//!
-//! int main() {
-//!     initialize();
-//!
-//!     std::unique_ptr<Animal> a = std::make_unique<Cat>();
-//!     std::unique_ptr<Animal> b = std::make_unique<Dog>();
-//!
-//!     poke(*a, std::cout); // hiss
-//!     poke(*b, std::cout); // bark
-//!
-//!     return 0;
-//! }
-//! @endcode
+//! @see [Virtual Pointer Alternatives](xref:ROOT:virtual_ptr_alt.adoc)
 template<class Class, class Registry = BOOST_OPENMETHOD_DEFAULT_REGISTRY>
 class inplace_vptr_base : protected detail::inplace_vptr_base_tag {
     template<class To, class Other>
@@ -159,15 +126,15 @@ class inplace_vptr_base : protected detail::inplace_vptr_base_tag {
 #ifdef __MRDOCS__
 //! Adjust the v-table pointer embedded in a class.
 //!
-//! `inplace_vptr_derived` is a [CRTP
-//! mixin](https://en.wikipedia.org/wiki/Curiously_recurring_template_pattern)
-//! that adjusts the v-table pointer in a @ref inplace_vptr_base. It can be used
-//! only with classes that have @ref inplace_vptr_base as a direct or indirect
-//! base class.
+//! `inplace_vptr_derived` is a
+//! [CRTP](https://en.wikipedia.org/wiki/Curiously_recurring_template_pattern)
+//! mixin that adjusts the v-table pointer in a @ref inplace_vptr_base. It can
+//! be used only with classes that have @ref inplace_vptr_base as a direct or
+//! indirect base class.
 //!
 //! `inplace_vptr_derived` registers the class and its bases in `Registry`. It
 //! is not necessary to register them with @ref use_class or
-//! {{BOOST_OPENMETHOD_REGISTER}}
+//! @ref BOOST_OPENMETHOD_REGISTER.
 //!
 //! The v-table pointer is obtained directly from the `Registry`\'s @ref
 //! static_vptr variable. No hashing is involved. If all the classes in
@@ -175,11 +142,15 @@ class inplace_vptr_base : protected detail::inplace_vptr_base_tag {
 //! @ref policies::vptr policy, nor any policy it depends on (like @ref
 //! policies::type_hash).
 //!
-//! @see @ref inplace_vptr_base for an example.
+//! @ref inplace_vptr_base carries an example.
+//!
+//! @see @ref inplace_vptr_base
 //!
 //! @tparam Class The class in which to embed the v-table pointer.
 //! @tparam Base A direct base class of `Class`.
 //! @tparam MoreBases More direct base classes of `Class`.
+//!
+//! @see [Virtual Pointer Alternatives](xref:ROOT:virtual_ptr_alt.adoc)
 template<class Class, class Base, class... MoreBases>
 class inplace_vptr_derived {
   protected:
@@ -200,7 +171,7 @@ class inplace_vptr_derived;
 //! Specialization for a single base class.
 //!
 //!
-//! @see The main template for documentation.
+//! @see @ref inplace_vptr_derived for documentation.
 template<class Class, class Base>
 class inplace_vptr_derived<Class, Base> {
     static_assert(
@@ -233,7 +204,7 @@ class inplace_vptr_derived<Class, Base> {
 
 //! Specialization for multiple base classes.
 //!
-//! @see The main template for documentation.
+//! @see @ref inplace_vptr_derived for documentation.
 template<class Class, class Base1, class Base2, class... MoreBases>
 class inplace_vptr_derived<Class, Base1, Base2, MoreBases...> {
     static_assert(

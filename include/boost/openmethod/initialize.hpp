@@ -1838,7 +1838,7 @@ void registry<Policies...>::compiler<Options...>::print(
 //!
 //! Initialize the @ref registry passed as an explicit function template
 //! argument, or @ref default_registry if the registry is not specified. The
-//! default can be changed by defining {{BOOST_OPENMETHOD_DEFAULT_REGISTRY}}.
+//! default can be changed by defining @ref BOOST_OPENMETHOD_DEFAULT_REGISTRY.
 //! Option objects can be passed to change the behavior of the function.
 //! Currently two options exist:
 //! @li @ref trace Enable tracing of the initialization process.
@@ -1889,24 +1889,10 @@ void registry<Policies...>::compiler<Options...>::print(
 //! the program again after setting environment variable
 //! `BOOST_OPENMETHOD_TRACE` to `1` to troubleshoot.
 //!
-//! @code
-//! #include <iostream>
+//! include:initialize.cpp#report
 //!
-//! #include <boost/openmethod.hpp>
-//! #include <boost/openmethod/initialize.hpp>
-//!
-//! int main() {
-//!     namespace bom = boost::openmethod;
-//!     auto report = bom::initialize(bom::trace::from_env()).report;
-//!
-//!     if (report.not_implemented != 0 || report.ambiguous != 0) {
-//!         std::cerr << "missing overriders or ambiguous methods\n";
-//!         return 1;
-//!     }
-//!
-//!     // ...
-//! }
-//! @endcode
+//! @see [Methods and Overriders](xref:ROOT:basics.adoc)
+//! @see [Shared Libraries](xref:ROOT:shared_libraries.adoc)
 template<class Registry = BOOST_OPENMETHOD_DEFAULT_REGISTRY, class... Options>
 inline auto initialize(Options&&... options) {
     if (detail::odr_check<Registry>::count > 1) {
@@ -1987,6 +1973,8 @@ auto registry<Policies...>::finalize(Options... opts) -> void {
 //! @tparam Options... Zero or more option types, deduced from the function
 //! arguments.
 //! @param options Zero or more option objects.
+//!
+//! @see [Shared Libraries](xref:ROOT:shared_libraries.adoc)
 template<class Registry = BOOST_OPENMETHOD_DEFAULT_REGISTRY, class... Options>
 inline auto finalize(Options&&... opts) -> void {
     Registry::finalize(std::forward<Options>(opts)...);

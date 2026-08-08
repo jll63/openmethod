@@ -32,6 +32,11 @@ namespace policies {
 //! handler with a function that throws an exception, possibly preventing
 //! program termination. The @ref throw_error_handler policy can also be used to
 //! enable exception throwing on a registry basis.
+//!
+//! @par Example
+//! include:policies.cpp#default_error_handler_registry;default_error_handler_set
+//!
+//! @see [Error Handling](xref:ROOT:error_handling.adoc)
 
 struct default_error_handler : error_handler {
     //! A ErrorHandlerFn metafunction.

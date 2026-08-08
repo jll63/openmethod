@@ -18,7 +18,7 @@ namespace boost::openmethod {
 //! Default registry.
 //!
 //! `default_registry` is a predefined @ref registry, and the default value of
-//! {{BOOST_OPENMETHOD_DEFAULT_REGISTRY}}.
+//! @ref BOOST_OPENMETHOD_DEFAULT_REGISTRY.
 //! It contains the following policies:
 //! @li @ref policies::std_rtti: Use standard RTTI.
 //! @li @ref policies::fast_perfect_hash: Use a fast perfect hash function to
@@ -27,8 +27,7 @@ namespace boost::openmethod {
 //! @li @ref policies::default_error_handler: Write short diagnostic messages.
 //! @li @ref policies::stderr_output: Write messages to @c stderr.
 //!
-//! If
-//! {{BOOST_OPENMETHOD_ENABLE_RUNTIME_CHECKS}}
+//! If @ref BOOST_OPENMETHOD_ENABLE_RUNTIME_CHECKS
 //! is defined, `default_registry` also includes the @ref runtime_checks policy.
 //!
 //! @note Use `BOOST_OPENMETHOD_ENABLE_RUNTIME_CHECKS` with caution, as
@@ -38,8 +37,8 @@ namespace boost::openmethod {
 //!
 //! For a program and its shared libraries to contribute to the same
 //! `default_registry`, its state must be shared across the modules, with
-//! {{BOOST_OPENMETHOD_IMPORT_REGISTRY}}, {{BOOST_OPENMETHOD_EXPORT_REGISTRY}}
-//! and {{BOOST_OPENMETHOD_INSTANTIATE_REGISTRY}}:
+//! @ref BOOST_OPENMETHOD_IMPORT_REGISTRY, @ref BOOST_OPENMETHOD_EXPORT_REGISTRY
+//! and @ref BOOST_OPENMETHOD_INSTANTIATE_REGISTRY:
 //! @code
 //! // header, every translation unit of a client module:
 //! BOOST_OPENMETHOD_IMPORT_REGISTRY(boost::openmethod::default_registry);
@@ -75,9 +74,51 @@ static odr_check<default_registry> default_registry_odr_check_instance;
 //! Share it across shared libraries exactly as for @ref default_registry,
 //! naming `indirect_registry` in the macros.
 //!
-//! @see indirect_vptr.
+//! @see @ref policies::indirect_vptr
 struct indirect_registry : default_registry::with<policies::indirect_vptr> {};
 
 } // namespace boost::openmethod
+
+// The library only tests BOOST_OPENMETHOD_ENABLE_RUNTIME_CHECKS, it never
+// defines it - that is up to the program. MrDocs extracts macros from
+// `#define` directives, so give it one to extract. It is placed after
+// `default_registry`, whose definition tests the macro, so that documenting it
+// cannot change what is documented.
+#ifdef __MRDOCS__
+#ifndef BOOST_OPENMETHOD_ENABLE_RUNTIME_CHECKS
+//! Enable runtime checks in @ref boost::openmethod::default_registry.
+//!
+//! May be defined by a program before including
+//! `<boost/openmethod/default_registry.hpp>` to enable runtime checks. See
+//! @ref boost::openmethod::default_registry for details.
+//!
+//! @par Example
+//!
+//! Define the symbol before including the library, or on the compiler command
+//! line:
+//!
+//! @code
+//! #define BOOST_OPENMETHOD_ENABLE_RUNTIME_CHECKS
+//! #include <boost/openmethod.hpp>
+//! @endcode
+//!
+//! @note The error goes to the registry's
+//! @ref boost::openmethod::policies::error_handler policy, which writes the
+//! description shown in the comments; the program is then terminated. A
+//! handler may throw instead, to keep the program running.
+//!
+//! The checks catch what @ref boost::openmethod::initialize cannot. Below,
+//! `Bulldog` is never registered; nothing is amiss until a call passes one,
+//! and only then is @ref boost::openmethod::missing_class reported:
+//!
+//! include:errors_missing_class_call.cpp#classes;use
+//!
+//! Without the checks the same call proceeds on a v-table pointer that was
+//! never set up, and the behavior is undefined.
+//!
+//! @see [Registries and Policies](xref:ROOT:registries_and_policies.adoc)
+#define BOOST_OPENMETHOD_ENABLE_RUNTIME_CHECKS
+#endif
+#endif
 
 #endif

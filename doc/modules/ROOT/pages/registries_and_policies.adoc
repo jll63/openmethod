@@ -6,11 +6,11 @@ same registry. If a class is used as a virtual parameter in methods using
 different registries, it must be registered with each of them.
 
 Class templates cpp:use_classes[], cpp:method[], cpp:virtual_ptr[], and macros
-xref:BOOST_OPENMETHOD.adoc[BOOST_OPENMETHOD] and
-xref:BOOST_OPENMETHOD_CLASSES.adoc[BOOST_OPENMETHOD_CLASSES], take an additional
+xref:reference:BOOST_OPENMETHOD.adoc[BOOST_OPENMETHOD] and
+xref:reference:BOOST_OPENMETHOD_CLASSES.adoc[BOOST_OPENMETHOD_CLASSES], take an additional
 argument, a cpp:registry[] class, which defaults to cpp:default_registry[]. The
 default registry can be overridden by defining the macroprocessor symbol
-xref:BOOST_OPENMETHOD_DEFAULT_REGISTRY.adoc[BOOST_OPENMETHOD_DEFAULT_REGISTRY]
+xref:reference:BOOST_OPENMETHOD_DEFAULT_REGISTRY.adoc[BOOST_OPENMETHOD_DEFAULT_REGISTRY]
 _before_ including `<boost/openmethod/core.hpp>`. The value of the symbol is
 used as a default template parameter for `use_classes`, `method`, `virtual_ptr`,
 and others. Once the `core` header has been included, changing
@@ -34,13 +34,13 @@ Policies are placed in the cpp:boost::openmethod::policies[] namespace.
 | std_rtti
 | provides type information for classes and objects
 
-| vptr
-| vptr_vector
-| stores vptrs in an indexed collection
-
 | type_hash
 | fast_perfect_hash
 | hashes type id to an index in a vector
+
+| vptr
+| vptr_vector
+| stores vptrs in an indexed collection
 
 | error_handler
 | default_error_handler
@@ -53,7 +53,7 @@ Policies are placed in the cpp:boost::openmethod::policies[] namespace.
 |===
 
 if
-xref:BOOST_OPENMETHOD_ENABLE_RUNTIME_CHECKS.adoc[BOOST_OPENMETHOD_ENABLE_RUNTIME_CHECKS]
+xref:reference:BOOST_OPENMETHOD_ENABLE_RUNTIME_CHECKS.adoc[BOOST_OPENMETHOD_ENABLE_RUNTIME_CHECKS]
 is defined, `default_registry` also contains the `runtime_checks` policy. This
 enables extra validations during method dispatch, which can detect missing class
 registrations that could not be caught by `initialize`.
@@ -86,6 +86,28 @@ struct default_registry
 When defining a new registry, it is recommended to define a new class, derived
 from `registry<...>`, rather than via a typedef, which would create excessively
 long symbol names and make debugging harder.
+
+That class is a convenience, not the registry's identity. Everything a registry
+owns - the class and method lists, the dispatch tables, the state of every
+stateful policy - is keyed on the `registry<...>` specialization the class
+derives from, which is what its `registry_type` member aliases. Two classes
+built from the same policies, in the same order, are therefore the _same_
+registry, and share everything:
+
+[source,c++]
+----
+include::example$registry_identity.cpp[tag=shared]
+----
+
+This is worth watching for when the purpose of a second registry is to isolate a
+set of methods from another, since such a registry would naturally be given the
+same policies as the first. Registering a class or a method in either would then
+register it in both. To keep them apart, give each one a policy of its own:
+
+[source,c++]
+----
+include::example$registry_identity.cpp[tag=distinct]
+----
 
 The order of the policies matters. When cpp:initialize[] runs, it calls each
 policy's `initialize` in the order the policies appear in the registry, from

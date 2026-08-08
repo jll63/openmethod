@@ -220,5 +220,7 @@ if (BOOST_OPENMETHOD_BUILD_TESTS)
     # Examples
     if (BOOST_OPENMETHOD_BUILD_EXAMPLES)
         add_subdirectory(doc/modules/ROOT/examples)
+        # Sources behind the `include:` markers in the reference doc comments.
+        add_subdirectory(doc/modules/ROOT/snippets)
     endif ()
 endif ()

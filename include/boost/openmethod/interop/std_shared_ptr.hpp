@@ -53,8 +53,13 @@ struct validate_method_parameter<
 
 //! Specialize virtual_traits for std::shared_ptr by value.
 //!
+//! @par Example
+//! include:smart_pointers.cpp#classes;shared_by_value
+//!
 //! @tparam Class A class type, possibly cv-qualified.
 //! @tparam Registry A @ref registry.
+//!
+//! @see [Smart Pointers](xref:ROOT:smart_pointers.adoc)
 template<typename Class, class Registry>
 struct virtual_traits<std::shared_ptr<Class>, Registry> {
     //! Rebind to a different element type.
@@ -131,6 +136,9 @@ struct virtual_traits<std::shared_ptr<Class>, Registry> {
 
 //! Specialize virtual_traits for std::shared_ptr by reference.
 //!
+//! @par Example
+//! include:smart_pointers.cpp#classes;shared_by_reference
+//!
 //! @note Passing a `std::shared_ptr` in a method call by const reference
 //! creates a temporary `std::shared_ptr` and passes it by const reference to
 //! the overrider. This is necessary because virtual arguments need to be cast
@@ -138,6 +146,8 @@ struct virtual_traits<std::shared_ptr<Class>, Registry> {
 //!
 //! @tparam Class A class type, possibly cv-qualified.
 //! @tparam Registry A @ref registry.
+//!
+//! @see [Smart Pointers](xref:ROOT:smart_pointers.adoc)
 template<class Class, class Registry>
 struct virtual_traits<const std::shared_ptr<Class>&, Registry> {
   public:
@@ -186,6 +196,11 @@ struct virtual_traits<const std::shared_ptr<Class>&, Registry> {
 };
 
 //! Alias for a `virtual_ptr<std::shared_ptr<T>>`.
+//!
+//! @par Example
+//! include:smart_pointers.cpp#shared_virtual_ptr_alias
+//!
+//! @see [Smart Pointers](xref:ROOT:smart_pointers.adoc)
 template<class Class, class Registry = BOOST_OPENMETHOD_DEFAULT_REGISTRY>
 using shared_virtual_ptr = virtual_ptr<std::shared_ptr<Class>, Registry>;
 
@@ -203,6 +218,11 @@ using shared_virtual_ptr = virtual_ptr<std::shared_ptr<Class>, Registry>;
 //! @param args Arguments to pass to the constructor of `Class`.
 //! @return A `shared_virtual_ptr<Class, Registry>` pointing to a newly
 //! created object of type `Class`.
+//!
+//! @par Example
+//! include:smart_pointers.cpp#make_shared_virtual
+//!
+//! @see [Smart Pointers](xref:ROOT:smart_pointers.adoc)
 template<
     class Class, class Registry = BOOST_OPENMETHOD_DEFAULT_REGISTRY,
     typename... T>

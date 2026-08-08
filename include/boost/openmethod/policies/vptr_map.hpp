@@ -24,6 +24,11 @@ namespace policies {
 //!
 //! @tparam MapFn A mp11 quoted metafunction that takes a key type and a
 //! value type, and returns an @ref AssociativeContainer.
+//!
+//! @par Example
+//! include:policies.cpp#vptr_map
+//!
+//! @see [Registries and Policies](xref:ROOT:registries_and_policies.adoc)
 template<class MapFn = mp11::mp_quote<std::unordered_map>>
 class vptr_map : public vptr {
   public:

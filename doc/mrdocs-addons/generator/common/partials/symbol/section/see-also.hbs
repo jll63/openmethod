@@ -1,0 +1,26 @@
+{{!
+    Overrides the built-in symbol/section/see-also partial.
+
+    The built-in renders each @see entry through `doc/block/see`, i.e. as a
+    block, and MrDocs separates blocks with a blank line - which AsciiDoc reads
+    as a paragraph break, so a symbol with several @see entries gets a paragraph
+    each. This renders them inline instead, comma-separated on one line, the
+    conventional shape for a See Also list.
+
+    `doc/inline-container` is what `doc/block/see` reaches through
+    `doc/block/paragraph`; going straight to it is what drops the block
+    separation. The blank line before the section closes keeps whatever follows
+    out of the same paragraph.
+
+    Entries are joined with ", ", so each @see should be a bare reference rather
+    than a sentence.
+}}
+{{#if symbol.doc.sees}}
+{{#> markup/section name="see-also"}}
+{{#> markup/dynamic-level-h }}See Also{{/markup/dynamic-level-h~}}
+{{#each symbol.doc.sees~}}
+{{> doc/inline-container .}}{{#unless @last}}, {{/unless}}
+{{~/each}}
+
+{{/markup/section}}
+{{/if}}
