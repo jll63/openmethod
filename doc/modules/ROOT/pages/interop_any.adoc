@@ -106,8 +106,7 @@ pointer, except that it _owns_ the object: the `any` is held by value.
 
 The pointer comes from a lookup when the `virtual_std_any` is built from an
 existing `any`, and from a static variable - no lookup at all - when it is built
-from a value, or by cpp:make_std_any_virtual[], or by `emplace`, since the type
-is then known at compile time.
+from a value, or by `emplace`, since the type is then known at compile time.
 
 That makes it worthwhile when the same value is dispatched on repeatedly. Its
 usefulness is limited, though, by the fact that the wrapper is not what an
@@ -127,9 +126,8 @@ the v-table of the `any` root class rather than the one for the contained value.
 #### `boost::any`
 
 `boost::any` is supported as well, by
-`<boost/openmethod/interop/boost_any.hpp>`, with cpp:use_boost_any_types[],
-cpp:virtual_boost_any[] and cpp:make_boost_any_virtual[] - the exact
-counterparts of the constructs above. The two root classes are distinct, so
+`<boost/openmethod/interop/boost_any.hpp>`, with cpp:use_boost_any_types[] and
+cpp:virtual_boost_any[] - the exact counterparts of the constructs above. The two root classes are distinct, so
 `std::any` and `boost::any` may be used in the same program, and with the same
 registry.
 

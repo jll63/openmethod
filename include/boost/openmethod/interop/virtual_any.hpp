@@ -38,8 +38,7 @@ struct is_virtual_any_aux<virtual_any<Any, Registry>> : std::true_type {};
 //! either from the dynamic type of an existing `any` (a hash table
 //! lookup, via `virtual_traits<const Any&, Registry>::vptr`), or
 //! statically, when the contained type is known at compile time (the
-//! value constructor, @ref make_any_virtual, and @ref emplace use @ref
-//! registry::static_vptr).
+//! value constructor and @ref emplace use @ref registry::static_vptr).
 //!
 //! Methods take `virtual_any` parameters by reference: `const
 //! virtual_any&`, `virtual_any&` or `virtual_any&&`. Overriders receive
@@ -491,34 +490,7 @@ struct select_overrider_virtual_type_aux<
 
 } // namespace detail
 
-//! Create a new object and return a `virtual_any` containing it.
-//!
-//! Create a `Class` from `args`, store it in a @ref virtual_any, and set
-//! the v-table pointer to the @ref registry::static_vptr for `Class` - no
-//! hash table lookup is involved.
-//!
-//! @tparam Class The type of the value to create.
-//! @tparam Any An `any` type.
-//! @tparam Registry A @ref registry.
-//! @tparam T Types of the arguments to pass to the constructor of
-//! `Class`.
-//! @param args Arguments to pass to the constructor of `Class`.
-//! @return A `virtual_any<Any, Registry>` containing a newly created
-//! `Class`.
-//!
-//! @par Example
-//! include:virtual_any.cpp#make_any_virtual
-//!
-//! @see [Interoperation with `any`](xref:ROOT:interop_any.adoc)
-template<
-    class Class, class Any, class Registry = BOOST_OPENMETHOD_DEFAULT_REGISTRY,
-    typename... T>
-inline auto make_any_virtual(T&&... args) -> virtual_any<Any, Registry> {
-    return virtual_any<Any, Registry>(Class(std::forward<T>(args)...));
-}
-
 namespace aliases {
-using boost::openmethod::make_any_virtual;
 using boost::openmethod::virtual_any;
 } // namespace aliases
 
