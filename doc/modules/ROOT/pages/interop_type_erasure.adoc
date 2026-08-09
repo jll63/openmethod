@@ -102,8 +102,8 @@ Every call above looks the v-table up in a hash table, keyed on the type the
 `any` binds. cpp:virtual_any[] works for a `type_erasure::any` exactly as it
 does for a `std::any`: `virtual_any<any<Concept>>` bundles the `any` with the
 v-table pointer for the value inside it, acquiring it once, on construction -
-or not at all, when it is built from a value or by cpp:make_any_virtual[],
-since the type is then known at compile time:
+or not at all, when it is built from a value, since the type is then known at
+compile time:
 
 ```c++
 BOOST_OPENMETHOD(name, (const virtual_any<erased>&), std::string);
@@ -111,10 +111,8 @@ BOOST_OPENMETHOD(name, (const virtual_any<erased>&), std::string);
 // from an `any`: one lookup, at construction
 virtual_any<erased> spot = erased(Dog{"Spot"});
 
-// from a value, or with make_any_virtual: no lookup at all
+// from a value: no lookup at all
 virtual_any<erased> rex = Dog{"Rex"};
-auto snoopy = make_any_virtual<Dog, erased>("Snoopy");
-auto duke = make_any_virtual<erased>(Dog{"Duke"});
 ```
 
 The Concept must contain `relaxed` - `virtual_any`'s default constructor and

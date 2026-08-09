@@ -159,18 +159,6 @@ BOOST_AUTO_TEST_CASE(std_any_examples) {
     {
         capture_cout cout;
 
-        // tag::make_any_virtual_value[]
-        auto felix = make_any_virtual<std::any>(std::string("Felix the cat"));
-
-        std::cout << name(felix) << "\n"; // Felix the cat
-        // end::make_any_virtual_value[]
-
-        BOOST_TEST(cout.str() == "Felix the cat\n");
-    }
-
-    {
-        capture_cout cout;
-
         // tag::make_std_any_virtual[]
         auto felix = make_std_any_virtual<std::string>("Felix the cat");
 
