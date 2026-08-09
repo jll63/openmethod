@@ -79,40 +79,20 @@ Provides a `virtual_traits` specialization that makes it possible to use a
 [#virtual_any]
 ### link:../../../include/boost/openmethod/interop/virtual_any.hpp[<boost/openmethod/interop/virtual_any.hpp>]
 
-Provides `virtual_any`, a wide `any` that combines an `any`, held by value,
-with a pointer to the v-table for the contained value - like `virtual_ptr`
-combines a pointer to an object with a pointer to its v-table. The v-table
-pointer is acquired when the `virtual_any` is created, so methods dispatch on
-the contained type without looking it up on every call. Also provides
-`make_any_virtual`, which creates a `virtual_any` containing a value of a
-statically known type, setting the v-table pointer without any lookup. This
-header is included by `std_any.hpp` and `boost_any.hpp`; it can serve any type
-with an `any`-like interface, given `virtual_traits` specializations for its
-reference types.
+Provides `virtual_any`, a wide `any` that combines an `any`, held by value, with
+a pointer to the v-table for the contained value - similar to `virtual_ptr`.
 
 [#std_any]
 ### link:../../../include/boost/openmethod/interop/std_any.hpp[<boost/openmethod/interop/std_any.hpp>]
 
-Provides `virtual_traits` specializations that make it possible to use a `std::any` -
-by const reference, by mutable reference, or by rvalue reference - in virtual
-parameters. Dispatch is on the type of the contained value. Also provides
-`use_std_any_types`, which registers the types that may be contained;
-`virtual_std_any`, an alias for `virtual_any<std::any>`, and
-`make_std_any_virtual`. In addition, the header deletes the
-`final_virtual_ptr` overloads for `std::any`, which would otherwise silently
-use the v-table of the `any` root class instead of the contained value's.
+Provides `virtual_traits` specializations that make it possible to use a
+`std::any` in virtual parameters.
 
 [#boost_any]
 ### link:../../../include/boost/openmethod/interop/boost_any.hpp[<boost/openmethod/interop/boost_any.hpp>]
 
-Provides `virtual_traits` specializations that make it possible to use a `boost::any` -
-by const reference, by mutable reference, or by rvalue reference - in virtual
-parameters. Dispatch is on the type of the contained value. Also provides
-`use_boost_any_types`, which registers the types that may be contained;
-`virtual_boost_any`, an alias for `virtual_any<boost::any>`, and
-`make_boost_any_virtual`. In addition, the header deletes the
-`final_virtual_ptr` overloads for `boost::any`, which would otherwise silently
-use the v-table of the `any` root class instead of the contained value's.
+Provides `virtual_traits` specializations that make it possible to use a
+`boost::any` in virtual parameters.
 
 [#boost_type_erasure]
 ### link:../../../include/boost/openmethod/interop/boost_type_erasure.hpp[<boost/openmethod/interop/boost_type_erasure.hpp>]
