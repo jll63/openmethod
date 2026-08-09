@@ -322,7 +322,11 @@ make_boost_any_virtual(T&&... args) -> virtual_any<boost::any, Registry> {
 // from consideration when an explicit template argument list is given, so
 // the Registry-only templates - more specialized than the primary - catch
 // those.
+//
+// Hidden from the reference: they are a guard, not API, and six deleted
+// overloads would crowd the `final_virtual_ptr` overload list.
 
+#ifndef __MRDOCS__
 template<class Registry>
 void final_virtual_ptr(const boost::any&) = delete;
 template<class Registry>
@@ -332,6 +336,7 @@ void final_virtual_ptr(boost::any&&) = delete;
 void final_virtual_ptr(const boost::any&) = delete;
 void final_virtual_ptr(boost::any&) = delete;
 void final_virtual_ptr(boost::any&&) = delete;
+#endif
 
 namespace aliases {
 using boost::openmethod::make_boost_any_virtual;
