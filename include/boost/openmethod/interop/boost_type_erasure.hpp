@@ -580,7 +580,11 @@ namespace boost::openmethod {
 // templates catch calls that deduce the default registry, and the
 // Registry-first templates catch explicit-registry calls; both are more
 // specialized than the primary's forwarding-reference parameter.
+//
+// Hidden from the reference: they are a guard, not API, and six deleted
+// overloads would crowd the `final_virtual_ptr` overload list.
 
+#ifndef __MRDOCS__
 template<class C, typename T>
 void final_virtual_ptr(const boost::type_erasure::any<C, T>&) = delete;
 template<class C, typename T>
@@ -593,6 +597,7 @@ template<class Registry, class C, typename T>
 void final_virtual_ptr(boost::type_erasure::any<C, T>&) = delete;
 template<class Registry, class C, typename T>
 void final_virtual_ptr(boost::type_erasure::any<C, T>&&) = delete;
+#endif
 
 namespace aliases {
 using boost::openmethod::openmethod_vptr;
