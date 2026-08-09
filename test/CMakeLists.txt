@@ -165,6 +165,9 @@ openmethod_compile_fail_test(
     compile_fail_boost_any_mutable_ref_to_rvalue_ref "no matching")
 openmethod_compile_fail_test(
     compile_fail_virtual_any_by_value "virtual_any must be passed by reference")
+openmethod_compile_fail_test(
+    compile_fail_virtual_any_ref_by_ref
+    "virtual_any_ref is a cheap handle, pass it by value")
 # "use of a deleted function" on gcc, "call to deleted function" on clang,
 # "attempting to reference a deleted function" on MSVC.
 openmethod_compile_fail_test(
