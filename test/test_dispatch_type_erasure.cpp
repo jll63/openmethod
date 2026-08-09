@@ -225,41 +225,6 @@ BOOST_AUTO_TEST_CASE(type_erasure_cref_wrapper_by_value) {
 namespace BOOST_OPENMETHOD_GENSYM {
 
 // -----------------------------------------------------------------------------
-// virtual_any over a type_erasure any: the v-table pointer is looked up
-// once, at construction - or set statically when the contained type is
-// known - and dispatch does not hash typeid_of on every call
-
-MAKE_CLASSES();
-
-BOOST_OPENMETHOD(name, (const virtual_any<erased>&), std::string);
-
-BOOST_OPENMETHOD_OVERRIDE(name, (const Dog& dog), std::string) {
-    return dog.name + " the dog";
-}
-
-BOOST_AUTO_TEST_CASE(type_erasure_virtual_any) {
-    initialize(trace());
-
-    // from an `any`: runtime lookup via typeid_of
-    erased spot_any(Dog{"Spot"});
-    virtual_any<erased> spot = spot_any;
-    BOOST_TEST(spot.vptr() == default_registry::static_vptr<Dog>);
-    BOOST_TEST(name(spot) == "Spot the dog");
-
-    // from a value: the v-table pointer is set statically
-    virtual_any<erased> rex = Dog{"Rex"};
-    BOOST_TEST(rex.vptr() == default_registry::static_vptr<Dog>);
-    BOOST_TEST(name(rex) == "Rex the dog");
-
-    auto snoopy = make_any_virtual<Dog, erased>(Dog{"Snoopy"});
-    BOOST_TEST(snoopy.vptr() == default_registry::static_vptr<Dog>);
-    BOOST_TEST(name(snoopy) == "Snoopy the dog");
-}
-} // namespace BOOST_OPENMETHOD_GENSYM
-
-namespace BOOST_OPENMETHOD_GENSYM {
-
-// -----------------------------------------------------------------------------
 // indirect vptrs
 
 struct Dog {
@@ -283,10 +248,6 @@ BOOST_AUTO_TEST_CASE(type_erasure_indirect_vptr) {
 
     const erased spot(Dog{"Spot"});
     BOOST_TEST(name_method::fn(spot) == "Spot the dog");
-
-    virtual_any<erased, indirect_registry> rex = Dog{"Rex"};
-    BOOST_TEST(rex.vptr() == indirect_registry::static_vptr<Dog>);
-    BOOST_TEST(name_method::fn(rex.get()) == "Rex the dog");
 }
 } // namespace BOOST_OPENMETHOD_GENSYM
 

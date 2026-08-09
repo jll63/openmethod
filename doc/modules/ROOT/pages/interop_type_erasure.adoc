@@ -96,38 +96,16 @@ C++ RTTI dynamic type of the referent. The rvalue-reference flavor
 (`any<Concept, _self&&>`), and placeholders other than `_self`, are not
 supported.
 
-#### `virtual_any`
-
-Every call above looks the v-table up in a hash table, keyed on the type the
-`any` binds. cpp:virtual_any[] works for a `type_erasure::any` exactly as it
-does for a `std::any`: `virtual_any<any<Concept>>` bundles the `any` with the
-v-table pointer for the value inside it, acquiring it once, on construction -
-or not at all, when it is built from a value, since the type is then known at
-compile time:
-
-```c++
-BOOST_OPENMETHOD(name, (const virtual_any<erased>&), std::string);
-
-// from an `any`: one lookup, at construction
-virtual_any<erased> spot = erased(Dog{"Spot"});
-
-// from a value: no lookup at all
-virtual_any<erased> rex = Dog{"Rex"};
-```
-
-The Concept must contain `relaxed` - `virtual_any`'s default constructor and
-assignment rely on it - and `copy_constructible<>`, for copies.
-
 For the same reason as for `std::any`, cpp:final_virtual_ptr[] is _deleted_
 for `type_erasure::any`: it would silently produce the v-table of the root
 class rather than the one for the bound value.
 
 #### The `openmethod_vptr` concept
 
-`virtual_any` removes the hash lookup by making the _object_ wider.
-Boost.TypeErasure offers a way to remove it for plain, unwidened ``any``s:
-since the `any` already carries a dispatch table of Concept operations, the
-v-table pointer can be one of them. cpp:openmethod_vptr[] is a
+Every call above looks the v-table up in a hash table, keyed on the type the
+`any` binds. Boost.TypeErasure offers a way to remove that cost: since the
+`any` already carries a dispatch table of Concept operations, the v-table
+pointer can be one of them. cpp:openmethod_vptr[] is a
 Boost.TypeErasure concept that does exactly that. Include it in the Concept,
 and every flavor of the `any` gains an operation that returns the registry's
 static v-table pointer (`registry::static_vptr`) for the bound type -
@@ -153,10 +131,6 @@ is part of the `any`'s type - whereas the `typeid_of`-based dispatch above
 works with any pre-existing Concept containing `typeid_<>`. To use an `any`
 with several registries, list the concept several times, once per registry:
 `openmethod_vptr<Concept, some_registry>`.
-
-An `any` that carries the concept cannot be wrapped in a `virtual_any` - and
-does not need to be: both fill the same goal, constant-time access to the
-v-table pointer. Wrapping one is rejected at compile time.
 
 This concept is based on a design contributed by Steven Watanabe in
 link:https://github.com/boostorg/openmethod/issues/21[issue #21].
