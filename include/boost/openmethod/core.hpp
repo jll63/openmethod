@@ -624,8 +624,7 @@ inline vptr_type null_vptr = nullptr;
 //!
 //! @par Example
 //!
-//! See [the default-registry overload](xref:reference:boost/openmethod/final_virtual_ptr-08.adoc#_example)
-//! for an example.
+//! include:virtual_ptr.cpp#non_polymorphic_classes;final_virtual_ptr
 //!
 //! @tparam Registry A @ref registry.
 //! @tparam Arg The type of the argument.
