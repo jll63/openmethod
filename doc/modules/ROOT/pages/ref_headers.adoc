@@ -120,10 +120,13 @@ the type of the bound value, obtained via `boost::type_erasure::typeid_of`; the
 Concept must contain `boost::type_erasure::typeid_<>`, which `relaxed` implies.
 Also provides `use_type_erasure_types`, which registers the types that may be
 bound; `virtual_any<any<Concept>>` works as well, and looks the v-table pointer
-up only once, at construction. In addition, the header deletes the
-`final_virtual_ptr` overloads for `boost::type_erasure::any`, which would
-otherwise silently use the v-table of the `any` root class instead of the bound
-value's.
+up only once, at construction. `openmethod_vptr` - based on a design by Steven
+Watanabe - is a Boost.TypeErasure concept that stores the v-table pointer for
+the bound type in the `any`'s own dispatch table, removing the hash lookup
+altogether, and registers bound types automatically. In addition, the header
+deletes the `final_virtual_ptr` overloads for `boost::type_erasure::any`, which
+would otherwise silently use the v-table of the `any` root class instead of the
+bound value's.
 
 *The headers below are for advanced use*.
 

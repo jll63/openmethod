@@ -8,7 +8,11 @@
 
 #include <boost/type_erasure/any.hpp>
 #include <boost/type_erasure/any_cast.hpp>
+#include <boost/type_erasure/call.hpp>
+#include <boost/type_erasure/concept_interface.hpp>
 #include <boost/type_erasure/concept_of.hpp>
+#include <boost/type_erasure/derived.hpp>
+#include <boost/type_erasure/placeholder.hpp>
 #include <boost/type_erasure/typeid_of.hpp>
 
 #include <boost/openmethod/core.hpp>
@@ -40,6 +44,13 @@
 //
 // The rvalue-reference flavor (`any<Concept, _self&&>`), and placeholders
 // other than `_self`, are not supported.
+//
+// In addition, `openmethod_vptr` - based on a design by Steven Watanabe -
+// is a Boost.TypeErasure concept that stores the v-table pointer for the
+// bound type in the any's own dispatch table, making every flavor of the
+// any intrinsically polymorphic: calls resolve in constant time, without
+// hashing the result of `typeid_of`, and binding a value to the any
+// registers its type.
 
 namespace boost::openmethod {
 
@@ -476,6 +487,93 @@ struct use_type_erasure_types
           detail::type_erasure_root<Any>,
           typename detail::extract_registry<T...>::others> {};
 
+namespace detail {
+
+// Registers Class as deriving from the owning flavor for Concept - the
+// same shape use_type_erasure_types produces - when odr-used from
+// openmethod_vptr::apply.
+template<class Registry, class Class, class Concept>
+use_class_aux<Registry, mp11::mp_list<Class, boost::type_erasure::any<Concept>>>
+    use_type_erasure_class;
+
+} // namespace detail
+
+//! A Boost.TypeErasure concept that makes an `any` intrinsically
+//! polymorphic.
+//!
+//! Including `openmethod_vptr<Concept>` in a Concept adds an operation,
+//! to the dispatch table of every flavor of `any<Concept>`, that returns
+//! the @ref registry::static_vptr for the bound type; and it surfaces the
+//! operation as a @ref boost_openmethod_vptr overload, which dispatch
+//! prefers over the registry's `vptr` policy. Calls thus resolve in
+//! constant time, without hashing the result of
+//! `boost::type_erasure::typeid_of`.
+//!
+//! In addition, binding a value to such an `any` registers its type as a
+//! class derived from the owning flavor - the same shape
+//! @ref use_type_erasure_types produces, with which it can coexist. No
+//! explicit registration is needed for the types bound to `any`\s that
+//! carry this concept.
+//!
+//! `Concept` must be the very Concept the `any` is instantiated with.
+//! Since the concept appears inside that Concept, the Concept must name
+//! itself: define it as a struct deriving from the concept list.
+//!
+//! Unlike the `vptr` policy, which reports a @ref missing_class error,
+//! calling a method on an empty relaxed `any` throws
+//! `boost::type_erasure::bad_function_call`.
+//!
+//! Based on a design by
+//! [Steven Watanabe](https://github.com/boostorg/openmethod/issues/21).
+//!
+//! @tparam Concept The Concept containing this concept.
+//! @tparam Registry A @ref registry.
+//! @tparam T A placeholder; leave it to its default, `_self`.
+//!
+//! @par Example
+//! include:type_erasure_concept.cpp#concept
+//!
+//! @see [Interoperation with Boost.TypeErasure](xref:ROOT:interop_type_erasure.adoc)
+template<
+    class Concept, class Registry = BOOST_OPENMETHOD_DEFAULT_REGISTRY,
+    typename T = boost::type_erasure::_self>
+struct openmethod_vptr {
+    //! Returns the v-table pointer for the bound type.
+    //!
+    //! Also registers `T`, and the owning flavor for `Concept` as its
+    //! base, by odr-using their registrars.
+    //!
+    //! @return The @ref registry::static_vptr for `T`.
+    static auto apply(const T&) -> vptr_type {
+        (void)&detail::use_type_erasure_class<
+            Registry, boost::type_erasure::any<Concept>, Concept>;
+        (void)&detail::use_type_erasure_class<Registry, T, Concept>;
+        return Registry::template static_vptr<T>;
+    }
+};
+
+} // namespace boost::openmethod
+
+namespace boost::type_erasure {
+
+// Surface the openmethod_vptr operation as the boost_openmethod_vptr
+// intrinsic hook, injected into the interface of every flavor of any
+// whose Concept contains the concept.
+template<class Concept, class Registry, typename T, class Base>
+struct concept_interface<
+    boost::openmethod::openmethod_vptr<Concept, Registry, T>, Base, T> : Base {
+    friend auto boost_openmethod_vptr(
+        const typename derived<Base>::type& arg,
+        Registry*) -> boost::openmethod::vptr_type {
+        return call(
+            boost::openmethod::openmethod_vptr<Concept, Registry, T>(), arg);
+    }
+};
+
+} // namespace boost::type_erasure
+
+namespace boost::openmethod {
+
 // The primary final_virtual_ptr would silently use the static v-table
 // pointer of the any class itself - the root -, not the bound value's.
 // Delete the combination. Both call forms need covering: the (C, T)-only
@@ -497,6 +595,7 @@ template<class Registry, class C, typename T>
 void final_virtual_ptr(boost::type_erasure::any<C, T>&&) = delete;
 
 namespace aliases {
+using boost::openmethod::openmethod_vptr;
 using boost::openmethod::use_type_erasure_types;
 } // namespace aliases
 

@@ -289,3 +289,71 @@ BOOST_AUTO_TEST_CASE(type_erasure_indirect_vptr) {
     BOOST_TEST(name_method::fn(rex.get()) == "Rex the dog");
 }
 } // namespace BOOST_OPENMETHOD_GENSYM
+
+namespace BOOST_OPENMETHOD_GENSYM {
+
+// -----------------------------------------------------------------------------
+// the openmethod_vptr concept (based on a design by Steven Watanabe): the
+// any carries the v-table pointer for its bound type in its own dispatch
+// table, and binding a value registers its type
+
+struct Dog {
+    std::string name;
+};
+
+// The concept must name the Concept it is part of: define the Concept as
+// a struct.
+struct Dispatchable : boost::mpl::vector<
+                          te::copy_constructible<>, te::relaxed,
+                          openmethod_vptr<Dispatchable>> {};
+
+using dispatchable = te::any<Dispatchable>;
+using dispatchable_ref = te::any<Dispatchable, te::_self&>;
+
+// the intrinsic hook is found for every flavor, so dispatch prefers it
+// over the vptr policy's hash lookup
+static_assert(detail::has_vptr_fn<dispatchable, default_registry>);
+static_assert(detail::has_vptr_fn<dispatchable_ref, default_registry>);
+
+// explicit registration is not needed, but may coexist (class dedup)
+BOOST_OPENMETHOD_REGISTER(use_type_erasure_types<dispatchable, Dog>);
+
+BOOST_OPENMETHOD(name, (virtual_<const dispatchable&>), std::string);
+
+BOOST_OPENMETHOD_OVERRIDE(name, (const Dog& dog), std::string) {
+    return dog.name + " the dog";
+}
+
+BOOST_OPENMETHOD_OVERRIDE(name, (const dispatchable& value), std::string) {
+    return te::is_empty(value) ? "nothing" : "something";
+}
+
+BOOST_OPENMETHOD(poke, (virtual_<dispatchable_ref>), std::string);
+
+BOOST_OPENMETHOD_OVERRIDE(poke, (Dog & dog), std::string) {
+    dog.name += "!";
+    return dog.name;
+}
+
+BOOST_AUTO_TEST_CASE(type_erasure_openmethod_vptr_concept) {
+    initialize(trace());
+
+    const dispatchable spot(Dog{"Spot"});
+
+    // the hook returns the static vptr for the bound type
+    BOOST_TEST(
+        boost_openmethod_vptr(spot, static_cast<default_registry*>(nullptr)) ==
+        default_registry::static_vptr<Dog>);
+    BOOST_TEST(name(spot) == "Spot the dog");
+
+    // std::string appears nowhere in this section; binding it registered
+    // it, and the catch-all applies
+    const dispatchable felix(std::string{"Felix"});
+    BOOST_TEST(name(felix) == "something");
+
+    // the reference-wrapper flavor takes the fast path too
+    Dog snoopy{"Snoopy"};
+    BOOST_TEST(poke(dispatchable_ref(snoopy)) == "Snoopy!");
+    BOOST_TEST(snoopy.name == "Snoopy!");
+}
+} // namespace BOOST_OPENMETHOD_GENSYM
