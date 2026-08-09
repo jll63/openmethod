@@ -32,6 +32,8 @@ static_assert(detail::has_vptr<
 
 #define MAKE_CLASSES()                                                         \
     struct Dog {                                                               \
+        Dog(std::string name) : name(std::move(name)) {                        \
+        }                                                                      \
         std::string name;                                                      \
     };                                                                         \
                                                                                \
@@ -251,7 +253,7 @@ BOOST_AUTO_TEST_CASE(type_erasure_virtual_any) {
     BOOST_TEST(rex.vptr() == default_registry::static_vptr<Dog>);
     BOOST_TEST(name(rex) == "Rex the dog");
 
-    auto snoopy = make_any_virtual<Dog, erased>(Dog{"Snoopy"});
+    auto snoopy = make_any_virtual<Dog, erased>("Snoopy");
     BOOST_TEST(snoopy.vptr() == default_registry::static_vptr<Dog>);
     BOOST_TEST(name(snoopy) == "Snoopy the dog");
 }

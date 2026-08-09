@@ -25,6 +25,7 @@ using Concept = boost::mpl::vector<te::copy_constructible<>, te::relaxed>;
 using erased = te::any<Concept>;
 
 struct Dog {
+    Dog(std::string name) : name(std::move(name)) {}
     std::string name;
 };
 
