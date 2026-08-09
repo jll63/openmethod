@@ -106,8 +106,7 @@ pointer, except that it _owns_ the object: the `any` is held by value.
 
 The pointer comes from a lookup when the `virtual_std_any` is built from an
 existing `any`, and from a static variable - no lookup at all - when it is built
-from a value, or by cpp:make_std_any_virtual[], or by `emplace`, since the type
-is then known at compile time.
+from a value, or by `emplace`, since the type is then known at compile time.
 
 That makes it worthwhile when the same value is dispatched on repeatedly. Its
 usefulness is limited, though, by the fact that the wrapper is not what an
@@ -124,12 +123,46 @@ For the same reason that a `virtual_std_any` caches what a plain `any` does not,
 cpp:final_virtual_ptr[] is _deleted_ for `std::any`: it would silently produce
 the v-table of the `any` root class rather than the one for the contained value.
 
+#### `virtual_any_ref`
+
+`virtual_std_any` owns its `any`. cpp:virtual_any_ref[] is its non-owning
+counterpart: it _borrows_ an `any` that lives elsewhere, bundling its address
+with the v-table pointer for the value inside it - acquired once, when the
+handle is created, or taken at no cost from a `virtual_any`. It is a cheap,
+two-word handle with pointer semantics. Unlike the owning wrapper, it is passed
+to methods _by value_, like the reference-wrapper flavors of Boost.TypeErasure's
+`any`:
+
+```c++
+BOOST_OPENMETHOD(poke, (virtual_any_ref<std::any>), std::string);
+
+std::any spot_any = Dog{"Spot"};
+virtual_any_ref<std::any> spot = spot_any; // one lookup
+
+poke(spot); // no lookup
+poke(spot); // no lookup; mutations reach spot_any
+```
+
+`Any` may be const-qualified: through `virtual_any_ref<const std::any>`,
+overriders receive the contained value by value or by const reference only. A
+mutable handle converts to a const one.
+
+A plain value does not convert to a `virtual_any_ref` - there is no `any` for
+the handle to borrow - so `BOOST_OPENMETHOD_OVERRIDE`, which locates the method
+by convertibility, cannot register overriders that take the contained value.
+Register them with the core API instead, as in the `virtual_<std::any&>` case
+above; the catch-all overrider, which takes the handle itself, can use the
+macro.
+
+The handle does not track its referent: if the value inside the `any` is
+replaced, the handle is stale - like an iterator into a modified container -
+and must be re-created.
+
 #### `boost::any`
 
 `boost::any` is supported as well, by
-`<boost/openmethod/interop/boost_any.hpp>`, with cpp:use_boost_any_types[],
-cpp:virtual_boost_any[] and cpp:make_boost_any_virtual[] - the exact
-counterparts of the constructs above. The two root classes are distinct, so
+`<boost/openmethod/interop/boost_any.hpp>`, with cpp:use_boost_any_types[] and
+cpp:virtual_boost_any[] - the exact counterparts of the constructs above. The two root classes are distinct, so
 `std::any` and `boost::any` may be used in the same program, and with the same
 registry.
 

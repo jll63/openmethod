@@ -64,7 +64,7 @@ BOOST_AUTO_TEST_CASE(virtual_any_by_const_ref) {
     BOOST_TEST(rex.vptr() == default_registry::static_vptr<Dog>);
     BOOST_TEST(name(rex) == "Rex the dog");
 
-    auto felix = make_boost_any_virtual<std::string>("Felix the cat");
+    virtual_boost_any felix = std::string("Felix the cat");
     BOOST_TEST(felix.vptr() == default_registry::static_vptr<std::string>);
     BOOST_TEST(name(felix) == "Felix the cat");
 
@@ -151,7 +151,7 @@ BOOST_AUTO_TEST_CASE(virtual_any_by_xvalue_ref) {
     BOOST_TEST(boost::any_cast<const Dog&>(spot.get()).name == "");
 
     BOOST_TEST(
-        steal(make_boost_any_virtual<std::string>("Felix the cat")) ==
+        steal(virtual_boost_any(std::string("Felix the cat"))) ==
         "Felix the cat");
 }
 } // namespace BOOST_OPENMETHOD_GENSYM

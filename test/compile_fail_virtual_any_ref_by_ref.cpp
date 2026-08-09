@@ -17,11 +17,11 @@ struct Dog {
 
 BOOST_OPENMETHOD_REGISTER(use_std_any_types<Dog>);
 
-// A virtual_any method parameter must be a reference: passing it by value
-// would copy the `any` - and its payload - on every call.
-BOOST_OPENMETHOD(name, (virtual_std_any), std::string);
+// A virtual_any_ref method parameter is passed by value: it is a cheap,
+// two-word handle; a reference would add an indirection for nothing.
+BOOST_OPENMETHOD(name, (const virtual_any_ref<const std::any>&), std::string);
 
 int main() {
-    virtual_std_any dog = Dog{"Snoopy"};
-    return name(dog).size();
+    std::any dog(Dog{"Snoopy"});
+    return name(virtual_any_ref<const std::any>(dog)).size();
 }

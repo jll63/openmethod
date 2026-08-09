@@ -78,6 +78,28 @@ BOOST_OPENMETHOD_OVERRIDE(name, (const std::string& name), std::string) {
 
 } // namespace boost_any
 
+namespace any_ref {
+
+using std_any::Dog;
+
+// tag::ref[]
+BOOST_OPENMETHOD(poke, (virtual_any_ref<std::any>), std::string);
+
+// A plain value does not convert to a virtual_any_ref, so overriders
+// that take the contained value are registered with the core API.
+using poke_method =
+    BOOST_OPENMETHOD_TYPE(poke, (virtual_any_ref<std::any>), std::string);
+
+auto poke_dog(Dog& dog) -> std::string {
+    dog.name += "!";
+    return dog.name;
+}
+
+BOOST_OPENMETHOD_REGISTER(poke_method::override<poke_dog>);
+// end::ref[]
+
+} // namespace any_ref
+
 BOOST_AUTO_TEST_CASE(std_any_examples) {
     using namespace std_any;
 
@@ -143,29 +165,27 @@ BOOST_AUTO_TEST_CASE(std_any_examples) {
 
         BOOST_TEST(cout.str() == "Felix the cat\n");
     }
+}
+
+BOOST_AUTO_TEST_CASE(virtual_any_ref_examples) {
+    using namespace any_ref;
+
+    initialize();
 
     {
         capture_cout cout;
 
-        // tag::make_any_virtual[]
-        auto felix = make_any_virtual<std::string, std::any>("Felix the cat");
+        // tag::ref_dispatch[]
+        std::any spot_any = Dog{"Spot"};
 
-        std::cout << name(felix) << "\n"; // Felix the cat
-        // end::make_any_virtual[]
+        // one lookup; the handle borrows the `any`
+        virtual_any_ref<std::any> spot = spot_any;
 
-        BOOST_TEST(cout.str() == "Felix the cat\n");
-    }
+        std::cout << poke(spot) << "\n"; // Spot!
+        std::cout << poke(spot) << "\n"; // Spot!! - no lookup on any call
+        // end::ref_dispatch[]
 
-    {
-        capture_cout cout;
-
-        // tag::make_std_any_virtual[]
-        auto felix = make_std_any_virtual<std::string>("Felix the cat");
-
-        std::cout << name(felix) << "\n"; // Felix the cat
-        // end::make_std_any_virtual[]
-
-        BOOST_TEST(cout.str() == "Felix the cat\n");
+        BOOST_TEST(cout.str() == "Spot!\nSpot!!\n");
     }
 }
 
@@ -178,7 +198,7 @@ BOOST_AUTO_TEST_CASE(boost_any_examples) {
         capture_cout cout;
 
         // tag::boost_dispatch[]
-        auto felix = make_boost_any_virtual<std::string>("Felix the cat");
+        virtual_boost_any felix = std::string("Felix the cat");
 
         std::cout << name(felix) << "\n"; // Felix the cat
         // end::boost_dispatch[]
