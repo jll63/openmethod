@@ -155,6 +155,10 @@ works with any pre-existing Concept containing `typeid_<>`. To use an `any`
 with several registries, list the concept several times, once per registry:
 `openmethod_vptr<Concept, some_registry>`.
 
+An `any` that carries the concept cannot be wrapped in a `virtual_any` - and
+does not need to be: both fill the same goal, constant-time access to the
+v-table pointer. Wrapping one is rejected at compile time.
+
 This concept is based on a design contributed by Steven Watanabe in
 link:https://github.com/boostorg/openmethod/issues/21[issue #21].
 

@@ -124,8 +124,7 @@ contain `typeid_<>`, which `relaxed` implies. Also provides
 `use_type_erasure_types`, which registers the types that may be bound, and
 `openmethod_vptr`, a Boost.TypeErasure concept that stores the v-table pointer
 in the `any`'s own dispatch table and registers bound types automatically.
-`final_virtual_ptr` is deleted for `type_erasure::any`.  Based on a design by
-Steven Watanabe.
+`final_virtual_ptr` is deleted for `type_erasure::any`.
 
 *The headers below are for advanced use*.
 

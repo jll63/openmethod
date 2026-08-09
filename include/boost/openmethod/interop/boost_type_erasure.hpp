@@ -523,6 +523,11 @@ use_class_aux<Registry, mp11::mp_list<Class, boost::type_erasure::any<Concept>>>
 //! calling a method on an empty relaxed `any` throws
 //! `boost::type_erasure::bad_function_call`.
 //!
+//! An `any` that carries this concept cannot be wrapped in a
+//! @ref virtual_any - and does not need to be: both fill the same goal,
+//! constant-time access to the v-table pointer. Wrapping one is rejected
+//! at compile time.
+//!
 //! Based on a design by
 //! [Steven Watanabe](https://github.com/boostorg/openmethod/issues/21).
 //!

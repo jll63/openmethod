@@ -293,9 +293,8 @@ BOOST_AUTO_TEST_CASE(type_erasure_indirect_vptr) {
 namespace BOOST_OPENMETHOD_GENSYM {
 
 // -----------------------------------------------------------------------------
-// the openmethod_vptr concept (based on a design by Steven Watanabe): the
-// any carries the v-table pointer for its bound type in its own dispatch
-// table, and binding a value registers its type
+// the openmethod_vptr concept: the any carries the v-table pointer for its
+// bound type in its own dispatch table, and binding a value registers its type
 
 struct Dog {
     std::string name;
