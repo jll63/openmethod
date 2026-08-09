@@ -256,6 +256,11 @@ BOOST_AUTO_TEST_CASE(type_erasure_virtual_any) {
     auto snoopy = make_any_virtual<Dog, erased>("Snoopy");
     BOOST_TEST(snoopy.vptr() == default_registry::static_vptr<Dog>);
     BOOST_TEST(name(snoopy) == "Snoopy the dog");
+
+    // from an existing value, deducing its type
+    auto duke = make_any_virtual<erased>(Dog{"Duke"});
+    BOOST_TEST(duke.vptr() == default_registry::static_vptr<Dog>);
+    BOOST_TEST(name(duke) == "Duke the dog");
 }
 } // namespace BOOST_OPENMETHOD_GENSYM
 

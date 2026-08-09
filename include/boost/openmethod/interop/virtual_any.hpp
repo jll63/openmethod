@@ -528,6 +528,33 @@ inline auto make_any_virtual(T&&... args) -> virtual_any<Any, Registry> {
     return virtual_any<Any, Registry>(Class(std::forward<T>(args)...));
 }
 
+//! Create a `virtual_any` from an existing value.
+//!
+//! This overload deduces the type of the value: only the `any` type - and
+//! optionally the registry - needs to be spelled. Stores `value` in a
+//! @ref virtual_any, and sets the v-table pointer to the
+//! @ref registry::static_vptr for `value`\'s type - no hash table lookup
+//! is involved. If `value` is itself an `Any`, this is equivalent to the
+//! `virtual_any` constructor taking an `any`, which looks the v-table
+//! pointer up once.
+//!
+//! @tparam Any An `any` type.
+//! @tparam Registry A @ref registry.
+//! @tparam Class The type of the value (deduced).
+//! @param value The value to store in the `any`.
+//! @return A `virtual_any<Any, Registry>` containing `value`.
+//!
+//! @par Example
+//! include:virtual_any.cpp#make_any_virtual_value
+//!
+//! @see [Interoperation with `any`](xref:ROOT:interop_any.adoc)
+template<
+    class Any, class Registry = BOOST_OPENMETHOD_DEFAULT_REGISTRY, class Class,
+    typename = std::enable_if_t<detail::is_registry<Registry>>>
+inline auto make_any_virtual(Class&& value) -> virtual_any<Any, Registry> {
+    return virtual_any<Any, Registry>(std::forward<Class>(value));
+}
+
 namespace aliases {
 using boost::openmethod::make_any_virtual;
 using boost::openmethod::virtual_any;
