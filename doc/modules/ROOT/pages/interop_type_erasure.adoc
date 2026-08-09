@@ -20,8 +20,8 @@ the only requirement placed on the Concept is that it contain
 The types the `any` may bind have to be registered.
 cpp:use_type_erasure_types[] does that, registering the owning flavor -
 `any<Concept>` - as a class, and each of the types as a class derived from it.
-Each Concept gets a root of its own, so `any`s with different Concepts - and
-the plain `any`s - can coexist in the same registry. A type that is not
+Each Concept gets a root of its own, so ``any``s with different Concepts - and
+the plain ``any``s - can coexist in the same registry. A type that is not
 registered cannot be dispatched on; a call with such a value bound to the
 `any` is a cpp:missing_class[] error - see
 xref:error_handling.adoc[Error Handling].
@@ -126,7 +126,7 @@ class rather than the one for the bound value.
 #### The `openmethod_vptr` concept
 
 `virtual_any` removes the hash lookup by making the _object_ wider.
-Boost.TypeErasure offers a way to remove it for plain, unwidened `any`\s:
+Boost.TypeErasure offers a way to remove it for plain, unwidened ``any``s:
 since the `any` already carries a dispatch table of Concept operations, the
 v-table pointer can be one of them. cpp:openmethod_vptr[] is a
 Boost.TypeErasure concept that does exactly that. Include it in the Concept,
@@ -138,7 +138,7 @@ policy, so calls through such an `any` never hash the result of `typeid_of`.
 
 Binding a value to such an `any` also _registers_ its type, as a class derived
 from the owning flavor - the registrar is instantiated along with the
-operation. `use_type_erasure_types` becomes unnecessary for these `any`\s,
+operation. `use_type_erasure_types` becomes unnecessary for these ``any``s,
 although the two registration styles may coexist.
 
 The concept must name the Concept it is part of, so the Concept is defined as
@@ -162,7 +162,7 @@ v-table pointer. Wrapping one is rejected at compile time.
 This concept is based on a design contributed by Steven Watanabe in
 link:https://github.com/boostorg/openmethod/issues/21[issue #21].
 
-#### Empty `any`s
+#### Empty ``any``s
 
 An empty relaxed `any` reports `typeid(void)`, which is not a registered
 class, so dispatching on it is a cpp:missing_class[] error. A catch-all

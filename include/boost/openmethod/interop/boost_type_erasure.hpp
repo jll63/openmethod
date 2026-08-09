@@ -512,8 +512,8 @@ use_class_aux<Registry, mp11::mp_list<Class, boost::type_erasure::any<Concept>>>
 //! In addition, binding a value to such an `any` registers its type as a
 //! class derived from the owning flavor - the same shape
 //! @ref use_type_erasure_types produces, with which it can coexist. No
-//! explicit registration is needed for the types bound to `any`\s that
-//! carry this concept.
+//! explicit registration is needed for the types bound to an `any` that
+//! carries this concept.
 //!
 //! `Concept` must be the very Concept the `any` is instantiated with.
 //! Since the concept appears inside that Concept, the Concept must name
