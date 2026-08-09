@@ -83,7 +83,7 @@ class vptr_map : public vptr {
             st().vptrs.swap(new_vptrs);
         }
 
-        //! Returns a reference to a v-table pointer for an object.
+        //! Returns a *reference* to a v-table pointer for an object.
         //!
         //! Acquires the dynamic @ref type_id of `arg`, using the registry's
         //! @ref rtti policy.
@@ -96,7 +96,7 @@ class vptr_map : public vptr {
         //!
         //! @tparam Class A registered class.
         //! @param arg A reference to a const object of type `Class`.
-        //! @return A reference to a the v-table pointer for `Class`.
+        //! @return A reference to the v-table pointer for `Class`.
         template<class Class>
         static auto dynamic_vptr(const Class& arg) -> const vptr_type& {
             return vptr(Registry::rtti::dynamic_type(arg));
@@ -111,7 +111,7 @@ class vptr_map : public vptr {
         //! terminates the program with @ref abort.
         //!
         //! @param type A `type_id`.
-        //! @return A reference to a the v-table pointer for `type`.
+        //! @return A reference to the v-table pointer for `type`.
         static auto vptr(type_id type) -> const vptr_type& {
             auto iter = st().vptrs.find(type);
 

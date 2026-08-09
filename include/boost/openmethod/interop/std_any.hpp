@@ -48,8 +48,12 @@ struct virtual_traits<const std::any&, Registry> {
 
     //! Returns a *reference* to a v-table pointer for an object.
     //!
-    //! Acquires the dynamic @ref type_id of `arg`, using the registry's
-    //! @ref rtti policy.
+    //! Acquires the @ref type_id of the value stored in `arg`, using
+    //! `std::any::type()`.
+    //!
+    //! Passes it to the registry's @ref policies::vptr policy, which must
+    //! provide @ref policies::VptrFn::vptr. Both @ref policies::vptr_vector
+    //! and @ref policies::vptr_map do.
     //!
     //! If the registry has a @ref type_hash policy, uses it to convert the
     //! type id to an index; otherwise, uses the type_id as the index.
@@ -111,6 +115,10 @@ struct virtual_traits<std::any&, Registry> {
     //! Acquires the @ref type_id of the value stored in `arg`, using
     //! `std::any::type()`.
     //!
+    //! Passes it to the registry's @ref policies::vptr policy, which must
+    //! provide @ref policies::VptrFn::vptr. Both @ref policies::vptr_vector
+    //! and @ref policies::vptr_map do.
+    //!
     //! If the registry has a @ref type_hash policy, uses it to convert the
     //! type id to an index; otherwise, uses the type_id as the index.
     //!
@@ -169,8 +177,12 @@ struct virtual_traits<std::any&&, Registry> {
 
     //! Returns a *reference* to a v-table pointer for an object.
     //!
-    //! Acquires the dynamic @ref type_id of `arg`, using the registry's
-    //! @ref rtti policy.
+    //! Acquires the @ref type_id of the value stored in `arg`, using
+    //! `std::any::type()`.
+    //!
+    //! Passes it to the registry's @ref policies::vptr policy, which must
+    //! provide @ref policies::VptrFn::vptr. Both @ref policies::vptr_vector
+    //! and @ref policies::vptr_map do.
     //!
     //! If the registry has a @ref type_hash policy, uses it to convert the
     //! type id to an index; otherwise, uses the type_id as the index.
@@ -182,7 +194,7 @@ struct virtual_traits<std::any&&, Registry> {
     //! terminates the program with @ref abort.
     //!
     //! @param arg A reference to a const `any`.
-    //! @return A reference to a the v-table pointer for `Class`.
+    //! @return A reference to the v-table pointer for the stored value.
     static auto vptr(const std::any& arg) -> const vptr_type& {
         return Registry::vptr::vptr(&arg.type());
     }

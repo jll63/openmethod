@@ -54,6 +54,10 @@ struct virtual_traits<const boost::any&, Registry> {
     //! `boost::any::type()` yields the same `std::type_info` object, provided
     //! Boost.TypeIndex uses `stl_type_index`.
     //!
+    //! Passes the type id to the registry's @ref policies::vptr policy, which
+    //! must provide @ref policies::VptrFn::vptr. Both
+    //! @ref policies::vptr_vector and @ref policies::vptr_map do.
+    //!
     //! If the registry has a @ref type_hash policy, uses it to convert the
     //! type id to an index; otherwise, uses the type_id as the index.
     //!
@@ -125,6 +129,10 @@ struct virtual_traits<boost::any&, Registry> {
     //! `boost::any::type()` yields the same `std::type_info` object, provided
     //! Boost.TypeIndex uses `stl_type_index`.
     //!
+    //! Passes the type id to the registry's @ref policies::vptr policy, which
+    //! must provide @ref policies::VptrFn::vptr. Both
+    //! @ref policies::vptr_vector and @ref policies::vptr_map do.
+    //!
     //! If the registry has a @ref type_hash policy, uses it to convert the
     //! type id to an index; otherwise, uses the type_id as the index.
     //!
@@ -195,6 +203,10 @@ struct virtual_traits<boost::any&&, Registry> {
     //! identify classes by `&typeid(T)`, as @ref std_rtti does;
     //! `boost::any::type()` yields the same `std::type_info` object, provided
     //! Boost.TypeIndex uses `stl_type_index`.
+    //!
+    //! Passes the type id to the registry's @ref policies::vptr policy, which
+    //! must provide @ref policies::VptrFn::vptr. Both
+    //! @ref policies::vptr_vector and @ref policies::vptr_map do.
     //!
     //! If the registry has a @ref type_hash policy, uses it to convert the
     //! type id to an index; otherwise, uses the type_id as the index.

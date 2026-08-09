@@ -152,7 +152,7 @@ struct vptr_vector : vptr {
         //!
         //! @tparam Class A registered class.
         //! @param arg A reference to a const object of type `Class`.
-        //! @return A reference to a the v-table pointer for `Class`.
+        //! @return A reference to the v-table pointer for `Class`.
         template<class Class>
         static auto dynamic_vptr(const Class& arg) -> const vptr_type& {
             return vptr(Registry::rtti::dynamic_type(arg));
@@ -170,7 +170,7 @@ struct vptr_vector : vptr {
         //! terminates the program with @ref abort.
         //!
         //! @param type A `type_id`.
-        //! @return A reference to a the v-table pointer for `type`.
+        //! @return A reference to the v-table pointer for `type`.
         static auto vptr(type_id type) -> const vptr_type& {
             std::size_t index;
             if constexpr (has_type_hash) {
