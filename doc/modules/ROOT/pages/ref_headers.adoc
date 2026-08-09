@@ -97,14 +97,8 @@ Provides `virtual_traits` specializations that make it possible to use a
 [#boost_type_erasure]
 ### link:../../../include/boost/openmethod/interop/boost_type_erasure.hpp[<boost/openmethod/interop/boost_type_erasure.hpp>]
 
-Provides `virtual_traits` specializations for using a `boost::type_erasure::any`
-in virtual parameters: the owning flavor by reference, the reference-wrapper
-flavors by value. Dispatch is on the type of the bound value; the Concept must
-contain `typeid_<>`, which `relaxed` implies. Also provides
-`use_type_erasure_types`, which registers the types that may be bound, and
-`openmethod_vptr`, a Boost.TypeErasure concept that stores the v-table pointer
-in the `any`'s own dispatch table and registers bound types automatically.
-`final_virtual_ptr` is deleted for `type_erasure::any`.
+Provides specializations for using a `boost::type_erasure::any` in virtual
+parameters.
 
 *The headers below are for advanced use*.
 
