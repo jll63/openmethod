@@ -562,13 +562,20 @@ BOOST_OPENMETHOD_DETAIL_HAS_STATIC_FN(vptr);
 
 template<class Registry, class ArgType>
 decltype(auto) acquire_vptr(const ArgType& arg) {
+    // A class with a boost_openmethod_vptr overload does not need to be
+    // wrapped: virtual_ptr and the hook fill the same goal, fast access
+    // to the v-table pointer. The hook also returns the vptr by value,
+    // which indirect registries cannot store (see box_vptr).
+    static_assert(
+        !has_vptr_fn<ArgType, Registry>,
+        "do not wrap an object that has a boost_openmethod_vptr overload "
+        "in a virtual_ptr; call methods directly on the object");
+
     Registry::require_initialized();
 
-    if constexpr (has_vptr_fn<ArgType, Registry>) {
-        return boost_openmethod_vptr(arg, static_cast<Registry*>(nullptr));
-    } else if constexpr (has_vptr<
-                             virtual_traits<const ArgType&, Registry>,
-                             const ArgType&>) {
+    if constexpr (has_vptr<
+                      virtual_traits<const ArgType&, Registry>,
+                      const ArgType&>) {
         return virtual_traits<const ArgType&, Registry>::vptr(arg);
     } else {
         return Registry::template policy<policies::vptr>::dynamic_vptr(arg);
@@ -785,10 +792,12 @@ class virtual_ptr {
 
     //! Construct a `virtual_ptr` from a reference to an object
     //!
-    //! The pointer to the v-table is obtained by calling
-    //! @ref boost_openmethod_vptr if a suitable overload exists, or the
-    //! @ref policies::VptrFn::dynamic_vptr of the registry's
-    //! `vptr` policy otherwise.
+    //! The pointer to the v-table is obtained from @ref virtual_traits,
+    //! if it provides a `vptr` function, or from the
+    //! @ref policies::VptrFn::dynamic_vptr of the registry's `vptr`
+    //! policy otherwise. An object with a @ref boost_openmethod_vptr
+    //! overload is rejected at compile time: it carries its own v-table
+    //! pointer, and does not need to be wrapped in a `virtual_ptr`.
     //!
     //! @param other A reference to a polymorphic object
     //!
@@ -820,10 +829,12 @@ class virtual_ptr {
 
     //! Construct a `virtual_ptr` from a pointer to an object
     //!
-    //! The pointer to the v-table is obtained by calling
-    //! @ref boost_openmethod_vptr if a suitable overload exists, or the
-    //! @ref policies::VptrFn::dynamic_vptr of the registry's
-    //! `vptr` policy otherwise.
+    //! The pointer to the v-table is obtained from @ref virtual_traits,
+    //! if it provides a `vptr` function, or from the
+    //! @ref policies::VptrFn::dynamic_vptr of the registry's `vptr`
+    //! policy otherwise. An object with a @ref boost_openmethod_vptr
+    //! overload is rejected at compile time: it carries its own v-table
+    //! pointer, and does not need to be wrapped in a `virtual_ptr`.
     //!
     //! @par Example
     //! include:virtual_ptr.cpp#ctor_pointer
@@ -889,10 +900,12 @@ class virtual_ptr {
 
     //! Assign a `virtual_ptr` from a reference to an object
     //!
-    //! The pointer to the v-table is obtained by calling
-    //! @ref boost_openmethod_vptr if a suitable overload exists, or the
-    //! @ref policies::VptrFn::dynamic_vptr of the registry's
-    //! `vptr` policy otherwise.
+    //! The pointer to the v-table is obtained from @ref virtual_traits,
+    //! if it provides a `vptr` function, or from the
+    //! @ref policies::VptrFn::dynamic_vptr of the registry's `vptr`
+    //! policy otherwise. An object with a @ref boost_openmethod_vptr
+    //! overload is rejected at compile time: it carries its own v-table
+    //! pointer, and does not need to be wrapped in a `virtual_ptr`.
     //!
     //! @par Example
     //! include:virtual_ptr.cpp#assign_ref
@@ -927,10 +940,12 @@ class virtual_ptr {
 
     //! Assign a `virtual_ptr` from a pointer to an object
     //!
-    //! The pointer to the v-table is obtained by calling
-    //! @ref boost_openmethod_vptr if a suitable overload exists, or the
-    //! @ref policies::VptrFn::dynamic_vptr of the registry's
-    //! `vptr` policy otherwise.
+    //! The pointer to the v-table is obtained from @ref virtual_traits,
+    //! if it provides a `vptr` function, or from the
+    //! @ref policies::VptrFn::dynamic_vptr of the registry's `vptr`
+    //! policy otherwise. An object with a @ref boost_openmethod_vptr
+    //! overload is rejected at compile time: it carries its own v-table
+    //! pointer, and does not need to be wrapped in a `virtual_ptr`.
     //!
     //! @par Example
     //! include:virtual_ptr.cpp#assign_pointer

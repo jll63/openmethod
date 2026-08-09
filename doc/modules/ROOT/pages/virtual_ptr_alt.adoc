@@ -102,3 +102,7 @@ v-table for the bases, just like what C++ does for its native vptrs.
 
 `inplace_vptr_base` and `inplace_vptr_derived` are aliased in `namespace
 boost::openmethod::aliases`.
+
+An object that embeds its v-table pointer does not need to be wrapped in a
+`virtual_ptr` - the two fill the same goal, fast access to the v-table
+pointer - and wrapping one is rejected at compile time.
