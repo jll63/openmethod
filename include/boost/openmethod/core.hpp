@@ -562,13 +562,20 @@ BOOST_OPENMETHOD_DETAIL_HAS_STATIC_FN(vptr);
 
 template<class Registry, class ArgType>
 decltype(auto) acquire_vptr(const ArgType& arg) {
+    // A class with a boost_openmethod_vptr overload does not need to be
+    // wrapped: virtual_ptr and the hook fill the same goal, fast access
+    // to the v-table pointer. The hook also returns the vptr by value,
+    // which indirect registries cannot store (see box_vptr).
+    static_assert(
+        !has_vptr_fn<ArgType, Registry>,
+        "do not wrap an object that has a boost_openmethod_vptr overload "
+        "in a virtual_ptr; call methods directly on the object");
+
     Registry::require_initialized();
 
-    if constexpr (has_vptr_fn<ArgType, Registry>) {
-        return boost_openmethod_vptr(arg, static_cast<Registry*>(nullptr));
-    } else if constexpr (has_vptr<
-                             virtual_traits<const ArgType&, Registry>,
-                             const ArgType&>) {
+    if constexpr (has_vptr<
+                      virtual_traits<const ArgType&, Registry>,
+                      const ArgType&>) {
         return virtual_traits<const ArgType&, Registry>::vptr(arg);
     } else {
         return Registry::template policy<policies::vptr>::dynamic_vptr(arg);
@@ -624,8 +631,7 @@ inline vptr_type null_vptr = nullptr;
 //!
 //! @par Example
 //!
-//! See [the default-registry overload](xref:reference:boost/openmethod/final_virtual_ptr-08.adoc#_example)
-//! for an example.
+//! include:virtual_ptr.cpp#non_polymorphic_classes;final_virtual_ptr
 //!
 //! @tparam Registry A @ref registry.
 //! @tparam Arg The type of the argument.
@@ -786,10 +792,12 @@ class virtual_ptr {
 
     //! Construct a `virtual_ptr` from a reference to an object
     //!
-    //! The pointer to the v-table is obtained by calling
-    //! @ref boost_openmethod_vptr if a suitable overload exists, or the
-    //! @ref policies::vptr::fn::dynamic_vptr of the registry's
-    //! `vptr` policy otherwise.
+    //! The pointer to the v-table is obtained from @ref virtual_traits,
+    //! if it provides a `vptr` function, or from the
+    //! @ref policies::VptrFn::dynamic_vptr of the registry's `vptr`
+    //! policy otherwise. An object with a @ref boost_openmethod_vptr
+    //! overload is rejected at compile time: it carries its own v-table
+    //! pointer, and does not need to be wrapped in a `virtual_ptr`.
     //!
     //! @param other A reference to a polymorphic object
     //!
@@ -821,10 +829,12 @@ class virtual_ptr {
 
     //! Construct a `virtual_ptr` from a pointer to an object
     //!
-    //! The pointer to the v-table is obtained by calling
-    //! @ref boost_openmethod_vptr if a suitable overload exists, or the
-    //! @ref policies::vptr::fn::dynamic_vptr of the registry's
-    //! `vptr` policy otherwise.
+    //! The pointer to the v-table is obtained from @ref virtual_traits,
+    //! if it provides a `vptr` function, or from the
+    //! @ref policies::VptrFn::dynamic_vptr of the registry's `vptr`
+    //! policy otherwise. An object with a @ref boost_openmethod_vptr
+    //! overload is rejected at compile time: it carries its own v-table
+    //! pointer, and does not need to be wrapped in a `virtual_ptr`.
     //!
     //! @par Example
     //! include:virtual_ptr.cpp#ctor_pointer
@@ -890,10 +900,12 @@ class virtual_ptr {
 
     //! Assign a `virtual_ptr` from a reference to an object
     //!
-    //! The pointer to the v-table is obtained by calling
-    //! @ref boost_openmethod_vptr if a suitable overload exists, or the
-    //! @ref policies::vptr::fn::dynamic_vptr of the registry's
-    //! `vptr` policy otherwise.
+    //! The pointer to the v-table is obtained from @ref virtual_traits,
+    //! if it provides a `vptr` function, or from the
+    //! @ref policies::VptrFn::dynamic_vptr of the registry's `vptr`
+    //! policy otherwise. An object with a @ref boost_openmethod_vptr
+    //! overload is rejected at compile time: it carries its own v-table
+    //! pointer, and does not need to be wrapped in a `virtual_ptr`.
     //!
     //! @par Example
     //! include:virtual_ptr.cpp#assign_ref
@@ -928,10 +940,12 @@ class virtual_ptr {
 
     //! Assign a `virtual_ptr` from a pointer to an object
     //!
-    //! The pointer to the v-table is obtained by calling
-    //! @ref boost_openmethod_vptr if a suitable overload exists, or the
-    //! @ref policies::vptr::fn::dynamic_vptr of the registry's
-    //! `vptr` policy otherwise.
+    //! The pointer to the v-table is obtained from @ref virtual_traits,
+    //! if it provides a `vptr` function, or from the
+    //! @ref policies::VptrFn::dynamic_vptr of the registry's `vptr`
+    //! policy otherwise. An object with a @ref boost_openmethod_vptr
+    //! overload is rejected at compile time: it carries its own v-table
+    //! pointer, and does not need to be wrapped in a `virtual_ptr`.
     //!
     //! @par Example
     //! include:virtual_ptr.cpp#assign_pointer
@@ -2720,6 +2734,35 @@ struct VirtualTraits {
     //! @param arg An argument passed to the method call.
     //! @return A reference to an object.
     static auto peek(T arg) -> const virtual_type&;
+
+    // Added by the `std::any` interop, under the name `type_vptr`. An `any`
+    // dispatches on the type of the value it contains, which the rtti policy
+    // cannot see: `dynamic_type` on the `any` itself yields the wrapper.
+
+    //! Returns a *reference* to the v-table pointer for an object.
+    //!
+    //! `vptr` is optional. It is called on the object returned by @ref peek,
+    //! not on the method argument itself. A method acquires the v-table
+    //! pointer of a virtual argument from the first of the following that is
+    //! available: a `boost_openmethod_vptr` function, found by ADL on the
+    //! peeked object; `vptr`; @ref policies::VptrFn::dynamic_vptr of the
+    //! registry's @ref policies::vptr policy.
+    //!
+    //! Implement `vptr` only if the v-table pointer cannot be obtained from
+    //! the dynamic type of the peeked object, as reported by the registry's
+    //! @ref policies::rtti policy. This is the case for `any`-like types:
+    //! their dynamic type is the wrapper, not the value they contain. The
+    //! `std::any` specializations read the @ref type_id of the contained
+    //! value from `arg.type()`, and pass it to
+    //! @ref policies::VptrFn::vptr.
+    //!
+    //! `vptr` must return a *reference*, not a value, so that the caller
+    //! observes the current v-table pointer if the registry contains the
+    //! @ref policies::indirect_vptr policy and `initialize` is called again.
+    //!
+    //! @param arg The object returned by @ref peek.
+    //! @return A reference to the v-table pointer for `arg`.
+    static auto vptr(const virtual_type& arg) -> const vptr_type&;
 
     //! Casts a virtual argument.
     //!

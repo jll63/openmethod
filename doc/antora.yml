@@ -15,10 +15,6 @@ asciidoc:
   attributes:
     source-language: asciidoc@
     table-caption: false
-    # Base of the links to header sources in ref_headers.adoc. build_antora.sh
-    # overrides this with the exact commit when it can determine one; this is
-    # the fallback for builds that cannot, such as a local preview.
-    base-url: https://github.com/boostorg/openmethod/blob/master
 nav:
   - modules/ROOT/nav.adoc
 ext:

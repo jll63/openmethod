@@ -176,6 +176,9 @@ openmethod_compile_fail_test(
     compile_fail_type_erasure_const_ref_to_mutable_ref "no matching")
 openmethod_compile_fail_test(
     compile_fail_final_virtual_ptr_type_erasure "deleted function")
+openmethod_compile_fail_test(
+    compile_fail_virtual_ptr_inplace_vptr
+    "do not wrap an object that has a boost_openmethod_vptr overload")
 
 if (TARGET Boost::dll)
     add_subdirectory(dynamic_loading)

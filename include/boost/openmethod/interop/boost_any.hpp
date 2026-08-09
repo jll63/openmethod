@@ -54,6 +54,10 @@ struct virtual_traits<const boost::any&, Registry> {
     //! `boost::any::type()` yields the same `std::type_info` object, provided
     //! Boost.TypeIndex uses `stl_type_index`.
     //!
+    //! Passes the type id to the registry's @ref policies::vptr policy, which
+    //! must provide @ref policies::VptrFn::vptr. Both
+    //! @ref policies::vptr_vector and @ref policies::vptr_map do.
+    //!
     //! If the registry has a @ref type_hash policy, uses it to convert the
     //! type id to an index; otherwise, uses the type_id as the index.
     //!
@@ -125,6 +129,10 @@ struct virtual_traits<boost::any&, Registry> {
     //! `boost::any::type()` yields the same `std::type_info` object, provided
     //! Boost.TypeIndex uses `stl_type_index`.
     //!
+    //! Passes the type id to the registry's @ref policies::vptr policy, which
+    //! must provide @ref policies::VptrFn::vptr. Both
+    //! @ref policies::vptr_vector and @ref policies::vptr_map do.
+    //!
     //! If the registry has a @ref type_hash policy, uses it to convert the
     //! type id to an index; otherwise, uses the type_id as the index.
     //!
@@ -195,6 +203,10 @@ struct virtual_traits<boost::any&&, Registry> {
     //! identify classes by `&typeid(T)`, as @ref std_rtti does;
     //! `boost::any::type()` yields the same `std::type_info` object, provided
     //! Boost.TypeIndex uses `stl_type_index`.
+    //!
+    //! Passes the type id to the registry's @ref policies::vptr policy, which
+    //! must provide @ref policies::VptrFn::vptr. Both
+    //! @ref policies::vptr_vector and @ref policies::vptr_map do.
     //!
     //! If the registry has a @ref type_hash policy, uses it to convert the
     //! type id to an index; otherwise, uses the type_id as the index.
@@ -307,7 +319,11 @@ make_boost_any_virtual(T&&... args) -> virtual_any<boost::any, Registry> {
 // from consideration when an explicit template argument list is given, so
 // the Registry-only templates - more specialized than the primary - catch
 // those.
+//
+// Hidden from the reference: they are a guard, not API, and six deleted
+// overloads would crowd the `final_virtual_ptr` overload list.
 
+#ifndef __MRDOCS__
 template<class Registry>
 void final_virtual_ptr(const boost::any&) = delete;
 template<class Registry>
@@ -317,6 +333,7 @@ void final_virtual_ptr(boost::any&&) = delete;
 void final_virtual_ptr(const boost::any&) = delete;
 void final_virtual_ptr(boost::any&) = delete;
 void final_virtual_ptr(boost::any&&) = delete;
+#endif
 
 namespace aliases {
 using boost::openmethod::make_boost_any_virtual;
