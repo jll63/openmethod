@@ -112,21 +112,15 @@ use the v-table of the `any` root class instead of the contained value's.
 [#boost_type_erasure]
 ### link:{base-url}/include/boost/openmethod/interop/boost_type_erasure.hpp[<boost/openmethod/interop/boost_type_erasure.hpp>]
 
-Provides `virtual_traits` specializations that make it possible to use a
-`boost::type_erasure::any` in virtual parameters: the owning flavor by const,
-mutable or rvalue reference, and the reference-wrapper flavors
-(`any<Concept, _self&>`, `any<Concept, const _self&>`) by value. Dispatch is on
-the type of the bound value, obtained via `boost::type_erasure::typeid_of`; the
-Concept must contain `boost::type_erasure::typeid_<>`, which `relaxed` implies.
-Also provides `use_type_erasure_types`, which registers the types that may be
-bound; `virtual_any<any<Concept>>` works as well, and looks the v-table pointer
-up only once, at construction. `openmethod_vptr` - based on a design by Steven
-Watanabe - is a Boost.TypeErasure concept that stores the v-table pointer for
-the bound type in the `any`'s own dispatch table, removing the hash lookup
-altogether, and registers bound types automatically. In addition, the header
-deletes the `final_virtual_ptr` overloads for `boost::type_erasure::any`, which
-would otherwise silently use the v-table of the `any` root class instead of the
-bound value's.
+Provides `virtual_traits` specializations for using a `boost::type_erasure::any`
+in virtual parameters: the owning flavor by reference, the reference-wrapper
+flavors by value. Dispatch is on the type of the bound value; the Concept must
+contain `typeid_<>`, which `relaxed` implies. Also provides
+`use_type_erasure_types`, which registers the types that may be bound, and
+`openmethod_vptr`, a Boost.TypeErasure concept that stores the v-table pointer
+in the `any`'s own dispatch table and registers bound types automatically.
+`final_virtual_ptr` is deleted for `type_erasure::any`.  Based on a design by
+Steven Watanabe.
 
 *The headers below are for advanced use*.
 
