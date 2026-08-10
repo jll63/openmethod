@@ -7,7 +7,9 @@
 #include <string>
 #include <utility>
 
+#include <boost/any.hpp>
 #include <boost/openmethod.hpp>
+#include <boost/openmethod/interop/boost_any.hpp>
 #include <boost/openmethod/interop/std_any.hpp>
 #include <boost/openmethod/initialize.hpp>
 
@@ -140,6 +142,65 @@ BOOST_AUTO_TEST_CASE(virtual_any_ref_mutable) {
     BOOST_TEST(rex_ref.vptr() == rex.vptr());
     BOOST_TEST(bump(rex_ref) == "Rex Jr. the dog");
     BOOST_TEST(std::any_cast<const Dog&>(rex.get()).name == "Rex Jr.");
+}
+} // namespace BOOST_OPENMETHOD_GENSYM
+
+namespace BOOST_OPENMETHOD_GENSYM {
+
+// -----------------------------------------------------------------------------
+// boost::any: virtual_any_ref is generic over the `any` type
+
+struct Dog {
+    std::string name;
+};
+
+use_boost_any_types<Dog, std::string, int> BOOST_OPENMETHOD_GENSYM;
+
+BOOST_OPENMETHOD(name, (virtual_any_ref<const boost::any>), std::string);
+
+using name_method = BOOST_OPENMETHOD_TYPE(
+    name, (virtual_any_ref<const boost::any>), std::string);
+
+auto name_dog(const Dog& dog) -> std::string {
+    return dog.name + " the dog";
+}
+
+BOOST_OPENMETHOD_REGISTER(name_method::override<name_dog>);
+
+BOOST_OPENMETHOD_OVERRIDE(
+    name, (virtual_any_ref<const boost::any> va), std::string) {
+    return va.get().empty() ? "nothing" : "something";
+}
+
+BOOST_OPENMETHOD(bump, (virtual_any_ref<boost::any>), std::string);
+
+using bump_method =
+    BOOST_OPENMETHOD_TYPE(bump, (virtual_any_ref<boost::any>), std::string);
+
+auto bump_dog(Dog& dog) -> std::string {
+    dog.name += " Jr.";
+    return dog.name + " the dog";
+}
+
+BOOST_OPENMETHOD_REGISTER(bump_method::override<bump_dog>);
+
+BOOST_AUTO_TEST_CASE(virtual_any_ref_boost_any) {
+    initialize(trace());
+
+    const boost::any spot_any(Dog{"Spot"});
+    virtual_any_ref<const boost::any> spot = spot_any;
+    BOOST_TEST(spot.vptr() == default_registry::static_vptr<Dog>);
+    BOOST_TEST(name(spot) == "Spot the dog");
+
+    // `int` is registered, but has no specific overrider: the catch-all,
+    // registered for the `boost::any` root, applies
+    boost::any answer_any(42);
+    BOOST_TEST(name(answer_any) == "something");
+
+    // mutations through a mutable handle reach the referent
+    boost::any rex_any(Dog{"Rex"});
+    BOOST_TEST(bump(rex_any) == "Rex Jr. the dog");
+    BOOST_TEST(boost::any_cast<const Dog&>(rex_any).name == "Rex Jr.");
 }
 } // namespace BOOST_OPENMETHOD_GENSYM
 
