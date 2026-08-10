@@ -37,8 +37,10 @@
 -- Fields the generic setter cannot write. `level` is a heading's depth; MrDocs
 -- does not parse markdown `##` headings in doc comments, so heading blocks only
 -- ever come from `@par` at level 1 -- which is the default -- and dropping it
--- round-trips.
-local UNWRITABLE = { level = true }
+-- round-trips. `$meta` is metadata MrDocs attaches to a node, not content: it
+-- reads back from the proxy, but since a51d1621 the setter rejects it as an
+-- unknown sub-field of the node's kind, so the deep copy must leave it out.
+local UNWRITABLE = { level = true, ["$meta"] = true }
 
 local function dirname(path)
     return path:match("^(.*)/[^/]*$") or "."
