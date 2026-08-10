@@ -30,5 +30,8 @@ BOOST_OPENMETHOD_REGISTER(use_type_erasure_types<erased, Dog>);
 BOOST_OPENMETHOD(name, (virtual_<erased>), std::string);
 
 int main() {
-    return 0;
+    // Call the method: declaring it is not enough to instantiate it on
+    // every compiler, and the guard lives in the method's body.
+    erased dog = Dog{"Snoopy"};
+    return name(dog).size();
 }
