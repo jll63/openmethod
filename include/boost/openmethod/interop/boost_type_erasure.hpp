@@ -567,9 +567,19 @@ namespace boost::type_erasure {
 template<class Concept, class Registry, typename T, class Base>
 struct concept_interface<
     boost::openmethod::openmethod_vptr<Concept, Registry, T>, Base, T> : Base {
-    friend auto boost_openmethod_vptr(
-        const typename derived<Base>::type& arg,
-        Registry*) -> boost::openmethod::vptr_type {
+    // The parameter is a deduced `Self`, constrained to the exact any
+    // flavor, because MSVC's `/std:c++17` does not imply `/permissive-`:
+    // it injects hidden friends into the enclosing namespace, where
+    // ordinary lookup finds them. A `const derived<Base>::type&`
+    // parameter would then make this a candidate for an any over an
+    // unrelated Concept, which MSVC tries to convert to this one - and
+    // the conversion fails outside the immediate context, so it is an
+    // error, not a substitution failure.
+    template<class Self>
+    friend auto boost_openmethod_vptr(const Self& arg, Registry*)
+        -> std::enable_if_t<
+            std::is_same_v<Self, typename derived<Base>::type>,
+            boost::openmethod::vptr_type> {
         return call(
             boost::openmethod::openmethod_vptr<Concept, Registry, T>(), arg);
     }
