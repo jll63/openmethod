@@ -1980,7 +1980,9 @@ struct validate_method_parameter<
 //! 2. If @ref boost_openmethod_vptr can be called with `result` and a
 //!    `Registry*`, and it returns a `vptr_type`, call it.
 //!
-//! 3. Call the @ref policies::VptrFn::dynamic_vptr of the registry's `vptr`
+//! 3. If @ref virtual_traits provides a `vptr` function, call it.
+//!
+//! 4. Call the @ref policies::VptrFn::dynamic_vptr of the registry's `vptr`
 //!    policy.
 //!
 //! @par N2216 Handling of Ambiguous Calls

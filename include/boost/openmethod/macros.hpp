@@ -163,6 +163,8 @@ inline constexpr bool method_not_found = false;
 //! can be called with `result` and a `Registry*`, and it returns a
 //! `vptr_type`, call it.
 //!
+//! @li If `virtual_traits` provides a `vptr` function, call it.
+//!
 //! @li Call the
 //! [dynamic_vptr](xref:reference:boost/openmethod/policies/VptrFn/dynamic_vptr.adoc)
 //! of the registry's `vptr` policy.
