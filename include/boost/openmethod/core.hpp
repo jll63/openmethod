@@ -452,9 +452,45 @@ class use_classes {
 // =============================================================================
 // virtual_ptr
 
-namespace detail {
-
+//! Return the v-table pointer of an object (ADL customization point).
+//!
+//! This declaration is a catch-all that matches any argument list and returns
+//! `void`, denoting the absence of customization. If an overload beats it for a
+//! given argument type and registry, that overload is used to acquire a v-table
+//! pointer instead of the registry's @ref policies::vptr policy.
+//!
+//! The library uses `boost_openmethod_vptr`, if found, when dispatching via a
+//! @ref virtual_ parameter. It is not used by @ref virtual_ptr; wrapping an
+//! object that has an overload in a @ref virtual_ptr is rejected at compile
+//! time.
+//!
+//! @par Requirements
+//!
+//! The library uses argument-dependent lookup to find an overload that
+//! satisfies the following requirements:
+//!
+//! @li The first parameter is a `const` lvalue reference to the virtual
+//! argument.
+//!
+//! @li The second parameter is a pointer to a registry. Its role is to pass the
+//! registry's *class* to the overload. It must not be dereferenced - its value
+//! is `nullptr`. It may instead be `void*` if the overload does not need the
+//! registry.
+//!
+//! @li The return type is @ref vptr_type.
+//!
+//! @par Example
+//!
+//! `Animal` carries its v-table pointer, and is registry-agnostic:
+//!
+//! include:../examples/virtual_.cpp#virtual_intrusive
+//!
+//! @see @ref inplace_vptr_base
+//! @see [Virtual Pointer Alternatives](xref:ROOT:virtual_ptr_alt.adoc)
+//! @see [Custom RTTI](xref:ROOT:custom_rtti.adoc)
 void boost_openmethod_vptr(...);
+
+namespace detail {
 
 template<typename, class, typename = void>
 struct is_smart_ptr_aux : std::false_type {};
@@ -1941,10 +1977,11 @@ struct validate_method_parameter<
 //!
 //! 1. If `result` is a `virtual_ptr`, get the pointer to the v-table from it.
 //!
-//! 2. If `boost_openmethod_vptr` can be called with `result` and a `Registry*`,
-//!    and it returns a `vptr_type`, call it.
+//! 2. If @ref boost_openmethod_vptr can be called with `result` and a
+//!    `Registry*`, and it returns a `vptr_type`, call it.
 //!
-//! 3. Call `Registry::rtti::dynamic_vptr(result)`.
+//! 3. Call the @ref policies::VptrFn::dynamic_vptr of the registry's `vptr`
+//!    policy.
 //!
 //! @par N2216 Handling of Ambiguous Calls
 //!
