@@ -100,18 +100,52 @@ For the same reason as for `std::any`, cpp:final_virtual_ptr[] is _deleted_
 for `type_erasure::any`: it would silently produce the v-table of the root
 class rather than the one for the bound value.
 
-#### The `openmethod_vptr` concept
+#### `virtual_any`
 
 Every call above looks the v-table up in a hash table, keyed on the type the
-`any` binds. Boost.TypeErasure offers a way to remove that cost: since the
-`any` already carries a dispatch table of Concept operations, the v-table
-pointer can be one of them. cpp:openmethod_vptr[] is a
-Boost.TypeErasure concept that does exactly that. Include it in the Concept,
-and every flavor of the `any` gains an operation that returns the registry's
+`any` binds. cpp:virtual_any[] removes that cost: it bundles an `any` with the
+v-table pointer for the value bound to it, acquiring it once, on construction,
+and maintaining it across assignment and `emplace`. It is to an `any` what
+cpp:virtual_ptr[] is to a pointer, except that it _owns_ the object: the `any`
+is held by value. The Concept needs `relaxed` - for the default constructor
+and assignment - and `copy_constructible<>` for copies.
+
+[source,c++]
+----
+include::example$type_erasure_virtual_any.cpp[tag=content]
+----
+
+The wrapper is passed by reference, in any of the three categories, and the
+overriders receive the _bound_ value, exactly as for `virtual_<const
+any<Concept>&>` - or the wrapper itself, for a catch-all overrider.
+cpp:virtual_any_ref[] is the non-owning counterpart: it _borrows_ an existing
+`any`, looking the v-table pointer up once, or taking it at no cost from a
+`virtual_any`. Both work with `type_erasure::any` for the same reason they
+work with `std::any` and `boost::any` - the interop specializes
+cpp:virtual_traits[] for the reference types of the `any`. See
+xref:interop_any.adoc[Interoperation with `any`] for the details.
+
+#### The `openmethod_vptr` concept
+
+cpp:openmethod_vptr[] is an alternative to `virtual_any`, pursuing the same
+goal - constant-time access to the v-table pointer - from the other side.
+Instead of wrapping the `any` from the outside, it puts the v-table pointer
+inside the dispatch table of the `any` itself, making every flavor of it
+intrinsically polymorphic, and leaving the call sites unchanged. The two are
+mutually exclusive: an `any` that carries the concept cannot be wrapped in a
+`virtual_any` - and does not need to be; wrapping one is rejected at compile
+time. `virtual_any` is to an `any` what cpp:virtual_ptr[] is to a pointer,
+while `openmethod_vptr` is to an `any` what cpp:inplace_vptr_base[] is to a
+class - see xref:virtual_ptr_alt.adoc[Alternatives to virtual_ptr].
+
+The `any` already carries a dispatch table of Concept operations, so the
+v-table pointer can be one of them. Include it in the Concept, and every
+flavor of the `any` gains an operation that returns the registry's
 static v-table pointer (`registry::static_vptr`) for the bound type -
-instantiated once per bound type, retrieved in constant time. The concept surfaces the operation as a
-`boost_openmethod_vptr` overload, which dispatch prefers over the `vptr`
-policy, so calls through such an `any` never hash the result of `typeid_of`.
+instantiated once per bound type, retrieved in constant time. The concept
+surfaces the operation as a `boost_openmethod_vptr` overload, which dispatch
+prefers over the `vptr` policy, so calls through such an `any` never hash the
+result of `typeid_of`.
 
 Binding a value to such an `any` also _registers_ its type, as a class derived
 from the owning flavor - the registrar is instantiated along with the
@@ -127,7 +161,7 @@ include::example$type_erasure_concept.cpp[tag=content]
 ----
 
 The price is coupling: the Concept must be OpenMethod-aware, and the registry
-is part of the `any`'s type - whereas the `typeid_of`-based dispatch above
+is part of the type of the `any` - whereas the `typeid_of`-based dispatch above
 works with any pre-existing Concept containing `typeid_<>`. To use an `any`
 with several registries, list the concept several times, once per registry:
 `openmethod_vptr<Concept, some_registry>`.

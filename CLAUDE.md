@@ -159,6 +159,39 @@ Tests require these C++17 features (checked by Boost.Build):
 - structured bindings
 - `<charconv>`, `<string_view>`, `<variant>` headers
 
+### Documentation (AsciiDoc)
+
+Prose lives in `doc/modules/ROOT/pages/*.adoc`; explanations belong there, not in comments inside
+the example sources under `doc/modules/ROOT/examples/`, which are pulled into the rendered page
+verbatim through `include::example$file.cpp[tag=content]`. Pages hard-wrap at ~79 columns and use
+`cpp:name[]` for API names that have a reference page.
+
+**Render the docs; do not just eyeball the `.adoc`.** `doc/build_antora.sh` (~2 min, writes the
+gitignored `doc/html/`) is the only way to catch markup that is silently mis-parsed — asciidoctor
+emits no warning for it.
+
+**The backtick-apostrophe trap**: never write a possessive right after a code span. Asciidoctor
+parses ``` `any`'s ``` as `` ` `` + `any` + the **`` `' `` curly-apostrophe shorthand**, which
+consumes the *closing* backtick; the opening one is then left unmatched and pairs with the next
+backtick in the same paragraph. Two things break at once — a literal `` ` `` appears in the output,
+and the following code span loses its `<code>` formatting:
+
+```
+source:   is part of the `any`'s type - whereas the `typeid_of`-based dispatch above
+rendered: is part of the any's type - whereas the `typeid_of-based dispatch above
+```
+
+Reword instead: "the reference types of the `any`", "separate from that of `default_registry`".
+``{apos}`` also works and matches the house style (`shared_libraries.adoc` uses ``{empty}`` for
+plurals: ``` `virtual_ptr`{empty}s ```), but rewording is safer and reads better. Before building:
+
+```bash
+grep -rn "\`'" doc/modules/ROOT/pages/*.adoc    # must return nothing
+```
+
+After building, no stray backticks should survive outside code blocks —
+`grep -n '\`' doc/html/openmethod/<page>.html` should only hit backticks inside C++ comments.
+
 ## Common Development Patterns
 
 ### Working with Shared Libraries / DLL Support
