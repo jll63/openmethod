@@ -56,7 +56,7 @@ struct std_rtti : rtti {
 
 * `dynamic_type` is used to read the dynamic type of a virtual argument.
   If only the `virtual_ptr` "final" constructs are used, or if
-  `boost_openmethod_vptr` is provided for all the classes in the registry,
+  cpp:boost_openmethod_vptr[] is provided for all the classes in the registry,
   this function can be omitted.
 
 * `type_name` writes a representation of a type to a
