@@ -300,7 +300,7 @@ struct virtual_traits<boost::type_erasure::any<C, T>&&, Registry> {
     //! Extracts the bound value using `boost::type_erasure::any_cast`.
     //! `boost::type_erasure::any_cast` has no rvalue overload, so, for an
     //! rvalue-reference `U`, the result of a mutable-reference cast is
-    //! moved - only for the owning `any`, since the rvalue-ness of a
+    //! moved - only for the owning `any`, since the rvalue-ness of an
     //! any reference says nothing about the referent. Casting to a
     //! value also moves for the owning `any`, and copies otherwise. The
     //! disallowed overloads are removed from the overload set.
