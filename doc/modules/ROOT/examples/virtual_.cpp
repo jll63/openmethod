@@ -41,6 +41,7 @@ namespace virtual_intrusive {
 class Animal {
   protected:
     boost::openmethod::vptr_type vptr;
+
     friend auto boost_openmethod_vptr(const Animal& a, void*) {
         return a.vptr;
     }

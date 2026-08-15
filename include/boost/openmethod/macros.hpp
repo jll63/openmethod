@@ -158,10 +158,14 @@ inline constexpr bool method_not_found = false;
 //!
 //! @li If `result` is a `virtual_ptr`, get the pointer to the v-table from it.
 //!
-//! @li If `boost_openmethod_vptr` can be called with `result` and a
-//! `Registry*`, and it returns a `vptr_type`, call it.
+//! @li If
+//! [boost_openmethod_vptr](xref:reference:boost/openmethod/boost_openmethod_vptr.adoc)
+//! can be called with `result` and a `Registry*`, and it returns a
+//! `vptr_type`, call it.
 //!
-//! @li Call `Registry::vptr::dynamic_vptr(result)`.
+//! @li Call the
+//! [dynamic_vptr](xref:reference:boost/openmethod/policies/VptrFn/dynamic_vptr.adoc)
+//! of the registry's `vptr` policy.
 //!
 //! The macro creates an ordinary inline function in the current scope, with the
 //! `virtual_` decorators removed from the parameter types. `virtual_ptr`
