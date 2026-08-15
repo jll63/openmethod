@@ -85,7 +85,7 @@ BOOST_AUTO_TEST_CASE(virtual_any_by_const_ref) {
     BOOST_TEST(name(Dog{"Fido"}) == "Fido the dog");
 
     // `int` is registered, but has no specific overrider: the catch-all,
-    // registered for the owning flavor, applies
+    // registered for the owning any, applies
     BOOST_TEST(name(42) == "something");
 }
 } // namespace BOOST_OPENMETHOD_GENSYM

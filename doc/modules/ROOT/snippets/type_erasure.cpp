@@ -32,7 +32,7 @@ struct Dog {
     std::string name;
 };
 
-// The owning flavor, `any<Concept>`, becomes the common base of the types
+// The owning `any`, `any<Concept>`, becomes the common base of the types
 // the `any` may bind.
 BOOST_OPENMETHOD_REGISTER(
     use_type_erasure_types<erased, Dog, std::string, int>);

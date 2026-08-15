@@ -160,8 +160,8 @@ BOOST_AUTO_TEST_CASE(type_erasure_by_xvalue_ref) {
 namespace BOOST_OPENMETHOD_GENSYM {
 
 // -----------------------------------------------------------------------------
-// pass virtual args as any<C, _self&> - the mutable reference-wrapper
-// flavor - by value
+// pass virtual args as any<C, _self&> - the mutable any reference - by
+// value
 
 MAKE_CLASSES();
 
@@ -177,10 +177,10 @@ BOOST_OPENMETHOD_OVERRIDE(poke, (int& value), std::string) {
     return "poked";
 }
 
-BOOST_AUTO_TEST_CASE(type_erasure_ref_wrapper_by_value) {
+BOOST_AUTO_TEST_CASE(type_erasure_any_ref_by_value) {
     initialize(trace());
 
-    // the wrapper is a cheap handle; mutations reach the referents
+    // the any reference is a cheap handle; mutations reach the referents
     Dog snoopy{"Snoopy"};
     int count = 41;
 
@@ -195,8 +195,8 @@ BOOST_AUTO_TEST_CASE(type_erasure_ref_wrapper_by_value) {
 namespace BOOST_OPENMETHOD_GENSYM {
 
 // -----------------------------------------------------------------------------
-// pass virtual args as any<C, const _self&> - the const reference-wrapper
-// flavor - by value
+// pass virtual args as any<C, const _self&> - the const any reference -
+// by value
 
 MAKE_CLASSES();
 
@@ -206,12 +206,12 @@ BOOST_OPENMETHOD_OVERRIDE(name, (const Dog& dog), std::string) {
     return dog.name + " the dog";
 }
 
-// the catch-all receives a copy of the wrapper - still a cheap handle
+// the catch-all receives a copy of the any reference - still a cheap handle
 BOOST_OPENMETHOD_OVERRIDE(name, (erased_cref arg), std::string) {
     return te::is_empty(arg) ? "nothing" : "something";
 }
 
-BOOST_AUTO_TEST_CASE(type_erasure_cref_wrapper_by_value) {
+BOOST_AUTO_TEST_CASE(type_erasure_const_any_ref_by_value) {
     initialize(trace());
 
     Dog snoopy{"Snoopy"};
@@ -270,7 +270,7 @@ struct Dispatchable : boost::mpl::vector<
 using dispatchable = te::any<Dispatchable>;
 using dispatchable_ref = te::any<Dispatchable, te::_self&>;
 
-// the intrinsic hook is found for every flavor, so dispatch prefers it
+// the intrinsic hook is found for every any, so dispatch prefers it
 // over the vptr policy's hash lookup
 static_assert(detail::has_vptr_fn<dispatchable, default_registry>);
 static_assert(detail::has_vptr_fn<dispatchable_ref, default_registry>);
@@ -311,7 +311,7 @@ BOOST_AUTO_TEST_CASE(type_erasure_openmethod_vptr_concept) {
     const dispatchable felix(std::string{"Felix"});
     BOOST_TEST(name(felix) == "something");
 
-    // the reference-wrapper flavor takes the fast path too
+    // the any reference takes the fast path too
     Dog snoopy{"Snoopy"};
     BOOST_TEST(poke(dispatchable_ref(snoopy)) == "Snoopy!");
     BOOST_TEST(snoopy.name == "Snoopy!");

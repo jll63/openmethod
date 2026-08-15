@@ -518,8 +518,8 @@ struct select_overrider_virtual_type_aux<
 //! the v-table pointer for the contained value, so methods dispatch on
 //! the contained type without looking it up on every call. It is a
 //! cheap, two-word handle with pointer semantics - copying it copies the
-//! two words - and, like the reference-wrapper flavors of
-//! Boost.TypeErasure's `any`, it is passed to methods *by value*.
+//! two words - and, like Boost.TypeErasure's any references, it is
+//! passed to methods *by value*.
 //!
 //! `Any` may be const-qualified: through `virtual_any_ref<const Any>`,
 //! overriders can only take the contained value by value or by const

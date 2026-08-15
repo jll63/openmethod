@@ -118,8 +118,7 @@ counterpart: it _borrows_ an `any` that lives elsewhere, bundling its address
 with the v-table pointer for the value inside it - acquired once, when the
 handle is created, or taken at no cost from a `virtual_any`. It is a cheap,
 two-word handle with pointer semantics. Unlike the owning wrapper, it is passed
-to methods _by value_, like the reference-wrapper flavors of Boost.TypeErasure's
-`any`:
+to methods _by value_, like Boost.TypeErasure's any references:
 
 ```c++
 BOOST_OPENMETHOD(poke, (virtual_any_ref<std::any>), std::string);

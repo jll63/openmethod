@@ -26,28 +26,28 @@
 // The Concept must contain boost::type_erasure::typeid_<> - which
 // `relaxed` already implies - so that `typeid_of` can identify the
 // contained value. Dispatch is on the `std::type_info` object returned by
-// `typeid_of`: the type of the contained value for the owning flavor
-// (`any<Concept>`), or the type *bound at construction* for the reference
-// flavors (`any<Concept, _self&>`, `any<Concept, const _self&>`) - never
+// `typeid_of`: the type of the contained value for the owning any
+// (`any<Concept>`), or the type *bound at construction* for the any
+// references (`any<Concept, _self&>`, `any<Concept, const _self&>`) - never
 // the C++ RTTI dynamic type of the referent.
 //
 // Supported virtual parameter forms:
 // - `virtual_<const any<Concept>&>`, `virtual_<any<Concept>&>`,
-//   `virtual_<any<Concept>&&>` - the owning flavor, by reference, like
+//   `virtual_<any<Concept>&&>` - the owning any, by reference, like
 //   `std::any`;
 // - `virtual_<any<Concept, _self&>>` and
-//   `virtual_<any<Concept, const _self&>>` - the reference-wrapper
-//   flavors, by value (they are cheap, two-word handles);
+//   `virtual_<any<Concept, const _self&>>` - the any references, by
+//   value (they are cheap, two-word handles);
 // - `virtual_any<any<Concept>>` - looks the v-table pointer up once, at
 //   construction. The Concept needs `relaxed` for virtual_any's default
 //   constructor and assignment, and `copy_constructible<>` for copies.
 //
-// The rvalue-reference flavor (`any<Concept, _self&&>`), and placeholders
-// other than `_self`, are not supported.
+// The rvalue-reference placeholder (`_self&&`), and placeholders other
+// than `_self`, are not supported.
 //
 // In addition, `openmethod_vptr` is a Boost.TypeErasure concept that
 // stores the v-table pointer for the bound type in the any's own dispatch
-// table, making every flavor of the any intrinsically polymorphic: calls
+// table, making every any on that Concept intrinsically polymorphic: calls
 // resolve in constant time, without hashing the result of `typeid_of`,
 // and binding a value to the any registers its type.
 //
@@ -83,9 +83,9 @@ template<typename U, class Any>
 constexpr bool te_pass_through =
     std::is_same_v<std::remove_cv_t<std::remove_reference_t<U>>, Any>;
 
-// The canonical root class for a Concept: the owning flavor. All the
+// The canonical root class for a Concept: the owning any. All the
 // virtual_traits below use it as their virtual_type, whatever the
-// flavor of the parameter, so methods, overriders and
+// placeholder of the parameter, so methods, overriders and
 // use_type_erasure_types agree on a single registered root per Concept.
 template<class Any>
 using type_erasure_root = boost::type_erasure::any<
@@ -132,8 +132,8 @@ struct validate_method_parameter<
 //! obtained via `boost::type_erasure::typeid_of`. `Concept` must contain
 //! `boost::type_erasure::typeid_<>`; `relaxed` implies it.
 //!
-//! This specialization serves the owning flavor (`any<Concept>`) and,
-//! through a const wrapper, the reference flavors.
+//! This specialization serves the owning `any` (`any<Concept>`) and,
+//! through a const `any`, the any references.
 //!
 //! @tparam C The `any`'s Concept.
 //! @tparam T The `any`'s placeholder.
@@ -142,7 +142,7 @@ struct validate_method_parameter<
 //! @see [Interoperation with Boost.TypeErasure](xref:ROOT:interop_type_erasure.adoc)
 template<class C, typename T, class Registry>
 struct virtual_traits<const boost::type_erasure::any<C, T>&, Registry> {
-    //! The type used for dispatch: the owning flavor for `C`.
+    //! The type used for dispatch: the owning `any` for `C`.
     using virtual_type = boost::type_erasure::any<C>;
 
     //! Returns a const reference to the `any` argument.
@@ -169,8 +169,8 @@ struct virtual_traits<const boost::type_erasure::any<C, T>&, Registry> {
     //!
     //! Extracts the bound value using `boost::type_erasure::any_cast`.
     //! Since the `any` is const, `U` can be a mutable reference only for
-    //! the mutable-reference flavor (`any<Concept, _self&>`), whose
-    //! referent stays mutable through a const wrapper. Rvalue references
+    //! the mutable any reference (`any<Concept, _self&>`), whose
+    //! referent stays mutable through a const `any`. Rvalue references
     //! are never allowed; the overloads are removed from the overload
     //! set.
     //!
@@ -207,7 +207,7 @@ struct virtual_traits<const boost::type_erasure::any<C, T>&, Registry> {
 //! @see [Interoperation with Boost.TypeErasure](xref:ROOT:interop_type_erasure.adoc)
 template<class C, typename T, class Registry>
 struct virtual_traits<boost::type_erasure::any<C, T>&, Registry> {
-    //! The type used for dispatch: the owning flavor for `C`.
+    //! The type used for dispatch: the owning `any` for `C`.
     using virtual_type = boost::type_erasure::any<C>;
 
     //! Returns a const reference to the `any` argument.
@@ -234,7 +234,7 @@ struct virtual_traits<boost::type_erasure::any<C, T>&, Registry> {
     //!
     //! Extracts the bound value using `boost::type_erasure::any_cast`.
     //! Supports mutable references (e.g. `Dog&`), except through the
-    //! const-reference flavor (`any<Concept, const _self&>`). `U` cannot
+    //! const any reference (`any<Concept, const _self&>`). `U` cannot
     //! be an rvalue reference: moving the value out must go through an
     //! explicit rvalue-reference parameter. The disallowed overloads are
     //! removed from the overload set.
@@ -272,7 +272,7 @@ struct virtual_traits<boost::type_erasure::any<C, T>&, Registry> {
 //! @see [Interoperation with Boost.TypeErasure](xref:ROOT:interop_type_erasure.adoc)
 template<class C, typename T, class Registry>
 struct virtual_traits<boost::type_erasure::any<C, T>&&, Registry> {
-    //! The type used for dispatch: the owning flavor for `C`.
+    //! The type used for dispatch: the owning `any` for `C`.
     using virtual_type = boost::type_erasure::any<C>;
 
     //! Returns a const reference to the `any` argument.
@@ -300,9 +300,9 @@ struct virtual_traits<boost::type_erasure::any<C, T>&&, Registry> {
     //! Extracts the bound value using `boost::type_erasure::any_cast`.
     //! `boost::type_erasure::any_cast` has no rvalue overload, so, for an
     //! rvalue-reference `U`, the result of a mutable-reference cast is
-    //! moved - only for the owning flavor, since the rvalue-ness of a
-    //! reference wrapper says nothing about the referent. Casting to a
-    //! value also moves for the owning flavor, and copies otherwise. The
+    //! moved - only for the owning `any`, since the rvalue-ness of a
+    //! any reference says nothing about the referent. Casting to a
+    //! value also moves for the owning `any`, and copies otherwise. The
     //! disallowed overloads are removed from the overload set.
     //!
     //! @tparam U The target type (e.g. `Dog&&`, `const Dog&`, `Dog`).
@@ -330,10 +330,10 @@ struct virtual_traits<boost::type_erasure::any<C, T>&&, Registry> {
     }
 };
 
-//! Specialize virtual_traits for the mutable reference-wrapper flavor,
+//! Specialize virtual_traits for the mutable any reference,
 //! `boost::type_erasure::any<Concept, _self&>`, passed by value.
 //!
-//! The reference flavors are cheap, two-word handles; passing them by
+//! The any references are cheap, two-word handles; passing them by
 //! value is the idiomatic way to use them as parameters. Dispatch is on
 //! the type *bound at construction*, obtained via
 //! `boost::type_erasure::typeid_of` - not the C++ RTTI dynamic type of
@@ -347,7 +347,7 @@ struct virtual_traits<boost::type_erasure::any<C, T>&&, Registry> {
 //! @see [Interoperation with Boost.TypeErasure](xref:ROOT:interop_type_erasure.adoc)
 template<class C, typename T, class Registry>
 struct virtual_traits<boost::type_erasure::any<C, T&>, Registry> {
-    //! The type used for dispatch: the owning flavor for `C`.
+    //! The type used for dispatch: the owning `any` for `C`.
     using virtual_type = boost::type_erasure::any<C>;
 
     //! Returns a const reference to the `any` argument.
@@ -379,7 +379,7 @@ struct virtual_traits<boost::type_erasure::any<C, T&>, Registry> {
     //! overloads are removed from the overload set.
     //!
     //! @tparam U The target type (e.g. `Dog&`, `const Dog&`, `Dog`).
-    //! @param arg The reference-wrapper `any` method argument.
+    //! @param arg The any reference method argument.
     //! @return The value bound to `arg`, cast to `U`.
     template<
         typename U, typename = std::enable_if_t<!std::is_rvalue_reference_v<U>>>
@@ -395,10 +395,10 @@ struct virtual_traits<boost::type_erasure::any<C, T&>, Registry> {
     }
 };
 
-//! Specialize virtual_traits for the const reference-wrapper flavor,
+//! Specialize virtual_traits for the const any reference,
 //! `boost::type_erasure::any<Concept, const _self&>`, passed by value.
 //!
-//! The reference flavors are cheap, two-word handles; passing them by
+//! The any references are cheap, two-word handles; passing them by
 //! value is the idiomatic way to use them as parameters. Dispatch is on
 //! the type *bound at construction*, obtained via
 //! `boost::type_erasure::typeid_of` - not the C++ RTTI dynamic type of
@@ -413,7 +413,7 @@ struct virtual_traits<boost::type_erasure::any<C, T&>, Registry> {
 //! @see [Interoperation with Boost.TypeErasure](xref:ROOT:interop_type_erasure.adoc)
 template<class C, typename T, class Registry>
 struct virtual_traits<boost::type_erasure::any<C, const T&>, Registry> {
-    //! The type used for dispatch: the owning flavor for `C`.
+    //! The type used for dispatch: the owning `any` for `C`.
     using virtual_type = boost::type_erasure::any<C>;
 
     //! Returns a const reference to the `any` argument.
@@ -443,7 +443,7 @@ struct virtual_traits<boost::type_erasure::any<C, const T&>, Registry> {
     //! the other overloads are removed from the overload set.
     //!
     //! @tparam U The target type (e.g. `const Dog&`, `Dog`).
-    //! @param arg The reference-wrapper `any` method argument.
+    //! @param arg The any reference method argument.
     //! @return The value bound to `arg`, cast to `U`.
     template<
         typename U,
@@ -465,14 +465,14 @@ struct virtual_traits<boost::type_erasure::any<C, const T&>, Registry> {
 //! Register the types that a `boost::type_erasure::any` virtual parameter
 //! may contain.
 //!
-//! Registers the owning flavor of `Any` (i.e.
+//! Registers the owning `any` of `Any` (i.e.
 //! `any<concept_of<Any>::type>`) as a class, and each `T` as a class
 //! derived from it. This makes the bound types visible to the dispatch
 //! machinery, which resolves a call on the `type_id` returned by
 //! `boost::type_erasure::typeid_of`. `Any` may be spelled with any
-//! flavor; the root is normalized to the owning flavor, which is also
-//! what the virtual_traits use, whatever the flavor of the method
-//! parameter.
+//! placeholder; the root is normalized to the owning `any`, which is
+//! also what the virtual_traits use, whatever the placeholder of the
+//! method parameter.
 //!
 //! @tparam Any A `boost::type_erasure::any` type.
 //! @tparam T... The types that may be bound to the `any`, optionally
@@ -491,7 +491,7 @@ struct use_type_erasure_types
 
 namespace detail {
 
-// Registers Class as deriving from the owning flavor for Concept - the
+// Registers Class as deriving from the owning any for Concept - the
 // same shape use_type_erasure_types produces - when odr-used from
 // openmethod_vptr::apply.
 template<class Registry, class Class, class Concept>
@@ -504,7 +504,7 @@ use_class_aux<Registry, mp11::mp_list<Class, boost::type_erasure::any<Concept>>>
 //! polymorphic.
 //!
 //! Including `openmethod_vptr<Concept>` in a Concept adds an operation,
-//! to the dispatch table of every flavor of `any<Concept>`, that returns
+//! to the dispatch table of every `any` on `Concept`, that returns
 //! the @ref registry::static_vptr for the bound type; and it surfaces the
 //! operation as a @ref boost_openmethod_vptr overload, which dispatch
 //! prefers over the registry's `vptr` policy. Calls thus resolve in
@@ -512,7 +512,7 @@ use_class_aux<Registry, mp11::mp_list<Class, boost::type_erasure::any<Concept>>>
 //! `boost::type_erasure::typeid_of`.
 //!
 //! In addition, binding a value to such an `any` registers its type as a
-//! class derived from the owning flavor - the same shape
+//! class derived from the owning `any` - the same shape
 //! @ref use_type_erasure_types produces, with which it can coexist. No
 //! explicit registration is needed for the types bound to an `any` that
 //! carries this concept.
@@ -544,7 +544,7 @@ template<
 struct openmethod_vptr {
     //! Returns the v-table pointer for the bound type.
     //!
-    //! Also registers `T`, and the owning flavor for `Concept` as its
+    //! Also registers `T`, and the owning `any` for `Concept` as its
     //! base, by odr-using their registrars.
     //!
     //! @return The @ref registry::static_vptr for `T`.
@@ -561,13 +561,13 @@ struct openmethod_vptr {
 namespace boost::type_erasure {
 
 // Surface the openmethod_vptr operation as the boost_openmethod_vptr
-// intrinsic hook, injected into the interface of every flavor of any
-// whose Concept contains the concept.
+// intrinsic hook, injected into the interface of every any whose
+// Concept contains the concept.
 template<class Concept, class Registry, typename T, class Base>
 struct concept_interface<
     boost::openmethod::openmethod_vptr<Concept, Registry, T>, Base, T> : Base {
     // The parameter is a deduced `Self`, constrained to the exact any
-    // flavor, because MSVC's `/std:c++17` does not imply `/permissive-`:
+    // type, because MSVC's `/std:c++17` does not imply `/permissive-`:
     // it injects hidden friends into the enclosing namespace, where
     // ordinary lookup finds them. A `const derived<Base>::type&`
     // parameter would then make this a candidate for an any over an

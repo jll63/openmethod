@@ -23,10 +23,9 @@ struct Dog {
 
 BOOST_OPENMETHOD_REGISTER(use_type_erasure_types<erased, Dog>);
 
-// The owning flavor must be passed by reference: by value, it would copy
-// the `any` - and its payload - on every call. (The reference-wrapper
-// flavors, any<C, _self&> and any<C, const _self&>, may be passed by
-// value.)
+// The owning any must be passed by reference: by value, it would copy
+// the `any` - and its payload - on every call. (The any references,
+// any<C, _self&> and any<C, const _self&>, may be passed by value.)
 BOOST_OPENMETHOD(name, (virtual_<erased>), std::string);
 
 int main() {
