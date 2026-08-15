@@ -41,10 +41,7 @@ pointer to a registry, and returns a `vptr_type`. If one is found, it is called
 to acquire the vptr.
 
 `virtual_ptr` honors it as well, when it is constructed from - or assigned - a
-reference or a pointer to an object. There, though, it is an optimization, not a
-way of widening dispatch: those constructors and assignment operators require a
-polymorphic class in any case. Only a `virtual_` parameter can dispatch on a
-class that is not polymorphic.
+reference or a pointer to an object.
 
 In the following example, we embed the vptr in the object, just like the vptr
 for native virtual functions. The v-table for a registered class can be found
