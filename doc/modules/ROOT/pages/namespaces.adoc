@@ -5,8 +5,8 @@
 Note;; This section uses overrider containers, described in the
 xref:headers.adoc[Headers and Implementation Files] section.
 
-xref:BOOST_OPENMETHOD.adoc[BOOST_OPENMETHOD] defines a method in the current
-namespace. xref:BOOST_OPENMETHOD_OVERRIDE.adoc[BOOST_OPENMETHOD_OVERRIDE] works
+xref:reference:BOOST_OPENMETHOD.adoc[BOOST_OPENMETHOD] defines a method in the current
+namespace. xref:reference:BOOST_OPENMETHOD_OVERRIDE.adoc[BOOST_OPENMETHOD_OVERRIDE] works
 _across_ namespaces. Overriders are not required to be in the same namespace as
 the method they override. The macro adds the overrider to a method that can be
 called with the same arguments as the overrider, possibly located via argument

@@ -56,7 +56,7 @@ struct std_rtti : rtti {
 
 * `dynamic_type` is used to read the dynamic type of a virtual argument.
   If only the `virtual_ptr` "final" constructs are used, or if
-  `boost_openmethod_vptr` is provided for all the classes in the registry,
+  cpp:boost_openmethod_vptr[] is provided for all the classes in the registry,
   this function can be omitted.
 
 * `type_name` writes a representation of a type to a
@@ -124,7 +124,7 @@ include::{example}/1/custom_rtti.cpp[tag=registry]
 ----
 
 Defining macro
-xref:BOOST_OPENMETHOD_DEFAULT_REGISTRY.adoc[BOOST_OPENMETHOD_DEFAULT_REGISTRY]
+xref:reference:BOOST_OPENMETHOD_DEFAULT_REGISTRY.adoc[BOOST_OPENMETHOD_DEFAULT_REGISTRY]
 sets the default registry used by all library components that need one.
 
 Next, we include the main header.

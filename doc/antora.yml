@@ -15,6 +15,12 @@ asciidoc:
   attributes:
     source-language: asciidoc@
     table-caption: false
+    # Base of the links to the header sources in ref_headers.adoc. It must be
+    # an absolute url: neither the PR previews nor boost.org serve the library
+    # sources next to the docs. The previews publish libs/openmethod/doc only,
+    # and boost.org serves the headers from doc/libs/<version>/boost, not from
+    # libs/openmethod/include.
+    headers-url: https://github.com/boostorg/openmethod/blob/develop/include
 nav:
   - modules/ROOT/nav.adoc
 ext:
