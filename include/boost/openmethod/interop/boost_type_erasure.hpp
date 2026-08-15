@@ -45,12 +45,14 @@
 // The rvalue-reference flavor (`any<Concept, _self&&>`), and placeholders
 // other than `_self`, are not supported.
 //
-// In addition, `openmethod_vptr` - based on a design by Steven Watanabe -
-// is a Boost.TypeErasure concept that stores the v-table pointer for the
-// bound type in the any's own dispatch table, making every flavor of the
-// any intrinsically polymorphic: calls resolve in constant time, without
-// hashing the result of `typeid_of`, and binding a value to the any
-// registers its type.
+// In addition, `openmethod_vptr` is a Boost.TypeErasure concept that
+// stores the v-table pointer for the bound type in the any's own dispatch
+// table, making every flavor of the any intrinsically polymorphic: calls
+// resolve in constant time, without hashing the result of `typeid_of`,
+// and binding a value to the any registers its type.
+//
+// This interop is based on a design contributed by Steven Watanabe:
+// https://github.com/boostorg/openmethod/issues/21
 
 namespace boost::openmethod {
 
@@ -527,9 +529,6 @@ use_class_aux<Registry, mp11::mp_list<Class, boost::type_erasure::any<Concept>>>
 //! @ref virtual_any - and does not need to be: both fill the same goal,
 //! constant-time access to the v-table pointer. Wrapping one is rejected
 //! at compile time.
-//!
-//! Based on a design by
-//! [Steven Watanabe](https://github.com/boostorg/openmethod/issues/21).
 //!
 //! @tparam Concept The Concept containing this concept.
 //! @tparam Registry A @ref registry.
