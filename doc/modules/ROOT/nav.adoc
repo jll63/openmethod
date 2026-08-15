@@ -14,7 +14,7 @@
 ** xref:error_handling.adoc[Error Handling]
 ** xref:virtual_ptr_alt.adoc[Virtual Pointer Alternatives]
 ** xref:shared_libraries.adoc[Shared Libraries]
-* xref:reference:index.adoc[Reference]
+* Reference
 ** xref:ref_headers.adoc[Headers]
 ** xref:ref_macros.adoc[Macros]
 ** xref:reference:boost/openmethod.adoc[Namespace boost::openmethod]
