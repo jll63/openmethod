@@ -166,9 +166,6 @@ works with any pre-existing Concept containing `typeid_<>`. To use an `any`
 with several registries, list the concept several times, once per registry:
 `openmethod_vptr<Concept, some_registry>`.
 
-This concept is based on a design contributed by Steven Watanabe in
-link:https://github.com/boostorg/openmethod/issues/21[issue #21].
-
 #### Empty ``any``s
 
 An empty relaxed `any` reports `typeid(void)`, which is not a registered
@@ -177,3 +174,7 @@ overrider does not help: dispatch never reaches it. Check with
 `boost::type_erasure::is_empty` before calling. With the `openmethod_vptr`
 concept, the failure mode differs: calling a concept operation on an empty
 relaxed `any` throws `boost::type_erasure::bad_function_call`.
+
+### Acknowledgment
+
+This interop is based on a design contributed by Steven Watanabe.
