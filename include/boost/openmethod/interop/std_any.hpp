@@ -9,6 +9,7 @@
 #include <any>
 #include <boost/openmethod/core.hpp>
 #include <boost/openmethod/interop/virtual_any.hpp>
+#include <boost/openmethod/policies/std_rtti.hpp>
 
 // Dispatch on the type contained in a `std::any`.
 //
@@ -30,6 +31,20 @@ struct validate_method_parameter<virtual_<std::any&>, Registry, void>
 template<class Registry>
 struct validate_method_parameter<virtual_<std::any&&>, Registry, void>
     : std::true_type {};
+
+// `std::any::type()` yields a `std::type_info`, which is a valid `type_id`
+// only for an rtti policy that identifies classes by `&typeid(T)`. Under any
+// other policy the lookup key is meaningless, and `type_id` being
+// `const void*`, nothing would diagnose it.
+template<class Registry>
+constexpr void assert_std_rtti_std_any() {
+    static_assert(
+        std::is_base_of_v<
+            policies::std_rtti,
+            find_first_derived_of<
+                policies::rtti, typename Registry::policy_list>>,
+        "requires standard RTTI");
+}
 
 } // namespace detail
 
@@ -54,7 +69,9 @@ struct virtual_traits<const std::any&, Registry> {
     //! Returns a *reference* to a v-table pointer for an object.
     //!
     //! Acquires the @ref type_id of the value stored in `arg`, using
-    //! `std::any::type()`.
+    //! `std::any::type()`. This requires the registry's @ref rtti policy to
+    //! derive from @ref std_rtti, which identifies classes by `&typeid(T)`;
+    //! the requirement is enforced with a `static_assert`.
     //!
     //! Passes it to the registry's @ref policies::vptr policy, which must
     //! provide @ref policies::VptrFn::vptr. Both @ref policies::vptr_vector
@@ -72,6 +89,7 @@ struct virtual_traits<const std::any&, Registry> {
     //! @param arg A reference to a const `any`.
     //! @return A reference to the v-table pointer for the stored value.
     static auto vptr(const std::any& arg) -> const vptr_type& {
+        detail::assert_std_rtti_std_any<Registry>();
         return Registry::vptr::vptr(&arg.type());
     }
 
@@ -118,7 +136,9 @@ struct virtual_traits<std::any&, Registry> {
     //! Returns a *reference* to a v-table pointer for an object.
     //!
     //! Acquires the @ref type_id of the value stored in `arg`, using
-    //! `std::any::type()`.
+    //! `std::any::type()`. This requires the registry's @ref rtti policy to
+    //! derive from @ref std_rtti, which identifies classes by `&typeid(T)`;
+    //! the requirement is enforced with a `static_assert`.
     //!
     //! Passes it to the registry's @ref policies::vptr policy, which must
     //! provide @ref policies::VptrFn::vptr. Both @ref policies::vptr_vector
@@ -136,6 +156,7 @@ struct virtual_traits<std::any&, Registry> {
     //! @param arg A reference to a `std::any`.
     //! @return A reference to the v-table pointer for the stored value.
     static auto vptr(const std::any& arg) -> const vptr_type& {
+        detail::assert_std_rtti_std_any<Registry>();
         return Registry::vptr::vptr(&arg.type());
     }
 
@@ -183,7 +204,9 @@ struct virtual_traits<std::any&&, Registry> {
     //! Returns a *reference* to a v-table pointer for an object.
     //!
     //! Acquires the @ref type_id of the value stored in `arg`, using
-    //! `std::any::type()`.
+    //! `std::any::type()`. This requires the registry's @ref rtti policy to
+    //! derive from @ref std_rtti, which identifies classes by `&typeid(T)`;
+    //! the requirement is enforced with a `static_assert`.
     //!
     //! Passes it to the registry's @ref policies::vptr policy, which must
     //! provide @ref policies::VptrFn::vptr. Both @ref policies::vptr_vector
@@ -201,6 +224,7 @@ struct virtual_traits<std::any&&, Registry> {
     //! @param arg A reference to a const `any`.
     //! @return A reference to the v-table pointer for the stored value.
     static auto vptr(const std::any& arg) -> const vptr_type& {
+        detail::assert_std_rtti_std_any<Registry>();
         return Registry::vptr::vptr(&arg.type());
     }
 
