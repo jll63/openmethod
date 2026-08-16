@@ -15,14 +15,13 @@ is not included by `<boost/openmethod.hpp>`, so it must be included explicitly.
 Dispatch resolves on the type returned by `boost::type_erasure::typeid_of`, so
 the ``any``'s concept must include `boost::type_erasure::typeid_<>`.
 
-`typeid_of` returns a `std::type_info`, so the registry's `rtti` policy must
-also identify classes that way: it must be cpp:std_rtti[], or a policy derived
-from it. `default_registry` and `indirect_registry` both qualify. A registry
-with, say, cpp:static_rtti[] identifies classes by a different kind of
-`type_id`, and would look up the wrong v-table; the requirement is enforced with
-a `static_assert`. The cpp:openmethod_vptr[] concept takes the v-table pointer
-from the ``any``'s own dispatch table and never calls `typeid_of`, so it does
-not require `std_rtti`.
+`typeid_of` returns a `std::type_info`, so the registry's `rtti` policy must be
+cpp:std_rtti[], or a policy derived from it. `default_registry` and
+`indirect_registry` both qualify. A registry with, say, cpp:static_rtti[]
+identifies classes by a different kind of `type_id`, and would look up the wrong
+v-table; the requirement is enforced with a `static_assert`. The
+cpp:openmethod_vptr[] concept takes the v-table pointer from the ``any``'s own
+dispatch table and never calls `typeid_of`, so it does not require `std_rtti`.
 
 The types an `any` may bind to must be registered via
 cpp:use_type_erasure_types[]. ``any``s with different concepts must each be

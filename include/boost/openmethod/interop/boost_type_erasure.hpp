@@ -174,9 +174,8 @@ struct virtual_traits<const boost::type_erasure::any<C, T>&, Registry> {
     //! Looks up the @ref type_id returned by
     //! `boost::type_erasure::typeid_of` in the registry's `vptr` policy.
     //!
-    //! This requires the registry's @ref rtti policy to derive from
-    //! @ref std_rtti, which identifies classes by `&typeid(T)`, as
-    //! `typeid_of` does; the requirement is enforced with a `static_assert`.
+    //! This requires the registry's @ref rtti policy to be @ref std_rtti;
+    //! the requirement is enforced with a `static_assert`.
     //!
     //! @param arg A reference to a const `any`.
     //! @return A reference to the v-table pointer for the bound value.
@@ -244,9 +243,8 @@ struct virtual_traits<boost::type_erasure::any<C, T>&, Registry> {
     //! Looks up the @ref type_id returned by
     //! `boost::type_erasure::typeid_of` in the registry's `vptr` policy.
     //!
-    //! This requires the registry's @ref rtti policy to derive from
-    //! @ref std_rtti, which identifies classes by `&typeid(T)`, as
-    //! `typeid_of` does; the requirement is enforced with a `static_assert`.
+    //! This requires the registry's @ref rtti policy to be @ref std_rtti;
+    //! the requirement is enforced with a `static_assert`.
     //!
     //! @param arg A reference to an `any`.
     //! @return A reference to the v-table pointer for the bound value.
@@ -314,9 +312,8 @@ struct virtual_traits<boost::type_erasure::any<C, T>&&, Registry> {
     //! Looks up the @ref type_id returned by
     //! `boost::type_erasure::typeid_of` in the registry's `vptr` policy.
     //!
-    //! This requires the registry's @ref rtti policy to derive from
-    //! @ref std_rtti, which identifies classes by `&typeid(T)`, as
-    //! `typeid_of` does; the requirement is enforced with a `static_assert`.
+    //! This requires the registry's @ref rtti policy to be @ref std_rtti;
+    //! the requirement is enforced with a `static_assert`.
     //!
     //! @param arg A reference to a const `any`.
     //! @return A reference to the v-table pointer for the bound value.
@@ -394,9 +391,8 @@ struct virtual_traits<boost::type_erasure::any<C, T&>, Registry> {
     //! Looks up the @ref type_id returned by
     //! `boost::type_erasure::typeid_of` in the registry's `vptr` policy.
     //!
-    //! This requires the registry's @ref rtti policy to derive from
-    //! @ref std_rtti, which identifies classes by `&typeid(T)`, as
-    //! `typeid_of` does; the requirement is enforced with a `static_assert`.
+    //! This requires the registry's @ref rtti policy to be @ref std_rtti;
+    //! the requirement is enforced with a `static_assert`.
     //!
     //! @param arg A reference to a const `any`.
     //! @return A reference to the v-table pointer for the bound value.
@@ -465,9 +461,8 @@ struct virtual_traits<boost::type_erasure::any<C, const T&>, Registry> {
     //! Looks up the @ref type_id returned by
     //! `boost::type_erasure::typeid_of` in the registry's `vptr` policy.
     //!
-    //! This requires the registry's @ref rtti policy to derive from
-    //! @ref std_rtti, which identifies classes by `&typeid(T)`, as
-    //! `typeid_of` does; the requirement is enforced with a `static_assert`.
+    //! This requires the registry's @ref rtti policy to be @ref std_rtti;
+    //! the requirement is enforced with a `static_assert`.
     //!
     //! @param arg A reference to a const `any`.
     //! @return A reference to the v-table pointer for the bound value.
