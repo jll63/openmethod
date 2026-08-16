@@ -69,9 +69,8 @@ struct virtual_traits<const std::any&, Registry> {
     //! Returns a *reference* to a v-table pointer for an object.
     //!
     //! Acquires the @ref type_id of the value stored in `arg`, using
-    //! `std::any::type()`. This requires the registry's @ref rtti policy to
-    //! derive from @ref std_rtti, which identifies classes by `&typeid(T)`;
-    //! the requirement is enforced with a `static_assert`.
+    //! `std::any::type()`. This requires the registry's @ref rtti policy to be
+    //! @ref std_rtti; the requirement is enforced with a `static_assert`.
     //!
     //! Passes it to the registry's @ref policies::vptr policy, which must
     //! provide @ref policies::VptrFn::vptr. Both @ref policies::vptr_vector
@@ -136,9 +135,8 @@ struct virtual_traits<std::any&, Registry> {
     //! Returns a *reference* to a v-table pointer for an object.
     //!
     //! Acquires the @ref type_id of the value stored in `arg`, using
-    //! `std::any::type()`. This requires the registry's @ref rtti policy to
-    //! derive from @ref std_rtti, which identifies classes by `&typeid(T)`;
-    //! the requirement is enforced with a `static_assert`.
+    //! `std::any::type()`. This requires the registry's @ref rtti policy to be
+    //! @ref std_rtti; the requirement is enforced with a `static_assert`.
     //!
     //! Passes it to the registry's @ref policies::vptr policy, which must
     //! provide @ref policies::VptrFn::vptr. Both @ref policies::vptr_vector
@@ -204,9 +202,8 @@ struct virtual_traits<std::any&&, Registry> {
     //! Returns a *reference* to a v-table pointer for an object.
     //!
     //! Acquires the @ref type_id of the value stored in `arg`, using
-    //! `std::any::type()`. This requires the registry's @ref rtti policy to
-    //! derive from @ref std_rtti, which identifies classes by `&typeid(T)`;
-    //! the requirement is enforced with a `static_assert`.
+    //! `std::any::type()`. This requires the registry's @ref rtti policy to be
+    //! @ref std_rtti; the requirement is enforced with a `static_assert`.
     //!
     //! Passes it to the registry's @ref policies::vptr policy, which must
     //! provide @ref policies::VptrFn::vptr. Both @ref policies::vptr_vector

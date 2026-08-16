@@ -70,10 +70,9 @@ struct virtual_traits<const boost::any&, Registry> {
     //!
     //! Acquires the dynamic @ref type_id of the value stored in `arg`, using
     //! `boost::any::type()`. This requires the registry's @ref rtti policy to
-    //! identify classes by `&typeid(T)`, as @ref std_rtti does;
-    //! `boost::any::type()` yields the same `std::type_info` object, provided
-    //! Boost.TypeIndex uses `stl_type_index`. The requirement is enforced with
-    //! a `static_assert`.
+    //! be @ref std_rtti; the requirement is enforced with a `static_assert`.
+    //! `boost::any::type()` yields the same `std::type_info` object as
+    //! `&typeid(T)`, provided Boost.TypeIndex uses `stl_type_index`.
     //!
     //! Passes the type id to the registry's @ref policies::vptr policy, which
     //! must provide @ref policies::VptrFn::vptr. Both
@@ -147,10 +146,9 @@ struct virtual_traits<boost::any&, Registry> {
     //!
     //! Acquires the dynamic @ref type_id of the value stored in `arg`, using
     //! `boost::any::type()`. This requires the registry's @ref rtti policy to
-    //! identify classes by `&typeid(T)`, as @ref std_rtti does;
-    //! `boost::any::type()` yields the same `std::type_info` object, provided
-    //! Boost.TypeIndex uses `stl_type_index`. The requirement is enforced with
-    //! a `static_assert`.
+    //! be @ref std_rtti; the requirement is enforced with a `static_assert`.
+    //! `boost::any::type()` yields the same `std::type_info` object as
+    //! `&typeid(T)`, provided Boost.TypeIndex uses `stl_type_index`.
     //!
     //! Passes the type id to the registry's @ref policies::vptr policy, which
     //! must provide @ref policies::VptrFn::vptr. Both
@@ -224,10 +222,9 @@ struct virtual_traits<boost::any&&, Registry> {
     //!
     //! Acquires the dynamic @ref type_id of the value stored in `arg`, using
     //! `boost::any::type()`. This requires the registry's @ref rtti policy to
-    //! identify classes by `&typeid(T)`, as @ref std_rtti does;
-    //! `boost::any::type()` yields the same `std::type_info` object, provided
-    //! Boost.TypeIndex uses `stl_type_index`. The requirement is enforced with
-    //! a `static_assert`.
+    //! be @ref std_rtti; the requirement is enforced with a `static_assert`.
+    //! `boost::any::type()` yields the same `std::type_info` object as
+    //! `&typeid(T)`, provided Boost.TypeIndex uses `stl_type_index`.
     //!
     //! Passes the type id to the registry's @ref policies::vptr policy, which
     //! must provide @ref policies::VptrFn::vptr. Both
