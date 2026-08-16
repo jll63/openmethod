@@ -514,7 +514,7 @@ struct select_overrider_virtual_type_aux<
 //! a v-table.
 //!
 //! `virtual_any_ref` is the non-owning counterpart of @ref virtual_any:
-//! it *borrows* an existing `any` instead of holding a copy, and carries
+//! it *refers to* an existing `any` instead of holding a copy, and carries
 //! the v-table pointer for the contained value, so methods dispatch on
 //! the contained type without looking it up on every call. It is a
 //! cheap, two-word handle with pointer semantics - copying it copies the
@@ -584,21 +584,21 @@ class virtual_any_ref {
                            detail::acquire_vptr<Registry>(other))) {
     }
 
-    //! A `virtual_any_ref` cannot borrow a temporary `any`.
+    //! A `virtual_any_ref` cannot refer to a temporary `any`.
     virtual_any_ref(std::remove_const_t<Any>&&) = delete;
 
     //! Construct from a `virtual_any`.
     //!
-    //! Borrows the `any` held by `other`, and copies its v-table pointer
+    //! Refers to the `any` held by `other`, and copies its v-table pointer
     //! - no lookup is involved. A `virtual_any_ref<const Any>` can
-    //! borrow from a const `virtual_any`; a mutable one requires a
+    //! refer to a const `virtual_any`; a mutable one requires a
     //! mutable `virtual_any`.
     //!
     //! @param other A `virtual_any` lvalue.
     virtual_any_ref(owner_type& other) : obj(&other.obj), vp(other.vp) {
     }
 
-    //! A `virtual_any_ref` cannot borrow a temporary `virtual_any`.
+    //! A `virtual_any_ref` cannot refer to a temporary `virtual_any`.
     virtual_any_ref(std::remove_const_t<owner_type>&&) = delete;
 
     //! Convert a mutable `virtual_any_ref` to a const one.

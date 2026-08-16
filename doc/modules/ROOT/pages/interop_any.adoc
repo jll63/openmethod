@@ -6,6 +6,8 @@ OpenMethod can take `any` (both the `std` and `boost` flavors) as virtual
 arguments, and dispatch on the type of the contained value. For this purpose, it
 regards the types as "deriving" from `any`.
 
+#### `std::any`
+
 Support is provided by `<boost/openmethod/interop/std_any.hpp>`. It is not
 included by `<boost/openmethod.hpp>`, so it must be included explicitly.
 
@@ -89,8 +91,8 @@ Every call above looks the v-table up in a hash table, keyed on the type the
 `any` contains. cpp:virtual_std_any[] - an alias for `virtual_any<std::any>` -
 removes that cost: it bundles an `any` with the v-table pointer for the value
 inside it, acquiring it once, on construction, and maintaining it across
-assignment and `emplace`. It is to an `any` what cpp:virtual_ptr[] is to a
-pointer, except that it _owns_ the object: the `any` is held by value.
+assignment and `emplace`. It is similar to cpp:virtual_ptr[], except that it
+_owns_ the object: the `any` is held by value.
 
 The pointer comes from a lookup when the `virtual_std_any` is built from an
 existing `any`, and from a static variable - no lookup at all - when it is built
@@ -114,7 +116,7 @@ the v-table of the `any` root class rather than the one for the contained value.
 #### `virtual_any_ref`
 
 `virtual_std_any` owns its `any`. cpp:virtual_any_ref[] is its non-owning
-counterpart: it _borrows_ an `any` that lives elsewhere, bundling its address
+counterpart: it _refers to_ an `any` that lives elsewhere, bundling its address
 with the v-table pointer for the value inside it - acquired once, when the
 handle is created, or taken at no cost from a `virtual_any`. It is a cheap,
 two-word handle with pointer semantics. Unlike the owning wrapper, it is passed
@@ -135,8 +137,9 @@ overriders receive the contained value by value or by const reference only. A
 mutable handle converts to a const one.
 
 A plain value does not convert to a `virtual_any_ref` - there is no `any` for
-the handle to borrow - so `BOOST_OPENMETHOD_OVERRIDE`, which locates the method
-by convertibility, cannot register overriders that take the contained value.
+the handle to refer to - so `BOOST_OPENMETHOD_OVERRIDE`, which locates the
+method by convertibility, cannot register overriders that take the contained
+value.
 Register them with the core API instead, as in the `virtual_<std::any&>` case
 above; the catch-all overrider, which takes the handle itself, can use the
 macro.

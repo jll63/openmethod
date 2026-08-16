@@ -178,7 +178,7 @@ BOOST_AUTO_TEST_CASE(virtual_any_ref_examples) {
         // tag::ref_dispatch[]
         std::any spot_any = Dog{"Spot"};
 
-        // one lookup; the handle borrows the `any`
+        // one lookup; the handle refers to the `any`
         virtual_any_ref<std::any> spot = spot_any;
 
         std::cout << poke(spot) << "\n"; // Spot!
