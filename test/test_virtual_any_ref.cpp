@@ -126,7 +126,7 @@ BOOST_OPENMETHOD_REGISTER(bump_method::override<bump_int>);
 BOOST_AUTO_TEST_CASE(virtual_any_ref_mutable) {
     initialize(trace());
 
-    // the handle borrows the `any`; mutations reach the referent
+    // the handle refers to the `any`; mutations reach the referent
     std::any spot_any(Dog{"Spot"});
     BOOST_TEST(bump(spot_any) == "Spot Jr. the dog");
     BOOST_TEST(std::any_cast<const Dog&>(spot_any).name == "Spot Jr.");
@@ -136,7 +136,7 @@ BOOST_AUTO_TEST_CASE(virtual_any_ref_mutable) {
     BOOST_TEST(bump(answer) == "bumped");
     BOOST_TEST(std::any_cast<int>(answer_any) == 42);
 
-    // borrowing from a virtual_any: mutations reach the owner's value
+    // referring to a virtual_any: mutations reach the owner's value
     virtual_std_any rex = Dog{"Rex"};
     virtual_any_ref<std::any> rex_ref = rex;
     BOOST_TEST(rex_ref.vptr() == rex.vptr());
