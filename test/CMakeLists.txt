@@ -184,6 +184,8 @@ openmethod_compile_fail_test(
     "do not wrap an object that has a boost_openmethod_vptr overload")
 openmethod_compile_fail_test(
     compile_fail_std_any_custom_rtti "requires standard RTTI")
+openmethod_compile_fail_test(
+    compile_fail_type_erasure_custom_rtti "requires standard RTTI")
 
 if (TARGET Boost::dll)
     add_subdirectory(dynamic_loading)
