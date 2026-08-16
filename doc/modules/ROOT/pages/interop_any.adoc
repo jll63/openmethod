@@ -6,6 +6,14 @@ OpenMethod can take `any` (both the `std` and `boost` flavors) as virtual
 arguments, and dispatch on the type of the contained value. For this purpose, it
 regards the types as "deriving" from `any`.
 
+#### Requirements
+
+Dispatch keys on the `std::type_info` returned by `any::type()`, so the
+registry's `rtti` policy must be cpp:std_rtti[], or a policy derived from it.
+`default_registry` and `indirect_registry` both qualify. A registry with, say,
+cpp:static_rtti[] identifies classes by a different kind of `type_id`, and would
+look up the wrong v-table; the requirement is enforced with a `static_assert`.
+
 #### `std::any`
 
 Support is provided by `<boost/openmethod/interop/std_any.hpp>`. It is not

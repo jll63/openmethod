@@ -9,6 +9,7 @@
 #include <boost/any.hpp>
 #include <boost/openmethod/core.hpp>
 #include <boost/openmethod/interop/virtual_any.hpp>
+#include <boost/openmethod/policies/std_rtti.hpp>
 
 namespace boost::openmethod {
 
@@ -25,6 +26,20 @@ struct validate_method_parameter<virtual_<boost::any&>, Registry, void>
 template<class Registry>
 struct validate_method_parameter<virtual_<boost::any&&>, Registry, void>
     : std::true_type {};
+
+// `boost::any::type()` yields a `std::type_info`, which is a valid `type_id`
+// only for an rtti policy that identifies classes by `&typeid(T)`. Under any
+// other policy the lookup key is meaningless, and `type_id` being
+// `const void*`, nothing would diagnose it.
+template<class Registry>
+constexpr void assert_std_rtti_boost_any() {
+    static_assert(
+        std::is_base_of_v<
+            policies::std_rtti,
+            find_first_derived_of<
+                policies::rtti, typename Registry::policy_list>>,
+        "requires standard RTTI");
+}
 
 } // namespace detail
 
@@ -52,7 +67,8 @@ struct virtual_traits<const boost::any&, Registry> {
     //! `boost::any::type()`. This requires the registry's @ref rtti policy to
     //! identify classes by `&typeid(T)`, as @ref std_rtti does;
     //! `boost::any::type()` yields the same `std::type_info` object, provided
-    //! Boost.TypeIndex uses `stl_type_index`.
+    //! Boost.TypeIndex uses `stl_type_index`. The requirement is enforced with
+    //! a `static_assert`.
     //!
     //! Passes the type id to the registry's @ref policies::vptr policy, which
     //! must provide @ref policies::VptrFn::vptr. Both
@@ -70,6 +86,7 @@ struct virtual_traits<const boost::any&, Registry> {
     //! @param arg A reference to a const `any`.
     //! @return A reference to the v-table pointer for the stored value.
     static auto vptr(const boost::any& arg) -> const vptr_type& {
+        detail::assert_std_rtti_boost_any<Registry>();
         return Registry::vptr::vptr(&arg.type());
     }
 
@@ -127,7 +144,8 @@ struct virtual_traits<boost::any&, Registry> {
     //! `boost::any::type()`. This requires the registry's @ref rtti policy to
     //! identify classes by `&typeid(T)`, as @ref std_rtti does;
     //! `boost::any::type()` yields the same `std::type_info` object, provided
-    //! Boost.TypeIndex uses `stl_type_index`.
+    //! Boost.TypeIndex uses `stl_type_index`. The requirement is enforced with
+    //! a `static_assert`.
     //!
     //! Passes the type id to the registry's @ref policies::vptr policy, which
     //! must provide @ref policies::VptrFn::vptr. Both
@@ -145,6 +163,7 @@ struct virtual_traits<boost::any&, Registry> {
     //! @param arg A reference to a `boost::any`.
     //! @return A reference to the v-table pointer for the stored value.
     static auto vptr(const boost::any& arg) -> const vptr_type& {
+        detail::assert_std_rtti_boost_any<Registry>();
         return Registry::vptr::vptr(&arg.type());
     }
 
@@ -202,7 +221,8 @@ struct virtual_traits<boost::any&&, Registry> {
     //! `boost::any::type()`. This requires the registry's @ref rtti policy to
     //! identify classes by `&typeid(T)`, as @ref std_rtti does;
     //! `boost::any::type()` yields the same `std::type_info` object, provided
-    //! Boost.TypeIndex uses `stl_type_index`.
+    //! Boost.TypeIndex uses `stl_type_index`. The requirement is enforced with
+    //! a `static_assert`.
     //!
     //! Passes the type id to the registry's @ref policies::vptr policy, which
     //! must provide @ref policies::VptrFn::vptr. Both
@@ -220,6 +240,7 @@ struct virtual_traits<boost::any&&, Registry> {
     //! @param arg A reference to a `boost::any`.
     //! @return A reference to the v-table pointer for the stored value.
     static auto vptr(const boost::any& arg) -> const vptr_type& {
+        detail::assert_std_rtti_boost_any<Registry>();
         return Registry::vptr::vptr(&arg.type());
     }
 
