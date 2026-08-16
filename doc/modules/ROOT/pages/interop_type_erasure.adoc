@@ -162,6 +162,14 @@ works with any pre-existing Concept containing `typeid_<>`. To use an `any`
 with several registries, list the concept several times, once per registry:
 `openmethod_vptr<Concept, some_registry>`.
 
+In exchange, the requirement for cpp:std_rtti[] goes away. The v-table pointer
+comes from the ``any``'s own dispatch table, so the registry's `rtti` policy is
+needed only to identify classes when `initialize()` builds the dispatch tables -
+cpp:static_rtti[] is enough. No hashing is involved either: the registry needs
+neither a `vptr` policy nor any policy that one depends on, like `type_hash`.
+`registry<policies::static_rtti>` will do. Note that this does not make the
+program RTTI-free: Boost.TypeErasure itself uses `typeid`.
+
 #### Empty ``any``s
 
 An empty relaxed `any` reports `typeid(void)`, which is not a registered
