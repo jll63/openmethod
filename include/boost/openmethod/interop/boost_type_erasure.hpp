@@ -375,8 +375,8 @@ struct virtual_traits<boost::type_erasure::any<C, T&>, Registry> {
     //! Extracts the referent using `boost::type_erasure::any_cast`.
     //! Supports mutable references (e.g. `Dog&`); modifications through
     //! the result are visible through the referent. `U` cannot be an
-    //! rvalue reference - the referent is borrowed, not owned; the
-    //! overloads are removed from the overload set.
+    //! rvalue reference - the referent is not owned; the overloads are
+    //! removed from the overload set.
     //!
     //! @tparam U The target type (e.g. `Dog&`, `const Dog&`, `Dog`).
     //! @param arg The any reference method argument.

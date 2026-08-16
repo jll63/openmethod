@@ -139,9 +139,8 @@ mutable handle converts to a const one.
 A plain value does not convert to a `virtual_any_ref` - there is no `any` for
 the handle to refer to - so `BOOST_OPENMETHOD_OVERRIDE`, which locates the
 method by convertibility, cannot register overriders that take the contained
-value.
-Register them with the core API instead, as in the `virtual_<std::any&>` case
-above; the catch-all overrider, which takes the handle itself, can use the
+value. Register them with the core API instead, as in the `virtual_<std::any&>`
+case above; the catch-all overrider, which takes the handle itself, can use the
 macro.
 
 The handle does not track its referent: if the value inside the `any` is
