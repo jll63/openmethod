@@ -19,18 +19,46 @@ class virtual_any;
 template<class Any, class Registry = BOOST_OPENMETHOD_DEFAULT_REGISTRY>
 class virtual_any_ref;
 
-namespace detail {
+BOOST_OPENMETHOD_OPEN_NAMESPACE_DETAIL_UNLESS_MRDOCS
 
+//! Test if argument is a wide `any` (exposition only)
+//!
+//! Evaluates to `true` if `T` is a specialization of @ref virtual_any or of
+//! @ref virtual_any_ref, and `false` otherwise.
+//!
+//! This constrains the constructor and the assignment operator of
+//! @ref virtual_any that take a value, excluding both wide types - every
+//! specialization of them, not only the ones matching this `virtual_any`. A
+//! @ref virtual_any argument then selects the copy or move operation instead
+//! of being stored inside the `any`, and a @ref virtual_any_ref argument is
+//! rejected outright rather than stored: a handle is not a registered class,
+//! so its @ref registry::static_vptr would be null.
+//!
+//! @tparam T A type.
 template<typename T>
-struct is_virtual_any_aux : std::false_type {};
+constexpr bool IsVirtualAny = false;
 
+//! Recognize a virtual_any (exposition only)
+//!
+//! The specialization of @ref IsVirtualAny that matches a
+//! `virtual_any`, and evaluates to `true`.
+//!
+//! @tparam Any An `any` type.
+//! @tparam Registry A @ref registry.
 template<class Any, class Registry>
-struct is_virtual_any_aux<virtual_any<Any, Registry>> : std::true_type {};
+constexpr bool IsVirtualAny<virtual_any<Any, Registry>> = true;
 
+//! Recognize a virtual_any_ref (exposition only)
+//!
+//! The specialization of @ref IsVirtualAny that matches a
+//! `virtual_any_ref`, and evaluates to `true`.
+//!
+//! @tparam Any An `any` type, possibly const-qualified.
+//! @tparam Registry A @ref registry.
 template<class Any, class Registry>
-struct is_virtual_any_aux<virtual_any_ref<Any, Registry>> : std::true_type {};
+constexpr bool IsVirtualAny<virtual_any_ref<Any, Registry>> = true;
 
-} // namespace detail
+BOOST_OPENMETHOD_CLOSE_NAMESPACE_DETAIL_UNLESS_MRDOCS
 
 //! A wide `any`, combining an `any` and a pointer to a v-table.
 //!
@@ -128,7 +156,8 @@ class virtual_any {
     template<
         typename T,
         typename = std::enable_if_t<
-            !detail::is_virtual_any_aux<std::decay_t<T>>::value &&
+            !BOOST_OPENMETHOD_DETAIL_UNLESS_MRDOCS
+                IsVirtualAny<std::decay_t<T>> &&
             !std::is_same_v<std::decay_t<T>, Any> &&
             std::is_constructible_v<Any, T&&>>>
     virtual_any(T&& value)
@@ -203,7 +232,8 @@ class virtual_any {
     template<
         typename T,
         typename = std::enable_if_t<
-            !detail::is_virtual_any_aux<std::decay_t<T>>::value &&
+            !BOOST_OPENMETHOD_DETAIL_UNLESS_MRDOCS
+                IsVirtualAny<std::decay_t<T>> &&
             !std::is_same_v<std::decay_t<T>, Any> &&
             std::is_constructible_v<Any, T&&>>>
     auto operator=(T&& value) -> virtual_any& {

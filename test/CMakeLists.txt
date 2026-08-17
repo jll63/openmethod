@@ -168,6 +168,24 @@ openmethod_compile_fail_test(
 openmethod_compile_fail_test(
     compile_fail_virtual_any_ref_by_ref
     "virtual_any_ref is a cheap handle, pass it by value")
+# Copy-initializing a virtual_any from a virtual_any_ref is ill-formed: the
+# value constructor is constrained away, so storing the handle inside the
+# `any` would take two user-defined conversions. The diagnostic is the
+# compiler's own, and the wording varies: "conversion from ... to non-scalar
+# type ... requested" on gcc, "no viable conversion from" on clang, C2440
+# "cannot convert from" on MSVC.
+#
+# MSVC needs /permissive- here. In its default mode - which `/std:c++17` does
+# not turn off - it accepts the extra user-defined conversion and compiles the
+# file, so the test would not fail. Note this means the constraint does not
+# actually protect MSVC users building in the default mode; only the
+# direct-initialization form, which no compiler rejects, is worse.
+openmethod_compile_fail_test(
+    compile_fail_virtual_any_from_ref "conversion from|cannot convert from")
+if (MSVC)
+    target_compile_options(
+        boost_openmethod-compile_fail_virtual_any_from_ref PRIVATE /permissive-)
+endif()
 # "use of a deleted function" on gcc, "call to deleted function" on clang,
 # "attempting to reference a deleted function" on MSVC.
 openmethod_compile_fail_test(
