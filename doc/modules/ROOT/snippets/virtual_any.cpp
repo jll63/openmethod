@@ -11,6 +11,7 @@
 #include <boost/openmethod/initialize.hpp>
 #include <boost/openmethod/interop/boost_any.hpp>
 #include <boost/openmethod/interop/std_any.hpp>
+#include <boost/openmethod/interop/virtual_any_ptr.hpp>
 
 #define BOOST_TEST_MODULE openmethod
 #include <boost/test/unit_test.hpp>
@@ -78,17 +79,17 @@ BOOST_OPENMETHOD_OVERRIDE(name, (const std::string& name), std::string) {
 
 } // namespace boost_any
 
-namespace any_ref {
+namespace any_ptr {
 
 using std_any::Dog;
 
-// tag::ref[]
-BOOST_OPENMETHOD(poke, (virtual_any_ref<std::any>), std::string);
+// tag::ptr[]
+BOOST_OPENMETHOD(poke, (virtual_any_ptr<std::any>), std::string);
 
-// A plain value does not convert to a virtual_any_ref, so overriders
+// A plain value does not convert to a virtual_any_ptr, so overriders
 // that take the contained value are registered with the core API.
 using poke_method =
-    BOOST_OPENMETHOD_TYPE(poke, (virtual_any_ref<std::any>), std::string);
+    BOOST_OPENMETHOD_TYPE(poke, (virtual_any_ptr<std::any>), std::string);
 
 auto poke_dog(Dog& dog) -> std::string {
     dog.name += "!";
@@ -96,9 +97,9 @@ auto poke_dog(Dog& dog) -> std::string {
 }
 
 BOOST_OPENMETHOD_REGISTER(poke_method::override<poke_dog>);
-// end::ref[]
+// end::ptr[]
 
-} // namespace any_ref
+} // namespace any_ptr
 
 BOOST_AUTO_TEST_CASE(std_any_examples) {
     using namespace std_any;
@@ -167,23 +168,24 @@ BOOST_AUTO_TEST_CASE(std_any_examples) {
     }
 }
 
-BOOST_AUTO_TEST_CASE(virtual_any_ref_examples) {
-    using namespace any_ref;
+BOOST_AUTO_TEST_CASE(virtual_any_ptr_examples) {
+    using namespace any_ptr;
 
     initialize();
 
     {
         capture_cout cout;
 
-        // tag::ref_dispatch[]
+        // tag::ptr_dispatch[]
         std::any spot_any = Dog{"Spot"};
 
-        // one lookup; the handle refers to the `any`
-        virtual_any_ref<std::any> spot = spot_any;
+        // one lookup; the handle points to the `any`. The `any` type is
+        // deduced, along with its constness
+        virtual_any_ptr spot = spot_any;
 
         std::cout << poke(spot) << "\n"; // Spot!
         std::cout << poke(spot) << "\n"; // Spot!! - no lookup on any call
-        // end::ref_dispatch[]
+        // end::ptr_dispatch[]
 
         BOOST_TEST(cout.str() == "Spot!\nSpot!!\n");
     }

@@ -17,20 +17,20 @@ template<class Any, class Registry = BOOST_OPENMETHOD_DEFAULT_REGISTRY>
 class virtual_any;
 
 template<class Any, class Registry = BOOST_OPENMETHOD_DEFAULT_REGISTRY>
-class virtual_any_ref;
+class virtual_any_ptr;
 
 BOOST_OPENMETHOD_OPEN_NAMESPACE_DETAIL_UNLESS_MRDOCS
 
 //! Test if argument is a wide `any` (exposition only)
 //!
 //! Evaluates to `true` if `T` is a specialization of @ref virtual_any or of
-//! @ref virtual_any_ref, and `false` otherwise.
+//! @ref virtual_any_ptr, and `false` otherwise.
 //!
 //! This constrains the constructor and the assignment operator of
 //! @ref virtual_any that take a value, excluding both wide types - every
 //! specialization of them, not only the ones matching this `virtual_any`. A
 //! @ref virtual_any argument then selects the copy or move operation instead
-//! of being stored inside the `any`, and a @ref virtual_any_ref argument is
+//! of being stored inside the `any`, and a @ref virtual_any_ptr argument is
 //! rejected outright rather than stored: a handle is not a registered class,
 //! so its @ref registry::static_vptr would be null.
 //!
@@ -47,16 +47,6 @@ constexpr bool IsVirtualAny = false;
 //! @tparam Registry A @ref registry.
 template<class Any, class Registry>
 constexpr bool IsVirtualAny<virtual_any<Any, Registry>> = true;
-
-//! Recognize a virtual_any_ref (exposition only)
-//!
-//! The specialization of @ref IsVirtualAny that matches a
-//! `virtual_any_ref`, and evaluates to `true`.
-//!
-//! @tparam Any An `any` type, possibly const-qualified.
-//! @tparam Registry A @ref registry.
-template<class Any, class Registry>
-constexpr bool IsVirtualAny<virtual_any_ref<Any, Registry>> = true;
 
 BOOST_OPENMETHOD_CLOSE_NAMESPACE_DETAIL_UNLESS_MRDOCS
 
@@ -106,7 +96,7 @@ class virtual_any {
     friend struct virtual_traits;
 
     template<class, class>
-    friend class virtual_any_ref;
+    friend class virtual_any_ptr;
 
   public:
     //! Construct an empty `virtual_any`.
@@ -529,241 +519,8 @@ struct select_overrider_virtual_type_aux<
 
 } // namespace detail
 
-//! A wide reference to an `any`: a pointer to an `any`, and a pointer to
-//! a v-table.
-//!
-//! `virtual_any_ref` is the non-owning counterpart of @ref virtual_any:
-//! it *refers to* an existing `any` instead of holding a copy, and carries
-//! the v-table pointer for the contained value, so methods dispatch on
-//! the contained type without looking it up on every call. It is a
-//! cheap, two-word handle with pointer semantics - copying it copies the
-//! two words - and, like the reference-wrapper flavors of
-//! Boost.TypeErasure's `any`, it is passed to methods *by value*.
-//!
-//! `Any` may be const-qualified: through `virtual_any_ref<const Any>`,
-//! overriders can only take the contained value by value or by const
-//! reference; `virtual_any_ref<Any>` also supports mutable references,
-//! and modifications reach the referent. A `virtual_any_ref<Any>`
-//! converts to a `virtual_any_ref<const Any>`.
-//!
-//! The v-table pointer is acquired when the handle is created: from the
-//! dynamic type of the value contained in the `any` (a hash table
-//! lookup), or at no cost from a @ref virtual_any, which already carries
-//! it. The handle does not track its referent: if the value inside the
-//! `any` is replaced, the handle is stale - like an iterator into a
-//! modified container - and must be re-created.
-//!
-//! An overrider takes the *contained* value - or, for a catch-all
-//! overrider, the `virtual_any_ref` itself, by value. Since a plain
-//! value does not convert to a `virtual_any_ref`, overriders taking the
-//! contained value are registered with the core API
-//! (`method<...>::override<fn>`) rather than with
-//! @ref BOOST_OPENMETHOD_OVERRIDE, which locates the method by
-//! convertibility.
-//!
-//! `Any` can be `std::any`, `boost::any`, or any type that has an
-//! `any`-like interface, and specializes `virtual_traits` for its
-//! reference types, providing `vptr` and `cast`.
-//!
-//! @tparam Any An `any` type, possibly const-qualified.
-//! @tparam Registry A @ref registry.
-//!
-//! @par Example
-//! include:virtual_any.cpp#ref;ref_dispatch
-//!
-//! @see [Interoperation with `any`](xref:ROOT:interop_any.adoc)
-template<class Any, class Registry>
-class virtual_any_ref {
-    static constexpr bool use_indirect_vptrs = Registry::has_indirect_vptr;
-
-    using owner_type = std::conditional_t<
-        std::is_const_v<Any>,
-        const virtual_any<std::remove_const_t<Any>, Registry>,
-        virtual_any<std::remove_const_t<Any>, Registry>>;
-
-    Any* obj;
-    std::conditional_t<use_indirect_vptrs, const vptr_type*, vptr_type> vp;
-
-    template<typename, class>
-    friend struct virtual_traits;
-
-    template<class, class>
-    friend class virtual_any_ref;
-
-  public:
-    //! Construct from an `any`.
-    //!
-    //! Acquires the v-table pointer for the contained value, using
-    //! `virtual_traits<const Any&, Registry>::vptr` - a hash table
-    //! lookup.
-    //!
-    //! @param other An `any` lvalue.
-    virtual_any_ref(Any& other)
-        : obj(&other), vp(detail::box_vptr<use_indirect_vptrs>(
-                           detail::acquire_vptr<Registry>(other))) {
-    }
-
-    //! A `virtual_any_ref` cannot refer to a temporary `any`.
-    virtual_any_ref(std::remove_const_t<Any>&&) = delete;
-
-    //! Construct from a `virtual_any`.
-    //!
-    //! Refers to the `any` held by `other`, and copies its v-table pointer
-    //! - no lookup is involved. A `virtual_any_ref<const Any>` can
-    //! refer to a const `virtual_any`; a mutable one requires a
-    //! mutable `virtual_any`.
-    //!
-    //! @param other A `virtual_any` lvalue.
-    virtual_any_ref(owner_type& other) : obj(&other.obj), vp(other.vp) {
-    }
-
-    //! A `virtual_any_ref` cannot refer to a temporary `virtual_any`.
-    virtual_any_ref(std::remove_const_t<owner_type>&&) = delete;
-
-    //! Convert a mutable `virtual_any_ref` to a const one.
-    template<
-        class Other,
-        typename = std::enable_if_t<
-            std::is_const_v<Any> &&
-            std::is_same_v<Other, std::remove_const_t<Any>>>>
-    virtual_any_ref(virtual_any_ref<Other, Registry> other)
-        : obj(other.obj), vp(other.vp) {
-    }
-
-    //! Return a reference to the (non-modifiable) `any`.
-    auto get() const -> const Any& {
-        return *obj;
-    }
-
-    //! Return the v-table pointer.
-    auto vptr() const -> vptr_type {
-        return detail::unbox_vptr(vp);
-    }
-
-#ifndef __MRDOCS__
-    // Constrained to exactly this `virtual_any_ref`, for the same reason
-    // as in `virtual_any`: MSVC, in its default (permissive) mode,
-    // injects friend functions into the enclosing namespace, where an
-    // unconstrained parameter would make this a candidate for anything
-    // convertible to `virtual_any_ref`.
-    template<class Self>
-    friend auto boost_openmethod_vptr(const Self& va, Registry*)
-        -> std::enable_if_t<std::is_same_v<Self, virtual_any_ref>, vptr_type> {
-        return detail::unbox_vptr(va.vp);
-    }
-#endif
-};
-
-//! Specialize virtual_traits for `virtual_any_ref`, passed by value.
-//!
-//! Dispatch is on the v-table pointer stored in the `virtual_any_ref`.
-//!
-//! @tparam Any An `any` type, possibly const-qualified.
-//! @tparam Registry A @ref registry.
-template<class Any, class Registry>
-struct virtual_traits<virtual_any_ref<Any, Registry>, Registry> {
-    //! The type used for dispatch.
-    using virtual_type = std::remove_const_t<Any>;
-
-    //! Returns a const reference to the `virtual_any_ref` argument.
-    //! @param arg A reference to a `virtual_any_ref`.
-    //! @return A const reference to `arg`.
-    static auto peek(const virtual_any_ref<Any, Registry>& arg)
-        -> const virtual_any_ref<Any, Registry>& {
-        return arg;
-    }
-
-    //! Cast to a type.
-    //!
-    //! If `U` is the `virtual_any_ref` itself, returns a copy of the
-    //! handle. Otherwise, extracts the referent's value using the
-    //! `virtual_traits` for the `any`'s reference type: mutable
-    //! references (e.g. `Dog&`) are supported unless `Any` is
-    //! const-qualified.
-    //!
-    //! @tparam U The target type (e.g. `Dog&`, `const Dog&`, `Dog`).
-    //! @param arg The `virtual_any_ref` method argument.
-    //! @return The value referred to by `arg`, cast to `U`.
-    template<typename U>
-    static auto cast(virtual_any_ref<Any, Registry> arg) -> decltype(auto) {
-        if constexpr (std::is_same_v<
-                          std::remove_cv_t<std::remove_reference_t<U>>,
-                          virtual_any_ref<Any, Registry>>) {
-            // by value: a reference would dangle when this function's
-            // parameter goes out of scope
-            return arg;
-        } else if constexpr (std::is_const_v<Any>) {
-            return virtual_traits<const virtual_type&, Registry>::template cast<
-                U>(*arg.obj);
-        } else {
-            return virtual_traits<virtual_type&, Registry>::template cast<U>(
-                *arg.obj);
-        }
-    }
-};
-
-namespace detail {
-
-template<class Any, class Registry>
-struct is_virtual<virtual_any_ref<Any, Registry>> : std::true_type {};
-
-template<class Any, class Registry>
-struct parameter_traits<virtual_any_ref<Any, Registry>, Registry>
-    : virtual_traits<virtual_any_ref<Any, Registry>, Registry> {};
-
-template<class Any, class Registry, class MethodRegistry>
-struct validate_method_parameter<
-    virtual_any_ref<Any, Registry>, MethodRegistry, void>
-    : std::bool_constant<std::is_same_v<Registry, MethodRegistry>> {
-    static_assert(
-        std::is_same_v<Registry, MethodRegistry>, "registry mismatch");
-};
-
-template<class Any, class Registry, class MethodRegistry>
-struct validate_method_parameter<
-    virtual_any_ref<Any, Registry>&, MethodRegistry, void> : std::false_type {
-    static_assert(
-        false_t<Any, Registry>,
-        "virtual_any_ref is a cheap handle, pass it by value");
-};
-
-template<class Any, class Registry, class MethodRegistry>
-struct validate_method_parameter<
-    const virtual_any_ref<Any, Registry>&, MethodRegistry, void>
-    : std::false_type {
-    static_assert(
-        false_t<Any, Registry>,
-        "virtual_any_ref is a cheap handle, pass it by value");
-};
-
-template<class Any, class Registry, class MethodRegistry>
-struct validate_method_parameter<
-    virtual_any_ref<Any, Registry>&&, MethodRegistry, void> : std::false_type {
-    static_assert(
-        false_t<Any, Registry>,
-        "virtual_any_ref is a cheap handle, pass it by value");
-};
-
-template<class Any, class Registry, typename T2>
-struct validate_overrider_parameter<virtual_any_ref<Any, Registry>, T2, void>
-    : std::true_type {};
-
-template<class Any, class Registry>
-struct validate_overrider_parameter<
-    virtual_any_ref<Any, Registry>, virtual_any_ref<Any, Registry>, void>
-    : std::true_type {};
-
-template<class Any, class Registry, typename Q>
-struct select_overrider_virtual_type_aux<
-    virtual_any_ref<Any, Registry>, Q, Registry> {
-    using type = virtual_type<Q, Registry>;
-};
-
-} // namespace detail
-
 namespace aliases {
 using boost::openmethod::virtual_any;
-using boost::openmethod::virtual_any_ref;
 } // namespace aliases
 
 } // namespace boost::openmethod
