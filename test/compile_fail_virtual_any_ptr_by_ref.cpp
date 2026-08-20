@@ -8,6 +8,7 @@
 
 #include <boost/openmethod.hpp>
 #include <boost/openmethod/interop/std_any.hpp>
+#include <boost/openmethod/interop/virtual_any_ptr.hpp>
 
 using namespace boost::openmethod;
 
@@ -17,11 +18,11 @@ struct Dog {
 
 BOOST_OPENMETHOD_REGISTER(use_std_any_types<Dog>);
 
-// A virtual_any_ref method parameter is passed by value: it is a cheap,
+// A virtual_any_ptr method parameter is passed by value: it is a cheap,
 // two-word handle; a reference would add an indirection for nothing.
-BOOST_OPENMETHOD(name, (const virtual_any_ref<const std::any>&), std::string);
+BOOST_OPENMETHOD(name, (const virtual_any_ptr<const std::any>&), std::string);
 
 int main() {
     std::any dog(Dog{"Snoopy"});
-    return name(virtual_any_ref<const std::any>(dog)).size();
+    return name(virtual_any_ptr<const std::any>(dog)).size();
 }

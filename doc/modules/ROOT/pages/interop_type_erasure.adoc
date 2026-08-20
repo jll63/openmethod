@@ -120,12 +120,14 @@ include::example$type_erasure_virtual_any.cpp[tag=content]
 The wrapper is passed by reference, in any of the three categories, and the
 overriders receive the _bound_ value, exactly as for `virtual_<const
 any<Concept>&>` - or the wrapper itself, for a catch-all overrider.
-cpp:virtual_any_ref[] is the non-owning counterpart: it _refers to_ an existing
-`any`, looking the v-table pointer up once, or taking it at no cost from a
-`virtual_any`. Both work with `type_erasure::any` for the same reason they
-work with `std::any` and `boost::any` - the interop specializes
-cpp:virtual_traits[] for the reference types of the `any`. See
-xref:interop_any.adoc[Interoperation with `any`] for the details.
+cpp:virtual_any_ptr[] - from its own header,
+`<boost/openmethod/interop/virtual_any_ptr.hpp>` - is the non-owning
+counterpart: it _points to_ an existing `any`, looking the v-table pointer up
+once, or taking it at no cost from a `virtual_any`. Both work with
+`type_erasure::any` for the same reason they work with `std::any` and
+`boost::any` - the interop specializes cpp:virtual_traits[] for the reference
+types of the `any`. See xref:interop_any.adoc[Interoperation with `any`] for
+the details.
 
 #### The `openmethod_vptr` concept
 
