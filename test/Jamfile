@@ -22,14 +22,25 @@ project
     <library>/boost/openmethod//boost_openmethod
     <library>/boost/any//boost_any
 
-    # <use>, not <library>: the interop needs Boost.TypeErasure's headers
-    # only. Its compiled part is one file, dynamic_binding.cpp, which links
-    # Boost.Thread - so <library> would drag Boost.Thread into every build
-    # of this test suite for a translation unit nothing here references.
-    # <use> propagates the usage requirements, including the include path
-    # and BOOST_TYPE_ERASURE_NO_LIB (which keeps MSVC from auto-linking),
-    # without adding the library to the link.
-    <use>/boost/type_erasure//boost_type_erasure
+    # The interop needs Boost.TypeErasure's headers only. Its compiled part
+    # is one file, dynamic_binding.cpp, which nothing here references and
+    # which links Boost.Thread - which in turn pulls in Boost.Container,
+    # Chrono, date_time and Atomic. Two of those do not build under -Werror
+    # on the Windows CI toolchains, and took this whole suite down with them.
+    #
+    # <use> rather than <library> asks for the usage requirements - the
+    # include path, and BOOST_TYPE_ERASURE_NO_LIB, which keeps MSVC from
+    # auto-linking - without adding the library to the link.
+    #
+    # /<link>shared rather than inheriting the build's link= is the other
+    # half, and is not cosmetic: a *static* library cannot resolve its own
+    # dependencies, so b2 propagates them to whoever uses it. Under
+    # link=static that puts Boost.Thread back in the usage requirements, and
+    # <use> then propagates it here - which is exactly what CI builds, and
+    # what a link=shared-only test misses. Pinning the dependency to the
+    # shared flavor keeps its dependencies its own. Nothing is built either
+    # way: we never link it.
+    <use>/boost/type_erasure//boost_type_erasure/<link>shared
 
     <warnings>extra
 
