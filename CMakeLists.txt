@@ -96,6 +96,15 @@ if (BOOST_OPENMETHOD_BUILD_TESTS OR BOOST_OPENMETHOD_MRDOCS_BUILD)
     list(APPEND BOOST_OPENMETHOD_DEPENDENCIES Boost::smart_ptr)
     list(APPEND BOOST_OPENMETHOD_DEPENDENCIES Boost::any)
     list(APPEND BOOST_OPENMETHOD_DEPENDENCIES Boost::type_erasure)
+    # ... but for its headers only. Boost.TypeErasure's compiled part is one
+    # file, dynamic_binding.cpp, which nothing here references and which links
+    # Boost::thread - so linking Boost::type_erasure builds Boost.Thread and,
+    # through it, Boost.Container, Boost.Chrono, Boost.date_time and
+    # Boost.Atomic. Two of those do not build under -Werror on the Windows CI
+    # toolchains, which took the whole test suite down with them. Consume the
+    # usage requirements without linking, as test/Jamfile does with <use>.
+    # ($<COMPILE_ONLY:> expresses this directly, but needs CMake 3.27.)
+    list(APPEND BOOST_OPENMETHOD_COMPILE_ONLY_DEPENDENCIES Boost::type_erasure)
 endif()
 
 foreach (BOOST_OPENMETHOD_DEPENDENCY ${BOOST_OPENMETHOD_DEPENDENCIES})
@@ -178,7 +187,39 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/include/boost PREFIX "" FILES ${BOOST_OPENMETHOD_HEADERS})
 
 function(boost_openmethod_setup_properties target)
-    target_link_libraries(${target} INTERFACE ${BOOST_OPENMETHOD_DEPENDENCIES})
+    set(link_dependencies ${BOOST_OPENMETHOD_DEPENDENCIES})
+
+    if (BOOST_OPENMETHOD_COMPILE_ONLY_DEPENDENCIES)
+        list(
+            REMOVE_ITEM link_dependencies
+            ${BOOST_OPENMETHOD_COMPILE_ONLY_DEPENDENCIES})
+    endif()
+
+    target_link_libraries(${target} INTERFACE ${link_dependencies})
+
+    foreach (dependency ${BOOST_OPENMETHOD_COMPILE_ONLY_DEPENDENCIES})
+        if (NOT TARGET ${dependency})
+            continue()
+        endif()
+
+        # A compile-only dependency's own compiled dependencies appear in its
+        # interface wrapped in $<LINK_ONLY:...> - those are the ones we are
+        # avoiding. Drop them and keep the header-only ones, whose include
+        # directories the headers do need.
+        get_target_property(usage ${dependency} INTERFACE_LINK_LIBRARIES)
+
+        if (usage)
+            list(FILTER usage EXCLUDE REGEX "\\$<LINK_ONLY:")
+            target_link_libraries(${target} INTERFACE ${usage})
+        endif()
+
+        target_include_directories(
+            ${target} SYSTEM INTERFACE
+            $<TARGET_PROPERTY:${dependency},INTERFACE_INCLUDE_DIRECTORIES>)
+        target_compile_definitions(
+            ${target} INTERFACE
+            $<TARGET_PROPERTY:${dependency},INTERFACE_COMPILE_DEFINITIONS>)
+    endforeach()
 endfunction()
 
 add_library(boost_openmethod INTERFACE)
