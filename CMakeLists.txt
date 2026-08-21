@@ -189,37 +189,23 @@ source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/include/boost PREFIX "" FILES ${BO
 function(boost_openmethod_setup_properties target)
     set(link_dependencies ${BOOST_OPENMETHOD_DEPENDENCIES})
 
-    if (BOOST_OPENMETHOD_COMPILE_ONLY_DEPENDENCIES)
-        list(
-            REMOVE_ITEM link_dependencies
-            ${BOOST_OPENMETHOD_COMPILE_ONLY_DEPENDENCIES})
+    # $<COMPILE_ONLY:> is exactly "the usage requirements, without the link".
+    # Being a generator expression, it does not care whether the dependency's
+    # target has been defined yet - which the super-project, driving this from
+    # BOOST_INCLUDE_LIBRARIES, does not guarantee. Anything that inspects the
+    # target at configure time does care, and breaks when the super-project
+    # happens to configure openmethod first.
+    #
+    # It needs CMake 3.27, well past the floor declared here. Below that, link
+    # normally: slower, and it builds Boost.Thread and friends, but correct.
+    if (CMAKE_VERSION VERSION_GREATER_EQUAL 3.27)
+        foreach (dependency ${BOOST_OPENMETHOD_COMPILE_ONLY_DEPENDENCIES})
+            list(REMOVE_ITEM link_dependencies ${dependency})
+            list(APPEND link_dependencies $<COMPILE_ONLY:${dependency}>)
+        endforeach()
     endif()
 
     target_link_libraries(${target} INTERFACE ${link_dependencies})
-
-    foreach (dependency ${BOOST_OPENMETHOD_COMPILE_ONLY_DEPENDENCIES})
-        if (NOT TARGET ${dependency})
-            continue()
-        endif()
-
-        # A compile-only dependency's own compiled dependencies appear in its
-        # interface wrapped in $<LINK_ONLY:...> - those are the ones we are
-        # avoiding. Drop them and keep the header-only ones, whose include
-        # directories the headers do need.
-        get_target_property(usage ${dependency} INTERFACE_LINK_LIBRARIES)
-
-        if (usage)
-            list(FILTER usage EXCLUDE REGEX "\\$<LINK_ONLY:")
-            target_link_libraries(${target} INTERFACE ${usage})
-        endif()
-
-        target_include_directories(
-            ${target} SYSTEM INTERFACE
-            $<TARGET_PROPERTY:${dependency},INTERFACE_INCLUDE_DIRECTORIES>)
-        target_compile_definitions(
-            ${target} INTERFACE
-            $<TARGET_PROPERTY:${dependency},INTERFACE_COMPILE_DEFINITIONS>)
-    endforeach()
 endfunction()
 
 add_library(boost_openmethod INTERFACE)
