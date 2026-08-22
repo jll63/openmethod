@@ -3,6 +3,9 @@
 // See accompanying file LICENSE_1_0.txt
 // or copy at http://www.boost.org/LICENSE_1_0.txt)
 
+// Expected diagnostic, as a CMake regex (see CMakeLists.txt).
+// expected-error: do not wrap an object that has a boost_openmethod_vptr overload
+
 #include <boost/openmethod.hpp>
 #include <boost/openmethod/inplace_vptr.hpp>
 

@@ -130,65 +130,19 @@ function(openmethod_compile_fail_test testname fail_regex)
     endif()
 endfunction()
 
-openmethod_compile_fail_test(
-    compile_fail_non_polymorphic_virtual_parameter "parameter is not a polymorphic class")
-openmethod_compile_fail_test(
-    compile_fail_non_polymorphic_virtual_ptr ".*")
-openmethod_compile_fail_test(
-    compile_fail_virtual_parameter_to_value "virtual_traits not specialized for type")
-openmethod_compile_fail_test(
-    compile_fail_virtual_ptr_different_registries "registry mismatch")
-openmethod_compile_fail_test(
-    compile_fail_virtual_ptr_other
-    "virtual_ptr<> is required in overrider in same position as in method")
-openmethod_compile_fail_test(
-    compile_fail_virtual_ptr_ref_to_value "different virtual_ptr<> reference categories")
-openmethod_compile_fail_test(
-    compile_fail_virtual_ptr_shared_not_const "std::shared_ptr cannot be passed by non-const lvalue reference")
-openmethod_compile_fail_test(
-    compile_fail_virtual_ptr_value_to_ref "different virtual_ptr<> reference categories")
-openmethod_compile_fail_test(
-    compile_fail_virtual_parameter_private_base_macros "error")
-openmethod_compile_fail_test(
-    compile_fail_virtual_parameter_private_base_core "must be an unambiguous accessible base")
-openmethod_compile_fail_test(
-    compile_fail_repeated_inheritance "repeated inheritance")
-openmethod_compile_fail_test(
-    compile_fail_override_method_not_found "cannot find 'speak' method that accepts the same arguments as the overrider")
-# The constrained `cast` is removed from the overload set, so the diagnostic is
-# the compiler's own overload resolution failure, whose wording varies: "no
-# matching function for call to" on clang and gcc, "no matching overloaded
-# function found" on MSVC.
-openmethod_compile_fail_test(
-    compile_fail_boost_any_const_ref_to_mutable_ref "no matching")
-openmethod_compile_fail_test(
-    compile_fail_boost_any_mutable_ref_to_rvalue_ref "no matching")
-openmethod_compile_fail_test(
-    compile_fail_virtual_any_by_value "virtual_any must be passed by reference")
-# "use of a deleted function" on gcc, "call to deleted function" on clang,
-# "attempting to reference a deleted function" on MSVC.
-openmethod_compile_fail_test(
-    compile_fail_final_virtual_ptr_std_any "deleted function")
-openmethod_compile_fail_test(
-    compile_fail_type_erasure_by_value
-    "an owning type_erasure::any must be passed by reference")
-openmethod_compile_fail_test(
-    compile_fail_type_erasure_const_ref_to_mutable_ref "no matching")
-openmethod_compile_fail_test(
-    compile_fail_final_virtual_ptr_type_erasure "deleted function")
-openmethod_compile_fail_test(
-    compile_fail_virtual_ptr_inplace_vptr
-    "do not wrap an object that has a boost_openmethod_vptr overload")
-openmethod_compile_fail_test(
-    compile_fail_virtual_ptr_virtual_any
-    "do not wrap a virtual_any in a virtual_ptr")
-openmethod_compile_fail_test(
-    compile_fail_final_virtual_ptr_virtual_any
-    "do not wrap a virtual_any in a virtual_ptr")
-openmethod_compile_fail_test(
-    compile_fail_std_any_custom_rtti "requires standard RTTI")
-openmethod_compile_fail_test(
-    compile_fail_type_erasure_custom_rtti "requires standard RTTI")
+# Each compile_fail_*.cpp carries the diagnostic it expects in an
+# `// expected-error: <regex>` comment, next to the code that provokes it.
+file(GLOB compile_fail_cpp_files "compile_fail_*.cpp")
+
+foreach(compile_fail_cpp ${compile_fail_cpp_files})
+    get_filename_component(testname ${compile_fail_cpp} NAME_WE)
+    file(READ ${compile_fail_cpp} compile_fail_cpp_contents)
+    if (NOT compile_fail_cpp_contents MATCHES "//[ \t]*expected-error:[ \t]*([^\r\n]+)")
+        message(FATAL_ERROR
+            "${testname}.cpp has no `// expected-error: <regex>` comment")
+    endif()
+    openmethod_compile_fail_test(${testname} "${CMAKE_MATCH_1}")
+endforeach()
 
 if (TARGET Boost::dll)
     add_subdirectory(dynamic_loading)

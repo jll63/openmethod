@@ -3,6 +3,9 @@
 // See accompanying file LICENSE_1_0.txt
 // or copy at http://www.boost.org/LICENSE_1_0.txt)
 
+// Expected diagnostic, as a CMake regex (see CMakeLists.txt).
+// expected-error: virtual_ptr<> is required in overrider in same position as in method
+
 #include <boost/openmethod.hpp>
 
 using namespace boost::openmethod;

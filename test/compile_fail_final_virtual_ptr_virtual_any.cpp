@@ -3,6 +3,9 @@
 // See accompanying file LICENSE_1_0.txt
 // or copy at http://www.boost.org/LICENSE_1_0.txt)
 
+// Expected diagnostic, as a CMake regex (see CMakeLists.txt).
+// expected-error: do not wrap a virtual_any in a virtual_ptr
+
 #include <any>
 #include <string>
 

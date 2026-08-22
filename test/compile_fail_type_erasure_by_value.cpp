@@ -3,6 +3,9 @@
 // See accompanying file LICENSE_1_0.txt
 // or copy at http://www.boost.org/LICENSE_1_0.txt)
 
+// Expected diagnostic, as a CMake regex (see CMakeLists.txt).
+// expected-error: an owning type_erasure::any must be passed by reference
+
 #include <string>
 
 #include <boost/type_erasure/builtin.hpp>

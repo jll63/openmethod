@@ -3,6 +3,9 @@
 // See accompanying file LICENSE_1_0.txt
 // or copy at http://www.boost.org/LICENSE_1_0.txt)
 
+// Expected diagnostic, as a CMake regex (see CMakeLists.txt).
+// expected-error: std::shared_ptr cannot be passed by non-const lvalue reference
+
 #include <boost/openmethod.hpp>
 #include <boost/openmethod/interop/std_shared_ptr.hpp>
 

@@ -77,6 +77,38 @@ ctest -R test_dispatch  # Run specific test by name
 - Dynamic loading test: `test/dynamic_loading/` - Tests shared library support (requires Boost.DLL)
 - 21+ test files covering dispatch, policies, virtual_ptr, RTTI, errors, etc.
 
+### Compile-Fail Tests
+
+Each `test/compile_fail_*.cpp` carries the diagnostic it expects in a marker comment right after
+the license header:
+
+```cpp
+// Expected diagnostic, as a CMake regex (see CMakeLists.txt).
+// expected-error: repeated inheritance
+```
+
+`test/CMakeLists.txt` globs `compile_fail_*.cpp`, extracts the regex with
+`MATCHES "//[ \t]*expected-error:[ \t]*([^\r\n]+)"`, and hands it to
+`openmethod_compile_fail_test` as the test's `PASS_REGULAR_EXPRESSION`. Adding a test is dropping
+in a file - no build-file edit. A file with no marker is a configure-time `FATAL_ERROR`, so a
+silently unchecked test cannot slip through. The glob has no `CONFIGURE_DEPENDS` (matching the
+`test_*.cpp` glob above it), so a new file needs a manual re-run of `cmake`.
+
+Where the expected wording differs across compilers, match the common substring and say why in a
+comment above the marker - `no matching` (clang/gcc "no matching function for call to" vs MSVC "no
+matching overloaded function found"), `deleted function` (gcc "use of a", clang "call to", MSVC
+"attempting to reference a").
+
+**b2 cannot check the message - do not try to make it.** `test/Jamfile` already loops
+(`compile-fail $(src)`), but Boost.Build's `compile-fail` only inverts the exit status: the
+`expect-failure-generator` sets `T_FLAG_FAIL_EXPECTED` and the engine flips OK/FAIL
+(`tools/build/src/engine/make1.cpp:633`). The compiler's stderr is never captured - b2 writes a
+stub `.o` containing the literal text `failed as expected` and a `.test` containing `passed`.
+`capture-output` redirects output only for `run` tests, and `testing.jam` has no output-matching
+rule at all. The workarounds - a compiler wrapper behind a custom toolset instance, or a
+hand-rolled `make` action reimplementing the compile command per toolset - are not usable in Boost
+CI. Message checking lives in CMake; the markers still document the intent under b2.
+
 ### Debug Mode Features
 When building in Debug mode (`CMAKE_BUILD_TYPE=Debug`), runtime checks are automatically enabled via `BOOST_OPENMETHOD_ENABLE_RUNTIME_CHECKS`.
 

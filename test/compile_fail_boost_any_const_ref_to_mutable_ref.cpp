@@ -3,6 +3,13 @@
 // See accompanying file LICENSE_1_0.txt
 // or copy at http://www.boost.org/LICENSE_1_0.txt)
 
+// Expected diagnostic, as a CMake regex (see CMakeLists.txt).
+// The constrained `cast` is removed from the overload set, so the diagnostic is
+// the compiler's own overload resolution failure, whose wording varies: "no
+// matching function for call to" on clang and gcc, "no matching overloaded
+// function found" on MSVC.
+// expected-error: no matching
+
 #include <string>
 #include <boost/any.hpp>
 

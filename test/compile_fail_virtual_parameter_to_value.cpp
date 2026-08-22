@@ -3,6 +3,9 @@
 // See accompanying file LICENSE_1_0.txt
 // or copy at http://www.boost.org/LICENSE_1_0.txt)
 
+// Expected diagnostic, as a CMake regex (see CMakeLists.txt).
+// expected-error: virtual_traits not specialized for type
+
 #include <boost/openmethod.hpp>
 
 using boost::openmethod::virtual_;

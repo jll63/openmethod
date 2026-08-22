@@ -3,6 +3,11 @@
 // See accompanying file LICENSE_1_0.txt
 // or copy at http://www.boost.org/LICENSE_1_0.txt)
 
+// Expected diagnostic, as a CMake regex (see CMakeLists.txt).
+// "use of a deleted function" on gcc, "call to deleted function" on clang,
+// "attempting to reference a deleted function" on MSVC.
+// expected-error: deleted function
+
 #include <any>
 #include <string>
 
