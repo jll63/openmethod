@@ -149,6 +149,12 @@ The project uses clang-format with an LLVM-based style:
 - `AllowShortFunctionsOnASingleLine: false`
 - No short blocks, if statements, or loops on single lines
 
+### Disassembly
+Always show disassembly in **Intel syntax**, never AT&T (the toolchain's default
+here). Add the flag to the invocation before pasting any output:
+- `objdump -dC -M intel --no-show-raw-insn`
+- `gcc -S -masm=intel` / `clang -S -masm=intel`
+
 ### Compiler Requirements
 Tests require these C++17 features (checked by Boost.Build):
 - auto nontype template params
@@ -169,6 +175,42 @@ verbatim through `include::example$file.cpp[tag=content]`. Pages hard-wrap at ~7
 **Render the docs; do not just eyeball the `.adoc`.** `doc/build_antora.sh` (~2 min, writes the
 gitignored `doc/html/`) is the only way to catch markup that is silently mis-parsed — asciidoctor
 emits no warning for it.
+
+**Side-by-side comparisons use a table with AsciiDoc cells.** The house shape is
+`[cols="1,1"]` + `|===` with a header row (`interop_any.adoc`, `registries_and_policies.adoc`,
+`shared_libraries.adoc`). A cell holding a *block* - a code listing, a nested list - must be
+introduced with `a|`, not `|`. The `a` makes the cell content parsed as AsciiDoc; without it the
+`[source,...]` / `----` markup renders literally, and asciidoctor says nothing.
+`interop_type_erasure.adoc` compares two dispatch sequences that way:
+
+```
+[cols="1,1"]
+|===
+| `openmethod_vptr` | `virtual_any`
+
+a|
+[source,asm]
+----
+mov	rax, qword ptr [rdi + 32]
+----
+
+a|
+[source,asm]
+----
+jmp	qword ptr [rax + 8*rcx]
+----
+
+|===
+```
+
+`|` starts a new cell, so cell content containing one must escape it as `\|`. Quick structural
+check before rendering - both counts must be even, and every `[source,X]` must be followed by
+`----`:
+
+```bash
+grep -c '^----$' doc/modules/ROOT/pages/<page>.adoc
+grep -c '^|===$' doc/modules/ROOT/pages/<page>.adoc
+```
 
 **The backtick-apostrophe trap**: never write a possessive right after a code span. Asciidoctor
 parses ``` `any`'s ``` as `` ` `` + `any` + the **`` `' `` curly-apostrophe shorthand**, which
