@@ -11,7 +11,6 @@
 #include <boost/openmethod/initialize.hpp>
 #include <boost/openmethod/interop/boost_any.hpp>
 #include <boost/openmethod/interop/std_any.hpp>
-#include <boost/openmethod/interop/virtual_any_ptr.hpp>
 
 #define BOOST_TEST_MODULE openmethod
 #include <boost/test/unit_test.hpp>
@@ -79,28 +78,6 @@ BOOST_OPENMETHOD_OVERRIDE(name, (const std::string& name), std::string) {
 
 } // namespace boost_any
 
-namespace any_ptr {
-
-using std_any::Dog;
-
-// tag::ptr[]
-BOOST_OPENMETHOD(poke, (virtual_any_ptr<std::any>), std::string);
-
-// A plain value does not convert to a virtual_any_ptr, so overriders
-// that take the contained value are registered with the core API.
-using poke_method =
-    BOOST_OPENMETHOD_TYPE(poke, (virtual_any_ptr<std::any>), std::string);
-
-auto poke_dog(Dog& dog) -> std::string {
-    dog.name += "!";
-    return dog.name;
-}
-
-BOOST_OPENMETHOD_REGISTER(poke_method::override<poke_dog>);
-// end::ptr[]
-
-} // namespace any_ptr
-
 BOOST_AUTO_TEST_CASE(std_any_examples) {
     using namespace std_any;
 
@@ -165,29 +142,6 @@ BOOST_AUTO_TEST_CASE(std_any_examples) {
         // end::emplace[]
 
         BOOST_TEST(cout.str() == "Felix the cat\n");
-    }
-}
-
-BOOST_AUTO_TEST_CASE(virtual_any_ptr_examples) {
-    using namespace any_ptr;
-
-    initialize();
-
-    {
-        capture_cout cout;
-
-        // tag::ptr_dispatch[]
-        std::any spot_any = Dog{"Spot"};
-
-        // one lookup; the handle points to the `any`. The `any` type is
-        // deduced, along with its constness
-        virtual_any_ptr spot = spot_any;
-
-        std::cout << poke(spot) << "\n"; // Spot!
-        std::cout << poke(spot) << "\n"; // Spot!! - no lookup on any call
-        // end::ptr_dispatch[]
-
-        BOOST_TEST(cout.str() == "Spot!\nSpot!!\n");
     }
 }
 

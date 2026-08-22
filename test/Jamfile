@@ -66,17 +66,10 @@ for local src in [ glob test_*.cpp ]
 run mix_release_debug/main.cpp mix_release_debug/lib.cpp unit_test_framework ;
 
 
-for local src in [ glob compile_fail_*.cpp : compile_fail_virtual_any_from_ptr.cpp ]
+for local src in [ glob compile_fail_*.cpp ]
 {
   compile-fail $(src) ;
 }
-
-# Excluded from the glob above because it needs /permissive- on msvc: copy-
-# initializing a virtual_any from a virtual_any_ptr takes two user-defined
-# conversions, which msvc accepts in its default mode, so the compile would
-# succeed and the test fail. See test/CMakeLists.txt for the details.
-compile-fail compile_fail_virtual_any_from_ptr.cpp
-  : <toolset>msvc:<cxxflags>/permissive- ;
 
 build-project dynamic_loading ;
 build-project implicit_shared_libraries ;

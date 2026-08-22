@@ -42,11 +42,6 @@
 // - `virtual_any<any<Concept>>` - looks the v-table pointer up once, at
 //   construction. The Concept needs `relaxed` for virtual_any's default
 //   constructor and assignment, and `copy_constructible<>` for copies.
-// - `virtual_any_ptr<any<Concept>>` - virtual_any's non-owning
-//   counterpart, by value. It comes from its own header,
-//   <boost/openmethod/interop/virtual_any_ptr.hpp>, which this one does
-//   not include: it is generic over the `any` type, and orthogonal to
-//   this interop.
 //
 // The rvalue-reference placeholder (`_self&&`), and placeholders other
 // than `_self`, are not supported.

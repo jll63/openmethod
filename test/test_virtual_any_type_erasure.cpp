@@ -13,7 +13,6 @@
 
 #include <boost/openmethod.hpp>
 #include <boost/openmethod/interop/boost_type_erasure.hpp>
-#include <boost/openmethod/interop/virtual_any_ptr.hpp>
 #include <boost/openmethod/initialize.hpp>
 
 #define BOOST_TEST_MODULE openmethod
@@ -219,71 +218,6 @@ BOOST_AUTO_TEST_CASE(virtual_any_value_semantics) {
     moved.emplace<std::string>("Sylvester");
     BOOST_TEST(moved.vptr() == default_registry::static_vptr<std::string>);
     BOOST_TEST(te::any_cast<const std::string&>(moved.get()) == "Sylvester");
-}
-} // namespace BOOST_OPENMETHOD_GENSYM
-
-namespace BOOST_OPENMETHOD_GENSYM {
-
-// -----------------------------------------------------------------------------
-// virtual_any_ptr: the non-owning counterpart
-
-MAKE_CLASSES();
-
-BOOST_OPENMETHOD(name, (virtual_any_ptr<const erased>), std::string);
-
-// A plain value does not convert to a virtual_any_ptr, so
-// BOOST_OPENMETHOD_OVERRIDE cannot locate the method for overriders that
-// take the bound value. Register them with the core API instead.
-
-using name_method =
-    BOOST_OPENMETHOD_TYPE(name, (virtual_any_ptr<const erased>), std::string);
-
-auto name_dog(const Dog& dog) -> std::string {
-    return dog.name + " the dog";
-}
-
-BOOST_OPENMETHOD_REGISTER(name_method::override<name_dog>);
-
-BOOST_OPENMETHOD(bump, (virtual_any_ptr<erased>), std::string);
-
-using bump_method =
-    BOOST_OPENMETHOD_TYPE(bump, (virtual_any_ptr<erased>), std::string);
-
-auto bump_dog(Dog& dog) -> std::string {
-    dog.name += " Jr.";
-    return dog.name + " the dog";
-}
-
-BOOST_OPENMETHOD_REGISTER(bump_method::override<bump_dog>);
-
-BOOST_AUTO_TEST_CASE(virtual_any_ptr_by_value) {
-    initialize(trace());
-
-    // from an `any`: the v-table pointer is looked up
-    const erased spot_any(Dog{"Spot"});
-    virtual_any_ptr<const erased> spot = spot_any;
-    BOOST_TEST(spot.vptr() == default_registry::static_vptr<Dog>);
-    BOOST_TEST(spot.get() == &spot_any);
-    BOOST_TEST(name(spot) == "Spot the dog");
-
-    // an `any` lvalue converts to a (temporary) handle at the call site
-    erased fido_any(Dog{"Fido"});
-    BOOST_TEST(name(fido_any) == "Fido the dog");
-
-    // from a virtual_any: the v-table pointer is copied - no lookup
-    virtual_erased rex = Dog{"Rex"};
-    virtual_any_ptr<const erased> rex_cref = rex;
-    BOOST_TEST(rex_cref.vptr() == rex.vptr());
-    BOOST_TEST(name(rex_cref) == "Rex the dog");
-
-    // through a mutable handle, mutations reach the owner's value
-    virtual_any_ptr<erased> rex_ptr = rex;
-    BOOST_TEST(bump(rex_ptr) == "Rex Jr. the dog");
-    BOOST_TEST(te::any_cast<const Dog&>(rex.get()).name == "Rex Jr.");
-
-    // a mutable handle converts to a const one
-    virtual_any_ptr<const erased> const_rex = rex_ptr;
-    BOOST_TEST(const_rex.vptr() == rex_ptr.vptr());
 }
 } // namespace BOOST_OPENMETHOD_GENSYM
 
