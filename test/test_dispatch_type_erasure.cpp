@@ -336,3 +336,53 @@ BOOST_AUTO_TEST_CASE(type_erasure_openmethod_vptr_concept) {
     BOOST_TEST(snoopy.name == "Snoopy!");
 }
 } // namespace BOOST_OPENMETHOD_GENSYM
+
+namespace BOOST_OPENMETHOD_GENSYM {
+
+// -----------------------------------------------------------------------------
+// the openmethod_vptr concept, with indirect vptrs
+
+struct Dog {
+    std::string name;
+};
+
+struct Dispatchable : boost::mpl::vector<
+                          te::copy_constructible<>, te::relaxed,
+                          openmethod_vptr<Dispatchable, indirect_registry>> {};
+
+using dispatchable = te::any<Dispatchable>;
+
+// The hook is keyed on the registry the concept names: it is found for
+// `indirect_registry`, and for no other - a mismatch would fall back on the
+// vptr policy's hash lookup, silently losing the constant-time property.
+static_assert(detail::has_vptr_fn<dispatchable, indirect_registry>);
+static_assert(!detail::has_vptr_fn<dispatchable, default_registry>);
+
+using name_method = method<
+    struct name_id, std::string(virtual_<const dispatchable&>),
+    indirect_registry>;
+
+auto name_dog(const Dog& dog) -> std::string {
+    return dog.name + " the dog";
+}
+
+BOOST_OPENMETHOD_REGISTER(name_method::override<name_dog>);
+
+BOOST_AUTO_TEST_CASE(type_erasure_openmethod_vptr_indirect) {
+    initialize<indirect_registry>();
+
+    const dispatchable spot(Dog{"Spot"});
+    BOOST_TEST(name_method::fn(spot) == "Spot the dog");
+
+    // The concept needs no indirection of its own - unlike inplace_vptr,
+    // which stores a `const vptr_type*` under this policy. `apply` reads
+    // `static_vptr` on every call, so it tracks a re-initialize, which
+    // rebuilds the v-tables and updates `static_vptr`.
+    initialize<indirect_registry>();
+
+    BOOST_TEST(
+        boost_openmethod_vptr(spot, static_cast<indirect_registry*>(nullptr)) ==
+        indirect_registry::static_vptr<Dog>);
+    BOOST_TEST(name_method::fn(spot) == "Spot the dog");
+}
+} // namespace BOOST_OPENMETHOD_GENSYM
