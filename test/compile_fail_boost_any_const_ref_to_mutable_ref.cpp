@@ -15,8 +15,6 @@ struct Dog {
     std::string name;
 };
 
-BOOST_OPENMETHOD_REGISTER(use_boost_any_types<Dog>);
-
 BOOST_OPENMETHOD(name, (virtual_<const boost::any&>), std::string);
 
 // The `any` is const, so boost::any_cast cannot produce a mutable reference to

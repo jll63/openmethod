@@ -15,8 +15,6 @@ struct Dog {
     std::string name;
 };
 
-BOOST_OPENMETHOD_REGISTER(use_std_any_types<Dog>);
-
 int main() {
     // The primary final_virtual_ptr would use static_vptr<std::any> - the
     // v-table of the `any` root class, not of the contained value. The

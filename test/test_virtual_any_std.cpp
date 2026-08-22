@@ -10,6 +10,7 @@
 #include <boost/openmethod.hpp>
 #include <boost/openmethod/interop/std_any.hpp>
 #include <boost/openmethod/initialize.hpp>
+#include <boost/openmethod/policies/throw_error_handler.hpp>
 
 #define BOOST_TEST_MODULE openmethod
 #include <boost/test/unit_test.hpp>
@@ -19,9 +20,7 @@ using namespace boost::openmethod;
 #define MAKE_CLASSES()                                                         \
     struct Dog {                                                               \
         std::string name;                                                      \
-    };                                                                         \
-                                                                               \
-    use_std_any_types<Dog, std::string, int> BOOST_OPENMETHOD_GENSYM;
+    };
 
 namespace BOOST_OPENMETHOD_GENSYM {
 
@@ -71,7 +70,8 @@ BOOST_AUTO_TEST_CASE(virtual_any_by_const_ref) {
     // a value converts to a (temporary) virtual_any at the call site
     BOOST_TEST(name(Dog{"Fido"}) == "Fido the dog");
 
-    // `int` is registered, but has no specific overrider: the catch-all,
+    // `int` is registered automatically - the value conversion at the call
+    // site stores it - but has no specific overrider: the catch-all,
     // registered for the `std::any` root, applies
     BOOST_TEST(name(42) == "something");
 }
@@ -190,7 +190,8 @@ BOOST_AUTO_TEST_CASE(virtual_any_value_semantics) {
     BOOST_TEST(copy.vptr() == nullptr);
     BOOST_TEST(name(moved) == "Rex the dog");
 
-    // assignment from an `any` re-derives the v-table pointer
+    // assignment from an `any` re-derives the v-table pointer;
+    // `std::string` is registered by the `emplace` below
     std::any felix_any(std::string{"Felix"});
     moved = felix_any;
     BOOST_TEST(moved.vptr() == default_registry::static_vptr<std::string>);
@@ -216,8 +217,8 @@ struct Dog {
     std::string name;
 };
 
-use_std_any_types<Dog, std::string, int, indirect_registry>
-    BOOST_OPENMETHOD_GENSYM;
+// `Dog` is registered in `indirect_registry` - the method's registry - by
+// the overrider and by the value constructor
 
 using name_method = method<
     struct name_id,
@@ -240,5 +241,43 @@ BOOST_AUTO_TEST_CASE(virtual_any_indirect_vptr) {
 
     virtual_any<std::any, indirect_registry> rex = Dog{"Rex"};
     BOOST_TEST(name_method::fn(rex) == "Rex the dog");
+}
+} // namespace BOOST_OPENMETHOD_GENSYM
+
+namespace BOOST_OPENMETHOD_GENSYM {
+
+// -----------------------------------------------------------------------------
+// a type that is never named statically anywhere is not registered
+
+struct throw_registry
+    : default_registry::with<
+          policies::runtime_checks, policies::throw_error_handler> {};
+
+struct Dog {
+    std::string name;
+};
+
+using throw_any = virtual_any<std::any, throw_registry>;
+
+using name_method =
+    method<struct name_id, std::string(const throw_any&), throw_registry>;
+
+auto name_dog(const Dog& dog) -> std::string {
+    return dog.name + " the dog";
+}
+
+BOOST_OPENMETHOD_REGISTER(name_method::override<name_dog>);
+
+BOOST_AUTO_TEST_CASE(virtual_any_unregistered_type) {
+    initialize<throw_registry>();
+
+    // `double` is named nowhere: it is not registered, and constructing or
+    // assigning a virtual_any from an `any` containing one is a
+    // missing_class error at the construction/assignment site
+    std::any pi(3.14);
+    BOOST_CHECK_THROW(throw_any{pi}, missing_class);
+
+    throw_any va;
+    BOOST_CHECK_THROW(va = pi, missing_class);
 }
 } // namespace BOOST_OPENMETHOD_GENSYM

@@ -44,8 +44,6 @@ struct Dog {
     std::string name;
 };
 
-BOOST_OPENMETHOD_REGISTER(use_std_any_types<Dog, custom_rtti_registry>);
-
 // Dispatching on a `std::any` keys on the `std::type_info` returned by
 // `std::any::type()`, so the registry's rtti policy must identify classes the
 // same way. This one does not: the lookup key would be meaningless, and

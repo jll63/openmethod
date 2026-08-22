@@ -26,8 +26,9 @@ struct Dog {
     std::string name;
 };
 
-// `std::any` becomes the common base of the types it may contain.
-BOOST_OPENMETHOD_REGISTER(use_std_any_types<Dog, std::string, int, float>);
+// `std::any` is the common base of the types it may contain. The types are
+// registered automatically: naming one in an overrider - or storing a value
+// in a `virtual_std_any` - registers it.
 // end::classes[]
 
 // tag::method[]
@@ -63,8 +64,6 @@ struct Dog {
 
 // `boost::any` is a root class of its own, distinct from the one used for
 // `std::any`, so both may be used in the same program and registry.
-BOOST_OPENMETHOD_REGISTER(use_boost_any_types<Dog, std::string>);
-
 BOOST_OPENMETHOD(name, (const virtual_boost_any&), std::string);
 
 BOOST_OPENMETHOD_OVERRIDE(name, (const Dog& dog), std::string) {
@@ -91,9 +90,9 @@ BOOST_AUTO_TEST_CASE(std_any_examples) {
 
         std::cout << name(spot) << "\n"; // Spot the dog
 
-        // `float` is registered, but has no overrider of its own, so the
-        // catch-all applies. The value converts to a temporary
-        // `virtual_std_any` at the call site.
+        // The value converts to a temporary `virtual_std_any` at the call
+        // site, which registers `float`. It has no overrider of its own,
+        // so the catch-all applies.
         std::cout << name(3.14f) << "\n"; // something else
         // end::dispatch[]
 

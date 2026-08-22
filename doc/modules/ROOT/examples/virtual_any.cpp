@@ -19,9 +19,8 @@ struct Dog {
     std::string name;
 };
 
-// `std::any` becomes the common base of the types it may contain.
-BOOST_OPENMETHOD_REGISTER(use_std_any_types<Dog, std::string, int, float>);
-
+// `std::any` is the common base of the types it may contain. An overrider
+// registers the type it names as a class derived from it.
 BOOST_OPENMETHOD(name, (virtual_<const std::any&>), std::string);
 
 // An overrider takes the contained value...
@@ -42,6 +41,12 @@ BOOST_OPENMETHOD_OVERRIDE(name, (const std::any&), std::string) {
     return "something else";
 }
 
+BOOST_OPENMETHOD(weigh, (virtual_<const std::any&>), float);
+
+BOOST_OPENMETHOD_OVERRIDE(weigh, (const float& value), float) {
+    return value;
+}
+
 #include <boost/openmethod/initialize.hpp>
 
 int main() {
@@ -56,8 +61,9 @@ int main() {
     std::cout << name(felix) << "\n";  // Felix the cat
     std::cout << name(answer) << "\n"; // 42 the integer
 
-    // `float` is registered, but has no overrider of its own, so the
-    // catch-all applies.
+    // `float` is registered - `weigh`'s overrider names it - but has no
+    // `name` overrider of its own, so the catch-all applies.
+    std::cout << weigh(pi) << "\n";    // 3.14
     std::cout << name(pi) << "\n";     // something else
 }
 // end::content[]

@@ -15,8 +15,6 @@ struct Dog {
     std::string name;
 };
 
-BOOST_OPENMETHOD_REGISTER(use_std_any_types<Dog>);
-
 // A virtual_any method parameter must be a reference: passing it by value
 // would copy the `any` - and its payload - on every call.
 BOOST_OPENMETHOD(name, (virtual_std_any), std::string);

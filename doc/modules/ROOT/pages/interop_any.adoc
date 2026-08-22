@@ -19,19 +19,21 @@ look up the wrong v-table; the requirement is enforced with a `static_assert`.
 Support is provided by `<boost/openmethod/interop/std_any.hpp>`. It is not
 included by `<boost/openmethod.hpp>`, so it must be included explicitly.
 
-Dispatch works on classes known to a registry, so the types the `any` may
-contain have to be registered. cpp:use_std_any_types[] does that, registering
-`std::any` as a class, and each of the types as a class derived from it. A type
-that is not registered cannot be dispatched on; a call with such a value in the
-`any` is a cpp:missing_class[] error - see
-xref:error_handling.adoc[Error Handling].
+Dispatch works on classes known to a registry. The types the `any` may contain
+are registered automatically: naming a type as the parameter of an overrider
+registers it as a class derived from `std::any`; storing a value in a
+cpp:virtual_std_any[] (see below) registers its type as well. A type that is
+never named in one of these ways is not registered and cannot be dispatched on
+- not even by a catch-all overrider: a call with such a value in the `any` is a
+cpp:missing_class[] error - see xref:error_handling.adoc[Error Handling].
 
-The `any` is then passed like any other virtual argument that is not a
+The `any` is passed like any other virtual argument that is not a
 `virtual_ptr`: wrapped in `virtual_`, as described in
 xref:virtual_ptr_alt.adoc[Alternatives to virtual_ptr]. Overriders receive the
 _contained_ value by reference. An overrider may also take the `any` itself;
-such an overrider is a catch-all, applying to any contained type that has no
-more specific overrider:
+such an overrider is a catch-all, applying to any registered contained type
+that has no more specific overrider - in the example below, `float`, which the
+`weigh` overrider registers, but which has no `name` overrider of its own:
 
 [source,c++]
 ----
@@ -105,6 +107,8 @@ _owns_ the object: the `any` is held by value.
 The pointer comes from a lookup when the `virtual_std_any` is built from an
 existing `any`, and from a static variable - no lookup at all - when it is built
 from a value, or by `emplace`, since the type is then known at compile time.
+Building from a value, or `emplace`, also _registers_ the type, like naming it
+in an overrider does; so does assigning a value.
 
 That makes it worthwhile when the same value is dispatched on repeatedly. Its
 usefulness is limited, though, by the fact that the wrapper is not what an
@@ -124,10 +128,14 @@ the v-table of the `any` root class rather than the one for the contained value.
 #### `boost::any`
 
 `boost::any` is supported as well, by
-`<boost/openmethod/interop/boost_any.hpp>`, with cpp:use_boost_any_types[] and
-cpp:virtual_boost_any[] - the exact counterparts of the constructs above. The two root classes are distinct, so
-`std::any` and `boost::any` may be used in the same program, and with the same
-registry.
+`<boost/openmethod/interop/boost_any.hpp>`, with cpp:virtual_boost_any[] - the
+exact counterpart of cpp:virtual_std_any[]. The two root classes are distinct,
+so `std::any` and `boost::any` may be used in the same program, and with the
+same registry.
 
 cpp:virtual_any[] itself is generic: it can serve any type with an `any`-like
 interface, given cpp:virtual_traits[] specializations for its reference types.
+`virtual_any` registers the types it stores; a specialization that wants
+overriders to register the types they name, like the `std::any` and
+`boost::any` ones do, plants the registration in its `cast` and `vptr`
+functions.

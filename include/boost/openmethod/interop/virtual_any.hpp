@@ -47,6 +47,27 @@ constexpr bool IsVirtualAny<virtual_any<Any, Registry>> = true;
 
 BOOST_OPENMETHOD_CLOSE_NAMESPACE_DETAIL_UNLESS_MRDOCS
 
+namespace detail {
+
+// Registers Class under the `any` root class, plus the root itself.
+// odr-used by the any interop's virtual_traits - cast (one instantiation
+// per overrider parameter) and vptr (root only) - and by virtual_any's
+// value constructor, value assignment and emplace. Naming a type as an
+// overrider parameter, or storing a value in a virtual_any, thus registers
+// it automatically. mp_unique collapses the Class == Root case to the root
+// entry alone.
+template<class Registry, class Root, class Class = Root>
+inline boost::mp11::mp_apply<
+    tuple,
+    boost::mp11::mp_transform_q<
+        boost::mp11::mp_bind_front<use_class_aux, Registry>,
+        boost::mp11::mp_unique<boost::mp11::mp_list<
+            boost::mp11::mp_list<Root, Root>,
+            boost::mp11::mp_list<Class, Root>>>>>
+    use_any_classes;
+
+} // namespace detail
+
 //! A wide `any`, combining an `any` and a pointer to a v-table.
 //!
 //! `virtual_any` is to `any` what @ref virtual_ptr is to a pointer: it
@@ -60,6 +81,10 @@ BOOST_OPENMETHOD_CLOSE_NAMESPACE_DETAIL_UNLESS_MRDOCS
 //! lookup, via `virtual_traits<const Any&, Registry>::vptr`), or
 //! statically, when the contained type is known at compile time (the
 //! value constructor and @ref emplace use @ref registry::static_vptr).
+//!
+//! Contained types are registered automatically, as classes derived from
+//! `Any`: naming a type as the parameter of an overrider - or storing a
+//! value in a `virtual_any` - registers it in `Registry`.
 //!
 //! Methods take `virtual_any` parameters by reference: `const
 //! virtual_any&`, `virtual_any&` or `virtual_any&&`. Overriders receive
@@ -130,7 +155,8 @@ class virtual_any {
     //! Stores `value` in the `any`, and sets the v-table pointer to the
     //! @ref registry::static_vptr for its type - no hash table lookup is
     //! involved. The type of `value`, stripped from reference and
-    //! cv-qualifiers, must be registered in `Registry`.
+    //! cv-qualifiers, is registered automatically in `Registry`, as a
+    //! class derived from `Any`.
     //!
     //! @tparam T The type of the value.
     //! @param value The value to store.
@@ -148,6 +174,7 @@ class virtual_any {
         : obj(std::forward<T>(value)),
           vp(detail::box_vptr<use_indirect_vptrs>(
               Registry::template static_vptr<std::decay_t<T>>)) {
+        (void)&detail::use_any_classes<Registry, Any, std::decay_t<T>>;
         Registry::require_initialized();
         BOOST_ASSERT(detail::unbox_vptr(vp) != nullptr);
     }
@@ -209,7 +236,9 @@ class virtual_any {
     //!
     //! Stores `value` in the `any`, and sets the v-table pointer to the
     //! @ref registry::static_vptr for its type - no hash table lookup is
-    //! involved.
+    //! involved. The type of `value`, stripped from reference and
+    //! cv-qualifiers, is registered automatically in `Registry`, as a
+    //! class derived from `Any`.
     //!
     //! @tparam T The type of the value.
     //! @param value The value to store.
@@ -221,6 +250,7 @@ class virtual_any {
             !std::is_same_v<std::decay_t<T>, Any> &&
             std::is_constructible_v<Any, T&&>>>
     auto operator=(T&& value) -> virtual_any& {
+        (void)&detail::use_any_classes<Registry, Any, std::decay_t<T>>;
         obj = std::forward<T>(value);
         Registry::require_initialized();
         vp = detail::box_vptr<use_indirect_vptrs>(
@@ -233,7 +263,8 @@ class virtual_any {
     //!
     //! Stores a `Class` constructed from `args`, and sets the v-table
     //! pointer to the @ref registry::static_vptr for `Class` - no hash
-    //! table lookup is involved.
+    //! table lookup is involved. `Class` is registered automatically in
+    //! `Registry`, as a class derived from `Any`.
     //!
     //! @tparam Class The type of the value to construct.
     //! @tparam T Types of the arguments to pass to the constructor.
@@ -243,6 +274,7 @@ class virtual_any {
     //! include:virtual_any.cpp#emplace
     template<class Class, typename... T>
     auto emplace(T&&... args) -> void {
+        (void)&detail::use_any_classes<Registry, Any, Class>;
         obj = Class(std::forward<T>(args)...);
         Registry::require_initialized();
         vp = detail::box_vptr<use_indirect_vptrs>(
@@ -301,8 +333,10 @@ struct virtual_traits<const virtual_any<Any, Registry>&, Registry> {
     //!
     //! If `U` is the `virtual_any` itself (by any reference category),
     //! returns `arg` unchanged. Otherwise, extracts the stored value
-    //! using `virtual_traits<const Any&, Registry>::cast`. Since the
-    //! `any` is not modifiable, `U` cannot be a mutable reference.
+    //! using `virtual_traits<const Any&, Registry>::cast`, and registers
+    //! `U`, stripped of reference and cv-qualifiers, in `Registry` as a
+    //! class derived from `Any`. Since the `any` is not modifiable, `U`
+    //! cannot be a mutable reference.
     //!
     //! @tparam U The target type (e.g. `const Dog&`, `Dog`).
     //! @param arg A reference to a const `virtual_any` method argument.
@@ -314,6 +348,7 @@ struct virtual_traits<const virtual_any<Any, Registry>&, Registry> {
                           virtual_any<Any, Registry>>) {
             return (arg);
         } else {
+            (void)&detail::use_any_classes<Registry, Any, std::decay_t<U>>;
             return virtual_traits<const Any&, Registry>::template cast<U>(
                 arg.obj);
         }
@@ -343,9 +378,11 @@ struct virtual_traits<virtual_any<Any, Registry>&, Registry> {
     //!
     //! If `U` is the `virtual_any` itself (by mutable reference), returns
     //! `arg` unchanged. Otherwise, extracts the stored value using
-    //! `virtual_traits<Any&, Registry>::cast`. Supports mutable
-    //! references (e.g. `Dog&`); modifications through the result are
-    //! visible through the `virtual_any`.
+    //! `virtual_traits<Any&, Registry>::cast`, and registers `U`,
+    //! stripped of reference and cv-qualifiers, in `Registry` as a class
+    //! derived from `Any`. Supports mutable references (e.g. `Dog&`);
+    //! modifications through the result are visible through the
+    //! `virtual_any`.
     //!
     //! @tparam U The target type (e.g. `Dog&`, `const Dog&`, `Dog`).
     //! @param arg A mutable reference to the `virtual_any` method
@@ -358,6 +395,7 @@ struct virtual_traits<virtual_any<Any, Registry>&, Registry> {
                           virtual_any<Any, Registry>>) {
             return (arg);
         } else {
+            (void)&detail::use_any_classes<Registry, Any, std::decay_t<U>>;
             return virtual_traits<Any&, Registry>::template cast<U>(arg.obj);
         }
     }
@@ -386,7 +424,9 @@ struct virtual_traits<virtual_any<Any, Registry>&&, Registry> {
     //!
     //! If `U` is the `virtual_any` itself (by rvalue reference), returns
     //! `arg` unchanged. Otherwise, extracts the stored value using
-    //! `virtual_traits<Any&&, Registry>::cast`.
+    //! `virtual_traits<Any&&, Registry>::cast`, and registers `U`,
+    //! stripped of reference and cv-qualifiers, in `Registry` as a class
+    //! derived from `Any`.
     //!
     //! @tparam U The target type (e.g. `Dog&&`, `const Dog&`, `Dog`).
     //! @param arg An rvalue reference to the `virtual_any` method
@@ -399,6 +439,7 @@ struct virtual_traits<virtual_any<Any, Registry>&&, Registry> {
                           virtual_any<Any, Registry>>) {
             return std::move(arg);
         } else {
+            (void)&detail::use_any_classes<Registry, Any, std::decay_t<U>>;
             return virtual_traits<Any&&, Registry>::template cast<U>(
                 std::move(arg.obj));
         }
