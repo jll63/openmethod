@@ -84,13 +84,6 @@ Provides a `virtual_traits` specialization that makes it possible to use a
 Provides `virtual_any`, a wide `any` that combines an `any`, held by value, with
 a pointer to the v-table for the contained value - similar to `virtual_ptr`.
 
-[#virtual_any_ptr]
-### link:{headers-url}/boost/openmethod/interop/virtual_any_ptr.hpp[<boost/openmethod/interop/virtual_any_ptr.hpp>]
-
-Provides `virtual_any_ptr`, the non-owning counterpart of `virtual_any`: a wide
-pointer to an `any` that lives elsewhere, combining its address with a pointer
-to the v-table for the contained value.
-
 [#std_any]
 ### link:{headers-url}/boost/openmethod/interop/std_any.hpp[<boost/openmethod/interop/std_any.hpp>]
 

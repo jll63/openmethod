@@ -121,64 +121,6 @@ For the same reason that a `virtual_std_any` caches what a plain `any` does not,
 cpp:final_virtual_ptr[] is _deleted_ for `std::any`: it would silently produce
 the v-table of the `any` root class rather than the one for the contained value.
 
-#### `virtual_any_ptr`
-
-`virtual_std_any` owns its `any`. cpp:virtual_any_ptr[] is its non-owning
-counterpart: it _points to_ an `any` that lives elsewhere, bundling its address
-with the v-table pointer for the value inside it - acquired once, when the
-handle is created, or taken at no cost from a `virtual_any`. It is a cheap,
-two-word handle with pointer semantics. Unlike the owning wrapper, it is passed
-to methods _by value_, like the reference-wrapper flavors of Boost.TypeErasure's
-`any`.
-
-It comes in its own header,
-`<boost/openmethod/interop/virtual_any_ptr.hpp>`, which is generic over the
-`any` type, and thus separate from the `std_any.hpp` and `boost_any.hpp` ones:
-
-```c++
-BOOST_OPENMETHOD(poke, (virtual_any_ptr<std::any>), std::string);
-
-std::any spot_any = Dog{"Spot"};
-virtual_any_ptr spot = spot_any; // one lookup; the type is deduced
-
-poke(spot); // no lookup
-poke(spot); // no lookup; mutations reach spot_any
-```
-
-`Any` may be const-qualified: through `virtual_any_ptr<const std::any>`,
-overriders receive the contained value by value or by const reference only. A
-mutable handle converts to a const one.
-
-The `any` _itself_ is reached read-only either way: `get`, `*` and `->` all
-yield a `const std::any`. The constness of `Any` governs what overriders may
-take, not what the accessors return. Handing out a mutable `std::any&` would
-allow the contained value to be replaced behind the handle's back, leaving it
-carrying the v-table pointer of the previous value.
-
-The two operations that _do_ change what the handle designates re-derive that
-pointer, and are safe for exactly that reason. Assignment _rebinds_ the handle,
-as on cpp:virtual_ptr[]; `emplace` replaces the value inside the `any` pointed
-to, as on cpp:virtual_any[]:
-
-```c++
-virtual_any_ptr<std::any> pet = spot_any;
-pet = felix_any;         // rebind: looks the v-table up for the new value
-pet.emplace<Dog>("Rex"); // replace the value in felix_any, and re-derive
-```
-
-A plain value does not convert to a `virtual_any_ptr` - there is no `any` for
-the handle to point to - so `BOOST_OPENMETHOD_OVERRIDE`, which locates the
-method by convertibility, cannot register overriders that take the contained
-value.
-Register them with the core API instead, as in the `virtual_<std::any&>` case
-above; the catch-all overrider, which takes the handle itself, can use the
-macro.
-
-Otherwise, the handle does not track its referent: if the value inside the `any`
-is replaced behind its back - through the `any` itself, the `virtual_any` that
-owns it, or another handle - it is stale, like an iterator into a modified
-container, and must be re-created.
-
 #### `boost::any`
 
 `boost::any` is supported as well, by

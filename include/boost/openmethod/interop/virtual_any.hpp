@@ -16,23 +16,20 @@ namespace boost::openmethod {
 template<class Any, class Registry = BOOST_OPENMETHOD_DEFAULT_REGISTRY>
 class virtual_any;
 
-template<class Any, class Registry = BOOST_OPENMETHOD_DEFAULT_REGISTRY>
-class virtual_any_ptr;
-
 BOOST_OPENMETHOD_OPEN_NAMESPACE_DETAIL_UNLESS_MRDOCS
 
 //! Test if argument is a wide `any` (exposition only)
 //!
-//! Evaluates to `true` if `T` is a specialization of @ref virtual_any or of
-//! @ref virtual_any_ptr, and `false` otherwise.
+//! Evaluates to `true` if `T` is a specialization of @ref virtual_any, and
+//! `false` otherwise.
 //!
 //! This constrains the constructor and the assignment operator of
-//! @ref virtual_any that take a value, excluding both wide types - every
-//! specialization of them, not only the ones matching this `virtual_any`. A
-//! @ref virtual_any argument then selects the copy or move operation instead
-//! of being stored inside the `any`, and a @ref virtual_any_ptr argument is
-//! rejected outright rather than stored: a handle is not a registered class,
-//! so its @ref registry::static_vptr would be null.
+//! @ref virtual_any that take a value, excluding every specialization of the
+//! wide type, not only the one matching this `virtual_any`. A matching
+//! argument then selects the copy or move operation instead of being stored
+//! inside the `any`; any other specialization is rejected outright rather
+//! than stored: a `virtual_any` is not a registered class, so its
+//! @ref registry::static_vptr would be null.
 //!
 //! @tparam T A type.
 template<typename T>
@@ -94,9 +91,6 @@ class virtual_any {
 
     template<typename, class>
     friend struct virtual_traits;
-
-    template<class, class>
-    friend class virtual_any_ptr;
 
   public:
     //! Construct an empty `virtual_any`.
