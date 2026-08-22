@@ -24,16 +24,12 @@ struct Dog {
     std::string name;
 };
 
-// The concept must name the Concept it is part of, so the Concept is
-// defined as a struct.
 struct Dispatchable
     : boost::mpl::vector<
           te::copy_constructible<>, te::relaxed,
           openmethod_vptr<Dispatchable>> {};
 
 using erased = te::any<Dispatchable>;
-
-// Binding a value to the `any` registers its type.
 
 BOOST_OPENMETHOD(name, (virtual_<const erased&>), std::string);
 
