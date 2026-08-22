@@ -21,8 +21,6 @@ struct Dog {
     std::string name;
 };
 
-BOOST_OPENMETHOD_REGISTER(use_type_erasure_types<erased, Dog>);
-
 BOOST_OPENMETHOD(name, (virtual_<const erased&>), std::string);
 
 // The `any` is const and owns its value, so the overrider cannot take a

@@ -31,10 +31,7 @@ using virtual_erased = virtual_any<erased>;
 #define MAKE_CLASSES()                                                         \
     struct Dog {                                                               \
         std::string name;                                                      \
-    };                                                                         \
-                                                                               \
-    BOOST_OPENMETHOD_REGISTER(                                                 \
-        use_type_erasure_types<erased, Dog, std::string, int>);
+    };
 
 namespace BOOST_OPENMETHOD_GENSYM {
 
@@ -84,7 +81,8 @@ BOOST_AUTO_TEST_CASE(virtual_any_by_const_ref) {
     // a value converts to a (temporary) virtual_any at the call site
     BOOST_TEST(name(Dog{"Fido"}) == "Fido the dog");
 
-    // `int` is registered, but has no specific overrider: the catch-all,
+    // `int` is registered automatically - the value conversion at the call
+    // site stores it - but has no specific overrider: the catch-all,
     // registered for the owning any, applies
     BOOST_TEST(name(42) == "something");
 }
@@ -204,7 +202,8 @@ BOOST_AUTO_TEST_CASE(virtual_any_value_semantics) {
     BOOST_TEST(copy.vptr() == nullptr);
     BOOST_TEST(name(moved) == "Rex the dog");
 
-    // assignment from an `any` re-derives the v-table pointer
+    // assignment from an `any` re-derives the v-table pointer;
+    // `std::string` is registered by the `emplace` below
     erased felix_any(std::string{"Felix"});
     moved = felix_any;
     BOOST_TEST(moved.vptr() == default_registry::static_vptr<std::string>);
@@ -230,8 +229,8 @@ struct Dog {
     std::string name;
 };
 
-BOOST_OPENMETHOD_REGISTER(
-    use_type_erasure_types<erased, Dog, std::string, int, indirect_registry>);
+// `Dog` is registered in `indirect_registry` - the method's registry - by
+// the overrider and by the value constructor
 
 using name_method = method<
     struct name_id, std::string(const virtual_any<erased, indirect_registry>&),

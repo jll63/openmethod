@@ -46,6 +46,11 @@
 // The rvalue-reference placeholder (`_self&&`), and placeholders other
 // than `_self`, are not supported.
 //
+// The bound types are registered automatically, as classes derived from
+// the owning any - the root class for the Concept: naming a type as an
+// overrider parameter registers it; so does storing a value in a
+// virtual_any.
+//
 // In addition, `openmethod_vptr` is a Boost.TypeErasure concept that
 // stores the v-table pointer for the bound type in the any's own dispatch
 // table, making every any on that Concept intrinsically polymorphic: calls
@@ -84,13 +89,10 @@ template<typename U, class Any>
 constexpr bool te_pass_through =
     std::is_same_v<std::remove_cv_t<std::remove_reference_t<U>>, Any>;
 
-// The canonical root class for a Concept: the owning any. All the
+// The canonical root class for a Concept is the owning any. All the
 // virtual_traits below use it as their virtual_type, whatever the
-// placeholder of the parameter, so methods, overriders and
-// use_type_erasure_types agree on a single registered root per Concept.
-template<class Any>
-using type_erasure_root = boost::type_erasure::any<
-    typename boost::type_erasure::concept_of<Any>::type>;
+// placeholder of the parameter, so methods and overriders agree on a
+// single registered root per Concept.
 
 template<class C, typename T, class Registry>
 struct validate_method_parameter<
@@ -175,19 +177,23 @@ struct virtual_traits<const boost::type_erasure::any<C, T>&, Registry> {
     //! `boost::type_erasure::typeid_of` in the registry's `vptr` policy.
     //!
     //! This requires the registry's @ref rtti policy to be @ref std_rtti;
-    //! the requirement is enforced with a `static_assert`.
+    //! the requirement is enforced with a `static_assert`. Registers the
+    //! owning `any` - the root class of the bound types - in `Registry`.
     //!
     //! @param arg A reference to a const `any`.
     //! @return A reference to the v-table pointer for the bound value.
     static auto
     vptr(const boost::type_erasure::any<C, T>& arg) -> const vptr_type& {
         detail::assert_std_rtti_type_erasure<Registry>();
+        (void)&detail::use_any_classes<Registry, boost::type_erasure::any<C>>;
         return Registry::vptr::vptr(&boost::type_erasure::typeid_of(arg));
     }
 
     //! Cast to a type.
     //!
-    //! Extracts the bound value using `boost::type_erasure::any_cast`.
+    //! Extracts the bound value using `boost::type_erasure::any_cast`,
+    //! and registers `U`, stripped of reference and cv-qualifiers, in
+    //! `Registry` as a class derived from the owning `any`.
     //! Since the `any` is const, `U` can be a mutable reference only for
     //! the mutable any reference (`any<Concept, _self&>`), whose
     //! referent stays mutable through a const `any`. Rvalue references
@@ -208,6 +214,8 @@ struct virtual_traits<const boost::type_erasure::any<C, T>&, Registry> {
                           U, boost::type_erasure::any<C, T>>) {
             return (arg);
         } else {
+            (void)&detail::use_any_classes<
+                Registry, boost::type_erasure::any<C>, std::decay_t<U>>;
             return boost::type_erasure::any_cast<U>(arg);
         }
     }
@@ -244,19 +252,23 @@ struct virtual_traits<boost::type_erasure::any<C, T>&, Registry> {
     //! `boost::type_erasure::typeid_of` in the registry's `vptr` policy.
     //!
     //! This requires the registry's @ref rtti policy to be @ref std_rtti;
-    //! the requirement is enforced with a `static_assert`.
+    //! the requirement is enforced with a `static_assert`. Registers the
+    //! owning `any` - the root class of the bound types - in `Registry`.
     //!
     //! @param arg A reference to an `any`.
     //! @return A reference to the v-table pointer for the bound value.
     static auto
     vptr(const boost::type_erasure::any<C, T>& arg) -> const vptr_type& {
         detail::assert_std_rtti_type_erasure<Registry>();
+        (void)&detail::use_any_classes<Registry, boost::type_erasure::any<C>>;
         return Registry::vptr::vptr(&boost::type_erasure::typeid_of(arg));
     }
 
     //! Cast to a type.
     //!
-    //! Extracts the bound value using `boost::type_erasure::any_cast`.
+    //! Extracts the bound value using `boost::type_erasure::any_cast`,
+    //! and registers `U`, stripped of reference and cv-qualifiers, in
+    //! `Registry` as a class derived from the owning `any`.
     //! Supports mutable references (e.g. `Dog&`), except through the
     //! const any reference (`any<Concept, const _self&>`). `U` cannot
     //! be an rvalue reference: moving the value out must go through an
@@ -277,6 +289,8 @@ struct virtual_traits<boost::type_erasure::any<C, T>&, Registry> {
                           U, boost::type_erasure::any<C, T>>) {
             return (arg);
         } else {
+            (void)&detail::use_any_classes<
+                Registry, boost::type_erasure::any<C>, std::decay_t<U>>;
             return boost::type_erasure::any_cast<U>(arg);
         }
     }
@@ -313,19 +327,23 @@ struct virtual_traits<boost::type_erasure::any<C, T>&&, Registry> {
     //! `boost::type_erasure::typeid_of` in the registry's `vptr` policy.
     //!
     //! This requires the registry's @ref rtti policy to be @ref std_rtti;
-    //! the requirement is enforced with a `static_assert`.
+    //! the requirement is enforced with a `static_assert`. Registers the
+    //! owning `any` - the root class of the bound types - in `Registry`.
     //!
     //! @param arg A reference to a const `any`.
     //! @return A reference to the v-table pointer for the bound value.
     static auto
     vptr(const boost::type_erasure::any<C, T>& arg) -> const vptr_type& {
         detail::assert_std_rtti_type_erasure<Registry>();
+        (void)&detail::use_any_classes<Registry, boost::type_erasure::any<C>>;
         return Registry::vptr::vptr(&boost::type_erasure::typeid_of(arg));
     }
 
     //! Cast to a type.
     //!
-    //! Extracts the bound value using `boost::type_erasure::any_cast`.
+    //! Extracts the bound value using `boost::type_erasure::any_cast`,
+    //! and registers `U`, stripped of reference and cv-qualifiers, in
+    //! `Registry` as a class derived from the owning `any`.
     //! `boost::type_erasure::any_cast` has no rvalue overload, so, for an
     //! rvalue-reference `U`, the result of a mutable-reference cast is
     //! moved - only for the owning `any`, since the rvalue-ness of an
@@ -346,14 +364,20 @@ struct virtual_traits<boost::type_erasure::any<C, T>&&, Registry> {
         if constexpr (detail::te_pass_through<
                           U, boost::type_erasure::any<C, T>>) {
             return std::move(arg);
-        } else if constexpr (std::is_rvalue_reference_v<U>) {
-            return std::move(
-                boost::type_erasure::any_cast<std::remove_reference_t<U>&>(
-                    arg));
-        } else if constexpr (!std::is_reference_v<U> && detail::te_owning<T>) {
-            return U(std::move(boost::type_erasure::any_cast<U&>(arg)));
         } else {
-            return boost::type_erasure::any_cast<U>(arg);
+            (void)&detail::use_any_classes<
+                Registry, boost::type_erasure::any<C>, std::decay_t<U>>;
+
+            if constexpr (std::is_rvalue_reference_v<U>) {
+                return std::move(
+                    boost::type_erasure::any_cast<std::remove_reference_t<U>&>(
+                        arg));
+            } else if constexpr (
+                !std::is_reference_v<U> && detail::te_owning<T>) {
+                return U(std::move(boost::type_erasure::any_cast<U&>(arg)));
+            } else {
+                return boost::type_erasure::any_cast<U>(arg);
+            }
         }
     }
 };
@@ -392,19 +416,23 @@ struct virtual_traits<boost::type_erasure::any<C, T&>, Registry> {
     //! `boost::type_erasure::typeid_of` in the registry's `vptr` policy.
     //!
     //! This requires the registry's @ref rtti policy to be @ref std_rtti;
-    //! the requirement is enforced with a `static_assert`.
+    //! the requirement is enforced with a `static_assert`. Registers the
+    //! owning `any` - the root class of the bound types - in `Registry`.
     //!
     //! @param arg A reference to a const `any`.
     //! @return A reference to the v-table pointer for the bound value.
     static auto
     vptr(const boost::type_erasure::any<C, T&>& arg) -> const vptr_type& {
         detail::assert_std_rtti_type_erasure<Registry>();
+        (void)&detail::use_any_classes<Registry, boost::type_erasure::any<C>>;
         return Registry::vptr::vptr(&boost::type_erasure::typeid_of(arg));
     }
 
     //! Cast to a type.
     //!
-    //! Extracts the referent using `boost::type_erasure::any_cast`.
+    //! Extracts the referent using `boost::type_erasure::any_cast`, and
+    //! registers `U`, stripped of reference and cv-qualifiers, in
+    //! `Registry` as a class derived from the owning `any`.
     //! Supports mutable references (e.g. `Dog&`); modifications through
     //! the result are visible through the referent. `U` cannot be an
     //! rvalue reference - the referent is not owned; the overloads are
@@ -422,6 +450,8 @@ struct virtual_traits<boost::type_erasure::any<C, T&>, Registry> {
             // parameter goes out of scope
             return arg;
         } else {
+            (void)&detail::use_any_classes<
+                Registry, boost::type_erasure::any<C>, std::decay_t<U>>;
             return boost::type_erasure::any_cast<U>(arg);
         }
     }
@@ -462,19 +492,23 @@ struct virtual_traits<boost::type_erasure::any<C, const T&>, Registry> {
     //! `boost::type_erasure::typeid_of` in the registry's `vptr` policy.
     //!
     //! This requires the registry's @ref rtti policy to be @ref std_rtti;
-    //! the requirement is enforced with a `static_assert`.
+    //! the requirement is enforced with a `static_assert`. Registers the
+    //! owning `any` - the root class of the bound types - in `Registry`.
     //!
     //! @param arg A reference to a const `any`.
     //! @return A reference to the v-table pointer for the bound value.
     static auto
     vptr(const boost::type_erasure::any<C, const T&>& arg) -> const vptr_type& {
         detail::assert_std_rtti_type_erasure<Registry>();
+        (void)&detail::use_any_classes<Registry, boost::type_erasure::any<C>>;
         return Registry::vptr::vptr(&boost::type_erasure::typeid_of(arg));
     }
 
     //! Cast to a type.
     //!
-    //! Extracts the referent using `boost::type_erasure::any_cast`. Since
+    //! Extracts the referent using `boost::type_erasure::any_cast`, and
+    //! registers `U`, stripped of reference and cv-qualifiers, in
+    //! `Registry` as a class derived from the owning `any`. Since
     //! the referent is const, `U` must be a value or a const reference;
     //! the other overloads are removed from the overload set.
     //!
@@ -493,48 +527,12 @@ struct virtual_traits<boost::type_erasure::any<C, const T&>, Registry> {
             // parameter goes out of scope
             return arg;
         } else {
+            (void)&detail::use_any_classes<
+                Registry, boost::type_erasure::any<C>, std::decay_t<U>>;
             return boost::type_erasure::any_cast<U>(arg);
         }
     }
 };
-
-//! Register the types that a `boost::type_erasure::any` virtual parameter
-//! may contain.
-//!
-//! Registers the owning `any` of `Any` (i.e.
-//! `any<concept_of<Any>::type>`) as a class, and each `T` as a class
-//! derived from it. This makes the bound types visible to the dispatch
-//! machinery, which resolves a call on the `type_id` returned by
-//! `boost::type_erasure::typeid_of`. `Any` may be spelled with any
-//! placeholder; the root is normalized to the owning `any`, which is
-//! also what the virtual_traits use, whatever the placeholder of the
-//! method parameter.
-//!
-//! @tparam Any A `boost::type_erasure::any` type.
-//! @tparam T... The types that may be bound to the `any`, optionally
-//! followed by a @ref registry.
-//!
-//! @par Example
-//! include:type_erasure.cpp#classes
-//!
-//! @see [Interoperation with Boost.TypeErasure](xref:ROOT:interop_type_erasure.adoc)
-template<class Any, typename... T>
-struct use_type_erasure_types
-    : detail::use_any_types_aux<
-          typename detail::extract_registry<T...>::registry,
-          detail::type_erasure_root<Any>,
-          typename detail::extract_registry<T...>::others> {};
-
-namespace detail {
-
-// Registers Class as deriving from the owning any for Concept - the
-// same shape use_type_erasure_types produces - when odr-used from
-// openmethod_vptr::apply.
-template<class Registry, class Class, class Concept>
-use_class_aux<Registry, mp11::mp_list<Class, boost::type_erasure::any<Concept>>>
-    use_type_erasure_class;
-
-} // namespace detail
 
 //! A Boost.TypeErasure concept that makes an `any` intrinsically
 //! polymorphic.
@@ -548,10 +546,8 @@ use_class_aux<Registry, mp11::mp_list<Class, boost::type_erasure::any<Concept>>>
 //! `boost::type_erasure::typeid_of`.
 //!
 //! In addition, binding a value to such an `any` registers its type as a
-//! class derived from the owning `any` - the same shape
-//! @ref use_type_erasure_types produces, with which it can coexist. No
-//! explicit registration is needed for the types bound to an `any` that
-//! carries this concept.
+//! class derived from the owning `any` - the same shape that naming the
+//! type as an overrider parameter produces, with which it can coexist.
 //!
 //! `Concept` must be the very Concept the `any` is instantiated with.
 //! Since the concept appears inside that Concept, the Concept must name
@@ -585,9 +581,8 @@ struct openmethod_vptr {
     //!
     //! @return The @ref registry::static_vptr for `T`.
     static auto apply(const T&) -> vptr_type {
-        (void)&detail::use_type_erasure_class<
-            Registry, boost::type_erasure::any<Concept>, Concept>;
-        (void)&detail::use_type_erasure_class<Registry, T, Concept>;
+        (void)&detail::use_any_classes<
+            Registry, boost::type_erasure::any<Concept>, T>;
         return Registry::template static_vptr<T>;
     }
 };
@@ -651,7 +646,6 @@ void final_virtual_ptr(boost::type_erasure::any<C, T>&&) = delete;
 
 namespace aliases {
 using boost::openmethod::openmethod_vptr;
-using boost::openmethod::use_type_erasure_types;
 } // namespace aliases
 
 } // namespace boost::openmethod

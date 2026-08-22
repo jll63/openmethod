@@ -49,17 +49,6 @@ BOOST_OPENMETHOD_CLOSE_NAMESPACE_DETAIL_UNLESS_MRDOCS
 
 namespace detail {
 
-// Common implementation for the use_*_types registrars: register Root as
-// a class, and each element of the Classes list as a class derived from
-// Root.
-template<class Registry, class Root, class Classes>
-struct use_any_types_aux;
-
-template<class Registry, class Root, class... Class>
-struct use_any_types_aux<Registry, Root, boost::mp11::mp_list<Class...>>
-    : use_class_aux<Registry, boost::mp11::mp_list<Root, Root>>,
-      use_class_aux<Registry, boost::mp11::mp_list<Class, Root>>... {};
-
 // Registers Class under the `any` root class, plus the root itself.
 // odr-used by the any interop's virtual_traits - cast (one instantiation
 // per overrider parameter) and vptr (root only) - and by virtual_any's

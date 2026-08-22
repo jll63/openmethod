@@ -26,8 +26,6 @@ struct Dog {
     std::string name;
 };
 
-BOOST_OPENMETHOD_REGISTER(use_type_erasure_types<erased, Dog, std::string>);
-
 BOOST_OPENMETHOD(name, (const virtual_any<erased>&), std::string);
 
 BOOST_OPENMETHOD_OVERRIDE(name, (const Dog& dog), std::string) {

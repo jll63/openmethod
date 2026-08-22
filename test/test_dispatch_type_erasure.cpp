@@ -33,10 +33,7 @@ static_assert(detail::has_vptr<
 #define MAKE_CLASSES()                                                         \
     struct Dog {                                                               \
         std::string name;                                                      \
-    };                                                                         \
-                                                                               \
-    BOOST_OPENMETHOD_REGISTER(                                                 \
-        use_type_erasure_types<erased, Dog, std::string, int>);
+    };
 
 namespace BOOST_OPENMETHOD_GENSYM {
 
@@ -61,6 +58,15 @@ BOOST_OPENMETHOD_OVERRIDE(name, (const erased& arg), std::string) {
     return te::is_empty(arg) ? "nothing" : "something";
 }
 
+// `int` is registered because `weigh`'s overrider names it; it has no
+// `name` overrider, so the catch-all applies to it.
+
+BOOST_OPENMETHOD(weigh, (virtual_<const erased&>), int);
+
+BOOST_OPENMETHOD_OVERRIDE(weigh, (const int& value), int) {
+    return value;
+}
+
 BOOST_AUTO_TEST_CASE(type_erasure_by_const_ref) {
     initialize(trace());
 
@@ -68,9 +74,11 @@ BOOST_AUTO_TEST_CASE(type_erasure_by_const_ref) {
     const erased felix(std::string{"Felix the cat"});
     const erased answer(42);
 
+    BOOST_TEST(weigh(answer) == 42);
+
     BOOST_TEST(name(spot) == "Spot the dog");
     BOOST_TEST(name(felix) == "Felix the cat");
-    // `int` is registered but has no specific overrider: the catch-all,
+    // `int` is registered, but has no specific overrider: the catch-all,
     // registered for the root, applies
     BOOST_TEST(name(answer) == "something");
 }
@@ -211,11 +219,22 @@ BOOST_OPENMETHOD_OVERRIDE(name, (erased_cref arg), std::string) {
     return te::is_empty(arg) ? "nothing" : "something";
 }
 
+// `int` is registered because `weigh`'s overrider names it; it has no
+// `name` overrider, so the catch-all applies to it.
+
+BOOST_OPENMETHOD(weigh, (virtual_<erased_cref>), int);
+
+BOOST_OPENMETHOD_OVERRIDE(weigh, (const int& value), int) {
+    return value;
+}
+
 BOOST_AUTO_TEST_CASE(type_erasure_const_any_ref_by_value) {
     initialize(trace());
 
     Dog snoopy{"Snoopy"};
     const int count = 42;
+
+    BOOST_TEST(weigh(erased_cref(count)) == 42);
 
     BOOST_TEST(name(erased_cref(snoopy)) == "Snoopy the dog");
     BOOST_TEST(name(erased_cref(count)) == "something");
@@ -231,8 +250,8 @@ struct Dog {
     std::string name;
 };
 
-BOOST_OPENMETHOD_REGISTER(
-    use_type_erasure_types<erased, Dog, std::string, int, indirect_registry>);
+// `Dog` is registered in `indirect_registry` - the method's registry - by
+// the overrider
 
 using name_method = method<
     struct name_id, std::string(virtual_<const erased&>), indirect_registry>;
@@ -275,8 +294,8 @@ using dispatchable_ref = te::any<Dispatchable, te::_self&>;
 static_assert(detail::has_vptr_fn<dispatchable, default_registry>);
 static_assert(detail::has_vptr_fn<dispatchable_ref, default_registry>);
 
-// explicit registration is not needed, but may coexist (class dedup)
-BOOST_OPENMETHOD_REGISTER(use_type_erasure_types<dispatchable, Dog>);
+// `Dog` is registered both by the `name` overrider below and by binding
+// (class dedup)
 
 BOOST_OPENMETHOD(name, (virtual_<const dispatchable&>), std::string);
 

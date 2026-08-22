@@ -26,8 +26,6 @@ struct Dog {
     std::string name;
 };
 
-BOOST_OPENMETHOD_REGISTER(use_type_erasure_types<erased_ref, Dog, int>);
-
 // An any reference is a cheap handle; it is passed by value.
 BOOST_OPENMETHOD(poke, (virtual_<erased_ref>), std::string);
 

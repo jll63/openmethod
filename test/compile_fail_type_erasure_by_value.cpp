@@ -21,8 +21,6 @@ struct Dog {
     std::string name;
 };
 
-BOOST_OPENMETHOD_REGISTER(use_type_erasure_types<erased, Dog>);
-
 // The owning any must be passed by reference: by value, it would copy
 // the `any` - and its payload - on every call. (The any references,
 // any<C, _self&> and any<C, const _self&>, may be passed by value.)

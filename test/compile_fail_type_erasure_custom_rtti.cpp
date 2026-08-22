@@ -51,9 +51,6 @@ struct Dog {
     std::string name;
 };
 
-BOOST_OPENMETHOD_REGISTER(
-    use_type_erasure_types<erased, Dog, custom_rtti_registry>);
-
 // Dispatching on a type_erasure::any keys on the `std::type_info` returned by
 // `boost::type_erasure::typeid_of`, so the registry's rtti policy must identify
 // classes the same way. This one does not: the lookup key would be meaningless,

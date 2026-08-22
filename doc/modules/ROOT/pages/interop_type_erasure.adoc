@@ -23,14 +23,19 @@ v-table; the requirement is enforced with a `static_assert`. The
 cpp:openmethod_vptr[] concept takes the v-table pointer from the ``any``'s own
 dispatch table and never calls `typeid_of`, so it does not require `std_rtti`.
 
-The types an `any` may bind to must be registered via
-cpp:use_type_erasure_types[]. ``any``s with different concepts must each be
-registered with the types it may contain. A type that is not registered cannot
-be dispatched on; a call with such a value bound to the ``any`` is a
-cpp:missing_class[] error - see xref:error_handling.adoc[Error Handling].
+The types an `any` may bind to are registered automatically: naming a type as
+the parameter of an overrider registers it as a class derived from the owning
+`any` - the root class for the Concept; storing a value in a cpp:virtual_any[]
+(see below) registers its type as well. ``any``s with different Concepts have
+distinct roots. A type that is never named in one of these ways is not
+registered and cannot be dispatched on - not even by a catch-all overrider: a
+call with such a value bound to the ``any`` is a cpp:missing_class[] error -
+see xref:error_handling.adoc[Error Handling].
 
 The `any` is wrapped in `virtual_` in the method parameters; overriders receive
-the _bound_ value - or, for a catch-all overrider, the `any` itself:
+the _bound_ value - or, for a catch-all overrider, the `any` itself. In the
+example below, `int` is registered by the `weigh` overrider, and, having no
+`name` overrider of its own, is dispatched by `name` to the catch-all:
 
 [source,c++]
 ----
@@ -109,8 +114,10 @@ Every call above looks the v-table up in a hash table, keyed on the type the
 v-table pointer for the value bound to it, acquiring it once, on construction,
 and maintaining it across assignment and `emplace`. It is to an `any` what
 cpp:virtual_ptr[] is to a pointer, except that it _owns_ the object: the `any`
-is held by value. The ``any``'s concept must include `relaxed` - for the default
-constructor and assignment - and `copy_constructible<>` for copies.
+is held by value. Building it from a value, or `emplace`, also _registers_ the
+type, like naming it in an overrider does; so does assigning a value. The
+``any``'s concept must include `relaxed` - for the default constructor and
+assignment - and `copy_constructible<>` for copies.
 
 [source,c++]
 ----
@@ -143,8 +150,8 @@ customization point.
 
 Binding a value to such an `any` also _registers_ its type, as a class derived
 from the owning `any` - the registrar is instantiated along with the
-operation. `use_type_erasure_types` becomes unnecessary for these ``any``s,
-although the two registration styles may coexist.
+operation, just as naming the type in an overrider instantiates one; the two
+registration paths may coexist.
 
 The concept must name the Concept it is part of, so the Concept is defined as
 a struct - the class name is already in scope in its own base-clause:

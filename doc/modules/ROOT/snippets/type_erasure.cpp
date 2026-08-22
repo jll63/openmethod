@@ -32,10 +32,9 @@ struct Dog {
     std::string name;
 };
 
-// The owning `any`, `any<Concept>`, becomes the common base of the types
-// the `any` may bind.
-BOOST_OPENMETHOD_REGISTER(
-    use_type_erasure_types<erased, Dog, std::string, int>);
+// The owning `any`, `any<Concept>`, is the common base of the types the
+// `any` may bind. The types are registered automatically: naming one in
+// an overrider - or storing a value in a `virtual_any` - registers it.
 // end::classes[]
 
 // tag::method[]
@@ -56,6 +55,15 @@ BOOST_OPENMETHOD_OVERRIDE(name, (const erased& value), std::string) {
 }
 // end::method[]
 
+// `int` is registered because `weigh`'s overrider names it; it has no
+// `name` overrider, so the catch-all applies to it.
+
+BOOST_OPENMETHOD(weigh, (virtual_<const erased&>), int);
+
+BOOST_OPENMETHOD_OVERRIDE(weigh, (const int& value), int) {
+    return value;
+}
+
 BOOST_AUTO_TEST_CASE(type_erasure_examples) {
     initialize();
 
@@ -68,8 +76,8 @@ BOOST_AUTO_TEST_CASE(type_erasure_examples) {
 
         std::cout << name(spot) << "\n"; // Spot the dog
 
-        // `int` is registered, but has no overrider of its own, so the
-        // catch-all applies.
+        // `int` is registered - `weigh`'s overrider names it - but has
+        // no `name` overrider of its own, so the catch-all applies.
         std::cout << name(answer) << "\n"; // something else
         // end::dispatch[]
 

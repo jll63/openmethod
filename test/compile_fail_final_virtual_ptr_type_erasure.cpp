@@ -21,8 +21,6 @@ struct Dog {
     std::string name;
 };
 
-BOOST_OPENMETHOD_REGISTER(use_type_erasure_types<erased, Dog>);
-
 int main() {
     // The primary final_virtual_ptr would use the static v-table pointer
     // of the any class itself - the root -, not the bound value's. The

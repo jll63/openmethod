@@ -28,10 +28,9 @@ struct Dog {
     std::string name;
 };
 
-// The owning `any`, `any<Concept>`, becomes the common base of the types
-// the `any` may bind.
-BOOST_OPENMETHOD_REGISTER(use_type_erasure_types<erased, Dog, std::string, int>);
-
+// The owning `any`, `any<Concept>`, is the common base of the types the
+// `any` may bind. An overrider registers the type it names as a class
+// derived from it.
 BOOST_OPENMETHOD(name, (virtual_<const erased&>), std::string);
 
 // An overrider takes the bound value...
@@ -48,6 +47,12 @@ BOOST_OPENMETHOD_OVERRIDE(name, (const erased& value), std::string) {
     return te::is_empty(value) ? "nothing" : "something else";
 }
 
+BOOST_OPENMETHOD(weigh, (virtual_<const erased&>), int);
+
+BOOST_OPENMETHOD_OVERRIDE(weigh, (const int& value), int) {
+    return value;
+}
+
 #include <boost/openmethod/initialize.hpp>
 
 int main() {
@@ -60,8 +65,9 @@ int main() {
     std::cout << name(spot) << "\n";  // Spot the dog
     std::cout << name(felix) << "\n"; // Felix the cat
 
-    // `int` is registered, but has no overrider of its own, so the
-    // catch-all applies.
-    std::cout << name(answer) << "\n"; // something else
+    // `int` is registered - `weigh`'s overrider names it - but has no
+    // `name` overrider of its own, so the catch-all applies.
+    std::cout << weigh(answer) << "\n"; // 42
+    std::cout << name(answer) << "\n";  // something else
 }
 // end::content[]

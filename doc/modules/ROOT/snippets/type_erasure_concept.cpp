@@ -35,8 +35,7 @@ struct Dispatchable : boost::mpl::vector<
 
 using erased = te::any<Dispatchable>;
 
-// No use_type_erasure_types: binding a value to the `any` registers its
-// type.
+// Binding a value to the `any` registers its type.
 
 BOOST_OPENMETHOD(name, (virtual_<const erased&>), std::string);
 
