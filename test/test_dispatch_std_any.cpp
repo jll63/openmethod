@@ -9,6 +9,7 @@
 #include <boost/openmethod.hpp>
 #include <boost/openmethod/interop/std_any.hpp>
 #include <boost/openmethod/initialize.hpp>
+#include <boost/openmethod/policies/throw_error_handler.hpp>
 
 #define BOOST_TEST_MODULE openmethod
 #include <boost/test/unit_test.hpp>
@@ -18,9 +19,7 @@ using namespace boost::openmethod;
 #define MAKE_CLASSES()                                                         \
     struct Dog {                                                               \
         std::string name;                                                      \
-    };                                                                         \
-                                                                               \
-    use_std_any_types<Dog, std::string, int> BOOST_OPENMETHOD_GENSYM;
+    };
 
 namespace BOOST_OPENMETHOD_GENSYM {
 
@@ -52,10 +51,18 @@ BOOST_OPENMETHOD_OVERRIDE(name, (const int& value), std::string) {
 // A catch-all overrider may take the `any` itself; the argument is passed
 // through unchanged, instead of going through std::any_cast, which would
 // throw unless the `any` contains an `any`.
-use_std_any_types<double> BOOST_OPENMETHOD_GENSYM;
 
 BOOST_OPENMETHOD_OVERRIDE(name, (const std::any& arg), std::string) {
     return arg.has_value() ? "something" : "nothing";
+}
+
+// `double` is registered because `weigh`'s overrider names it; it has no
+// `name` overrider, so the catch-all applies to it.
+
+BOOST_OPENMETHOD(weigh, (virtual_<const std::any&>), double);
+
+BOOST_OPENMETHOD_OVERRIDE(weigh, (const double& value), double) {
+    return value;
 }
 
 BOOST_AUTO_TEST_CASE(std_any_by_const_ref) {
@@ -69,7 +76,7 @@ BOOST_AUTO_TEST_CASE(std_any_by_const_ref) {
     BOOST_TEST(name(felix) == "Felix the cat");
     BOOST_TEST(name(answer) == "42 the integer");
 
-    // `double` is registered but has no specific overrider: the catch-all,
+    // `double` is registered, but has no specific overrider: the catch-all,
     // registered for the `std::any` root, applies
     BOOST_TEST(name(std::any(1.5)) == "something");
 }
@@ -192,12 +199,19 @@ namespace BOOST_OPENMETHOD_GENSYM {
 // -----------------------------------------------------------------------------
 // catch-all overriders
 
+// `float` has no overrider of the methods under test; it is registered
+// because `weigh`'s overrider names it. The catch-alls apply to it.
+
 #define MAKE_CATCH_ALL_CLASSES()                                               \
     struct Dog {                                                               \
         std::string name;                                                      \
     };                                                                         \
                                                                                \
-    use_std_any_types<Dog, float> BOOST_OPENMETHOD_GENSYM;
+    BOOST_OPENMETHOD(weigh, (virtual_<const std::any&>), float);               \
+                                                                               \
+    BOOST_OPENMETHOD_OVERRIDE(weigh, (const float& value), float) {            \
+        return value;                                                          \
+    }
 
 MAKE_CATCH_ALL_CLASSES();
 
@@ -249,6 +263,8 @@ BOOST_AUTO_TEST_CASE(std_any_catch_all) {
     std::any spot(Dog{"Spot"});
     std::any pi(3.14f);
 
+    BOOST_TEST(weigh(pi) == 3.14f);
+
     BOOST_TEST(name(spot) == "Spot the dog");
     BOOST_TEST(name(pi) == "something else");
 
@@ -298,5 +314,85 @@ BOOST_AUTO_TEST_CASE(std_any_mixed_with_virtual_ptr) {
 
     BOOST_TEST(meet(spot, felix) == "Spot meets a cat");
     BOOST_TEST(meet(pi, felix) == "someone meets an animal");
+}
+} // namespace BOOST_OPENMETHOD_GENSYM
+
+namespace BOOST_OPENMETHOD_GENSYM {
+
+// -----------------------------------------------------------------------------
+// a type that is never named statically anywhere is not registered
+
+struct throw_registry
+    : default_registry::with<
+          policies::runtime_checks, policies::throw_error_handler> {};
+
+struct Dog {
+    std::string name;
+};
+
+using name_method = method<
+    struct name_id, std::string(virtual_<const std::any&>), throw_registry>;
+
+auto name_dog(const Dog& dog) -> std::string {
+    return dog.name + " the dog";
+}
+
+auto name_any(const std::any&) -> std::string {
+    return "something else";
+}
+
+BOOST_OPENMETHOD_REGISTER(name_method::override<name_dog>);
+BOOST_OPENMETHOD_REGISTER(name_method::override<name_any>);
+
+BOOST_AUTO_TEST_CASE(std_any_unregistered_type) {
+    initialize<throw_registry>();
+
+    // `double` is named nowhere: it is not registered, and even the
+    // catch-all does not apply; the v-table lookup is a missing_class error
+    std::any pi(3.14);
+    BOOST_CHECK_THROW(name_method::fn(pi), missing_class);
+}
+} // namespace BOOST_OPENMETHOD_GENSYM
+
+namespace BOOST_OPENMETHOD_GENSYM {
+
+// -----------------------------------------------------------------------------
+// a class may belong to a hierarchy and be dispatched via an `any` as well
+
+struct Animal {
+    virtual ~Animal() = default;
+};
+
+struct Dog : Animal {
+    explicit Dog(std::string name) : name(std::move(name)) {
+    }
+
+    std::string name;
+};
+
+BOOST_OPENMETHOD_CLASSES(Animal, Dog);
+
+BOOST_OPENMETHOD(poke, (virtual_ptr<const Animal>), std::string);
+
+BOOST_OPENMETHOD_OVERRIDE(poke, (virtual_ptr<const Dog> dog), std::string) {
+    return dog->name + " barks";
+}
+
+BOOST_OPENMETHOD(name, (virtual_<const std::any&>), std::string);
+
+BOOST_OPENMETHOD_OVERRIDE(name, (const Dog& dog), std::string) {
+    return dog.name + " the dog";
+}
+
+BOOST_AUTO_TEST_CASE(std_any_class_in_hierarchy) {
+    initialize(trace());
+
+    // `Dog` has two bases in the lattice: `Animal`, registered explicitly,
+    // and `std::any`, added because `name`'s overrider names `Dog`
+    Dog spot("Spot");
+    BOOST_TEST(poke(spot) == "Spot barks");
+
+    std::any any_spot(Dog{"Spot"});
+    BOOST_TEST(name(any_spot) == "Spot the dog");
 }
 } // namespace BOOST_OPENMETHOD_GENSYM

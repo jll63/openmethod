@@ -71,6 +71,8 @@ struct virtual_traits<const std::any&, Registry> {
     //! Acquires the @ref type_id of the value stored in `arg`, using
     //! `std::any::type()`. This requires the registry's @ref rtti policy to be
     //! @ref std_rtti; the requirement is enforced with a `static_assert`.
+    //! Registers `std::any` - the root class of the contained types - in
+    //! `Registry`.
     //!
     //! Passes it to the registry's @ref policies::vptr policy, which must
     //! provide @ref policies::VptrFn::vptr. Both @ref policies::vptr_vector
@@ -89,6 +91,7 @@ struct virtual_traits<const std::any&, Registry> {
     //! @return A reference to the v-table pointer for the stored value.
     static auto vptr(const std::any& arg) -> const vptr_type& {
         detail::assert_std_rtti_std_any<Registry>();
+        (void)&detail::use_any_classes<Registry, std::any>;
         return Registry::vptr::vptr(&arg.type());
     }
 
@@ -96,8 +99,10 @@ struct virtual_traits<const std::any&, Registry> {
     //!
     //! If `U` is the `any` itself (by any reference category), returns
     //! `arg` unchanged, which is how a catch-all overrider is written.
-    //! Otherwise, extracts the stored value using `std::any_cast`. Since
-    //! the `any` argument is const, `U` cannot be a mutable reference.
+    //! Otherwise, extracts the stored value using `std::any_cast`, and
+    //! registers `U`, stripped of reference and cv-qualifiers, in
+    //! `Registry` as a class derived from `std::any`. Since the `any`
+    //! argument is const, `U` cannot be a mutable reference.
     //!
     //! @tparam U The target type (e.g. `const Dog&`, `Dog`).
     //! @param arg A reference to a const `std::any` method argument.
@@ -109,6 +114,7 @@ struct virtual_traits<const std::any&, Registry> {
                           std::any>) {
             return (arg);
         } else {
+            (void)&detail::use_any_classes<Registry, std::any, std::decay_t<U>>;
             return std::any_cast<U>(arg);
         }
     }
@@ -137,6 +143,8 @@ struct virtual_traits<std::any&, Registry> {
     //! Acquires the @ref type_id of the value stored in `arg`, using
     //! `std::any::type()`. This requires the registry's @ref rtti policy to be
     //! @ref std_rtti; the requirement is enforced with a `static_assert`.
+    //! Registers `std::any` - the root class of the contained types - in
+    //! `Registry`.
     //!
     //! Passes it to the registry's @ref policies::vptr policy, which must
     //! provide @ref policies::VptrFn::vptr. Both @ref policies::vptr_vector
@@ -155,6 +163,7 @@ struct virtual_traits<std::any&, Registry> {
     //! @return A reference to the v-table pointer for the stored value.
     static auto vptr(const std::any& arg) -> const vptr_type& {
         detail::assert_std_rtti_std_any<Registry>();
+        (void)&detail::use_any_classes<Registry, std::any>;
         return Registry::vptr::vptr(&arg.type());
     }
 
@@ -162,9 +171,11 @@ struct virtual_traits<std::any&, Registry> {
     //!
     //! If `U` is the `any` itself, returns `arg` unchanged, which is how a
     //! catch-all overrider is written. Otherwise, extracts the stored value
-    //! using `std::any_cast`. Supports mutable references (e.g. `Dog&`)
-    //! because the `any` argument is not const; modifications through the
-    //! result are visible through the `any`.
+    //! using `std::any_cast`, and registers `U`, stripped of reference and
+    //! cv-qualifiers, in `Registry` as a class derived from `std::any`.
+    //! Supports mutable references (e.g. `Dog&`) because the `any` argument
+    //! is not const; modifications through the result are visible through
+    //! the `any`.
     //!
     //! @tparam U The target type (e.g. `Dog&`, `const Dog&`, `Dog`).
     //! @param arg A mutable reference to the `std::any` method argument.
@@ -176,6 +187,7 @@ struct virtual_traits<std::any&, Registry> {
                           std::any>) {
             return (arg);
         } else {
+            (void)&detail::use_any_classes<Registry, std::any, std::decay_t<U>>;
             return std::any_cast<U>(arg);
         }
     }
@@ -204,6 +216,8 @@ struct virtual_traits<std::any&&, Registry> {
     //! Acquires the @ref type_id of the value stored in `arg`, using
     //! `std::any::type()`. This requires the registry's @ref rtti policy to be
     //! @ref std_rtti; the requirement is enforced with a `static_assert`.
+    //! Registers `std::any` - the root class of the contained types - in
+    //! `Registry`.
     //!
     //! Passes it to the registry's @ref policies::vptr policy, which must
     //! provide @ref policies::VptrFn::vptr. Both @ref policies::vptr_vector
@@ -222,6 +236,7 @@ struct virtual_traits<std::any&&, Registry> {
     //! @return A reference to the v-table pointer for the stored value.
     static auto vptr(const std::any& arg) -> const vptr_type& {
         detail::assert_std_rtti_std_any<Registry>();
+        (void)&detail::use_any_classes<Registry, std::any>;
         return Registry::vptr::vptr(&arg.type());
     }
 
@@ -229,7 +244,8 @@ struct virtual_traits<std::any&&, Registry> {
     //!
     //! If `U` is the `any` itself, returns `arg` unchanged, which is how a
     //! catch-all overrider is written. Otherwise, extracts the stored value
-    //! using `std::any_cast`.
+    //! using `std::any_cast`, and registers `U`, stripped of reference and
+    //! cv-qualifiers, in `Registry` as a class derived from `std::any`.
     //!
     //! @tparam U The target type (e.g. `Dog&&`, `const Dog&`, `Dog`).
     //! @param arg An rvalue reference to the `std::any` method argument.
@@ -241,30 +257,11 @@ struct virtual_traits<std::any&&, Registry> {
                           std::any>) {
             return std::move(arg);
         } else {
+            (void)&detail::use_any_classes<Registry, std::any, std::decay_t<U>>;
             return std::any_cast<U>(std::move(arg));
         }
     }
 };
-
-//! Register the types that a `std::any` virtual parameter may contain.
-//!
-//! Registers `std::any` as a class, and each `T` as a class derived from
-//! `std::any`. This makes the contained types visible to the dispatch
-//! machinery, which resolves a call on the `type_id` returned by
-//! `std::any::type()`.
-//!
-//! @tparam T... The types that may be stored in the `any`, optionally
-//! followed by a @ref registry.
-//!
-//! @par Example
-//! include:virtual_any.cpp#classes
-//!
-//! @see [Interoperation with `any`](xref:ROOT:interop_any.adoc)
-template<typename... T>
-struct use_std_any_types
-    : detail::use_any_types_aux<
-          typename detail::extract_registry<T...>::registry, std::any,
-          typename detail::extract_registry<T...>::others> {};
 
 //! Alias for a `virtual_any<std::any>`, in the default registry.
 //!
@@ -297,7 +294,6 @@ void final_virtual_ptr(std::any&&) = delete;
 #endif
 
 namespace aliases {
-using boost::openmethod::use_std_any_types;
 using boost::openmethod::virtual_std_any;
 } // namespace aliases
 

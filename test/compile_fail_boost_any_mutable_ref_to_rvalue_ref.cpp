@@ -15,8 +15,6 @@ struct Dog {
     std::string name;
 };
 
-BOOST_OPENMETHOD_REGISTER(use_boost_any_types<Dog>);
-
 BOOST_OPENMETHOD(bump, (virtual_<boost::any&>), std::string);
 
 using bump_method =
