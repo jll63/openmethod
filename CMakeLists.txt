@@ -95,6 +95,16 @@ set(
 if (BOOST_OPENMETHOD_BUILD_TESTS OR BOOST_OPENMETHOD_MRDOCS_BUILD)
     list(APPEND BOOST_OPENMETHOD_DEPENDENCIES Boost::smart_ptr)
     list(APPEND BOOST_OPENMETHOD_DEPENDENCIES Boost::any)
+    list(APPEND BOOST_OPENMETHOD_DEPENDENCIES Boost::type_erasure)
+    # ... but for its headers only. Boost.TypeErasure's compiled part is one
+    # file, dynamic_binding.cpp, which nothing here references and which links
+    # Boost::thread - so linking Boost::type_erasure builds Boost.Thread and,
+    # through it, Boost.Container, Boost.Chrono, Boost.date_time and
+    # Boost.Atomic. Two of those do not build under -Werror on the Windows CI
+    # toolchains, which took the whole test suite down with them. Consume the
+    # usage requirements without linking, as test/Jamfile does with <use>.
+    # ($<COMPILE_ONLY:> expresses this directly, but needs CMake 3.27.)
+    list(APPEND BOOST_OPENMETHOD_COMPILE_ONLY_DEPENDENCIES Boost::type_erasure)
 endif()
 
 foreach (BOOST_OPENMETHOD_DEPENDENCY ${BOOST_OPENMETHOD_DEPENDENCIES})
@@ -177,7 +187,25 @@ set_property(GLOBAL PROPERTY USE_FOLDERS ON)
 source_group(TREE ${CMAKE_CURRENT_SOURCE_DIR}/include/boost PREFIX "" FILES ${BOOST_OPENMETHOD_HEADERS})
 
 function(boost_openmethod_setup_properties target)
-    target_link_libraries(${target} INTERFACE ${BOOST_OPENMETHOD_DEPENDENCIES})
+    set(link_dependencies ${BOOST_OPENMETHOD_DEPENDENCIES})
+
+    # $<COMPILE_ONLY:> is exactly "the usage requirements, without the link".
+    # Being a generator expression, it does not care whether the dependency's
+    # target has been defined yet - which the super-project, driving this from
+    # BOOST_INCLUDE_LIBRARIES, does not guarantee. Anything that inspects the
+    # target at configure time does care, and breaks when the super-project
+    # happens to configure openmethod first.
+    #
+    # It needs CMake 3.27, well past the floor declared here. Below that, link
+    # normally: slower, and it builds Boost.Thread and friends, but correct.
+    if (CMAKE_VERSION VERSION_GREATER_EQUAL 3.27)
+        foreach (dependency ${BOOST_OPENMETHOD_COMPILE_ONLY_DEPENDENCIES})
+            list(REMOVE_ITEM link_dependencies ${dependency})
+            list(APPEND link_dependencies $<COMPILE_ONLY:${dependency}>)
+        endforeach()
+    endif()
+
+    target_link_libraries(${target} INTERFACE ${link_dependencies})
 endfunction()
 
 add_library(boost_openmethod INTERFACE)

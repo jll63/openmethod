@@ -170,6 +170,13 @@ openmethod_compile_fail_test(
 openmethod_compile_fail_test(
     compile_fail_final_virtual_ptr_std_any "deleted function")
 openmethod_compile_fail_test(
+    compile_fail_type_erasure_by_value
+    "an owning type_erasure::any must be passed by reference")
+openmethod_compile_fail_test(
+    compile_fail_type_erasure_const_ref_to_mutable_ref "no matching")
+openmethod_compile_fail_test(
+    compile_fail_final_virtual_ptr_type_erasure "deleted function")
+openmethod_compile_fail_test(
     compile_fail_virtual_ptr_inplace_vptr
     "do not wrap an object that has a boost_openmethod_vptr overload")
 openmethod_compile_fail_test(
@@ -180,6 +187,8 @@ openmethod_compile_fail_test(
     "do not wrap a virtual_any in a virtual_ptr")
 openmethod_compile_fail_test(
     compile_fail_std_any_custom_rtti "requires standard RTTI")
+openmethod_compile_fail_test(
+    compile_fail_type_erasure_custom_rtti "requires standard RTTI")
 
 if (TARGET Boost::dll)
     add_subdirectory(dynamic_loading)

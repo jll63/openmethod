@@ -11,6 +11,11 @@
 #include <boost/openmethod/interop/virtual_any.hpp>
 #include <boost/openmethod/policies/std_rtti.hpp>
 
+// Dispatch on the type contained in a `std::any`.
+//
+// This interop is based on a design contributed by Steven Watanabe:
+// https://github.com/boostorg/openmethod/issues/21
+
 namespace boost::openmethod {
 
 namespace detail {
@@ -242,7 +247,7 @@ struct virtual_traits<std::any&&, Registry> {
     //! using `std::any_cast`, and registers `U`, stripped of reference and
     //! cv-qualifiers, in `Registry` as a class derived from `std::any`.
     //!
-    //! @tparam U The target type (e.g. `Dog&`, `const Dog&`, `Dog`).
+    //! @tparam U The target type (e.g. `Dog&&`, `const Dog&`, `Dog`).
     //! @param arg An rvalue reference to the `std::any` method argument.
     //! @return The value stored in `arg`, cast to `U`.
     template<typename U>

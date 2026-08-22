@@ -149,6 +149,12 @@ The project uses clang-format with an LLVM-based style:
 - `AllowShortFunctionsOnASingleLine: false`
 - No short blocks, if statements, or loops on single lines
 
+### Disassembly
+Always show disassembly in **Intel syntax**, never AT&T (the toolchain's default
+here). Add the flag to the invocation before pasting any output:
+- `objdump -dC -M intel --no-show-raw-insn`
+- `gcc -S -masm=intel` / `clang -S -masm=intel`
+
 ### Compiler Requirements
 Tests require these C++17 features (checked by Boost.Build):
 - auto nontype template params
@@ -159,131 +165,116 @@ Tests require these C++17 features (checked by Boost.Build):
 - structured bindings
 - `<charconv>`, `<string_view>`, `<variant>` headers
 
+### Documentation (AsciiDoc)
+
+Prose lives in `doc/modules/ROOT/pages/*.adoc`; explanations belong there, not in comments inside
+the example sources under `doc/modules/ROOT/examples/`, which are pulled into the rendered page
+verbatim through `include::example$file.cpp[tag=content]`. Pages hard-wrap at ~79 columns and use
+`cpp:name[]` for API names that have a reference page.
+
+**Render the docs; do not just eyeball the `.adoc`.** `doc/build_antora.sh` (~2 min, writes the
+gitignored `doc/html/`) is the only way to catch markup that is silently mis-parsed — asciidoctor
+emits no warning for it.
+
+**Side-by-side comparisons use a table with AsciiDoc cells.** The house shape is
+`[cols="1,1"]` + `|===` with a header row (`interop_any.adoc`, `registries_and_policies.adoc`,
+`shared_libraries.adoc`). A cell holding a *block* - a code listing, a nested list - must be
+introduced with `a|`, not `|`. The `a` makes the cell content parsed as AsciiDoc; without it the
+`[source,...]` / `----` markup renders literally, and asciidoctor says nothing.
+`interop_type_erasure.adoc` compares two dispatch sequences that way:
+
+```
+[cols="1,1"]
+|===
+| `openmethod_vptr` | `virtual_any`
+
+a|
+[source,asm]
+----
+mov	rax, qword ptr [rdi + 32]
+----
+
+a|
+[source,asm]
+----
+jmp	qword ptr [rax + 8*rcx]
+----
+
+|===
+```
+
+`|` starts a new cell, so cell content containing one must escape it as `\|`. Quick structural
+check before rendering - both counts must be even, and every `[source,X]` must be followed by
+`----`:
+
+```bash
+grep -c '^----$' doc/modules/ROOT/pages/<page>.adoc
+grep -c '^|===$' doc/modules/ROOT/pages/<page>.adoc
+```
+
+**The backtick-apostrophe trap**: never write a possessive right after a code span. Asciidoctor
+parses ``` `any`'s ``` as `` ` `` + `any` + the **`` `' `` curly-apostrophe shorthand**, which
+consumes the *closing* backtick; the opening one is then left unmatched and pairs with the next
+backtick in the same paragraph. Two things break at once — a literal `` ` `` appears in the output,
+and the following code span loses its `<code>` formatting:
+
+```
+source:   is part of the `any`'s type - whereas the `typeid_of`-based dispatch above
+rendered: is part of the any's type - whereas the `typeid_of-based dispatch above
+```
+
+Reword instead: "the reference types of the `any`", "separate from that of `default_registry`".
+``{apos}`` also works and matches the house style (`shared_libraries.adoc` uses ``{empty}`` for
+plurals: ``` `virtual_ptr`{empty}s ```), but rewording is safer and reads better. Before building:
+
+```bash
+grep -rn "\`'" doc/modules/ROOT/pages/*.adoc    # must return nothing
+```
+
+After building, no stray backticks should survive outside code blocks —
+`grep -n '\`' doc/html/openmethod/<page>.html` should only hit backticks inside C++ comments.
+
 ## Common Development Patterns
 
 ### Working with Shared Libraries / DLL Support
 
-**Overview**: The library supports shared library usage across modules by sharing the registry's
-state through an export/import decoration of a single symbol. On Windows (and Cygwin) the decoration
-is dllexport/dllimport; on ELF it is `visibility("default")` on the export side. In the common case
-off Windows the decoration can be omitted entirely — the state then has ordinary external linkage
-and is shared by the dynamic linker — but that only works if the program is *not* built with hidden
-visibility. Under `-fvisibility=hidden` (e.g. the Boost super-project's `BoostRoot.cmake`) an
-implicitly instantiated `st` is a COMDAT that gets internalized to a per-module local symbol, so
-the export/import macros must be used on ELF too (they emit a single strong, default-visibility
-explicit instantiation that the other modules import).
+A registry's entire mutable state - the class/method/overrider lists plus every stateful policy's
+`state` - lives in one variable, `registry_state<Registry>::st`. Sharing a registry across modules
+means sharing that one symbol. Three macros do it, each taking the registry as an argument and
+emitting fully qualified names, so callers never open `namespace boost::openmethod`:
 
-**One shared state variable**: All of a registry's mutable state — the class/method/overrider
-lists *and* every stateful policy's `state` (held together in the `registry_state_type::policies`
-tuple) — lives in a single variable, `registry_state<Registry>::st` of type
-`detail::registry_state_type<Registry>`. A registry reaches it through `Registry::state()`. Sharing
-a registry across a DLL boundary therefore means sharing this one symbol.
-
-`registry_state` (in `boost::openmethod`) is a deliberately thin, function-free class whose only
-member is the static `st`. It is kept *separate* from `registry_state_type` (the struct holding the
-actual fields, in `detail`) because MSVC only honors `dllexport`/`dllimport` on a *whole-class*
-explicit instantiation — not on a variable template (clients silently get a private copy) nor on a
-static-data-member instantiation (error C2720) — and dllexporting `registry_state_type` directly
-would also decorate its member functions and the policies' nested `state` types, which MSVC rejects
-(error C2513). A one-member, function-free class is the only shape MSVC will export as a whole and
-import via `extern template`.
-
-**Mechanism — `extern template` / explicit instantiation**: the shared symbol is
-`registry_state<Registry::registry_type>::st`, where `registry_type` is the `registry<Policy...>`
-*base* of the registry struct (that is what `registry::state()` uses — never key on the derived
-struct). The owning module compiles, in exactly one TU, an exported explicit instantiation
-definition; clients compile an imported explicit instantiation declaration, so they reference
-the owner's symbol instead of instantiating their own copy:
 ```cpp
-// owner (one TU):
-template struct BOOST_SYMBOL_EXPORT registry_state<R::registry_type>;
-// clients:
-extern template struct BOOST_SYMBOL_IMPORT registry_state<R::registry_type>;
+BOOST_OPENMETHOD_IMPORT_REGISTRY(R);       // header, every TU of a client module
+BOOST_OPENMETHOD_EXPORT_REGISTRY(R);       // header, every TU of the owning module
+BOOST_OPENMETHOD_INSTANTIATE_REGISTRY(R);  // exactly one .cpp of the owning module
 ```
-`BOOST_SYMBOL_EXPORT`/`BOOST_SYMBOL_IMPORT` are dllexport/dllimport on Windows and
-`visibility("default")` / empty on ELF, so the same two lines serve both platforms. This is no
-longer guarded by `_WIN32`: on ELF the pair is what makes the state shareable under hidden
-visibility.
 
-**Registries are structs, not aliases — do not "simplify" this**: `default_registry` (and the
-documented custom-registry pattern) is deliberately a *struct deriving from* `registry<Policy...>`,
-never a type alias. The short struct name keeps mangled/linker names short for everything keyed on
-the registry (methods, virtual_ptrs, `static_vptr`, registrars...); an alias would expand to the
-full policy list in all of those symbols. This is also why the `::registry_type` spelling in the
-explicit instantiations above cannot be avoided: an explicit instantiation instantiates exactly the
-specialization written, so making `registry_state<default_registry>` work would require
-`default_registry` to *be* its base (an alias) — rejected for the mangled-name reason. Only the
-shared state symbol carries the full policy list, which is accepted.
+Methods need no decoration: method objects are *consolidated* across modules at `initialize()`
+time, not shared through a symbol.
 
-**Usage**: three macros, each taking the registry as an argument, so the same three serve
-`default_registry`, `indirect_registry` and user-defined registries. Everything they emit is fully
-qualified, so callers never open `namespace boost::openmethod`:
-```cpp
-// header, every TU of a client module
-BOOST_OPENMETHOD_IMPORT_REGISTRY(boost::openmethod::default_registry);
-// header, every TU of the owning module
-BOOST_OPENMETHOD_EXPORT_REGISTRY(boost::openmethod::default_registry);
-// exactly one .cpp of the owning module
-BOOST_OPENMETHOD_INSTANTIATE_REGISTRY(boost::openmethod::default_registry);
-```
-The owning module uses two: `EXPORT` in the shared header, `INSTANTIATE` once. Note
-`::registry_type` inside the expansions: the state is keyed on the `registry<...>` base, never the
-derived struct.
+**Do not hand-write the underlying explicit instantiations.** They are not portable, and each
+spelling compiles silently on one platform while failing on the other. On declspec platforms
+`__declspec(dllexport)` and `extern` are incompatible on an explicit instantiation (MSVC warning
+C4910), so `EXPORT` expands to nothing and `INSTANTIATE` carries the attribute; on ELF and Mach-O
+the attribute must be on the *declaration*, and repeating it on the definition is an error on GCC,
+so `EXPORT` carries it and `INSTANTIATE` carries none. The macros branch on `BOOST_HAS_DECLSPEC`.
 
-**Why three macros and not raw incantations** — the underlying explicit instantiations are not
-portable, and each spelling fails on one platform while compiling silently on the other. The
-macros branch on `BOOST_HAS_DECLSPEC`:
-- *declspec platforms* (Windows/Cygwin/MinGW): `__declspec(dllexport)` and `extern` are
-  incompatible on an explicit instantiation — MSVC emits `warning C4910` and, with warnings-as-
-  errors, fails. It is also unnecessary there, visibility not being a PE concept. So `EXPORT`
-  expands to nothing (`static_assert(true)`, to swallow the `;`) and `INSTANTIATE` carries the
-  `dllexport`.
-- *ELF and Mach-O*: the attribute must be on the **declaration**; repeating it on the definition is
-  `error: type attributes ignored after type is already defined [-Werror=attributes]` on GCC, which
-  clang accepts silently. So `EXPORT` carries it and `INSTANTIATE` carries none.
+**`EXPORT` is load-bearing on ELF, not documentation.** Under `-fvisibility=hidden` (e.g. the Boost
+super-project's `BoostRoot.cmake`) an owner TU with neither `EXPORT` nor `INSTANTIATE` instantiates
+the state implicitly as a COMDAT; ELF merges COMDATs at the *most restrictive* visibility, so the
+merged symbol goes module-local, the module exports nothing, and clients fail to link.
+`test/implicit_shared_libraries/custom_registry/lib2.cpp` exists solely to guard that path.
 
-**`EXPORT` is load-bearing on ELF**, not documentation: a TU of the owning module with neither
-`EXPORT` nor `INSTANTIATE` instantiates the state implicitly, and under `-fvisibility=hidden` that
-copy is module-local. ELF merges COMDATs at the *most restrictive* visibility, so the merged symbol
-becomes local, the module exports nothing, and clients fail to link with an undefined reference to
-`registry_state<...>::st`. `test/implicit_shared_libraries/custom_registry/lib2.cpp` is a second
-owner TU kept solely to guard that path. Placement within the instantiating TU does not matter
-(verified with `readelf` under `-fvisibility=hidden`).
+**Registries are structs deriving from `registry<Policy...>`, never aliases - do not "simplify"
+this.** The short struct name keeps mangled names short for everything keyed on the registry
+(methods, virtual_ptrs, `static_vptr`, registrars); an alias would expand the full policy list into
+all of them. That is also why the state is keyed on `Registry::registry_type` - the `registry<...>`
+base - and never on the derived struct. `registry_state` is likewise a deliberately thin,
+function-free class: that is the only shape MSVC will export whole and import via `extern template`.
 
-**Methods need no decoration**: method objects are *consolidated* across modules at `initialize()`
-time, not shared via a single symbol, so `BOOST_OPENMETHOD(...)` takes no declspec argument.
-
-See `doc/modules/ROOT/examples/shared_libs/` — one self-contained example per subdirectory
-(`implicit_linking/`, `dynamic_loading/`, `indirect_vptr/`), each with its own `animals.hpp`,
-`main.cpp` and `extensions.cpp` so every file spells out its export/import macro unconditionally —
-plus `test/dynamic_loading/` and `test/implicit_shared_libraries/` for the tests.
-
-**Dynamic Loading Test** (`test/dynamic_loading/`): verifies that the registry state is a single
-shared symbol across modules. `registry_state_id()` (in `registry.hpp`) returns the registry-state
-address (`test_registry::id()`); `main.cpp`'s `same_ids()` compares two such addresses (registry vs.
-method, registry vs. overrider) and asserts they are identical. (Policy state lives inside
-`registry_state_type`, so the registry-state address is the one shared symbol.) Files:
-- `registry.hpp` — defines `test_registry` (indirect iff `BOOST_OPENMETHOD_DEFAULT_REGISTRY` is defined on the command line), then emits `BOOST_OPENMETHOD_{EXPORT,IMPORT}_REGISTRY(test_registry)` according to whether the module compiles with `EXPORT_REGISTRY`; defines `registry_state_id()`
-- `classes.hpp` — `Animal`/`Dog`/`Cat` definitions (marked `BOOST_SYMBOL_VISIBLE` so their RTTI stays
-  default-visibility under the hidden-visibility CMake variant below) + `make_dog`/`make_cat`
-- `method.hpp` — declares the `speak`/`meet` methods (no declspec arguments)
-- `shared_overrider.hpp` — one `speak` overrider for `Cat`, included identically by `method.cpp` and
-  `overrider.cpp` to exercise cross-module overrider deduplication (the same overrider registered by
-  two modules must not be treated as ambiguous)
-- `registry.cpp` — compiled with `EXPORT_REGISTRY`; the shared library that owns and exports the registry state
-- `method.cpp` — client (imports the registry state); defines base overriders (including the shared
-  Cat one), exports C entry points
-- `overrider.cpp` — dynamically loaded at runtime; adds a Dog overrider and the shared Cat overrider
-- `main.cpp` — links the registry lib, dlopens the method and overrider libs, checks `same_ids`, calls
-  `initialize()`, tests cross-module dispatch (including the Cat overrider-dedup and class-dedup
-  regression checks)
-
-CMake builds five variants: `_default`/`_indirect` (dll-owned state) and `_exereg_default`/
-`_exereg_indirect` (exe-owned state), crossed with the default/indirect registry, plus `_hidden_vis`
-(forces `CXX_VISIBILITY_PRESET hidden` on every target to reproduce, on a standalone build, the
-configuration where `augment_classes()`'s class-dedup must key on `(type, static_vptr)` rather than
-`type` alone). b2's Jamfile only builds the dll-owned default/indirect pair; it does not currently
-have a hidden-visibility variant.
+One self-contained example per subdirectory of `doc/modules/ROOT/examples/shared_libs/`; tests in
+`test/dynamic_loading/` (whose `registry_state_id()` is compared across modules to prove the state
+is a single symbol) and `test/implicit_shared_libraries/`.
 
 ### Custom RTTI
 When `<typeinfo>` is unavailable or insufficient, use static_rtti or implement custom RTTI. See `doc/modules/ROOT/examples/custom_rtti/` and policies in `include/boost/openmethod/policies/`.

@@ -96,6 +96,12 @@ Provides `virtual_traits` specializations that make it possible to use a
 Provides `virtual_traits` specializations that make it possible to use a
 `boost::any` in virtual parameters.
 
+[#boost_type_erasure]
+### link:{headers-url}/boost/openmethod/interop/boost_type_erasure.hpp[<boost/openmethod/interop/boost_type_erasure.hpp>]
+
+Provides specializations for using a `boost::type_erasure::any` in virtual
+parameters.
+
 *The headers below are for advanced use*.
 
 ## Pre-Core Headers

@@ -14,6 +14,7 @@
 ** xref:error_handling.adoc[Error Handling]
 ** xref:virtual_ptr_alt.adoc[Virtual Pointer Alternatives]
 ** xref:interop_any.adoc[Interoperation with `any`]
+** xref:interop_type_erasure.adoc[Interoperation with Boost.TypeErasure]
 ** xref:shared_libraries.adoc[Shared Libraries]
 * Reference
 ** xref:ref_headers.adoc[Headers]

@@ -1,0 +1,235 @@
+
+[#interop_type_erasure]
+## Interoperation with Boost.TypeErasure
+
+Methods can take
+link:https://www.boost.org/doc/libs/release/doc/html/boost_typeerasure.html[Boost.TypeErasure]
+``any``s as virtual parameters, in the same manner as for a plain ``any``s - see
+xref:interop_any.adoc[Interoperation with `any`].
+
+Support is provided by `<boost/openmethod/interop/boost_type_erasure.hpp>`. It
+is not included by `<boost/openmethod.hpp>`, so it must be included explicitly.
+
+#### Requirements
+
+Dispatch resolves on the type returned by `boost::type_erasure::typeid_of`, so
+the ``any``'s concept must include `boost::type_erasure::typeid_<>`.
+
+`typeid_of` returns a `std::type_info`, so the registry's `rtti` policy must be
+cpp:std_rtti[], or a policy derived from it. `default_registry` and
+`indirect_registry` both qualify. A registry with, say, cpp:static_rtti[]
+identifies classes by a different kind of `type_id`, and would look up the wrong
+v-table; the requirement is enforced with a `static_assert`. The
+cpp:openmethod_vptr[] concept takes the v-table pointer from the ``any``'s own
+dispatch table and never calls `typeid_of`, so it does not require `std_rtti`.
+
+The types an `any` may bind to are registered automatically: naming a type as
+the parameter of an overrider registers it as a class derived from the owning
+`any` - the root class for the Concept; storing a value in a cpp:virtual_any[]
+(see below) registers its type as well. ``any``s with different Concepts have
+distinct roots. A type that is never named in one of these ways is not
+registered and cannot be dispatched on - not even by a catch-all overrider: a
+call with such a value bound to the ``any`` is a cpp:missing_class[] error -
+see xref:error_handling.adoc[Error Handling].
+
+The `any` is wrapped in `virtual_` in the method parameters; overriders receive
+the _bound_ value - or, for a catch-all overrider, the `any` itself. In the
+example below, `int` is registered by the `weigh` overrider, and, having no
+`name` overrider of its own, is dispatched by `name` to the catch-all:
+
+[source,c++]
+----
+include::example$type_erasure.cpp[tag=content]
+----
+
+#### Reference categories
+
+The `any` is passed by reference, in any of the three categories -
+passing it by value would copy the bound value on every call, and is rejected
+at compile time. The category determines what the overriders may take:
+
+[%autowidth,cols="1,2"]
+|===
+| Method parameter | Overrider parameter
+
+| `virtual_<const any<Concept>&>`
+| `const Dog&`, `Dog`
+
+| `virtual_<any<Concept>&>`
+| `Dog&`, `const Dog&`, `Dog`
+
+| `virtual_<any<Concept>&&>`
+| `Dog&&`, `const Dog&`, `Dog`
+|===
+
+The mutable lvalue reference has the same limitation as `virtual_<std::any&>`:
+xref:reference:BOOST_OPENMETHOD_OVERRIDE.adoc[BOOST_OPENMETHOD_OVERRIDE]
+cannot locate the method, because nothing binds a temporary `any` to a mutable
+lvalue reference - see the
+xref:interop_any.adoc#interop_any[explanation there]. Those overriders are
+registered with the core API instead:
+
+```c++
+using bump_method =
+    BOOST_OPENMETHOD_TYPE(bump, (virtual_<any<Concept>&>), std::string);
+
+auto bump_dog(Dog& dog) -> std::string {
+    dog.name += " Jr.";
+    return dog.name;
+}
+
+BOOST_OPENMETHOD_REGISTER(bump_method::override<bump_dog>);
+```
+
+`boost::type_erasure::any_cast` has no rvalue overload, so, in the rvalue
+case, moving the value out of the `any` is performed by the interop code
+itself: an overrider taking `Dog&&` receives the bound value ready to be moved
+from, and the `any` still owns the moved-from object afterwards.
+
+#### `any` references
+
+Boost.TypeErasure also has non-owning ``any``'s, `any<Concept, _self&>` and
+`any<Concept, const _self&>`, which hold a _reference_ to a value stored
+elsewhere. They are cheap, two-word handles, and, unlike an owning `any`, they
+are passed by value - the idiomatic way to use them as parameters. Modifications
+made through a mutable any reference reach the referent:
+
+[source,c++]
+----
+include::example$type_erasure_ref.cpp[tag=content]
+----
+
+Dispatch is on the type _bound at construction_ of the any reference - never on
+the C++ RTTI dynamic type of the referent. The rvalue-reference placeholder
+(`_self&&`), and placeholders other than `_self`, are not supported.
+
+For the same reason as for `std::any`, cpp:final_virtual_ptr[] is _deleted_
+for `type_erasure::any`: it would silently produce the v-table of the root
+class rather than the one for the bound value.
+
+#### `virtual_any`
+
+Every call above looks the v-table up in a hash table, keyed on the type the
+`any` binds. cpp:virtual_any[] removes that cost: it bundles an `any` with the
+v-table pointer for the value bound to it, acquiring it once, on construction,
+and maintaining it across assignment and `emplace`. It is to an `any` what
+cpp:virtual_ptr[] is to a pointer, except that it _owns_ the object: the `any`
+is held by value. Building it from a value, or `emplace`, also _registers_ the
+type, like naming it in an overrider does; so does assigning a value. The
+``any``'s concept must include `relaxed` - for the default constructor and
+assignment - and `copy_constructible<>` for copies.
+
+[source,c++]
+----
+include::example$type_erasure_virtual_any.cpp[tag=content]
+----
+
+The wrapper is passed by reference, in any of the three categories, and the
+overriders receive the _bound_ value, exactly as for `virtual_<const
+any<Concept>&>` - or the wrapper itself, for a catch-all overrider. It works
+with `type_erasure::any` for the same reason it works with `std::any` and
+`boost::any` - the interop specializes cpp:virtual_traits[] for the reference
+types of the `any`. See xref:interop_any.adoc[Interoperation with `any`] for
+the details.
+
+#### The `openmethod_vptr` concept
+
+cpp:openmethod_vptr[] is an alternative to `virtual_any`, pursuing the same
+goal - constant-time access to the v-table pointer - from the other side.
+Instead of wrapping the `any` from the outside, it puts the v-table pointer
+inside the dispatch table of the `any` itself, making every `any` on it
+intrinsically polymorphic, and leaving the call sites unchanged. The two are
+mutually exclusive: an `any` that carries the concept cannot be wrapped in a
+`virtual_any`, because the hook returns the v-table pointer by value, and an
+indirect registry cannot store that; wrapping one is rejected at compile time.
+`virtual_any` is to an `any` what cpp:virtual_ptr[] is to a pointer, while
+`openmethod_vptr` is to an `any` what cpp:inplace_vptr_base[] is to a class -
+see xref:virtual_ptr_alt.adoc[Alternatives to virtual_ptr].
+
+Constant-time is not the same as free, though, and the two do not cost the
+same. Clang compiles a call on the x64 architecture to the following - symbol
+names are shortened for readability.
+
+[%autowidth,cols="1,1"]
+|===
+| `openmethod_vptr` | `virtual_any`
+
+a|
+[source,asm]
+----
+push	rbx
+mov	rbx, rdi
+mov	rax, qword ptr [rdi]
+add	rdi, 24
+call	qword ptr [rax + 16]
+mov	rcx, qword ptr [rip + fn+88]
+mov	rdi, rbx
+pop	rbx
+jmp	qword ptr [rax + 8*rcx]
+----
+
+a|
+[source,asm]
+----
+mov	rax, qword ptr [rdi + 32]
+mov	rcx, qword ptr [rip + fn+88]
+jmp	qword ptr [rax + 8*rcx]
+----
+
+|===
+
+The concept reaches the v-table pointer through a call on the ``any``'s own
+dispatch table - the `call` is `openmethod_vptr::apply`, and the register
+shuffling around it is there to keep the argument alive across it. A
+`virtual_any` holds the pointer as a member, so acquiring it is the one load at
+`[rdi + 32]`.
+
+What the concept removes, relative to a plain `any`, is therefore the hash of
+`type_erasure::typeid_of`, not the call. Only `virtual_any` gets down to a
+load, and it pays for that in size - the pointer sits next to the `any` - and
+in having to acquire it up front.
+
+`openmethod_vptr` is implemented via the cpp:boost_openmethod_vptr[] ADL
+customization point.
+
+Binding a value to such an `any` also _registers_ its type, as a class derived
+from the owning `any` - the registrar is instantiated along with the
+operation, just as naming the type in an overrider instantiates one; the two
+registration paths may coexist.
+
+`openmethod_vptr` must name the Concept it belongs to, which makes the
+definition self-referential. That rules out a type alias: the Concept is a
+struct deriving from the `mpl::vector`, so it can pass its own name - CRTP, in
+effect:
+
+[source,c++]
+----
+include::example$type_erasure_concept.cpp[tag=content]
+----
+
+The price is coupling: the Concept must be OpenMethod-aware, and the registry
+is part of the type of the `any` - whereas the `typeid_of`-based dispatch above
+works with any pre-existing Concept containing `typeid_<>`. To use an `any`
+with several registries, list the concept several times, once per registry:
+`openmethod_vptr<Concept, some_registry>`.
+
+In exchange, the requirement for cpp:std_rtti[] goes away. The v-table pointer
+comes from the ``any``'s own dispatch table, so the registry's `rtti` policy is
+needed only to identify classes when `initialize()` builds the dispatch tables -
+cpp:static_rtti[] is enough. No hashing is involved either: the registry needs
+neither a `vptr` policy nor any policy that one depends on, like `type_hash`.
+`registry<policies::static_rtti>` will do. Note that this does not make the
+program RTTI-free: Boost.TypeErasure itself uses `typeid`.
+
+#### Empty ``any``s
+
+An empty relaxed `any` reports `typeid(void)`, which is not a registered
+class, so dispatching on it is a cpp:missing_class[] error. A catch-all
+overrider does not help: dispatch never reaches it. Check with
+`boost::type_erasure::is_empty` before calling. With the `openmethod_vptr`
+concept, the failure mode differs: calling a concept operation on an empty
+relaxed `any` throws `boost::type_erasure::bad_function_call`.
+
+### Acknowledgment
+
+This interop is based on a design contributed by Steven Watanabe.

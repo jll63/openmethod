@@ -144,4 +144,9 @@ interface, given cpp:virtual_traits[] specializations for its reference types.
 `virtual_any` registers the types it stores; a specialization that wants
 overriders to register the types they name, like the `std::any` and
 `boost::any` ones do, plants the registration in its `cast` and `vptr`
-functions.
+functions. Boost.TypeErasure's `any` is supported on the same model - see
+xref:interop_type_erasure.adoc[Interoperation with Boost.TypeErasure].
+
+### Acknowledgment
+
+This interop is based on a design contributed by Steven Watanabe.

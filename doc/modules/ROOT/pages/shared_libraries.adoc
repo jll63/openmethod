@@ -253,8 +253,9 @@ and no translation unit can accidentally disagree:
 include::{shared}/indirect_vptr/animals.hpp[tag=content]
 ----
 
-cpp:indirect_registry[] has its own state, separate from `default_registry`'s,
-shared with the same three macros: just name `indirect_registry`, as above.
+cpp:indirect_registry[] has its own state, separate from that of
+`default_registry`, shared with the same three macros: just name
+`indirect_registry`, as above.
 
 Here is a program that carries `virtual_ptr`{empty}s across `initialize` calls.
 It owns the state, so it defines `OWNS_REGISTRY_STATE` and emits the definition:

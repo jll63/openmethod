@@ -27,7 +27,8 @@ namespace BOOST_OPENMETHOD_GENSYM {
 // pass virtual args as const boost::any& (const ref)
 
 static_assert(detail::has_vptr<
-              virtual_traits<const boost::any&, default_registry>, type_id>);
+              virtual_traits<const boost::any&, default_registry>,
+              const boost::any&>);
 
 MAKE_CLASSES();
 
@@ -47,6 +48,23 @@ BOOST_OPENMETHOD_OVERRIDE(name, (const int& value), std::string) {
     return os.str();
 }
 
+// A catch-all overrider may take the `any` itself; the argument is passed
+// through unchanged, instead of going through boost::any_cast, which
+// would throw unless the `any` contains an `any`.
+
+BOOST_OPENMETHOD_OVERRIDE(name, (const boost::any& arg), std::string) {
+    return !arg.empty() ? "something" : "nothing";
+}
+
+// `double` is registered because `weigh`'s overrider names it; it has no
+// `name` overrider, so the catch-all applies to it.
+
+BOOST_OPENMETHOD(weigh, (virtual_<const boost::any&>), double);
+
+BOOST_OPENMETHOD_OVERRIDE(weigh, (const double& value), double) {
+    return value;
+}
+
 BOOST_AUTO_TEST_CASE(boost_any_by_const_ref) {
     initialize(trace());
 
@@ -57,6 +75,10 @@ BOOST_AUTO_TEST_CASE(boost_any_by_const_ref) {
     BOOST_TEST(name(spot) == "Spot the dog");
     BOOST_TEST(name(felix) == "Felix the cat");
     BOOST_TEST(name(answer) == "42 the integer");
+
+    // `double` is registered, but has no specific overrider: the catch-all,
+    // registered for the `boost::any` root, applies
+    BOOST_TEST(name(boost::any(1.5)) == "something");
 }
 } // namespace BOOST_OPENMETHOD_GENSYM
 
@@ -66,7 +88,8 @@ namespace BOOST_OPENMETHOD_GENSYM {
 // pass virtual args as boost::any& (mutable ref)
 
 static_assert(
-    detail::has_vptr<virtual_traits<boost::any&, default_registry>, type_id>);
+    detail::has_vptr<
+        virtual_traits<boost::any&, default_registry>, const boost::any&>);
 
 MAKE_CLASSES();
 
@@ -129,7 +152,8 @@ namespace BOOST_OPENMETHOD_GENSYM {
 // pass virtual args as boost::any&& (xvalue ref)
 
 static_assert(
-    detail::has_vptr<virtual_traits<boost::any&&, default_registry>, type_id>);
+    detail::has_vptr<
+        virtual_traits<boost::any&&, default_registry>, const boost::any&>);
 
 MAKE_CLASSES();
 
