@@ -51,11 +51,13 @@ namespace detail {
 
 // Registers Class under the `any` root class, plus the root itself.
 // odr-used by the any interop's virtual_traits - cast (one instantiation
-// per overrider parameter) and vptr (root only) - and by virtual_any's
-// value constructor, value assignment and emplace. Naming a type as an
-// overrider parameter, or storing a value in a virtual_any, thus registers
-// it automatically. mp_unique collapses the Class == Root case to the root
-// entry alone.
+// per overrider parameter) and vptr (root only), on both the plain `any`
+// and the virtual_any specializations - and by virtual_any's value
+// constructor, value assignment and emplace. Naming a type as an overrider
+// parameter, or storing a value in a virtual_any, thus registers it
+// automatically; dispatching on a virtual_any registers the root, because
+// that goes through vptr. mp_unique collapses the Class == Root case to the
+// root entry alone.
 template<class Registry, class Root, class Class = Root>
 inline boost::mp11::mp_apply<
     tuple,
@@ -116,6 +118,18 @@ class virtual_any {
 
     template<typename, class>
     friend struct virtual_traits;
+
+    // The v-table pointer, by reference, for virtual_traits::vptr, which
+    // must return one so that the caller observes a re-initialize. An
+    // indirect registry stores the address of the cell holding it; a direct
+    // one stores it outright, in a member that outlives the call.
+    auto vptr_ref() const -> const vptr_type& {
+        if constexpr (use_indirect_vptrs) {
+            return *vp;
+        } else {
+            return vp;
+        }
+    }
 
   public:
     //! Construct an empty `virtual_any`.
@@ -291,23 +305,6 @@ class virtual_any {
     auto vptr() const -> vptr_type {
         return detail::unbox_vptr(vp);
     }
-
-#ifndef __MRDOCS__
-    // The parameter is deduced, and constrained to be exactly this
-    // `virtual_any`, so that the function is not viable for a type that
-    // is merely convertible to it. MSVC, in its default (permissive)
-    // mode, injects friend functions into the enclosing namespace, where
-    // ordinary lookup finds them. An unconstrained `const virtual_any&`
-    // parameter would then make this a candidate for a plain `Any`,
-    // which converts implicitly to `virtual_any` - and the conversion
-    // acquires the v-table pointer, which calls this function, ad
-    // infinitum.
-    template<class Self>
-    friend auto boost_openmethod_vptr(const Self& va, Registry*)
-        -> std::enable_if_t<std::is_same_v<Self, virtual_any>, vptr_type> {
-        return detail::unbox_vptr(va.vp);
-    }
-#endif
 };
 
 //! Specialize virtual_traits for `const virtual_any&`.
@@ -327,6 +324,20 @@ struct virtual_traits<const virtual_any<Any, Registry>&, Registry> {
     static auto peek(const virtual_any<Any, Registry>& arg)
         -> const virtual_any<Any, Registry>& {
         return arg;
+    }
+
+    //! Returns a *reference* to the v-table pointer for the stored value.
+    //!
+    //! The `virtual_any` acquired the v-table pointer when it was created,
+    //! so no lookup is involved. Registers `Any` - the root class of the
+    //! contained types - in `Registry`.
+    //!
+    //! @param arg A reference to a const `virtual_any`.
+    //! @return A reference to the v-table pointer for the stored value.
+    static auto
+    vptr(const virtual_any<Any, Registry>& arg) -> const vptr_type& {
+        (void)&detail::use_any_classes<Registry, Any>;
+        return arg.vptr_ref();
     }
 
     //! Cast to a type.
@@ -372,6 +383,20 @@ struct virtual_traits<virtual_any<Any, Registry>&, Registry> {
     static auto peek(const virtual_any<Any, Registry>& arg)
         -> const virtual_any<Any, Registry>& {
         return arg;
+    }
+
+    //! Returns a *reference* to the v-table pointer for the stored value.
+    //!
+    //! The `virtual_any` acquired the v-table pointer when it was created,
+    //! so no lookup is involved. Registers `Any` - the root class of the
+    //! contained types - in `Registry`.
+    //!
+    //! @param arg A reference to a `virtual_any`.
+    //! @return A reference to the v-table pointer for the stored value.
+    static auto
+    vptr(const virtual_any<Any, Registry>& arg) -> const vptr_type& {
+        (void)&detail::use_any_classes<Registry, Any>;
+        return arg.vptr_ref();
     }
 
     //! Cast to a type.
@@ -420,6 +445,20 @@ struct virtual_traits<virtual_any<Any, Registry>&&, Registry> {
         return arg;
     }
 
+    //! Returns a *reference* to the v-table pointer for the stored value.
+    //!
+    //! The `virtual_any` acquired the v-table pointer when it was created,
+    //! so no lookup is involved. Registers `Any` - the root class of the
+    //! contained types - in `Registry`.
+    //!
+    //! @param arg A reference to a `virtual_any`.
+    //! @return A reference to the v-table pointer for the stored value.
+    static auto
+    vptr(const virtual_any<Any, Registry>& arg) -> const vptr_type& {
+        (void)&detail::use_any_classes<Registry, Any>;
+        return arg.vptr_ref();
+    }
+
     //! Cast to a type.
     //!
     //! If `U` is the `virtual_any` itself (by rvalue reference), returns
@@ -444,6 +483,30 @@ struct virtual_traits<virtual_any<Any, Registry>&&, Registry> {
                 std::move(arg.obj));
         }
     }
+};
+
+//! Reject wrapping a `virtual_any` in a @ref virtual_ptr.
+//!
+//! A `virtual_any` is already a wide type: it carries the v-table pointer
+//! for the value it contains. Wrapping it in a `virtual_ptr` would produce
+//! a wide pointer whose v-table is the contained value's, but whose static
+//! type is the `virtual_any` - which is deliberately not a registered
+//! class. This specialization rejects the combination at compile time,
+//! which also covers @ref final_virtual_ptr, since that instantiates the
+//! `virtual_ptr` it returns.
+//!
+//! @tparam Class A specialization of @ref virtual_any, possibly const.
+//! @tparam Registry A @ref registry.
+template<class Class, class Registry>
+class virtual_ptr<
+    Class, Registry,
+    std::enable_if_t<BOOST_OPENMETHOD_DETAIL_UNLESS_MRDOCS
+                         IsVirtualAny<std::remove_cv_t<Class>>>> {
+    static_assert(
+        detail::false_t<Class>,
+        "do not wrap a virtual_any in a virtual_ptr: it already carries the "
+        "v-table pointer for the value it contains; pass it by reference "
+        "instead");
 };
 
 namespace detail {

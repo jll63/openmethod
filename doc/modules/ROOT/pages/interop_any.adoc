@@ -125,6 +125,12 @@ For the same reason that a `virtual_std_any` caches what a plain `any` does not,
 cpp:final_virtual_ptr[] is _deleted_ for `std::any`: it would silently produce
 the v-table of the `any` root class rather than the one for the contained value.
 
+A `virtual_std_any` cannot itself be wrapped in a cpp:virtual_ptr[]: it is
+already a wide type, and the result would be a wide pointer whose v-table is the
+contained value's, but whose static type is the `virtual_std_any` - which is
+deliberately not a registered class. The combination is rejected at compile
+time, cpp:final_virtual_ptr[] included. Pass it by reference instead.
+
 #### `boost::any`
 
 `boost::any` is supported as well, by

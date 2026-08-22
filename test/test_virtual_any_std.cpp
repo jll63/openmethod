@@ -27,6 +27,18 @@ namespace BOOST_OPENMETHOD_GENSYM {
 // -----------------------------------------------------------------------------
 // pass virtual args as const virtual_std_any& (const ref)
 
+// A virtual_any hands out the v-table pointer it cached, through its
+// virtual_traits, for all three reference categories.
+static_assert(detail::has_vptr<
+              virtual_traits<const virtual_std_any&, default_registry>,
+              const virtual_std_any&>);
+static_assert(detail::has_vptr<
+              virtual_traits<virtual_std_any&, default_registry>,
+              const virtual_std_any&>);
+static_assert(detail::has_vptr<
+              virtual_traits<virtual_std_any&&, default_registry>,
+              const virtual_std_any&>);
+
 MAKE_CLASSES();
 
 BOOST_OPENMETHOD(name, (const virtual_std_any&), std::string);
@@ -279,5 +291,46 @@ BOOST_AUTO_TEST_CASE(virtual_any_unregistered_type) {
 
     throw_any va;
     BOOST_CHECK_THROW(va = pi, missing_class);
+}
+} // namespace BOOST_OPENMETHOD_GENSYM
+
+namespace BOOST_OPENMETHOD_GENSYM {
+
+// -----------------------------------------------------------------------------
+// mixing with ordinary virtual parameters
+
+MAKE_CLASSES();
+
+struct Animal {
+    virtual ~Animal() {
+    }
+};
+
+struct Cat : Animal {};
+
+BOOST_OPENMETHOD_CLASSES(Animal, Cat);
+
+BOOST_OPENMETHOD(
+    meet, (const virtual_std_any&, virtual_ptr<const Animal>), std::string);
+
+BOOST_OPENMETHOD_OVERRIDE(
+    meet, (const Dog& dog, virtual_ptr<const Cat>), std::string) {
+    return dog.name + " meets a cat";
+}
+
+BOOST_OPENMETHOD_OVERRIDE(
+    meet, (const virtual_std_any&, virtual_ptr<const Animal>), std::string) {
+    return "someone meets an animal";
+}
+
+BOOST_AUTO_TEST_CASE(virtual_any_mixed_with_virtual_ptr) {
+    initialize(trace());
+
+    virtual_std_any spot = Dog{"Spot"};
+    virtual_std_any pi = 3.14f;
+    Cat felix;
+
+    BOOST_TEST(meet(spot, felix) == "Spot meets a cat");
+    BOOST_TEST(meet(pi, felix) == "someone meets an animal");
 }
 } // namespace BOOST_OPENMETHOD_GENSYM
