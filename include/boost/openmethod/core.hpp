@@ -2789,11 +2789,13 @@ struct VirtualTraits {
     //!
     //! Implement `vptr` only if the v-table pointer cannot be obtained from
     //! the dynamic type of the peeked object, as reported by the registry's
-    //! @ref policies::rtti policy. This is the case for `any`-like types:
-    //! their dynamic type is the wrapper, not the value they contain. The
-    //! `std::any` specializations read the @ref type_id of the contained
-    //! value from `arg.type()`, and pass it to
-    //! @ref policies::VptrFn::vptr.
+    //! @ref policies::rtti policy, or if it is already at hand. The former is
+    //! the case for `any`-like types: their dynamic type is the wrapper, not
+    //! the value they contain. The `std::any` specializations read the
+    //! @ref type_id of the contained value from `arg.type()`, and pass it to
+    //! @ref policies::VptrFn::vptr. The latter is the case for a wide type
+    //! that caches the v-table pointer: @ref virtual_any returns the one it
+    //! acquired when it was created, without a lookup.
     //!
     //! `vptr` must return a *reference*, not a value, so that the caller
     //! observes the current v-table pointer if the registry contains the

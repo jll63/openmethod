@@ -180,6 +180,12 @@ openmethod_compile_fail_test(
     compile_fail_virtual_ptr_inplace_vptr
     "do not wrap an object that has a boost_openmethod_vptr overload")
 openmethod_compile_fail_test(
+    compile_fail_virtual_ptr_virtual_any
+    "do not wrap a virtual_any in a virtual_ptr")
+openmethod_compile_fail_test(
+    compile_fail_final_virtual_ptr_virtual_any
+    "do not wrap a virtual_any in a virtual_ptr")
+openmethod_compile_fail_test(
     compile_fail_std_any_custom_rtti "requires standard RTTI")
 openmethod_compile_fail_test(
     compile_fail_type_erasure_custom_rtti "requires standard RTTI")
