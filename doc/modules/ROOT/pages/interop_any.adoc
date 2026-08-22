@@ -1,0 +1,147 @@
+
+[#interop_any]
+## Interoperation with `any`
+
+OpenMethod can take `any` (both the `std` and `boost` flavors) as virtual
+arguments, and dispatch on the type of the contained value. For this purpose, it
+regards the types as "deriving" from `any`.
+
+#### Requirements
+
+Dispatch keys on the `std::type_info` returned by `any::type()`, so the
+registry's `rtti` policy must be cpp:std_rtti[], or a policy derived from it.
+`default_registry` and `indirect_registry` both qualify. A registry with, say,
+cpp:static_rtti[] identifies classes by a different kind of `type_id`, and would
+look up the wrong v-table; the requirement is enforced with a `static_assert`.
+
+#### `std::any`
+
+Support is provided by `<boost/openmethod/interop/std_any.hpp>`. It is not
+included by `<boost/openmethod.hpp>`, so it must be included explicitly.
+
+Dispatch works on classes known to a registry. The types the `any` may contain
+are registered automatically: naming a type as the parameter of an overrider
+registers it as a class derived from `std::any`; storing a value in a
+cpp:virtual_std_any[] (see below) registers its type as well. A type that is
+never named in one of these ways is not registered and cannot be dispatched on
+- not even by a catch-all overrider: a call with such a value in the `any` is a
+cpp:missing_class[] error - see xref:error_handling.adoc[Error Handling].
+
+The `any` is passed like any other virtual argument that is not a
+`virtual_ptr`: wrapped in `virtual_`, as described in
+xref:virtual_ptr_alt.adoc[Alternatives to virtual_ptr]. Overriders receive the
+_contained_ value by reference. An overrider may also take the `any` itself;
+such an overrider is a catch-all, applying to any registered contained type
+that has no more specific overrider - in the example below, `float`, which the
+`weigh` overrider registers, but which has no `name` overrider of its own:
+
+[source,c++]
+----
+include::example$virtual_any.cpp[tag=content]
+----
+
+#### Mixing with ordinary virtual parameters
+
+A multi-method can take any combination of ordinary virtual parameters and
+virtual `any` in the same call:
+
+```c++
+BOOST_OPENMETHOD(
+    meet, (virtual_<const std::any&>, virtual_ptr<const Animal>), std::string);
+
+BOOST_OPENMETHOD_OVERRIDE(
+    meet, (const Dog& dog, virtual_ptr<const Cat>), std::string) {
+    return dog.name + " meets a cat";
+}
+```
+
+#### Reference categories
+
+All three reference categories are supported, and they determine what the
+overriders may take:
+
+[%autowidth,cols="1,2"]
+|===
+| Method parameter | Overrider parameter
+
+| `virtual_<const std::any&>`
+| `const Dog&`, `Dog`
+
+| `virtual_<std::any&>`
+| `Dog&`, `const Dog&`, `Dog`
+
+| `virtual_<std::any&&>`
+| `Dog&&`, `const Dog&`, `Dog`
+|===
+
+The mutable lvalue reference is the awkward one.
+xref:reference:BOOST_OPENMETHOD_OVERRIDE.adoc[BOOST_OPENMETHOD_OVERRIDE] locates
+the method by checking that the overrider's parameters can be passed to the
+method's forwarder, and `Dog&` does not convert to `std::any&`. A temporary
+`std::any` binds to `const std::any&` and to `std::any&&`, which is why the
+other two categories can use the macro; nothing binds to a mutable lvalue
+reference. Those overriders are registered with the core API instead - the
+primitive the macro itself expands to:
+
+```c++
+using bump_method =
+    BOOST_OPENMETHOD_TYPE(bump, (virtual_<std::any&>), std::string);
+
+auto bump_dog(Dog& dog) -> std::string {
+    dog.name += " Jr.";
+    return dog.name;
+}
+
+BOOST_OPENMETHOD_REGISTER(bump_method::override<bump_dog>);
+```
+
+#### `virtual_std_any`
+
+Every call above looks the v-table up in a hash table, keyed on the type the
+`any` contains. cpp:virtual_std_any[] - an alias for `virtual_any<std::any>` -
+removes that cost: it bundles an `any` with the v-table pointer for the value
+inside it, acquiring it once, on construction, and maintaining it across
+assignment and `emplace`. It is similar to cpp:virtual_ptr[], except that it
+_owns_ the object: the `any` is held by value.
+
+The pointer comes from a lookup when the `virtual_std_any` is built from an
+existing `any`, and from a static variable - no lookup at all - when it is built
+from a value, or by `emplace`, since the type is then known at compile time.
+Building from a value, or `emplace`, also _registers_ the type, like naming it
+in an overrider does; so does assigning a value.
+
+That makes it worthwhile when the same value is dispatched on repeatedly. Its
+usefulness is limited, though, by the fact that the wrapper is not what an
+overrider receives: an overrider takes the contained value, as before, so it
+cannot pass the `virtual_std_any` on to another method and save the lookup
+there. Only a catch-all overrider, which takes `const virtual_std_any&`, gets
+it.
+
+A `virtual_std_any` method parameter must be a reference - passing it by value
+would copy the `any`, and the value inside it, on every call. The three
+categories, and the limitation on the mutable one, are as above.
+
+For the same reason that a `virtual_std_any` caches what a plain `any` does not,
+cpp:final_virtual_ptr[] is _deleted_ for `std::any`: it would silently produce
+the v-table of the `any` root class rather than the one for the contained value.
+
+A `virtual_std_any` cannot itself be wrapped in a cpp:virtual_ptr[]: it is
+already a wide type, and the result would be a wide pointer whose v-table is the
+contained value's, but whose static type is the `virtual_std_any` - which is
+deliberately not a registered class. The combination is rejected at compile
+time, cpp:final_virtual_ptr[] included. Pass it by reference instead.
+
+#### `boost::any`
+
+`boost::any` is supported as well, by
+`<boost/openmethod/interop/boost_any.hpp>`, with cpp:virtual_boost_any[] - the
+exact counterpart of cpp:virtual_std_any[]. The two root classes are distinct,
+so `std::any` and `boost::any` may be used in the same program, and with the
+same registry.
+
+cpp:virtual_any[] itself is generic: it can serve any type with an `any`-like
+interface, given cpp:virtual_traits[] specializations for its reference types.
+`virtual_any` registers the types it stores; a specialization that wants
+overriders to register the types they name, like the `std::any` and
+`boost::any` ones do, plants the registration in its `cast` and `vptr`
+functions.

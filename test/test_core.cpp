@@ -283,20 +283,16 @@ namespace TEST_NS {
 
 using test_registry = test_registry_<__COUNTER__>;
 
-const detail::word value;
-
 struct Animal {
-    friend auto boost_openmethod_vptr(const Animal&, test_registry*) {
-        return &value;
-    }
+    friend auto
+    boost_openmethod_vptr(const Animal&, test_registry*) -> vptr_type;
 };
 
 static_assert(detail::has_vptr_fn<Animal, test_registry>);
 static_assert(!detail::has_vptr_fn<Animal, default_registry>);
 
-BOOST_AUTO_TEST_CASE(vptr_from_function) {
-    initialize<test_registry>();
-    BOOST_TEST(detail::acquire_vptr<test_registry>(Animal{}) == &value);
-}
+// The hook serves dispatch (method::vptr), not virtual_ptr: acquire_vptr
+// rejects classes with a boost_openmethod_vptr overload at compile time -
+// see compile_fail_virtual_ptr_inplace_vptr.cpp.
 
 } // namespace TEST_NS

@@ -78,6 +78,24 @@ Provides a `virtual_traits` specialization that makes it possible to use a
 Provides a `virtual_traits` specialization that makes it possible to use a
 `boost::intrusive_ptr` in place of a raw pointer or reference in virtual parameters.
 
+[#virtual_any]
+### link:{headers-url}/boost/openmethod/interop/virtual_any.hpp[<boost/openmethod/interop/virtual_any.hpp>]
+
+Provides `virtual_any`, a wide `any` that combines an `any`, held by value, with
+a pointer to the v-table for the contained value - similar to `virtual_ptr`.
+
+[#std_any]
+### link:{headers-url}/boost/openmethod/interop/std_any.hpp[<boost/openmethod/interop/std_any.hpp>]
+
+Provides `virtual_traits` specializations that make it possible to use a
+`std::any` in virtual parameters.
+
+[#boost_any]
+### link:{headers-url}/boost/openmethod/interop/boost_any.hpp[<boost/openmethod/interop/boost_any.hpp>]
+
+Provides `virtual_traits` specializations that make it possible to use a
+`boost::any` in virtual parameters.
+
 *The headers below are for advanced use*.
 
 ## Pre-Core Headers

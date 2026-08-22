@@ -707,9 +707,28 @@ struct VptrFn {
     //!
     //! @tparam Class A registered class.
     //! @param arg A reference to a const object of type `Class`.
-    //! @return A reference to a the v-table pointer for `Class`.
+    //! @return A reference to the v-table pointer for `Class`.
     template<class Class>
     static auto dynamic_vptr(const Class& arg) -> const vptr_type&;
+
+    // Added by the `std::any` interop, under the name `type_vptr`. An `any`
+    // knows the `type_id` of the value it contains, but has no object of that
+    // type to hand to `dynamic_vptr`.
+
+    //! Return a *reference* to the v-table pointer for a type.
+    //!
+    //! Return a reference to the v-table pointer that `initialize` associated
+    //! to `type`.
+    //!
+    //! This function is optional. Implement it if the registry is to be used
+    //! with virtual parameters whose `virtual_traits` supply a `type_id`
+    //! themselves, instead of an object - see @ref VirtualTraits::vptr. Both
+    //! @ref vptr_vector and @ref vptr_map provide it, and implement
+    //! `dynamic_vptr` in terms of it.
+    //!
+    //! @param type A `type_id`.
+    //! @return A reference to the v-table pointer for `type`.
+    static auto vptr(type_id type) -> const vptr_type&;
 
     //! Release the resources allocated by `initialize`.
     //!

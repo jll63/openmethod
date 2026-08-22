@@ -76,6 +76,10 @@ class inplace_vptr_base_tag {};
 //! @ref policies::vptr policy, nor any policy it depends on (like @ref
 //! policies::type_hash).
 //!
+//! An object that embeds its v-table pointer does not need to be wrapped
+//! in a @ref virtual_ptr - the two fill the same goal, fast access to the
+//! v-table pointer - and wrapping one is rejected at compile time.
+//!
 //! If `Registry` contains the @ref has_indirect_vptr policy, the v-table
 //! pointer is stored as a pointer to a pointer, and remains valid after a call
 //! to @ref initialize.

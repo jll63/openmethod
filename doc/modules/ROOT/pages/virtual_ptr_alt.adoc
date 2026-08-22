@@ -40,8 +40,9 @@ can be called with the virtual argument (passed by const reference) and a
 pointer to a registry, and returns a `vptr_type`. If one is found, it is called
 to acquire the vptr.
 
-`virtual_ptr` honors it as well, when it is constructed from - or assigned - a
-reference or a pointer to an object.
+This is specific to `virtual_` parameters. `virtual_ptr` does not use the
+function - it is an alternative to it, not a client of it - and wrapping an
+object that provides one is rejected at compile time.
 
 In the following example, we embed the vptr in the object, just like the vptr
 for native virtual functions. The v-table for a registered class can be found
@@ -106,3 +107,7 @@ v-table for the bases, just like what C++ does for its native vptrs.
 
 `inplace_vptr_base` and `inplace_vptr_derived` are aliased in `namespace
 boost::openmethod::aliases`.
+
+An object that embeds its v-table pointer does not need to be wrapped in a
+`virtual_ptr` - the two fill the same goal, fast access to the v-table
+pointer - and wrapping one is rejected at compile time.
