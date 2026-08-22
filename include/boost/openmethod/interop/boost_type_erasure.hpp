@@ -558,9 +558,15 @@ struct virtual_traits<boost::type_erasure::any<C, const T&>, Registry> {
 //! `boost::type_erasure::bad_function_call`.
 //!
 //! An `any` that carries this concept cannot be wrapped in a
-//! @ref virtual_any - and does not need to be: both fill the same goal,
-//! constant-time access to the v-table pointer. Wrapping one is rejected
-//! at compile time.
+//! @ref virtual_any: the hook returns the v-table pointer by value, and
+//! an indirect registry cannot store that. Wrapping one is rejected at
+//! compile time.
+//!
+//! Both give constant-time access to the v-table pointer, but not at the
+//! same cost. This concept reaches it through an indirect call on the
+//! `any`'s own dispatch table; a `virtual_any` loads it from the wrapper.
+//! What the concept saves over a plain `any` is the hash of
+//! `boost::type_erasure::typeid_of`, not the call.
 //!
 //! @tparam Concept The Concept containing this concept.
 //! @tparam Registry A @ref registry.

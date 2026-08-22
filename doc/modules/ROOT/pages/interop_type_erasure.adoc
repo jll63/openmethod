@@ -140,10 +140,54 @@ Instead of wrapping the `any` from the outside, it puts the v-table pointer
 inside the dispatch table of the `any` itself, making every `any` on it
 intrinsically polymorphic, and leaving the call sites unchanged. The two are
 mutually exclusive: an `any` that carries the concept cannot be wrapped in a
-`virtual_any` - and does not need to be; wrapping one is rejected at compile
-time. `virtual_any` is to an `any` what cpp:virtual_ptr[] is to a pointer,
-while `openmethod_vptr` is to an `any` what cpp:inplace_vptr_base[] is to a
-class - see xref:virtual_ptr_alt.adoc[Alternatives to virtual_ptr].
+`virtual_any`, because the hook returns the v-table pointer by value, and an
+indirect registry cannot store that; wrapping one is rejected at compile time.
+`virtual_any` is to an `any` what cpp:virtual_ptr[] is to a pointer, while
+`openmethod_vptr` is to an `any` what cpp:inplace_vptr_base[] is to a class -
+see xref:virtual_ptr_alt.adoc[Alternatives to virtual_ptr].
+
+Constant-time is not the same as free, though, and the two do not cost the
+same. Clang compiles a call on the x64 architecture to the following - symbol
+names are shortened for readability.
+
+[cols="1,1"]
+|===
+| `openmethod_vptr` | `virtual_any`
+
+a|
+[source,asm]
+----
+push	rbx
+mov	rbx, rdi
+mov	rax, qword ptr [rdi]
+add	rdi, 24
+call	qword ptr [rax + 16]
+mov	rcx, qword ptr [rip + fn+88]
+mov	rdi, rbx
+pop	rbx
+jmp	qword ptr [rax + 8*rcx]         # TAILCALL
+----
+
+a|
+[source,asm]
+----
+mov	rax, qword ptr [rdi + 32]
+mov	rcx, qword ptr [rip + fn+88]
+jmp	qword ptr [rax + 8*rcx]         # TAILCALL
+----
+
+|===
+
+The concept reaches the v-table pointer through a call on the ``any``'s own
+dispatch table - the `call` is `openmethod_vptr::apply`, and the register
+shuffling around it is there to keep the argument alive across it. A
+`virtual_any` holds the pointer as a member, so acquiring it is the one load at
+`[rdi + 32]`.
+
+What the concept removes, relative to a plain `any`, is therefore the hash of
+`type_erasure::typeid_of`, not the call. Only `virtual_any` gets down to a
+load, and it pays for that in size - the pointer sits next to the `any` - and
+in having to acquire it up front.
 
 `openmethod_vptr` is implemented via the cpp:boost_openmethod_vptr[] ADL
 customization point.
