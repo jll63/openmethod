@@ -60,7 +60,7 @@ BOOST_OPENMETHOD_OVERRIDE(
 All three reference categories are supported, and they determine what the
 overriders may take:
 
-[cols="1,2"]
+[%autowidth,cols="1,2"]
 |===
 | Method parameter | Overrider parameter
 
