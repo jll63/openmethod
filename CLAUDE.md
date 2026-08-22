@@ -99,6 +99,28 @@ comment above the marker - `no matching` (clang/gcc "no matching function for ca
 matching overloaded function found"), `deleted function` (gcc "use of a", clang "call to", MSVC
 "attempting to reference a").
 
+**Do not let the compile-fail tests regenerate the build tree concurrently.** Each one runs
+`cmake --build` on the shared tree as its test command, so when the tree is stale they all re-run
+CMake at once and corrupt each other - on Ninja the losers die with `failed recompaction` /
+`FAILED: build.ninja` before compiling anything, the expected diagnostic never appears, and the
+test fails. It reproduces about two runs in three with `touch test/CMakeLists.txt; ctest -R
+compile_fail -j32`, and not at all on an up-to-date tree, which is why it reads as random. The
+empty `boost_openmethod-compile_fail_fixture` target plus `FIXTURES_SETUP`/`FIXTURES_REQUIRED`
+does the regeneration once, before any of them.
+
+**The Visual Studio `RESOURCE_LOCK` is still needed on top - do not remove it.** MSBuild is not
+fixable by the fixture: every one of the 24 concurrent invocations walks the same project
+dependency graph and stomps the same `.tlog`/`.lastbuildstate` files, not just `ZERO_CHECK`'s.
+Measured with VS 18 2026 + `ctest -R compile_fail -j32`: without the lock, 7-13 of 24 fail on
+*every* run; with it, 3/3 clean at 24s (serialized). The lock is scoped to the generator, so
+**Windows already runs these fully parallel under `-G Ninja`** - 4/4 clean, 1.65s, same
+`cl.exe`. That is the fast path on Windows; the generator cannot be defaulted from CMakeLists.txt
+anyway (it is fixed before the file is read - only a preset or `CMAKE_GENERATOR` in the
+environment can set it), and CI picks its own.
+
+b2 is not affected - it compiles these sources as ordinary targets in its own dependency graph
+instead of shelling out to a nested build (~40 runs at `-j32`/`-j64`/`-j128` are clean).
+
 **b2 cannot check the message - do not try to make it.** `test/Jamfile` already loops
 (`compile-fail $(src)`), but Boost.Build's `compile-fail` only inverts the exit status: the
 `expect-failure-generator` sets `T_FLAG_FAIL_EXPECTED` and the engine flips OK/FAIL

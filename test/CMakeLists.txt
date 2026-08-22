@@ -108,6 +108,31 @@ target_link_libraries(boost_openmethod-test_mix_release_debug PRIVATE Boost::ope
 boost_openmethod_add_test(boost_openmethod-test_mix_release_debug)
 add_dependencies(tests boost_openmethod-test_mix_release_debug)
 
+# Every compile-fail test runs `cmake --build` on the shared build tree. When
+# that tree is out of date - someone edited a CMakeLists.txt - each of them
+# re-runs CMake, and under `ctest -j N` those regenerations run concurrently and
+# corrupt each other. On Ninja the losers die with
+#
+#     ninja: error: failed recompaction: No such file or directory
+#     FAILED: build.ninja
+#
+# before compiling anything, so the expected diagnostic never appears and the
+# test fails - reproducibly, in roughly two runs out of three. (Unix Makefiles
+# survived the same stress, but the window is not specific to Ninja, so close it
+# for every generator.) Bring the tree up to date once, in a CTest fixture, so
+# no test regenerates while another is running. The target is empty: building it
+# does nothing except make the generator refresh its build files first. CTest
+# pulls a required fixture's setup test in automatically, so a narrower
+# `ctest -R ...` selection still gets it.
+add_custom_target(boost_openmethod-compile_fail_fixture)
+add_test(
+    NAME boost_openmethod-compile_fail_fixture
+    COMMAND "${CMAKE_COMMAND}" --build ${CMAKE_BINARY_DIR}
+            --target boost_openmethod-compile_fail_fixture --config $<CONFIG>)
+set_property(
+    TEST boost_openmethod-compile_fail_fixture
+    PROPERTY FIXTURES_SETUP openmethod_build_tree)
+
 function(openmethod_compile_fail_test testname fail_regex)
     set(test_target "boost_openmethod-${testname}")
     add_library(${test_target} STATIC EXCLUDE_FROM_ALL "${testname}.cpp")
@@ -116,15 +141,19 @@ function(openmethod_compile_fail_test testname fail_regex)
         NAME "${test_target}"
         COMMAND "${CMAKE_COMMAND}" --build ${CMAKE_BINARY_DIR} --target "${test_target}" --config $<CONFIG>)
     set_property(TEST "${test_target}" PROPERTY PASS_REGULAR_EXPRESSION "${fail_regex}")
-    # Each of these tests runs `cmake --build` on the shared build tree. With
-    # the Visual Studio generator, concurrent MSBuild invocations race on shared
-    # files (every MSBuild invocation rewrites ZERO_CHECK.tlog/
-    # ZERO_CHECK.lastbuildstate, and the losers abort with MSB3491 before
-    # compiling anything, so the expected diagnostic never appears in the
-    # output). Serialize the compile-fail tests among themselves in that case;
+    set_property(TEST "${test_target}" PROPERTY FIXTURES_REQUIRED openmethod_build_tree)
+    # The fixture above is enough for Ninja and Makefiles, but not for the
+    # Visual Studio generator, where the regeneration step is not the problem:
+    # every MSBuild invocation walks the whole project dependency graph and
+    # rewrites the .tlog/.lastbuildstate of each project it passes through -
+    # ZERO_CHECK's and the dependencies' alike - so concurrent invocations
+    # collide whether or not anything needs regenerating, and the losers abort
+    # (MSB3374/3375/3491/3501) before compiling anything. Measured with VS 18
+    # 2026 at `ctest -R compile_fail -j32`: 7-13 of 24 fail on every run without
+    # the lock, 3/3 runs clean with it. Serialize them among themselves there;
     # they still run in parallel with the ordinary tests, which do not touch the
-    # build tree. Other generators (Ninja, Makefiles) tolerate concurrent
-    # `cmake --build` invocations, so leave those free to run in parallel.
+    # build tree. Windows users who want these parallel should configure with
+    # -G Ninja, which is clean and ~14x faster here.
     if (CMAKE_GENERATOR MATCHES "Visual Studio")
         set_property(TEST "${test_target}" PROPERTY RESOURCE_LOCK openmethod_compile_fail)
     endif()
