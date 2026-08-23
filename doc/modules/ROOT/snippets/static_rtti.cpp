@@ -3,20 +3,20 @@
 // See accompanying file LICENSE_1_0.txt
 // or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-// `static_rtti` has to be selected before <boost/openmethod.hpp> is included,
-// so this example needs a translation unit of its own.
+// The #define that selects `static_registry` has to precede
+// <boost/openmethod.hpp>, so this example needs a translation unit of its own.
 
 // tag::registry[]
-#include <boost/openmethod/default_registry.hpp>
+struct static_registry;
+#define BOOST_OPENMETHOD_DEFAULT_REGISTRY static_registry
+
+#include <boost/openmethod.hpp>
 #include <boost/openmethod/policies/static_rtti.hpp>
 
 struct static_registry
     : boost::openmethod::registry<boost::openmethod::policies::static_rtti> {};
-
-#define BOOST_OPENMETHOD_DEFAULT_REGISTRY static_registry
 // end::registry[]
 
-#include <boost/openmethod.hpp>
 #include <boost/openmethod/initialize.hpp>
 #include <boost/openmethod/interop/std_unique_ptr.hpp>
 

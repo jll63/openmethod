@@ -6,11 +6,9 @@
 #ifndef BOOST_OPENMETHOD_TEST_CAPTURE_ERRORS_HPP
 #define BOOST_OPENMETHOD_TEST_CAPTURE_ERRORS_HPP
 
-// Deliberately depends only on preamble.hpp, not core.hpp: it must be
-// includable before a test defines its own registry and sets
-// BOOST_OPENMETHOD_DEFAULT_REGISTRY, which has to happen before the first
-// inclusion of core.hpp (directly or transitively).
-#include <boost/openmethod/preamble.hpp>
+// Include after the #define that selects the test's registry - which is the
+// first line of every test that uses this header, so this is automatic.
+#include <boost/openmethod.hpp>
 
 #include <sstream>
 #include <variant>

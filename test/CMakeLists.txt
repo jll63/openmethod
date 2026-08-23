@@ -66,11 +66,11 @@ endfunction()
 # Precompiled headers: most test_*.cpp files just #include <boost/openmethod.hpp>
 # (and friends) before anything else, so a shared PCH avoids re-parsing that
 # (large, mp11-heavy) header once per test executable. A handful of files
-# instead define their own registry and #define BOOST_OPENMETHOD_DEFAULT_REGISTRY
-# *before* the first inclusion of core.hpp (directly or via boost/openmethod.hpp);
-# force-including a PCH that already pulled in core.hpp would defeat that
-# override, so those files are detected (by scanning for the macro) and left
-# without a PCH.
+# instead #define BOOST_OPENMETHOD_DEFAULT_REGISTRY *before* the first inclusion
+# of core.hpp (directly or via boost/openmethod.hpp), and define the registry
+# itself after it; force-including a PCH that already pulled in core.hpp would
+# precede the #define and defeat the override, so those files are detected (by
+# scanning for the macro) and left without a PCH.
 set(BOOST_OPENMETHOD_TEST_PCH_HEADERS
     <boost/openmethod.hpp>
     <boost/openmethod/initialize.hpp>

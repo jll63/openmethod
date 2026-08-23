@@ -6,25 +6,15 @@
 #ifndef BOOST_OPENMETHOD_TEST_DYNAMIC_LOADING_REGISTRY_HPP
 #define BOOST_OPENMETHOD_TEST_DYNAMIC_LOADING_REGISTRY_HPP
 
-#include <boost/openmethod/preamble.hpp>
-
-#include <boost/openmethod/default_registry.hpp>
-
 // The registry under test. The build selects the variant by defining
 // BOOST_OPENMETHOD_DEFAULT_REGISTRY on the command line (e.g. to
-// ::boost::openmethod::indirect_registry); otherwise fall back to
-// default_registry, matching core.hpp's own default. This must be set before
-// the .cpp files include core.hpp.
-#ifndef BOOST_OPENMETHOD_DEFAULT_REGISTRY
-#define BOOST_OPENMETHOD_DEFAULT_REGISTRY ::boost::openmethod::default_registry
-#endif
+// ::boost::openmethod::indirect_registry). With no switch, core.hpp supplies
+// its own default, default_registry. Either way the macro is defined and the
+// registry complete once this header has been included - which is why the
+// alias below comes after it, not before.
+#include <boost/openmethod.hpp>
 
 using test_registry = BOOST_OPENMETHOD_DEFAULT_REGISTRY;
-
-// Share the registry state across the modules. Included *after* the
-// BOOST_OPENMETHOD_DEFAULT_REGISTRY definition above, so core.hpp binds its
-// macro default registry to test_registry.
-#include <boost/openmethod.hpp>
 
 // The module that owns the state compiles with EXPORT_REGISTRY defined; every
 // other module imports it. The visibility attribute goes on the declaration;

@@ -104,46 +104,43 @@ parameters.
 
 *The headers below are for advanced use*.
 
-## Pre-Core Headers
+## Policy Headers
 
-The following headers can be included before `core.hpp` to define custom
-registries and policies, and override the default registry by defining
-xref:reference:BOOST_OPENMETHOD_DEFAULT_REGISTRY.adoc[`BOOST_OPENMETHOD_DEFAULT_REGISTRY`].
-
-### link:{headers-url}/boost/openmethod/preamble.hpp[<boost/openmethod/preamble.hpp>]
-
-Defines `registry` and stock policy categories. Also defines all types and
-functions necessary for the definition of `registry`.
+Each stock policy lives in a header of its own. The five that make up
+cpp:default_registry[] come in with `<boost/openmethod.hpp>`; the others are
+included explicitly. A policy header depends on nothing but the library's
+foundations, so it may be included in any order relative to
+`<boost/openmethod.hpp>` - in particular _after_ it, which is where a program
+that overrides
+xref:reference:BOOST_OPENMETHOD_DEFAULT_REGISTRY.adoc[`BOOST_OPENMETHOD_DEFAULT_REGISTRY`]
+puts it.
 
 ### link:{headers-url}/boost/openmethod/policies/std_rtti.hpp[<boost/openmethod/policies/std_rtti.hpp>]
 
-Provides an implementation of the `rtti` policy using standard RTTI.
+Provides an implementation of the `rtti` policy using standard RTTI. Part of
+`default_registry`.
 
 ### link:{headers-url}/boost/openmethod/policies/fast_perfect_hash.hpp[<boost/openmethod/policies/fast_perfect_hash.hpp>]
 
 Provides an implementation of the `hash` policy using a fast perfect hash
-function.
+function. Part of `default_registry`.
 
 ### link:{headers-url}/boost/openmethod/policies/vptr_vector.hpp[<boost/openmethod/policies/vptr_vector.hpp>]
 
 Provides an implementation of the `vptr` policy that stores the v-table pointers
-in a `std::vector` indexed by type ids, possibly hashed.
+in a `std::vector` indexed by type ids, possibly hashed. Part of
+`default_registry`.
 
 ### link:{headers-url}/boost/openmethod/policies/default_error_handler.hpp[<boost/openmethod/policies/default_error_handler.hpp>]
 
 Provides an implementation of the `error_handler` policy that calls a
 `std::function<void(openmethod_error)>` when an error is encountered, and before
-the library aborts the program.
+the library aborts the program. Part of `default_registry`.
 
 ### link:{headers-url}/boost/openmethod/policies/stderr_output.hpp[<boost/openmethod/policies/stderr_output.hpp>]
 
 Provides an implementation of the `output` policy that writes diagnostics to
-the C standard error stream (not using iostreams).
-
-### link:{headers-url}/boost/openmethod/default_registry.hpp[<boost/openmethod/default_registry.hpp>]
-
-Defines the default registry, which contains all the stock policies listed
-above. Includes all the headers listed in this section so far.
+the C standard error stream (not using iostreams). Part of `default_registry`.
 
 ### link:{headers-url}/boost/openmethod/policies/static_rtti.hpp[<boost/openmethod/policies/static_rtti.hpp>]
 
@@ -159,3 +156,21 @@ exceptions.
 
 Provides an implementation of the `vptr` policy that stores the v-table pointers
 in a map (by default a `std::map`) indexed by type ids.
+
+## Headers Included by Other Headers
+
+These are the library's foundations. Every other header includes them, and a
+program has no reason to include either directly.
+
+### link:{headers-url}/boost/openmethod/preamble.hpp[<boost/openmethod/preamble.hpp>]
+
+Defines `registry`, the stock policy categories, and everything else needed to
+define a registry.
+
+### link:{headers-url}/boost/openmethod/default_registry.hpp[<boost/openmethod/default_registry.hpp>]
+
+Defines cpp:default_registry[] and cpp:indirect_registry[], and includes the
+five policy headers the former is built from. `core.hpp` includes it
+unconditionally, so both registries are available as soon as
+`<boost/openmethod.hpp>` has been included, whether as the default registry or
+as a base for one built with cpp:with[] and cpp:without[].

@@ -6,8 +6,14 @@
 #ifndef BOOST_OPENMETHOD_TEST_IMPLICIT_SHARED_LIBRARIES_CUSTOM_REGISTRY_HPP
 #define BOOST_OPENMETHOD_TEST_IMPLICIT_SHARED_LIBRARIES_CUSTOM_REGISTRY_HPP
 
+struct custom_registry;
+#define BOOST_OPENMETHOD_DEFAULT_REGISTRY custom_registry
+
+// Only the *declaration* above precedes the include. The definition below is
+// what the BOOST_OPENMETHOD macros, virtual_ptr and unique_virtual_ptr bind
+// to; it just has to be complete before the first of them.
 #include <boost/mp11/algorithm.hpp>
-#include <boost/openmethod/default_registry.hpp>
+#include <boost/openmethod.hpp>
 #include <boost/openmethod/policies/vptr_map.hpp>
 
 // default_registry, with the "vector" and "hash" policies removed and vptr_map
@@ -32,13 +38,6 @@ static_assert(!boost::mp11::mp_contains<
 static_assert(!boost::mp11::mp_contains<
               custom_registry::policy_list,
               boost::openmethod::policies::fast_perfect_hash>::value);
-
-// Must be set before core.hpp is included (just below), so that the
-// BOOST_OPENMETHOD macros, virtual_ptr and unique_virtual_ptr all default to
-// custom_registry.
-#define BOOST_OPENMETHOD_DEFAULT_REGISTRY custom_registry
-
-#include <boost/openmethod.hpp>
 
 // Where each macro goes:
 //

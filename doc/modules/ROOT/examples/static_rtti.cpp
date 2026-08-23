@@ -3,21 +3,18 @@
 // See accompanying file LICENSE_1_0.txt
 // or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-//[ all
-
-#include <boost/openmethod/default_registry.hpp>
-#include <boost/openmethod/policies/static_rtti.hpp>
-
-struct static_registry
-    : boost::openmethod::registry<boost::openmethod::policies::static_rtti> {};
-
+struct static_registry;
 #define BOOST_OPENMETHOD_DEFAULT_REGISTRY static_registry
 
 #include <boost/openmethod.hpp>
+#include <boost/openmethod/policies/static_rtti.hpp>
 #include <boost/openmethod/interop/std_unique_ptr.hpp>
 #include <boost/openmethod/initialize.hpp>
 
 #include <iostream>
+
+struct static_registry
+    : boost::openmethod::registry<boost::openmethod::policies::static_rtti> {};
 
 struct Animal {};
 
@@ -52,5 +49,3 @@ int main() {
 
     return 0;
 }
-
-//]

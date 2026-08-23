@@ -145,6 +145,9 @@ The library is structured in three conceptual layers:
    - Registry and policy framework
    - Error types: `not_initialized`, `bad_call`, `no_overrider`, `ambiguous_call`, etc.
    - No executable dispatch code
+   - An internal foundation, *not* an entry point: every other header pulls it in, and
+     nothing outside `include/` includes it directly. See *Overriding the default registry*
+     below.
 
 2. **Core API** ([core.hpp](include/boost/openmethod/core.hpp))
    - `method<Id, ReturnType(Parameters...), Registry>` - Method implementation
@@ -329,6 +332,56 @@ function-free class: that is the only shape MSVC will export whole and import vi
 One self-contained example per subdirectory of `doc/modules/ROOT/examples/shared_libs/`; tests in
 `test/dynamic_loading/` (whose `registry_state_id()` is compared across modules to prove the state
 is a single symbol) and `test/implicit_shared_libraries/`.
+
+### Overriding the default registry
+
+The registry is **forward-declared** before `<boost/openmethod.hpp>` and **defined after** it.
+Do not reintroduce the old "include a pre-core header, define the registry, `#define`, then
+include" idiom - `preamble.hpp` and `default_registry.hpp` appear nowhere outside `include/`,
+and the greps in *Development Workflow* enforce that.
+
+```cpp
+struct my_registry;
+#define BOOST_OPENMETHOD_DEFAULT_REGISTRY my_registry
+
+#include <boost/openmethod.hpp>
+#include <boost/openmethod/policies/vptr_map.hpp>   // extra policies, any order
+#include <boost/openmethod/initialize.hpp>          // the TU that calls initialize()
+
+struct my_registry
+    : boost::openmethod::default_registry::with<
+          boost::openmethod::policies::vptr_map<>> {};
+```
+
+A registry the library provides needs no declaration at all - `default_registry`,
+`indirect_registry` and the five stock policies are complete as soon as
+`<boost/openmethod.hpp>` has been included, because `core.hpp` includes
+`default_registry.hpp` *before* it tests the macro:
+
+```cpp
+#define BOOST_OPENMETHOD_DEFAULT_REGISTRY boost::openmethod::indirect_registry
+#include <boost/openmethod.hpp>
+```
+
+This works because every use of the macro in the headers is a name-only context - a default
+template argument, an alias, a deduction guide, or a member typedef inside a template. Three
+rules:
+
+- The registry must be **complete** before the first construct that instantiates it: a
+  `BOOST_OPENMETHOD*` macro, `use_classes`, `method`, `virtual_ptr`, `inplace_vptr_base`,
+  `initialize()`, or `BOOST_OPENMETHOD_{IMPORT,EXPORT,INSTANTIATE}_REGISTRY`. Violating this is
+  a hard error (`incomplete type ... used in nested name specifier`, `core.hpp:376`) - never
+  silent.
+- It must name a **class**, declared with the same class-key (`struct`) as the definition. A
+  `class`/`struct` mismatch is MSVC C4099, an error under the suite's `/W4 /WX`.
+- **Qualify** the name if it could also be found in `namespace boost::openmethod`.
+  `#define BOOST_OPENMETHOD_DEFAULT_REGISTRY registry` silently resolves to
+  `boost::openmethod::registry` and fails with `missing template arguments`; `::registry` works.
+
+`test/CMakeLists.txt` scans each `test_*.cpp` for the token `BOOST_OPENMETHOD_DEFAULT_REGISTRY`
+and withholds the shared PCH from any file that has it - a force-included PCH would still
+precede the `#define`. That detection is unaffected by the ordering, but the count matters:
+17 files under `test/` carry the macro.
 
 ### Custom RTTI
 When `<typeinfo>` is unavailable or insufficient, use static_rtti or implement custom RTTI. See `doc/modules/ROOT/examples/custom_rtti/` and policies in `include/boost/openmethod/policies/`.

@@ -3,17 +3,16 @@
 // See accompanying file LICENSE_1_0.txt
 // or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-#include <boost/openmethod/default_registry.hpp>
+struct test_registry;
+#define BOOST_OPENMETHOD_DEFAULT_REGISTRY test_registry
+
+#include <boost/openmethod.hpp>
+#include <boost/openmethod/initialize.hpp>
 
 #include "test_capture_errors.hpp"
 
 struct test_registry
     : boost::openmethod::default_registry::with<capture_output> {};
-
-#define BOOST_OPENMETHOD_DEFAULT_REGISTRY test_registry
-
-#include <boost/openmethod.hpp>
-#include <boost/openmethod/initialize.hpp>
 
 #define BOOST_TEST_MODULE runtime_errors_duplicate_overrider
 #include <boost/test/unit_test.hpp>

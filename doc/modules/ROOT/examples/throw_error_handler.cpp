@@ -4,9 +4,13 @@
 // or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 // tag::example[]
-#include <iostream>
+struct custom_registry;
+#define BOOST_OPENMETHOD_DEFAULT_REGISTRY custom_registry
 
-#include <boost/openmethod/default_registry.hpp>
+#include <boost/openmethod.hpp>
+#include <boost/openmethod/initialize.hpp>
+
+#include <iostream>
 
 struct Animal {
     virtual ~Animal() = default;
@@ -31,11 +35,6 @@ struct throw_if_not_implemented : bom::policies::error_handler {
 
 struct custom_registry : bom::default_registry::with<throw_if_not_implemented> {
 };
-
-#define BOOST_OPENMETHOD_DEFAULT_REGISTRY custom_registry
-
-#include <boost/openmethod.hpp>
-#include <boost/openmethod/initialize.hpp>
 
 using boost::openmethod::virtual_ptr;
 

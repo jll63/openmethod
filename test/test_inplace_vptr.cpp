@@ -3,21 +3,20 @@
 // See accompanying file LICENSE_1_0.txt
 // or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-#include <iostream>
-#include <string>
-
-#include <boost/openmethod/default_registry.hpp>
-
-namespace bom = boost::openmethod;
-struct test_registry : bom::default_registry::without<
-                           bom::policies::vptr, bom::policies::type_hash> {};
-
+struct test_registry;
 #define BOOST_OPENMETHOD_DEFAULT_REGISTRY test_registry
 
 #include <boost/openmethod.hpp>
 #include <boost/openmethod/inplace_vptr.hpp>
 #include <boost/openmethod/interop/std_shared_ptr.hpp>
 #include <boost/openmethod/initialize.hpp>
+
+#include <iostream>
+#include <string>
+
+namespace bom = boost::openmethod;
+struct test_registry : bom::default_registry::without<
+                           bom::policies::vptr, bom::policies::type_hash> {};
 
 #define BOOST_TEST_MODULE intrusive
 #include <boost/test/unit_test.hpp>

@@ -34,10 +34,15 @@ struct Times : Node {
 };
 // end::classes[]
 
-// tag::policy[]
-#include <boost/openmethod/preamble.hpp>
-#include <boost/openmethod/policies/vptr_vector.hpp>
+// tag::setup[]
+struct custom_registry;
+#define BOOST_OPENMETHOD_DEFAULT_REGISTRY custom_registry
 
+#include <boost/openmethod.hpp>
+#include <boost/openmethod/initialize.hpp>
+// end::setup[]
+
+// tag::policy[]
 //                                          note: vvvvvvvvvvvvvvvv
 struct custom_rtti : boost::openmethod::policies::deferred_static_rtti {
     template<class Registry>
@@ -71,12 +76,8 @@ struct custom_rtti : boost::openmethod::policies::deferred_static_rtti {
 // tag::registry[]
 struct custom_registry : boost::openmethod::registry<
         custom_rtti, boost::openmethod::policies::vptr_vector> {};
-
-#define BOOST_OPENMETHOD_DEFAULT_REGISTRY custom_registry
 // end::registry[]
 
-#include <boost/openmethod.hpp>
-#include <boost/openmethod/initialize.hpp>
 #include <iostream>
 
 using boost::openmethod::virtual_ptr;
@@ -111,7 +112,6 @@ int main() {
     Plus d{a, b}; Times e{d, c};
     std::cout << value(e) << "\n"; // 2 3 + 4 * = 20
 }
-// end::content[]
 
 auto call_via_ref(const Node& node, std::ostream& os) {
     return value(node);
