@@ -1252,12 +1252,12 @@ class virtual_ptr<
     //! @li @c SmartPtr must be constructible from @c const @c Other&.
     template<
         class Other,
-        typename = std::enable_if_t<BOOST_OPENMETHOD_UNLESS_MRDOCS(
-            detail::) SameSmartPtr<SmartPtr, Other, Registry>>,
         typename = std::enable_if_t<
             BOOST_OPENMETHOD_UNLESS_MRDOCS(detail::)
-                IsPolymorphic<typename Other::element_type, Registry> &&
-            std::is_constructible_v<SmartPtr, const Other&>>>
+                SameSmartPtr<SmartPtr, Other, Registry> &&
+            std::is_constructible_v<SmartPtr, const Other&>>,
+        typename = std::enable_if_t<BOOST_OPENMETHOD_UNLESS_MRDOCS(
+            detail::) IsPolymorphic<typename Other::element_type, Registry>>>
     virtual_ptr(const Other& other)
         : vp(detail::box_vptr<use_indirect_vptrs>(
               other ? detail::acquire_vptr<Registry>(*other)
@@ -1281,12 +1281,12 @@ class virtual_ptr<
     //! @li @c SmartPtr must be constructible from @c Other&.
     template<
         class Other,
-        typename = std::enable_if_t<BOOST_OPENMETHOD_UNLESS_MRDOCS(
-            detail::) SameSmartPtr<SmartPtr, Other, Registry>>,
         typename = std::enable_if_t<
             BOOST_OPENMETHOD_UNLESS_MRDOCS(detail::)
-                IsPolymorphic<typename Other::element_type, Registry> &&
-            std::is_constructible_v<SmartPtr, Other&>>>
+                SameSmartPtr<SmartPtr, Other, Registry> &&
+            std::is_constructible_v<SmartPtr, Other&>>,
+        typename = std::enable_if_t<BOOST_OPENMETHOD_UNLESS_MRDOCS(
+            detail::) IsPolymorphic<typename Other::element_type, Registry>>>
     virtual_ptr(Other& other)
         : vp(detail::box_vptr<use_indirect_vptrs>(
               other ? detail::acquire_vptr<Registry>(*other)
@@ -1317,12 +1317,12 @@ class virtual_ptr<
     //! @li @c SmartPtr must be constructible from @c Other&&.
     template<
         class Other,
-        typename = std::enable_if_t<BOOST_OPENMETHOD_UNLESS_MRDOCS(
-            detail::) SameSmartPtr<SmartPtr, Other, Registry>>,
         typename = std::enable_if_t<
             BOOST_OPENMETHOD_UNLESS_MRDOCS(detail::)
-                IsPolymorphic<typename Other::element_type, Registry> &&
-            std::is_constructible_v<SmartPtr, Other&&>>>
+                SameSmartPtr<SmartPtr, Other, Registry> &&
+            std::is_constructible_v<SmartPtr, Other&&>>,
+        typename = std::enable_if_t<BOOST_OPENMETHOD_UNLESS_MRDOCS(
+            detail::) IsPolymorphic<typename Other::element_type, Registry>>>
     virtual_ptr(Other&& other)
         : vp(detail::box_vptr<use_indirect_vptrs>(
               other ? detail::acquire_vptr<Registry>(*other)
