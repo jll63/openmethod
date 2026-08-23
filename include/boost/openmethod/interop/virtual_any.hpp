@@ -180,7 +180,7 @@ class virtual_any {
     template<
         typename T,
         typename = std::enable_if_t<
-            BOOST_OPENMETHOD_DETAIL_UNLESS_MRDOCS
+            BOOST_OPENMETHOD_UNLESS_MRDOCS(detail::)
                 IsVirtualAny<std::decay_t<T>> == false>,
         typename = std::enable_if_t<
             !std::is_same_v<std::decay_t<T>, Any> &&
@@ -260,7 +260,7 @@ class virtual_any {
     template<
         typename T,
         typename = std::enable_if_t<
-            BOOST_OPENMETHOD_DETAIL_UNLESS_MRDOCS
+            BOOST_OPENMETHOD_UNLESS_MRDOCS(detail::)
                 IsVirtualAny<std::decay_t<T>> == false>,
         typename = std::enable_if_t<
             !std::is_same_v<std::decay_t<T>, Any> &&
@@ -502,7 +502,7 @@ struct virtual_traits<virtual_any<Any, Registry>&&, Registry> {
 template<class Class, class Registry>
 class virtual_ptr<
     Class, Registry,
-    std::enable_if_t<BOOST_OPENMETHOD_DETAIL_UNLESS_MRDOCS
+    std::enable_if_t<BOOST_OPENMETHOD_UNLESS_MRDOCS(detail::)
                          IsVirtualAny<std::remove_cv_t<Class>>>> {
     static_assert(
         detail::false_t<Class>,
