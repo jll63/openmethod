@@ -311,6 +311,12 @@ Two rules keep the reference clean; the long-form version lives next to the macr
   and substitution short-circuits at the first failure, so a dependent type in a later condition
   (`typename Other::element_type`) is only formed once the earlier ones pass.
 
+Between them these cover every constraint in the library, so **do not declare a member twice**, an
+unqualified copy under `#ifdef __MRDOCS__` beside the real one. Only MrDocs ever compiles that
+copy, so the two drift apart silently and the reference then documents a constraint the library
+does not have. The `#ifdef __MRDOCS__` blocks that remain remove declarations from the reference
+(friends, deleted overloads, the `VirtualTraits` blueprint) rather than restate them.
+
 Only expressions are affected: types are printed from the AST, so the macro may appear anywhere in
 one (`method::operator()` takes
 `typename BOOST_OPENMETHOD_UNLESS_MRDOCS(detail::) StripVirtualDecorator<Parameters>::type...` and

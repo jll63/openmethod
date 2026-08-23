@@ -1227,7 +1227,7 @@ class virtual_ptr<
               detail::box_vptr<use_indirect_vptrs>(detail::null_vptr))),
           obj(std::move(other.obj)) {
     }
-#ifdef __MRDOCS__
+
     //! Construct from a (const) smart pointer to a derived class
     //!
     //! Set the object pointer with a copy of `other`. Set the v-table pointer
@@ -1252,18 +1252,12 @@ class virtual_ptr<
     //! @li @c SmartPtr must be constructible from @c const @c Other&.
     template<
         class Other,
+        typename = std::enable_if_t<BOOST_OPENMETHOD_UNLESS_MRDOCS(
+            detail::) SameSmartPtr<SmartPtr, Other, Registry>>,
         typename = std::enable_if_t<
-            SameSmartPtr<SmartPtr, Other, Registry> &&
-            IsPolymorphic<typename Other::element_type, Registry> &&
+            BOOST_OPENMETHOD_UNLESS_MRDOCS(detail::)
+                IsPolymorphic<typename Other::element_type, Registry> &&
             std::is_constructible_v<SmartPtr, const Other&>>>
-#else
-    template<
-        class Other,
-        typename = std::enable_if_t<
-            detail::SameSmartPtr<SmartPtr, Other, Registry> &&
-            detail::IsPolymorphic<typename Other::element_type, Registry> &&
-            std::is_constructible_v<SmartPtr, const Other&>>>
-#endif
     virtual_ptr(const Other& other)
         : vp(detail::box_vptr<use_indirect_vptrs>(
               other ? detail::acquire_vptr<Registry>(*other)
@@ -1271,7 +1265,6 @@ class virtual_ptr<
           obj(other) {
     }
 
-#if __MRDOCS__
     //! Construct from a smart pointer to a derived class
     //!
     //! Copy object pointer from `other` to `this`. Set the v-table pointer
@@ -1288,18 +1281,12 @@ class virtual_ptr<
     //! @li @c SmartPtr must be constructible from @c Other&.
     template<
         class Other,
+        typename = std::enable_if_t<BOOST_OPENMETHOD_UNLESS_MRDOCS(
+            detail::) SameSmartPtr<SmartPtr, Other, Registry>>,
         typename = std::enable_if_t<
-            SameSmartPtr<SmartPtr, Other, Registry> &&
-            IsPolymorphic<typename Other::element_type, Registry> &&
+            BOOST_OPENMETHOD_UNLESS_MRDOCS(detail::)
+                IsPolymorphic<typename Other::element_type, Registry> &&
             std::is_constructible_v<SmartPtr, Other&>>>
-#else
-    template<
-        class Other,
-        typename = std::enable_if_t<
-            detail::SameSmartPtr<SmartPtr, Other, Registry> &&
-            detail::IsPolymorphic<typename Other::element_type, Registry> &&
-            std::is_constructible_v<SmartPtr, Other&>>>
-#endif
     virtual_ptr(Other& other)
         : vp(detail::box_vptr<use_indirect_vptrs>(
               other ? detail::acquire_vptr<Registry>(*other)
@@ -1307,7 +1294,6 @@ class virtual_ptr<
           obj(other) {
     }
 
-#ifdef __MRDOCS__
     //! Move-construct from a smart pointer to a derived class
     //!
     //! Move object pointer from `other` to `this`. Set the v-table pointer
@@ -1331,18 +1317,12 @@ class virtual_ptr<
     //! @li @c SmartPtr must be constructible from @c Other&&.
     template<
         class Other,
+        typename = std::enable_if_t<BOOST_OPENMETHOD_UNLESS_MRDOCS(
+            detail::) SameSmartPtr<SmartPtr, Other, Registry>>,
         typename = std::enable_if_t<
-            SameSmartPtr<SmartPtr, Other, Registry> &&
-            IsPolymorphic<typename Other::element_type, Registry> &&
+            BOOST_OPENMETHOD_UNLESS_MRDOCS(detail::)
+                IsPolymorphic<typename Other::element_type, Registry> &&
             std::is_constructible_v<SmartPtr, Other&&>>>
-#else
-    template<
-        class Other,
-        typename = std::enable_if_t<
-            detail::SameSmartPtr<SmartPtr, Other, Registry> &&
-            detail::IsPolymorphic<typename Other::element_type, Registry> &&
-            std::is_constructible_v<SmartPtr, Other&&>>>
-#endif
     virtual_ptr(Other&& other)
         : vp(detail::box_vptr<use_indirect_vptrs>(
               other ? detail::acquire_vptr<Registry>(*other)
