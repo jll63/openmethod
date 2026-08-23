@@ -288,6 +288,33 @@ grep -rn "\`'" doc/modules/ROOT/pages/*.adoc    # must return nothing
 After building, no stray backticks should survive outside code blocks —
 `grep -n '\`' doc/html/openmethod/<page>.html` should only hit backticks inside C++ comments.
 
+### Reference (MrDocs) constraints
+
+MrDocs turns the condition of an `enable_if_t` used as a defaulted template argument into a C++20
+requires-clause by copying the **raw source text** spanning the condition expression - it does not
+walk the expression tree (cppalliance/mrdocs#1016, which upstream cannot fix until MrDocs can
+manipulate expression trees). `BOOST_OPENMETHOD_DETAIL_UNLESS_MRDOCS`, which hides the `detail::`
+qualification of the exposition-only traits, therefore disappears only when it sits *before* the
+first token of the condition: it expands to nothing under `__MRDOCS__`, so it falls outside the
+copied range. Anywhere inside the condition - after a `!`, after a `&&`, inside parentheses - its
+name is printed verbatim, whatever shape the macro has (object-like, function-like
+`MACRO(detail::)`, or a bare `#ifndef __MRDOCS__` around `detail::`). That is why a constraint with
+two occurrences renders the first one correctly and leaks the second.
+
+Two rules keep the reference clean; the long-form version lives next to the macro definition in
+`core.hpp`:
+
+- **The macro must be the first thing in the condition.** Spell a negation
+  `MACRO Trait<T> == false`, never `!MACRO Trait<T>`.
+- **One trait per condition.** When a constraint needs several, give each its own defaulted
+  template parameter. MrDocs joins them with `&&`, in order, so the rendered clause is unchanged -
+  and substitution short-circuits at the first failure, so a dependent type in a later condition
+  (`typename Other::element_type`) is only formed once the earlier ones pass.
+
+Only expressions are affected: types are printed from the AST, so the macro may appear anywhere in
+one (`method::operator()` takes `typename MACRO StripVirtualDecorator<Parameters>::type...` and
+renders correctly). After a doc build, `grep -rl MRDOCS doc/html/` must return nothing.
+
 ## Common Development Patterns
 
 ### Working with Shared Libraries / DLL Support

@@ -180,8 +180,9 @@ class virtual_any {
     template<
         typename T,
         typename = std::enable_if_t<
-            !BOOST_OPENMETHOD_DETAIL_UNLESS_MRDOCS
-                IsVirtualAny<std::decay_t<T>> &&
+            BOOST_OPENMETHOD_DETAIL_UNLESS_MRDOCS
+                IsVirtualAny<std::decay_t<T>> == false>,
+        typename = std::enable_if_t<
             !std::is_same_v<std::decay_t<T>, Any> &&
             std::is_constructible_v<Any, T&&>>>
     virtual_any(T&& value)
@@ -259,8 +260,9 @@ class virtual_any {
     template<
         typename T,
         typename = std::enable_if_t<
-            !BOOST_OPENMETHOD_DETAIL_UNLESS_MRDOCS
-                IsVirtualAny<std::decay_t<T>> &&
+            BOOST_OPENMETHOD_DETAIL_UNLESS_MRDOCS
+                IsVirtualAny<std::decay_t<T>> == false>,
+        typename = std::enable_if_t<
             !std::is_same_v<std::decay_t<T>, Any> &&
             std::is_constructible_v<Any, T&&>>>
     auto operator=(T&& value) -> virtual_any& {

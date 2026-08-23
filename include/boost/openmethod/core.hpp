@@ -66,6 +66,30 @@
 //! Top namespace of the library.
 namespace boost::openmethod {
 
+// Hide the `detail::` qualification of the exposition-only traits from MrDocs,
+// which documents them as members of `boost::openmethod`.
+//
+// MrDocs renders the condition of an `enable_if_t` used as a defaulted template
+// argument as a C++20 requires-clause, by copying the *raw source text* spanning
+// the condition expression - it does not walk the expression tree
+// (cppalliance/mrdocs#1016). A macro is thus elided only when it sits *before*
+// the first token of the condition, where it expands to nothing under
+// `__MRDOCS__` and so falls outside the copied range; anywhere inside the
+// condition - after a `!`, after a `&&`, inside parentheses - its name is
+// printed verbatim. That holds whatever shape the macro has: object-like,
+// function-like, or a bare `#ifndef __MRDOCS__` around `detail::`.
+//
+// Hence the rule for a condition mentioning an exposition-only trait:
+//
+// - `BOOST_OPENMETHOD_DETAIL_UNLESS_MRDOCS` must be the first thing in the
+//   condition. Spell a negation as `Trait<T> == false`, not `!Trait<T>`.
+// - One trait per condition. When a constraint needs several, give each its own
+//   defaulted template parameter - MrDocs joins them with `&&`, in order, so the
+//   rendered clause is unchanged, and substitution short-circuits at the first
+//   failure.
+//
+// Only expressions are affected. Types are printed from the AST, so the macro
+// may appear anywhere in one (see `method::operator()`).
 #ifdef __MRDOCS__
 #define BOOST_OPENMETHOD_OPEN_NAMESPACE_DETAIL_UNLESS_MRDOCS
 #define BOOST_OPENMETHOD_CLOSE_NAMESPACE_DETAIL_UNLESS_MRDOCS
@@ -1420,7 +1444,8 @@ class virtual_ptr<
         typename = std::enable_if_t<
             BOOST_OPENMETHOD_DETAIL_UNLESS_MRDOCS
                 SameSmartPtr<SmartPtr, Other, Registry> &&
-            std::is_assignable_v<SmartPtr, const Other&> &&
+            std::is_assignable_v<SmartPtr, const Other&>>,
+        typename = std::enable_if_t<
             BOOST_OPENMETHOD_DETAIL_UNLESS_MRDOCS
                 IsPolymorphic<typename Other::element_type, Registry>>>
     virtual_ptr& operator=(const Other& other) {
@@ -1456,7 +1481,8 @@ class virtual_ptr<
         typename = std::enable_if_t<
             BOOST_OPENMETHOD_DETAIL_UNLESS_MRDOCS
                 SameSmartPtr<SmartPtr, Other, Registry> &&
-            std::is_assignable_v<SmartPtr, Other&&> &&
+            std::is_assignable_v<SmartPtr, Other&&>>,
+        typename = std::enable_if_t<
             BOOST_OPENMETHOD_DETAIL_UNLESS_MRDOCS
                 IsPolymorphic<typename Other::element_type, Registry>>>
     virtual_ptr& operator=(Other&& other) {
