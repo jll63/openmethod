@@ -73,10 +73,11 @@ endfunction()
 # PCH.
 #
 # Detected by scanning for the macro, or for an include of a header that carries
-# the override on the file's behalf - test_capture_errors.hpp owns the whole
-# recipe for the tests that capture diagnostics, so those name neither the macro
-# nor their registry. Miss one and it still compiles: the macros simply bind to
-# default_registry and the test's expectations fail at run time.
+# the override on the file's behalf: test_capture_errors.hpp and
+# test_checked_registry.hpp each own a whole recipe, so the tests including them
+# name neither the macro nor their registry. Add another such header and this
+# list has to learn about it - miss one and it still compiles, the macros simply
+# bind to default_registry, and the test's expectations fail at run time.
 set(BOOST_OPENMETHOD_TEST_PCH_HEADERS
     <boost/openmethod.hpp>
     <boost/openmethod/initialize.hpp>
@@ -98,7 +99,8 @@ foreach(test_cpp ${test_cpp_files})
 
     file(READ ${test_cpp} test_cpp_contents)
     set(test_cpp_overrides_registry -1)
-    foreach(marker "BOOST_OPENMETHOD_DEFAULT_REGISTRY" "test_capture_errors.hpp")
+    foreach(marker "BOOST_OPENMETHOD_DEFAULT_REGISTRY" "test_capture_errors.hpp"
+                   "test_checked_registry.hpp")
         string(FIND "${test_cpp_contents}" "${marker}" marker_pos)
         if (NOT marker_pos EQUAL -1)
             set(test_cpp_overrides_registry ${marker_pos})
