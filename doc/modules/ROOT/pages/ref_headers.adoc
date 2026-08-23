@@ -106,7 +106,7 @@ parameters.
 
 ## Policy Headers
 
-Each stock policy lives in a header of its own. The five that make up
+Most stock policies live in a header of their own. Those that make up
 cpp:default_registry[] come in with `<boost/openmethod.hpp>`; the others are
 included explicitly. A policy header depends on nothing but the library's
 foundations, so it may be included in any order relative to
@@ -114,6 +114,11 @@ foundations, so it may be included in any order relative to
 that overrides
 xref:reference:BOOST_OPENMETHOD_DEFAULT_REGISTRY.adoc[`BOOST_OPENMETHOD_DEFAULT_REGISTRY`]
 puts it.
+
+Three policies have no header of their own: cpp:indirect_vptr[],
+cpp:runtime_checks[] and cpp:deferred_static_rtti[] are defined alongside
+`registry` itself, and are available as soon as `<boost/openmethod.hpp>` has
+been included.
 
 ### link:{headers-url}/boost/openmethod/policies/std_rtti.hpp[<boost/openmethod/policies/std_rtti.hpp>]
 
@@ -141,6 +146,10 @@ the library aborts the program. Part of `default_registry`.
 
 Provides an implementation of the `output` policy that writes diagnostics to
 the C standard error stream (not using iostreams). Part of `default_registry`.
+
+NOTE: `default_registry` also contains `runtime_checks` when
+xref:reference:BOOST_OPENMETHOD_ENABLE_RUNTIME_CHECKS.adoc[`BOOST_OPENMETHOD_ENABLE_RUNTIME_CHECKS`]
+is defined. That policy needs no header - see above.
 
 ### link:{headers-url}/boost/openmethod/policies/static_rtti.hpp[<boost/openmethod/policies/static_rtti.hpp>]
 

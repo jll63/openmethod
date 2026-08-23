@@ -7,14 +7,16 @@ different registries, it must be registered with each of them.
 
 Class templates cpp:use_classes[], cpp:method[], cpp:virtual_ptr[], and macros
 xref:reference:BOOST_OPENMETHOD.adoc[BOOST_OPENMETHOD] and
-xref:reference:BOOST_OPENMETHOD_CLASSES.adoc[BOOST_OPENMETHOD_CLASSES], take an additional
-argument, a cpp:registry[] class, which defaults to cpp:default_registry[]. The
-default registry can be overridden by defining the macroprocessor symbol
+xref:reference:BOOST_OPENMETHOD_CLASSES.adoc[BOOST_OPENMETHOD_CLASSES], take an
+additional argument, a cpp:registry[] class, which defaults to
+cpp:default_registry[]. The default registry can be overridden by defining the
+preprocessor symbol
 xref:reference:BOOST_OPENMETHOD_DEFAULT_REGISTRY.adoc[BOOST_OPENMETHOD_DEFAULT_REGISTRY]
-_before_ including `<boost/openmethod.hpp>`. The value of the symbol is used as
-a default template parameter for `use_classes`, `method`, `virtual_ptr`, and
-others. Once the header has been included, changing
-`BOOST_OPENMETHOD_DEFAULT_REGISTRY` has no effect.
+_before_ including `<boost/openmethod/core.hpp>` (or any header that includes
+it, like `<boost/openmethod.hpp>`). The value of the symbol is used as a default
+template parameter for `use_classes`, `method`, `virtual_ptr`, and others. Once
+it has been included, changing `BOOST_OPENMETHOD_DEFAULT_REGISTRY` has no
+effect.
 
 For a registry the library provides, that is the whole recipe:
 
@@ -84,7 +86,7 @@ Policies are placed in the cpp:boost::openmethod::policies[] namespace.
 
 |===
 
-if
+If
 xref:reference:BOOST_OPENMETHOD_ENABLE_RUNTIME_CHECKS.adoc[BOOST_OPENMETHOD_ENABLE_RUNTIME_CHECKS]
 is defined, `default_registry` also contains the `runtime_checks` policy. This
 enables extra validations during method dispatch, which can detect missing class
@@ -148,7 +150,7 @@ left to right; cpp:finalize[] calls each policy's `finalize` in the reverse
 order. A policy that depends on another policy having been initialized must
 therefore be listed _after_ its dependency. In particular, `vptr_vector` reads
 the state of the `type_hash` policy, so the `type_hash` policy must come before
-`vptr_vector` — as in `default_registry` above, where `fast_perfect_hash`
+`vptr_vector` - as in `default_registry` above, where `fast_perfect_hash`
 precedes `vptr_vector`. This particular requirement is enforced with a
 `static_assert`.
 
@@ -162,7 +164,7 @@ struct indirect_registry : default_registry::with<policies::indirect_vptr> {};
 ----
 
 Policies are implemented as unary
-https://www.boost.org/doc/libs/1_89_0/libs/mp11/doc/html/mp11.html[Boost.MP11
+https://www.boost.org/doc/libs/latest/libs/mp11/doc/html/mp11.html[Boost.MP11
 quoted metafunctions]. A policy is an ordinary class that contains a nested
 class template `fn`, which is instantiated by the registry, passing itself as
 the single template argument. The reason for this mechanism is to allow policies

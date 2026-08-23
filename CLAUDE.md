@@ -335,10 +335,15 @@ is a single symbol) and `test/implicit_shared_libraries/`.
 
 ### Overriding the default registry
 
-The registry is **forward-declared** before `<boost/openmethod.hpp>` and **defined after** it.
-Do not reintroduce the old "include a pre-core header, define the registry, `#define`, then
-include" idiom - `preamble.hpp` and `default_registry.hpp` appear nowhere outside `include/`,
-and the greps in *Development Workflow* enforce that.
+The registry is **forward-declared** before `core.hpp` - or any header that includes it,
+`<boost/openmethod.hpp>` among them - and **defined after**. Do not reintroduce the old
+"include a pre-core header, define the registry, `#define`, then include" idiom:
+`preamble.hpp` and `default_registry.hpp` should appear nowhere outside `include/`. Nothing
+enforces that automatically; check it by hand when touching this area:
+
+```bash
+git grep -n "openmethod/preamble.hpp\|openmethod/default_registry.hpp" -- doc test
+```
 
 ```cpp
 struct my_registry;
@@ -370,18 +375,22 @@ rules:
 - The registry must be **complete** before the first construct that instantiates it: a
   `BOOST_OPENMETHOD*` macro, `use_classes`, `method`, `virtual_ptr`, `inplace_vptr_base`,
   `initialize()`, or `BOOST_OPENMETHOD_{IMPORT,EXPORT,INSTANTIATE}_REGISTRY`. Violating this is
-  a hard error (`incomplete type ... used in nested name specifier`, `core.hpp:376`) - never
-  silent.
+  a hard error (`incomplete type ... used in nested name specifier`, from `use_class_aux` in
+  `core.hpp`) - never silent.
 - It must name a **class**, declared with the same class-key (`struct`) as the definition. A
   `class`/`struct` mismatch is MSVC C4099, an error under the suite's `/W4 /WX`.
-- **Qualify** the name if it could also be found in `namespace boost::openmethod`.
-  `#define BOOST_OPENMETHOD_DEFAULT_REGISTRY registry` silently resolves to
-  `boost::openmethod::registry` and fails with `missing template arguments`; `::registry` works.
+- **Qualify** the name if it could also be found in `namespace boost::openmethod`. The macro
+  is expanded inside that namespace, so `#define BOOST_OPENMETHOD_DEFAULT_REGISTRY registry`
+  binds to `boost::openmethod::registry` rather than the global one. That one is loud -
+  `missing template arguments` - but a name that *does* resolve would bind to the wrong type
+  silently. `::registry` works.
 
-`test/CMakeLists.txt` scans each `test_*.cpp` for the token `BOOST_OPENMETHOD_DEFAULT_REGISTRY`
-and withholds the shared PCH from any file that has it - a force-included PCH would still
-precede the `#define`. That detection is unaffected by the ordering, but the count matters:
-17 files under `test/` carry the macro.
+`test/CMakeLists.txt` withholds the shared PCH from any `test_*.cpp` that overrides the
+registry - a force-included PCH would still precede the `#define`. It detects them by scanning
+for the token `BOOST_OPENMETHOD_DEFAULT_REGISTRY` **or** for an include of a header that
+carries the override on the file's behalf (`test_capture_errors.hpp`). Add another such header
+and the scan has to learn about it: miss one and the file still compiles, binds to
+`default_registry`, and fails at run time.
 
 ### Custom RTTI
 When `<typeinfo>` is unavailable or insufficient, use static_rtti or implement custom RTTI. See `doc/modules/ROOT/examples/custom_rtti/` and policies in `include/boost/openmethod/policies/`.

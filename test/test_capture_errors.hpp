@@ -6,8 +6,14 @@
 #ifndef BOOST_OPENMETHOD_TEST_CAPTURE_ERRORS_HPP
 #define BOOST_OPENMETHOD_TEST_CAPTURE_ERRORS_HPP
 
-// Include after the #define that selects the test's registry - which is the
-// first line of every test that uses this header, so this is automatic.
+// This header owns the whole registry recipe for the tests that capture
+// diagnostics: the declaration, the BOOST_OPENMETHOD_DEFAULT_REGISTRY
+// definition, the library include, and `test_registry` itself. Including it
+// first - before anything that pulls in core.hpp - is all a test has to do,
+// and there is no ordering left for a caller to get wrong.
+struct test_registry;
+#define BOOST_OPENMETHOD_DEFAULT_REGISTRY test_registry
+
 #include <boost/openmethod.hpp>
 
 #include <sstream>
@@ -22,6 +28,9 @@ struct capture_output : boost::openmethod::policies::output {
         }
     };
 };
+
+struct test_registry
+    : boost::openmethod::default_registry::with<capture_output> {};
 
 template<class Registry>
 struct capture_errors {

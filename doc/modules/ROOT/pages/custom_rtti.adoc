@@ -92,7 +92,8 @@ two lines before the library is included: a declaration of the registry class,
 and a definition of
 xref:reference:BOOST_OPENMETHOD_DEFAULT_REGISTRY.adoc[BOOST_OPENMETHOD_DEFAULT_REGISTRY]
 naming it. The registry itself comes further down; only its _name_ has to be
-known when `<boost/openmethod.hpp>` is parsed.
+known when `<boost/openmethod/core.hpp>` is parsed - which any header that
+includes it, `<boost/openmethod.hpp>` among them, does for you.
 
 [source,c++]
 ----
@@ -135,8 +136,8 @@ small, dense range. It means that we can use them as indexes in a vector.
 include::{example}/1/custom_rtti.cpp[tag=registry]
 ----
 
-This is the definition promised by the declaration at the top of the file. It
-must appear before the first `BOOST_OPENMETHOD`, `BOOST_OPENMETHOD_OVERRIDE` or
+This is the definition promised by the declaration shown above. It must appear
+before the first `BOOST_OPENMETHOD`, `BOOST_OPENMETHOD_OVERRIDE` or
 `BOOST_OPENMETHOD_CLASSES`: those instantiate the registry, and an incomplete
 type will not do.
 
@@ -172,4 +173,17 @@ postpones reading the type ids until `initialize` is called:
 [source,c++]
 ----
 include::{example}/2/custom_rtti.cpp[tag=policy]
+----
+
+The setup is the same as before - the registry is declared, named as the default,
+and defined once the library is in scope:
+
+[source,c++]
+----
+include::{example}/2/custom_rtti.cpp[tag=setup]
+----
+
+[source,c++]
+----
+include::{example}/2/custom_rtti.cpp[tag=registry]
 ----

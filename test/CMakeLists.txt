@@ -69,8 +69,14 @@ endfunction()
 # instead #define BOOST_OPENMETHOD_DEFAULT_REGISTRY *before* the first inclusion
 # of core.hpp (directly or via boost/openmethod.hpp), and define the registry
 # itself after it; force-including a PCH that already pulled in core.hpp would
-# precede the #define and defeat the override, so those files are detected (by
-# scanning for the macro) and left without a PCH.
+# precede the #define and defeat the override, so those files are left without a
+# PCH.
+#
+# Detected by scanning for the macro, or for an include of a header that carries
+# the override on the file's behalf - test_capture_errors.hpp owns the whole
+# recipe for the tests that capture diagnostics, so those name neither the macro
+# nor their registry. Miss one and it still compiles: the macros simply bind to
+# default_registry and the test's expectations fail at run time.
 set(BOOST_OPENMETHOD_TEST_PCH_HEADERS
     <boost/openmethod.hpp>
     <boost/openmethod/initialize.hpp>
@@ -91,7 +97,13 @@ foreach(test_cpp ${test_cpp_files})
     add_dependencies(tests ${test_target})
 
     file(READ ${test_cpp} test_cpp_contents)
-    string(FIND "${test_cpp_contents}" "BOOST_OPENMETHOD_DEFAULT_REGISTRY" test_cpp_overrides_registry)
+    set(test_cpp_overrides_registry -1)
+    foreach(marker "BOOST_OPENMETHOD_DEFAULT_REGISTRY" "test_capture_errors.hpp")
+        string(FIND "${test_cpp_contents}" "${marker}" marker_pos)
+        if (NOT marker_pos EQUAL -1)
+            set(test_cpp_overrides_registry ${marker_pos})
+        endif()
+    endforeach()
 
     if (test_cpp_overrides_registry EQUAL -1)
         if (NOT boost_openmethod_pch_owner)

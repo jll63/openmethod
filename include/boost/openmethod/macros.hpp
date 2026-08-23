@@ -177,8 +177,9 @@ inline constexpr bool method_not_found = false;
 //!
 //! @note The default registry is the value of
 //! @ref BOOST_OPENMETHOD_DEFAULT_REGISTRY at the point
-//! `<boost/openmethod.hpp>` is included. Changing the value of this symbol
-//! has no effect after that point.
+//! `<boost/openmethod/core.hpp>` is included, directly or through a header
+//! like `<boost/openmethod.hpp>`. Changing the value of this symbol has no
+//! effect after that point.
 //!
 //! @par Example
 //!
@@ -536,8 +537,9 @@ inline constexpr bool method_not_found = false;
 //! documentation for more details.
 //!
 //! @note The default registry is the value of
-//! @ref BOOST_OPENMETHOD_DEFAULT_REGISTRY when `<boost/openmethod.hpp>` is
-//! included. Subsequently changing it has no retroactive effect.
+//! @ref BOOST_OPENMETHOD_DEFAULT_REGISTRY when `<boost/openmethod/core.hpp>`
+//! is included, directly or through a header like `<boost/openmethod.hpp>`.
+//! Subsequently changing it has no retroactive effect.
 //!
 //! @par Examples
 //!

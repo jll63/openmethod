@@ -35,14 +35,14 @@
 //!
 //! `BOOST_OPENMETHOD_DEFAULT_REGISTRY` can be defined by a program to change
 //! the default registry globally, *before* including
-//! `<boost/openmethod.hpp>`. After that, changing its value has no effect,
+//! `<boost/openmethod/core.hpp>` (or any header that includes it, like
+//! `<boost/openmethod.hpp>`). After that, changing its value has no effect,
 //! even on other macros.
 //!
 //! To use a registry that the library provides, name it in the macro:
 //!
 //! @code
-//! #define BOOST_OPENMETHOD_DEFAULT_REGISTRY \
-//!     boost::openmethod::indirect_registry
+//! #define BOOST_OPENMETHOD_DEFAULT_REGISTRY boost::openmethod::indirect_registry
 //! #include <boost/openmethod.hpp>
 //! @endcode
 //!
@@ -1972,7 +1972,8 @@ struct validate_method_parameter<
 //! The default value for `Registry` is @ref default_registry, but it can be
 //! overridden by defining the preprocessor symbol
 //! @ref BOOST_OPENMETHOD_DEFAULT_REGISTRY, *before* including
-//! `<boost/openmethod.hpp>`. Setting the symbol afterwards has no effect.
+//! `<boost/openmethod/core.hpp>` (or any header that includes it, like
+//! `<boost/openmethod.hpp>`). Setting the symbol afterwards has no effect.
 //!
 //! Specializations of `method` have a single instance: the static member `fn`,
 //! which has an `operator()` that forwards to the appropriate overrider. It is

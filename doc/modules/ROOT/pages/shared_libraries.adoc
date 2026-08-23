@@ -243,7 +243,8 @@ cpp:indirect_registry[] that has the same policies as `default_registry`, plus
 `indirect_vptr`. Make it the registry the `BOOST_OPENMETHOD` macros use by
 defining
 xref:reference:BOOST_OPENMETHOD_DEFAULT_REGISTRY.adoc[BOOST_OPENMETHOD_DEFAULT_REGISTRY]
-_before_ including `<boost/openmethod.hpp>`.
+_before_ including `<boost/openmethod/core.hpp>`, or any header that includes
+it, like `<boost/openmethod.hpp>`.
 
 The `indirect_vptr` example does that in the header both modules share, rather
 than passing a compiler switch from the build system. One place then settles
@@ -279,6 +280,9 @@ A custom registry is shared exactly the same way - name it instead of
 [source,c++]
 ----
 // my_registry.hpp
+#ifndef MY_REGISTRY_DEFINED
+#define MY_REGISTRY_DEFINED
+
 struct my_registry;
 #define BOOST_OPENMETHOD_DEFAULT_REGISTRY my_registry
 
@@ -290,6 +294,8 @@ struct my_registry : boost::openmethod::registry</* policies... */> {};
 BOOST_OPENMETHOD_EXPORT_REGISTRY(my_registry);
 #else
 BOOST_OPENMETHOD_IMPORT_REGISTRY(my_registry);
+#endif
+
 #endif
 ----
 
