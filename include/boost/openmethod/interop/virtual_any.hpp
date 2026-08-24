@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2027 Jean-Louis Leroy
+// Copyright (c) 2017-2026 Jean-Louis Leroy
 // Distributed under the Boost Software License, Version 1.0.
 // See accompanying file LICENSE_1_0.txt
 // or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -180,8 +180,9 @@ class virtual_any {
     template<
         typename T,
         typename = std::enable_if_t<
-            !BOOST_OPENMETHOD_DETAIL_UNLESS_MRDOCS
-                IsVirtualAny<std::decay_t<T>> &&
+            BOOST_OPENMETHOD_UNLESS_MRDOCS(detail::)
+                IsVirtualAny<std::decay_t<T>> == false>,
+        typename = std::enable_if_t<
             !std::is_same_v<std::decay_t<T>, Any> &&
             std::is_constructible_v<Any, T&&>>>
     virtual_any(T&& value)
@@ -259,8 +260,9 @@ class virtual_any {
     template<
         typename T,
         typename = std::enable_if_t<
-            !BOOST_OPENMETHOD_DETAIL_UNLESS_MRDOCS
-                IsVirtualAny<std::decay_t<T>> &&
+            BOOST_OPENMETHOD_UNLESS_MRDOCS(detail::)
+                IsVirtualAny<std::decay_t<T>> == false>,
+        typename = std::enable_if_t<
             !std::is_same_v<std::decay_t<T>, Any> &&
             std::is_constructible_v<Any, T&&>>>
     auto operator=(T&& value) -> virtual_any& {
@@ -500,7 +502,7 @@ struct virtual_traits<virtual_any<Any, Registry>&&, Registry> {
 template<class Class, class Registry>
 class virtual_ptr<
     Class, Registry,
-    std::enable_if_t<BOOST_OPENMETHOD_DETAIL_UNLESS_MRDOCS
+    std::enable_if_t<BOOST_OPENMETHOD_UNLESS_MRDOCS(detail::)
                          IsVirtualAny<std::remove_cv_t<Class>>>> {
     static_assert(
         detail::false_t<Class>,

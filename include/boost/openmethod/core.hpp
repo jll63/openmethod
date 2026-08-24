@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2027 Jean-Louis Leroy
+// Copyright (c) 2017-2026 Jean-Louis Leroy
 // Distributed under the Boost Software License, Version 1.0.
 // See accompanying file LICENSE_1_0.txt
 // or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -92,14 +92,39 @@
 //! Top namespace of the library.
 namespace boost::openmethod {
 
+// Hide the `detail::` qualification of the exposition-only traits from MrDocs,
+// which documents them as members of `boost::openmethod`.
+//
+// MrDocs renders the condition of an `enable_if_t` used as a defaulted template
+// argument as a C++20 requires-clause, by copying the *raw source text* spanning
+// the condition expression - it does not walk the expression tree
+// (cppalliance/mrdocs#1016). A macro is thus elided only when it sits *before*
+// the first token of the condition, where it expands to nothing under
+// `__MRDOCS__` and so falls outside the copied range; anywhere inside the
+// condition - after a `!`, after a `&&`, inside parentheses - its name is
+// printed verbatim. That holds whatever shape the macro has - the function-like
+// form below, an object-like one, or a bare `#ifndef __MRDOCS__` around
+// `detail::`.
+//
+// Hence the rule for a condition mentioning an exposition-only trait:
+//
+// - `BOOST_OPENMETHOD_UNLESS_MRDOCS(detail::)` must be the first thing in the
+//   condition. Spell a negation as `Trait<T> == false`, not `!Trait<T>`.
+// - One trait per condition. When a constraint needs several, give each its own
+//   defaulted template parameter - MrDocs joins them with `&&`, in order, so the
+//   rendered clause is unchanged, and substitution short-circuits at the first
+//   failure.
+//
+// Only expressions are affected. Types are printed from the AST, so the macro
+// may appear anywhere in one (see `method::operator()`).
 #ifdef __MRDOCS__
 #define BOOST_OPENMETHOD_OPEN_NAMESPACE_DETAIL_UNLESS_MRDOCS
 #define BOOST_OPENMETHOD_CLOSE_NAMESPACE_DETAIL_UNLESS_MRDOCS
-#define BOOST_OPENMETHOD_DETAIL_UNLESS_MRDOCS
+#define BOOST_OPENMETHOD_UNLESS_MRDOCS(...)
 #else
 #define BOOST_OPENMETHOD_OPEN_NAMESPACE_DETAIL_UNLESS_MRDOCS namespace detail {
 #define BOOST_OPENMETHOD_CLOSE_NAMESPACE_DETAIL_UNLESS_MRDOCS }
-#define BOOST_OPENMETHOD_DETAIL_UNLESS_MRDOCS detail::
+#define BOOST_OPENMETHOD_UNLESS_MRDOCS(...) __VA_ARGS__
 #endif
 
 namespace detail {
@@ -880,7 +905,7 @@ class virtual_ptr {
     template<
         class Other,
         typename = std::enable_if_t<
-            BOOST_OPENMETHOD_DETAIL_UNLESS_MRDOCS
+            BOOST_OPENMETHOD_UNLESS_MRDOCS(detail::)
                 IsPolymorphic<Other, Registry> &&
             std::is_constructible_v<Class*, Other*>>>
     virtual_ptr(Other& other)
@@ -919,7 +944,7 @@ class virtual_ptr {
     template<
         class Other,
         typename = std::enable_if_t<
-            BOOST_OPENMETHOD_DETAIL_UNLESS_MRDOCS
+            BOOST_OPENMETHOD_UNLESS_MRDOCS(detail::)
                 IsPolymorphic<Class, Registry> &&
             std::is_constructible_v<Class*, Other*>>>
     virtual_ptr(Other* other)
@@ -990,7 +1015,7 @@ class virtual_ptr {
     template<
         class Other,
         typename = std::enable_if_t<
-            BOOST_OPENMETHOD_DETAIL_UNLESS_MRDOCS
+            BOOST_OPENMETHOD_UNLESS_MRDOCS(detail::)
                 IsPolymorphic<Class, Registry> &&
             std::is_assignable_v<Class*&, Other*>>>
     virtual_ptr& operator=(Other& other) {
@@ -1028,7 +1053,7 @@ class virtual_ptr {
     template<
         class Other,
         typename = std::enable_if_t<
-            BOOST_OPENMETHOD_DETAIL_UNLESS_MRDOCS
+            BOOST_OPENMETHOD_UNLESS_MRDOCS(detail::)
                 IsPolymorphic<Class, Registry> &&
             std::is_assignable_v<Class*&, Other*>>>
     virtual_ptr& operator=(Other* other) {
@@ -1163,8 +1188,8 @@ class virtual_ptr {
 template<class SmartPtr, class Registry>
 class virtual_ptr<
     SmartPtr, Registry,
-    std::enable_if_t<
-        BOOST_OPENMETHOD_DETAIL_UNLESS_MRDOCS IsSmartPtr<SmartPtr, Registry>>> {
+    std::enable_if_t<BOOST_OPENMETHOD_UNLESS_MRDOCS(detail::)
+                         IsSmartPtr<SmartPtr, Registry>>> {
 
 #ifndef __MRDOCS__
     template<class, class, typename>
@@ -1228,7 +1253,7 @@ class virtual_ptr<
               detail::box_vptr<use_indirect_vptrs>(detail::null_vptr))),
           obj(std::move(other.obj)) {
     }
-#ifdef __MRDOCS__
+
     //! Construct from a (const) smart pointer to a derived class
     //!
     //! Set the object pointer with a copy of `other`. Set the v-table pointer
@@ -1254,17 +1279,11 @@ class virtual_ptr<
     template<
         class Other,
         typename = std::enable_if_t<
-            SameSmartPtr<SmartPtr, Other, Registry> &&
-            IsPolymorphic<typename Other::element_type, Registry> &&
-            std::is_constructible_v<SmartPtr, const Other&>>>
-#else
-    template<
-        class Other,
-        typename = std::enable_if_t<
-            detail::SameSmartPtr<SmartPtr, Other, Registry> &&
-            detail::IsPolymorphic<typename Other::element_type, Registry> &&
-            std::is_constructible_v<SmartPtr, const Other&>>>
-#endif
+            BOOST_OPENMETHOD_UNLESS_MRDOCS(detail::)
+                SameSmartPtr<SmartPtr, Other, Registry> &&
+            std::is_constructible_v<SmartPtr, const Other&>>,
+        typename = std::enable_if_t<BOOST_OPENMETHOD_UNLESS_MRDOCS(
+            detail::) IsPolymorphic<typename Other::element_type, Registry>>>
     virtual_ptr(const Other& other)
         : vp(detail::box_vptr<use_indirect_vptrs>(
               other ? detail::acquire_vptr<Registry>(*other)
@@ -1272,7 +1291,6 @@ class virtual_ptr<
           obj(other) {
     }
 
-#if __MRDOCS__
     //! Construct from a smart pointer to a derived class
     //!
     //! Copy object pointer from `other` to `this`. Set the v-table pointer
@@ -1290,17 +1308,11 @@ class virtual_ptr<
     template<
         class Other,
         typename = std::enable_if_t<
-            SameSmartPtr<SmartPtr, Other, Registry> &&
-            IsPolymorphic<typename Other::element_type, Registry> &&
-            std::is_constructible_v<SmartPtr, Other&>>>
-#else
-    template<
-        class Other,
-        typename = std::enable_if_t<
-            detail::SameSmartPtr<SmartPtr, Other, Registry> &&
-            detail::IsPolymorphic<typename Other::element_type, Registry> &&
-            std::is_constructible_v<SmartPtr, Other&>>>
-#endif
+            BOOST_OPENMETHOD_UNLESS_MRDOCS(detail::)
+                SameSmartPtr<SmartPtr, Other, Registry> &&
+            std::is_constructible_v<SmartPtr, Other&>>,
+        typename = std::enable_if_t<BOOST_OPENMETHOD_UNLESS_MRDOCS(
+            detail::) IsPolymorphic<typename Other::element_type, Registry>>>
     virtual_ptr(Other& other)
         : vp(detail::box_vptr<use_indirect_vptrs>(
               other ? detail::acquire_vptr<Registry>(*other)
@@ -1308,7 +1320,6 @@ class virtual_ptr<
           obj(other) {
     }
 
-#ifdef __MRDOCS__
     //! Move-construct from a smart pointer to a derived class
     //!
     //! Move object pointer from `other` to `this`. Set the v-table pointer
@@ -1333,17 +1344,11 @@ class virtual_ptr<
     template<
         class Other,
         typename = std::enable_if_t<
-            SameSmartPtr<SmartPtr, Other, Registry> &&
-            IsPolymorphic<typename Other::element_type, Registry> &&
-            std::is_constructible_v<SmartPtr, Other&&>>>
-#else
-    template<
-        class Other,
-        typename = std::enable_if_t<
-            detail::SameSmartPtr<SmartPtr, Other, Registry> &&
-            detail::IsPolymorphic<typename Other::element_type, Registry> &&
-            std::is_constructible_v<SmartPtr, Other&&>>>
-#endif
+            BOOST_OPENMETHOD_UNLESS_MRDOCS(detail::)
+                SameSmartPtr<SmartPtr, Other, Registry> &&
+            std::is_constructible_v<SmartPtr, Other&&>>,
+        typename = std::enable_if_t<BOOST_OPENMETHOD_UNLESS_MRDOCS(
+            detail::) IsPolymorphic<typename Other::element_type, Registry>>>
     virtual_ptr(Other&& other)
         : vp(detail::box_vptr<use_indirect_vptrs>(
               other ? detail::acquire_vptr<Registry>(*other)
@@ -1369,7 +1374,7 @@ class virtual_ptr<
     template<
         class Other,
         typename = std::enable_if_t<
-            BOOST_OPENMETHOD_DETAIL_UNLESS_MRDOCS
+            BOOST_OPENMETHOD_UNLESS_MRDOCS(detail::)
                 SameSmartPtr<SmartPtr, Other, Registry> &&
             std::is_constructible_v<SmartPtr, const Other&>>>
     virtual_ptr(const virtual_ptr<Other, Registry>& other)
@@ -1402,7 +1407,7 @@ class virtual_ptr<
     template<
         class Other,
         typename = std::enable_if_t<
-            BOOST_OPENMETHOD_DETAIL_UNLESS_MRDOCS
+            BOOST_OPENMETHOD_UNLESS_MRDOCS(detail::)
                 SameSmartPtr<SmartPtr, Other, Registry> &&
             std::is_constructible_v<SmartPtr, Other&&>>>
     virtual_ptr(virtual_ptr<Other, Registry>&& other)
@@ -1444,11 +1449,11 @@ class virtual_ptr<
     template<
         class Other,
         typename = std::enable_if_t<
-            BOOST_OPENMETHOD_DETAIL_UNLESS_MRDOCS
+            BOOST_OPENMETHOD_UNLESS_MRDOCS(detail::)
                 SameSmartPtr<SmartPtr, Other, Registry> &&
-            std::is_assignable_v<SmartPtr, const Other&> &&
-            BOOST_OPENMETHOD_DETAIL_UNLESS_MRDOCS
-                IsPolymorphic<typename Other::element_type, Registry>>>
+            std::is_assignable_v<SmartPtr, const Other&>>,
+        typename = std::enable_if_t<BOOST_OPENMETHOD_UNLESS_MRDOCS(
+            detail::) IsPolymorphic<typename Other::element_type, Registry>>>
     virtual_ptr& operator=(const Other& other) {
         obj = other;
         vp = detail::box_vptr<use_indirect_vptrs>(
@@ -1480,11 +1485,11 @@ class virtual_ptr<
     template<
         class Other,
         typename = std::enable_if_t<
-            BOOST_OPENMETHOD_DETAIL_UNLESS_MRDOCS
+            BOOST_OPENMETHOD_UNLESS_MRDOCS(detail::)
                 SameSmartPtr<SmartPtr, Other, Registry> &&
-            std::is_assignable_v<SmartPtr, Other&&> &&
-            BOOST_OPENMETHOD_DETAIL_UNLESS_MRDOCS
-                IsPolymorphic<typename Other::element_type, Registry>>>
+            std::is_assignable_v<SmartPtr, Other&&>>,
+        typename = std::enable_if_t<BOOST_OPENMETHOD_UNLESS_MRDOCS(
+            detail::) IsPolymorphic<typename Other::element_type, Registry>>>
     virtual_ptr& operator=(Other&& other) {
         vp = detail::box_vptr<use_indirect_vptrs>(
             other ? detail::acquire_vptr<Registry>(*other) : detail::null_vptr);
@@ -1510,7 +1515,7 @@ class virtual_ptr<
     template<
         class Other,
         typename = std::enable_if_t<
-            BOOST_OPENMETHOD_DETAIL_UNLESS_MRDOCS
+            BOOST_OPENMETHOD_UNLESS_MRDOCS(detail::)
                 SameSmartPtr<SmartPtr, Other, Registry> &&
             std::is_assignable_v<SmartPtr, Other&>>>
     virtual_ptr& operator=(virtual_ptr<Other, Registry>& other) {
@@ -1539,7 +1544,7 @@ class virtual_ptr<
     template<
         class Other,
         typename = std::enable_if_t<
-            BOOST_OPENMETHOD_DETAIL_UNLESS_MRDOCS
+            BOOST_OPENMETHOD_UNLESS_MRDOCS(detail::)
                 SameSmartPtr<SmartPtr, Other, Registry> &&
             std::is_assignable_v<SmartPtr, const Other&>>>
     virtual_ptr& operator=(const virtual_ptr<Other, Registry>& other) {
@@ -1574,7 +1579,7 @@ class virtual_ptr<
     template<
         class Other,
         typename = std::enable_if_t<
-            BOOST_OPENMETHOD_DETAIL_UNLESS_MRDOCS
+            BOOST_OPENMETHOD_UNLESS_MRDOCS(detail::)
                 SameSmartPtr<SmartPtr, Other, Registry> &&
             std::is_assignable_v<SmartPtr, Other&&>>>
     virtual_ptr& operator=(virtual_ptr<Other, Registry>&& other) {
@@ -2101,7 +2106,7 @@ class method<Id, ReturnType(Parameters...), Registry>
     //! @li @ref ambiguous_call: More than one overrider is applicable, and
     //! none is more specialized than all the others.
     //!
-    auto operator()(typename BOOST_OPENMETHOD_DETAIL_UNLESS_MRDOCS
+    auto operator()(typename BOOST_OPENMETHOD_UNLESS_MRDOCS(detail::)
                         StripVirtualDecorator<Parameters>::type... args) const
         -> ReturnType;
 
@@ -2376,7 +2381,7 @@ template<
     typename Id, typename... Parameters, typename ReturnType, class Registry>
 BOOST_FORCEINLINE auto
 method<Id, ReturnType(Parameters...), Registry>::operator()(
-    typename BOOST_OPENMETHOD_DETAIL_UNLESS_MRDOCS
+    typename BOOST_OPENMETHOD_UNLESS_MRDOCS(detail::)
         StripVirtualDecorator<Parameters>::type... args) const -> ReturnType {
     using namespace detail;
     auto pf = resolve(args...);

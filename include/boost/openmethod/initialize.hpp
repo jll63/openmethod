@@ -1,4 +1,4 @@
-// Copyright (c) 2018-2027 Jean-Louis Leroy
+// Copyright (c) 2017-2026 Jean-Louis Leroy
 // Distributed under the Boost Software License, Version 1.0.
 // See accompanying file LICENSE_1_0.txt
 // or copy at http://www.boost.org/LICENSE_1_0.txt)
@@ -564,6 +564,7 @@ struct registry<Policies...>::compiler : detail::generic_compiler {
         bool concrete);
     void write_global_data();
     void print(const method_report& report) const;
+    void print_slots();
     static void select_dominant_overriders(
         std::vector<overrider*>& dominants, std::size_t& pick,
         std::size_t& remaining);
@@ -594,6 +595,7 @@ void registry<Policies...>::compiler<Options...>::install_global_tables() {
     write_global_data();
 
     print(report);
+    print_slots();
     ++tr << "Finished\n";
 }
 
@@ -1832,6 +1834,117 @@ void registry<Policies...>::compiler<Options...>::print(
 
     tr << r.not_implemented << " not implemented, " << r.ambiguous
        << " ambiguous\n";
+}
+
+template<class... Policies>
+template<class... Options>
+void registry<Policies...>::compiler<Options...>::print_slots() {
+    if constexpr (has_trace) {
+        if (!tr.on) {
+            return;
+        }
+
+        using namespace detail;
+
+        // Slot numbering is scoped to a connected component of the class
+        // graph, so partition the classes into components first. A component
+        // is identified by the classes in it that have no direct bases; there
+        // is more than one only in presence of multiple inheritance.
+        std::unordered_map<const class_*, std::size_t> component;
+        std::size_t component_count = 0;
+
+        for (auto& seed : classes) {
+            if (component.find(&seed) != component.end()) {
+                continue;
+            }
+
+            auto id = component_count++;
+            component[&seed] = id;
+            std::vector<class_*> todo{&seed};
+
+            while (!todo.empty()) {
+                auto cls = todo.back();
+                todo.pop_back();
+
+                for (auto neighbors :
+                     {&cls->direct_bases, &cls->direct_derived}) {
+                    for (auto next : *neighbors) {
+                        if (component.emplace(next, id).second) {
+                            todo.push_back(next);
+                        }
+                    }
+                }
+            }
+        }
+
+        // Collect the members in 'classes' order, for a deterministic trace.
+        std::vector<std::vector<class_*>> lattices(component_count);
+
+        for (auto& cls : classes) {
+            lattices[component[&cls]].push_back(&cls);
+        }
+
+        ++tr << "Used slots:\n";
+        indent _(tr);
+
+        for (auto& lattice : lattices) {
+            std::vector<class_*> roots;
+
+            for (auto cls : lattice) {
+                if (cls->direct_bases.empty()) {
+                    roots.push_back(cls);
+                }
+            }
+
+            ++tr << roots << "\n";
+            indent _2(tr);
+
+            struct entry {
+                std::size_t slot;
+                class_* cls;
+                parameter mp;
+            };
+
+            std::vector<entry> slots;
+
+            for (auto cls : lattice) {
+                for (const auto& mp : cls->used_by_vp) {
+                    slots.push_back({mp.method->slots[mp.param], cls, mp});
+                }
+            }
+
+            std::stable_sort(
+                slots.begin(), slots.end(),
+                [](const entry& a, const entry& b) { return a.slot < b.slot; });
+
+            ++tr << "slots:\n";
+
+            {
+                indent _3(tr);
+
+                for (const auto& e : slots) {
+                    ++tr << e.slot << ": in " << *e.cls << " for "
+                         << type_name(e.mp.method->infos[0]->method_type_id)
+                         << " parameter " << e.mp.param << "\n";
+                }
+            }
+
+            ++tr << "v-tables:\n";
+
+            {
+                indent _3(tr);
+
+                for (auto cls : lattice) {
+                    if (cls->vtbl.empty()) {
+                        continue;
+                    }
+
+                    ++tr << *cls << " slots " << cls->first_slot << "-"
+                         << (cls->first_slot + cls->vtbl.size() - 1) << "\n";
+                }
+            }
+        }
+    }
 }
 
 //! Initialize a registry.
