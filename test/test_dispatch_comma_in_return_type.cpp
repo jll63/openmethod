@@ -8,6 +8,8 @@
 #include <boost/openmethod.hpp>
 #include <boost/openmethod/initialize.hpp>
 
+#include "test_classes.hpp"
+
 #define BOOST_TEST_MODULE dispatch_comma_in_return_type
 #include <boost/test/unit_test.hpp>
 
@@ -17,7 +19,7 @@ struct Test {
     virtual ~Test() {};
 };
 
-BOOST_OPENMETHOD_CLASSES(Test);
+BOOST_OPENMETHOD_TEST_CLASSES(Test);
 
 BOOST_OPENMETHOD(foo, (virtual_<Test&>), std::pair<int, int>);
 
@@ -32,3 +34,7 @@ BOOST_AUTO_TEST_CASE(comma_in_return_type) {
 
     BOOST_CHECK(foo(test) == std::pair(1, 2));
 }
+
+// Registers the classes above by reflection, when the compiler supports it.
+// Must come last: reflection sees only what precedes it.
+BOOST_OPENMETHOD_CLASSES_IN(::);

@@ -274,7 +274,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(indirect_virtual_ptr, Registry, test_policies) {
     // Add a class, to make sure dispatch data is not re-constructed in the same
     // place with the same values:
     struct Cat : Animal {};
-    BOOST_OPENMETHOD_CLASSES(Animal, Cat, Registry);
+    BOOST_OPENMETHOD_TEST_CLASSES(Animal, Cat, Registry);
 
     init_test<Registry>();
 

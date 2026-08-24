@@ -14,7 +14,7 @@
 using namespace boost::openmethod;
 using namespace test_matrices;
 
-BOOST_OPENMETHOD_CLASSES(matrix, dense_matrix);
+BOOST_OPENMETHOD_TEST_CLASSES(matrix, dense_matrix);
 
 BOOST_OPENMETHOD(
     times, (virtual_<const matrix&>, virtual_<const matrix&>), string_pair);
@@ -43,3 +43,7 @@ BOOST_AUTO_TEST_CASE(pick_any_ambiguous) {
     BOOST_TEST(result.first == MATRIX_DENSE);
     BOOST_TEST(result.second == MATRIX_MATRIX);
 }
+
+// Registers the classes above by reflection, when the compiler supports it.
+// Must come last: reflection sees only what precedes it.
+BOOST_OPENMETHOD_CLASSES_IN(::);

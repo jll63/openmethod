@@ -78,6 +78,22 @@ We register the classes with `use_classes`:
 include::{example}/core_api.cpp[tag=use_classes]
 ----
 
+With a compiler that supports C++26 reflection, `use_classes_in` replaces that
+list. It scans a namespace for the registry's methods, and registers the classes
+they dispatch on along with everything in the namespace that derives from them:
+
+[source,c++]
+----
+BOOST_OPENMETHOD_REGISTER(use_classes_in<^^::>);
+----
+
+A method declared the way `postfix` is above - an alias for a `method`
+specialization - is found directly, and so is any of its `override` registrars.
+Reflection sees only what precedes it, so this must come after the declarations
+it is meant to find. See
+xref:ROOT:basics.adoc#registering_classes_by_reflection[Registering Classes by
+Reflection].
+
 Finally, we call the method via the static member of the method class `fn`:
 
 [source,c++]

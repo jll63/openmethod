@@ -83,6 +83,13 @@ direct base of a class must appear together with it in at least one call to
 `BOOST_OPENMETHOD_CLASSES`. This enables the library to deduce the complete
 inheritance lattice.
 
+[NOTE]
+====
+With a compiler that supports C++26 reflection, the class list is unnecessary.
+xref:reference:BOOST_OPENMETHOD_CLASSES_IN.adoc[BOOST_OPENMETHOD_CLASSES_IN]
+finds the classes on its own - see <<registering_classes_by_reflection>>.
+====
+
 The constructs used in this example require the classes to be polymorphic, in
 the standard C++ sense, i.e. they must have at least one virtual function. The
 library can also be used with non-polymorphic classes, with some restrictions.
@@ -106,4 +113,89 @@ Putting it all together:
 [source,cpp]
 ----
 include::{examplesdir}/ast.cpp[tag=content]
+----
+
+
+[#registering_classes_by_reflection]
+## Registering Classes by Reflection
+
+When the compiler supports C++26 reflection (P2996), the library can work out
+the class list for itself. One call to
+xref:reference:BOOST_OPENMETHOD_CLASSES_IN.adoc[BOOST_OPENMETHOD_CLASSES_IN]
+replaces every
+xref:reference:BOOST_OPENMETHOD_CLASSES.adoc[BOOST_OPENMETHOD_CLASSES] in the
+file:
+
+[source,c++]
+----
+struct Animal { virtual ~Animal() = default; };
+struct Cat : Animal {};
+struct Dog : Animal {};
+struct Bulldog : Dog {};
+
+BOOST_OPENMETHOD(poke, (std::ostream&, virtual_<Animal&>), void);
+
+BOOST_OPENMETHOD_OVERRIDE(poke, (std::ostream& os, Dog&), void) {
+    os << "bark";
+}
+
+BOOST_OPENMETHOD_CLASSES_IN(::); // registers all four classes
+----
+
+The macro scans the namespace it is given - and the namespaces nested in it -
+for the methods of the registry. It collects the classes those methods dispatch
+on, then registers them, along with every class in the scanned namespaces that
+derives from one of them. `Bulldog` above has no overrider of its own and is
+named nowhere, and is registered all the same.
+
+A base class that no method dispatches on is *not* registered - it could never
+be selected on, and registering it would cost a lattice node, a hash slot and
+dispatch table space for nothing. So a hierarchy rooted in some general-purpose
+base contributes only the part of itself that takes part in dispatch. As soon as
+another method does dispatch on that base, it is registered, and the inheritance
+edges through it with it.
+
+Classes declared in the standard library's or the compiler's own headers are not
+scanned, so `::` costs little more than the narrower namespace would.
+
+Reflection sees only what precedes it, so the macro must come *after* the
+declarations it is meant to find. Putting it at the bottom of the file is the
+simplest way to be sure.
+
+Virtual and multiple inheritance are supported. Unlike
+`BOOST_OPENMETHOD_CLASSES`, which rejects it, repeated inheritance is not an
+error here: an ambiguous base cannot take part in dispatch, so it is left out.
+
+Without reflection - in C++17, or in C++26 without the compiler flag that enables
+it - the macro expands to nothing. A file that also calls
+`BOOST_OPENMETHOD_CLASSES` therefore builds under either standard.
+
+### What Reflection Cannot Find
+
+A method is found through any declaration that names its `method` type: the
+alias `BOOST_OPENMETHOD` declares alongside the method, a `using` declaration of
+your own, or any of the method's registrar objects. None of those depends on the
+method having an overrider, so a method declared with `BOOST_OPENMETHOD` is
+always found.
+
+Three situations remain outside the scan's reach, and need a
+`BOOST_OPENMETHOD_CLASSES` of their own:
+
+* a class in a namespace the macro does not scan;
+* a core API method whose `method<...>` type is spelled out in full at every
+  use, with no `using` declaration of its own and no overrider - nothing names
+  it;
+* a program that declares no method at all, and uses `virtual_ptr` on its own -
+  there is no virtual parameter for the scan to start from.
+
+### Turning It Off
+
+Adding the `policies::explicit_class_registration` policy to a registry stops
+the library from registering anything on its own, in C++26 as in C++17:
+
+[source,c++]
+----
+struct my_registry
+    : boost::openmethod::default_registry::with<
+          boost::openmethod::policies::explicit_class_registration> {};
 ----

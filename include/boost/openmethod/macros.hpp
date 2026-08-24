@@ -219,6 +219,8 @@ inline constexpr bool method_not_found = false;
 //! @see [Header and Implementation Files](xref:ROOT:headers.adoc)
 #define BOOST_OPENMETHOD(ID, PARAMETERS, ...)                                  \
     struct BOOST_OPENMETHOD_ID(ID);                                            \
+    using BOOST_OPENMETHOD_GENSYM =                                            \
+        BOOST_OPENMETHOD_TYPE(ID, PARAMETERS, __VA_ARGS__);                    \
     template<typename... ForwarderParameters>                                  \
     typename ::boost::openmethod::detail::enable_forwarder<                    \
         void, BOOST_OPENMETHOD_TYPE(ID, PARAMETERS, __VA_ARGS__),              \
@@ -586,6 +588,49 @@ inline constexpr bool method_not_found = false;
 //! @see [Methods and Overriders](xref:ROOT:basics.adoc)
 #define BOOST_OPENMETHOD_CLASSES(...)                                          \
     BOOST_OPENMETHOD_REGISTER(::boost::openmethod::use_classes<__VA_ARGS__>)
+
+//! Register the classes of a namespace.
+//!
+//! Finds the classes taking part in dispatch by reflection, and registers them.
+//! It makes @ref BOOST_OPENMETHOD_CLASSES unnecessary in most cases.
+//!
+//! This macro is a wrapper around @ref boost::openmethod::use_classes_in; see
+//! its documentation for more details.
+//!
+//! Reflection sees only what precedes it, so this macro must come **after** the
+//! declarations it is meant to find - at the bottom of the file:
+//!
+//! @code
+//! struct Animal { virtual ~Animal() = default; };
+//! struct Cat : Animal {};
+//! struct Dog : Animal {};
+//! struct Bulldog : Dog {};
+//!
+//! BOOST_OPENMETHOD(poke, (std::ostream&, virtual_<Animal&>), void);
+//!
+//! BOOST_OPENMETHOD_OVERRIDE(poke, (std::ostream& os, Dog&), void) {
+//!     os << "bark";
+//! }
+//!
+//! BOOST_OPENMETHOD_CLASSES_IN(::); // registers all four classes
+//! @endcode
+//!
+//! Without reflection - in C++17, or in C++26 without the compiler flag that
+//! enables it - this macro expands to nothing, so a file that also calls
+//! @ref BOOST_OPENMETHOD_CLASSES builds under either standard.
+//!
+//! @param NAMESPACE The namespace to scan, e.g. `::`.
+//! @param ... The registry, optionally.
+//!
+//! @see [Methods and Overriders](xref:ROOT:basics.adoc)
+#if BOOST_OPENMETHOD_HAS_REFLECTION
+#define BOOST_OPENMETHOD_CLASSES_IN(NAMESPACE, ...)                            \
+    BOOST_OPENMETHOD_REGISTER(                                                 \
+        ::boost::openmethod::use_classes_in<^^NAMESPACE __VA_OPT__(, )         \
+                                                 __VA_ARGS__>)
+#else
+#define BOOST_OPENMETHOD_CLASSES_IN(NAMESPACE, ...) static_assert(true)
+#endif
 
 // The three macros below share a registry's state - the single variable
 // registry_state<R::registry_type>::st, see registry_state in preamble.hpp -

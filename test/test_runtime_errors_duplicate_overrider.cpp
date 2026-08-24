@@ -7,6 +7,8 @@
 
 #include <boost/openmethod/initialize.hpp>
 
+#include "test_classes.hpp"
+
 #define BOOST_TEST_MODULE runtime_errors_duplicate_overrider
 #include <boost/test/unit_test.hpp>
 
@@ -21,7 +23,7 @@ struct Animal {
 
 struct Dog : Animal {};
 
-BOOST_OPENMETHOD_CLASSES(Animal, Dog);
+BOOST_OPENMETHOD_TEST_CLASSES(Animal, Dog);
 
 BOOST_OPENMETHOD(poke, (virtual_ptr<Animal>), const char*);
 
@@ -58,3 +60,7 @@ BOOST_AUTO_TEST_CASE(duplicate_overrider_is_ambiguous) {
     BOOST_CHECK_THROW(poke(dog), ambiguous_call);
     BOOST_TEST(capture().find("ambiguous") != std::string::npos);
 }
+
+// Registers the classes above by reflection, when the compiler supports it.
+// Must come last: reflection sees only what precedes it.
+BOOST_OPENMETHOD_CLASSES_IN(::);

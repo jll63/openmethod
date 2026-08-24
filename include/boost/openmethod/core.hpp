@@ -22,6 +22,7 @@
 
 #include <boost/openmethod/preamble.hpp>
 #include <boost/openmethod/default_registry.hpp>
+#include <boost/openmethod/detail/reflection.hpp>
 
 #ifndef BOOST_OPENMETHOD_DEFAULT_REGISTRY
 //! Default value for `Registry`.
@@ -499,6 +500,33 @@ template<class... Classes>
 class use_classes {
     detail::use_classes_tuple_type<Classes...> tuple;
 };
+
+// -----------------------------------------------------------------------------
+// reflection-based class registration
+
+namespace detail {
+
+#if BOOST_OPENMETHOD_HAS_REFLECTION
+
+// One registrar per entry, for the whole program - not per translation unit, as
+// `BOOST_OPENMETHOD_CLASSES` produces. Same mechanism as
+// `inplace_vptr_use_classes`: an `inline` variable template, instantiated by
+// odr-use. Keyed on the entry rather than on the class, because a class' base
+// list depends on what else was registered alongside it.
+template<class Registry, class Entry>
+inline use_class_aux<Registry, Entry> reflected_class_registrar;
+
+// Register every class the scan selected, each with its direct bases, as
+// `reflected_registered_classes` computed them.
+template<class Registry, class... Entries>
+BOOST_FORCEINLINE auto use_reflected_classes(mp11::mp_list<Entries...>*)
+    -> void {
+    (..., (void)&reflected_class_registrar<Registry, Entries>);
+}
+
+#endif
+
+} // namespace detail
 
 // =============================================================================
 // virtual_ptr
@@ -2755,6 +2783,228 @@ void method<Id, ReturnType(Parameters...), Registry>::override_impl<
         init_type_ids<Registry, typename Thunk::OverriderVirtualParameters>::fn(
             this->vp_type_ids);
 }
+
+// =============================================================================
+// use_classes_in
+
+namespace detail {
+
+#if BOOST_OPENMETHOD_HAS_REFLECTION
+
+template<class Method>
+struct method_traits_aux;
+
+template<
+    typename Id, typename ReturnType, typename... Parameters, class Registry>
+struct method_traits_aux<method<Id, ReturnType(Parameters...), Registry>> {
+    // The classes the method dispatches on, plus its return type, which is
+    // registered too when it is covariant. Same expression as
+    // `method::resolve_type_ids`.
+    using type = mp11::mp_push_back<
+        mp11::mp_transform_q<
+            mp11::mp_bind_back<virtual_type, Registry>,
+            virtual_types<mp11::mp_list<Parameters...>>>,
+        virtual_type<ReturnType, Registry>>;
+};
+
+// Read from reflection, by `substitute`-ing a method into it and taking the
+// template arguments of the result.
+template<class Method>
+using method_classes = typename method_traits_aux<Method>::type;
+
+// The classes to register for a scan of `Namespace`, each with its direct
+// bases: the classes the methods of `Registry` dispatch on, and the ones the
+// scan found that derive from them. Returns
+// `mp_list<mp_list<Class, Class, Base...>, ...>` - the shape `use_class_aux`
+// expects, with the class repeated as its own improper base, as
+// `inheritance_map` produces.
+//
+// The work is done here, in reflection, and not with `mp11` over the lists the
+// scan produces. A scan of the global namespace reaches every class in the
+// program that is not in `std`, and instantiating a trait once per pair of
+// them costs far more than walking their base classes does.
+template<std::meta::info Namespace, class Registry>
+consteval auto reflected_registered_classes_info() -> std::meta::info {
+    std::vector<std::meta::info> methods, classes;
+    scan_namespace(Namespace, ^^method, methods, classes);
+
+    // The classes the methods dispatch on.
+    std::vector<std::meta::info> virtual_classes;
+
+    for (auto found : methods) {
+        // A method's third template argument is its registry.
+        if (std::meta::template_arguments_of(found)[2] != ^^Registry) {
+            continue;
+        }
+
+        auto list = std::meta::dealias(
+            std::meta::substitute(
+                ^^method_classes,
+                {
+                    found}));
+
+        for (auto type : std::meta::template_arguments_of(list)) {
+            // A method's return type is `void` unless it is covariant, and a
+            // virtual parameter may be a smart pointer rather than a class.
+            if (std::meta::is_class_type(type)) {
+                push_unique(virtual_classes, std::meta::remove_cv(type));
+            }
+        }
+    }
+
+    // Those, plus every class the scan found that derives from one of them. A
+    // base class no method dispatches on is left out: no overrider could ever
+    // be selected on it, and it would cost a lattice node, a hash slot and
+    // dispatch table space.
+    auto registered = virtual_classes;
+
+    for (auto found : classes) {
+        std::vector<std::meta::info> bases;
+        collect_reflected_bases(found, bases);
+
+        for (auto base : bases) {
+            if (contains(virtual_classes, base)) {
+                push_unique(registered, found);
+                break;
+            }
+        }
+    }
+
+    // Which registered class inherits from which, as a square matrix indexed
+    // by position in `registered`. Walking the base classes once per class and
+    // answering from the matrix afterwards keeps this within the compiler's
+    // budget for constant evaluation: the alternative, re-searching a class'
+    // bases for every pair, is cubic in the number of classes times the depth
+    // of the hierarchy, and exceeds GCC's default -fconstexpr-ops-limit on a
+    // chain of a few dozen.
+    auto count = registered.size();
+    std::vector<char> inherits(count * count, char(0));
+
+    for (auto index = 0u; index != count; ++index) {
+        std::vector<std::meta::info> bases;
+        collect_reflected_bases(registered[index], bases);
+
+        for (auto base : bases) {
+            if (base == registered[index]) {
+                continue;
+            }
+
+            for (auto other = 0u; other != count; ++other) {
+                if (registered[other] == base) {
+                    inherits[index * count + other] = char(1);
+                    break;
+                }
+            }
+        }
+    }
+
+    std::vector<std::meta::info> entries;
+
+    for (auto index = 0u; index != count; ++index) {
+        std::vector<std::meta::info> entry;
+        entry.push_back(registered[index]);
+        // The class as its own improper base, as `inheritance_map` does.
+        // `initialize` discards it, and `use_class_aux` cannot hold an empty
+        // base array.
+        entry.push_back(registered[index]);
+
+        for (auto base = 0u; base != count; ++base) {
+            if (!inherits[index * count + base]) {
+                continue;
+            }
+
+            // Keep only the nearest ancestors - the direct bases of this class
+            // in the lattice the registry will hold. One that another ancestor
+            // also inherits from is reached through that one, and recording it
+            // as well would make `initialize` see an edge that is not there.
+            // Unregistered classes in between are skipped over, which is what
+            // flattens the lattice down to the classes that dispatch.
+            bool hidden = false;
+
+            for (auto between = 0u; between != count; ++between) {
+                if (between != base && inherits[index * count + between] &&
+                    inherits[between * count + base]) {
+                    hidden = true;
+                    break;
+                }
+            }
+
+            if (!hidden) {
+                entry.push_back(registered[base]);
+            }
+        }
+
+        entries.push_back(std::meta::substitute(^^mp11::mp_list, entry));
+    }
+
+    return std::meta::substitute(^^mp11::mp_list, entries);
+}
+
+// `mp_list<mp_list<Class, Class, Base...>, ...>`, ready for `use_class_aux`.
+//
+// clang-format off: the formatter predates P2996 and eats the spaces around the
+// splice, leaving `typename[:...:]`.
+template<std::meta::info Namespace, class Registry>
+using reflected_registered_classes =
+    typename [: reflected_registered_classes_info<Namespace, Registry>() :];
+// clang-format on
+
+#endif
+
+} // namespace detail
+
+//! Add the classes of a namespace to a registry
+//!
+//! `use_classes_in` is a registrar class that finds the classes taking part in
+//! dispatch by reflection, and adds them to a registry. It makes @ref
+//! use_classes unnecessary in most cases.
+//!
+//! It scans `Namespace`, and the namespaces nested in it, for the methods of
+//! `Registry`; collects the classes they dispatch on; and registers those,
+//! along with every class in the scanned namespaces that derives from one of
+//! them. A base class that no method dispatches on is not registered: it could
+//! never be selected on. Classes declared in the standard library's or the
+//! compiler's own headers are not scanned.
+//!
+//! Reflection sees only what precedes it, so `use_classes_in` must come **after**
+//! the declarations it is meant to find - at the bottom of the file.
+//!
+//! A method is found through any namespace member that names its `method`
+//! specialization: the alias @ref BOOST_OPENMETHOD declares for it, a `using`
+//! declaration written by hand, or any of its registrar objects - the object
+//! @ref BOOST_OPENMETHOD_OVERRIDE creates, or one written by hand. None of
+//! those requires the method to have an overrider. A core interface method
+//! whose `method<...>` type is spelled out in full at every use, with neither a
+//! `using` declaration nor an overrider, is named by nothing and is not found;
+//! its classes must be registered with @ref use_classes.
+//!
+//! Virtual and multiple inheritance are supported. Unlike @ref use_classes,
+//! which rejects it, repeated inheritance is not an error here: an ambiguous
+//! base cannot take part in dispatch, so it is left out.
+//!
+//! This class template is available only if the compiler supports C++26
+//! reflection, i.e. if `BOOST_OPENMETHOD_HAS_REFLECTION` is 1.
+//!
+//! @tparam Namespace A reflection of a namespace, e.g. `^^::`.
+//! @tparam Registry A @ref registry.
+//!
+//! @see [Core API](xref:ROOT:core_api.adoc)
+#if BOOST_OPENMETHOD_HAS_REFLECTION
+template<
+    std::meta::info Namespace,
+    class Registry = BOOST_OPENMETHOD_DEFAULT_REGISTRY>
+class use_classes_in {
+  public:
+    use_classes_in() {
+        if constexpr (Registry::has_reflected_class_registration) {
+            using registered =
+                detail::reflected_registered_classes<Namespace, Registry>;
+            detail::use_reflected_classes<Registry>(
+                static_cast<registered*>(nullptr));
+        }
+    }
+};
+#endif
 
 //! Aliases for the most frequently used types in the library.
 namespace aliases {

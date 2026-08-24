@@ -16,7 +16,7 @@
 using namespace boost::openmethod;
 using namespace animals;
 
-BOOST_OPENMETHOD_CLASSES(Animal, Dog, Cat);
+BOOST_OPENMETHOD_TEST_CLASSES(Animal, Dog, Cat);
 
 BOOST_OPENMETHOD(teleport, (virtual_<Animal&&>), std::unique_ptr<Animal>);
 
@@ -45,3 +45,7 @@ BOOST_AUTO_TEST_CASE(cast_args_rvalue_refs) {
         BOOST_TEST(felix.name == "");
     }
 }
+
+// Registers the classes above by reflection, when the compiler supports it.
+// Must come last: reflection sees only what precedes it.
+BOOST_OPENMETHOD_CLASSES_IN(::);

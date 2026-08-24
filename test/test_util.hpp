@@ -13,6 +13,8 @@
 #include <boost/openmethod/core.hpp>
 #include <boost/openmethod/initialize.hpp>
 
+#include "test_classes.hpp"
+
 struct unique_category {
     using category = unique_category;
 };

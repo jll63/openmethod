@@ -9,6 +9,8 @@ struct test_registry;
 #include <boost/openmethod.hpp>
 #include <boost/openmethod/initialize.hpp>
 
+#include "test_classes.hpp"
+
 #include <cstddef>
 
 namespace {
@@ -154,7 +156,7 @@ struct test_registry :
 
 using namespace boost::openmethod;
 
-BOOST_OPENMETHOD_CLASSES(Animal, Dog, Cat, Bat, Owl);
+BOOST_OPENMETHOD_TEST_CLASSES(Animal, Dog, Cat, Bat, Owl);
 
 BOOST_OPENMETHOD(poke, (virtual_<Animal&>, std::ostream&), void);
 
@@ -233,3 +235,7 @@ BOOST_AUTO_TEST_CASE(custom_rtti_deferred) {
         BOOST_TEST(os.str() == "The bat evades the owl.");
     }
 }
+
+// Registers the classes above by reflection, when the compiler supports it.
+// Must come last: reflection sees only what precedes it.
+BOOST_OPENMETHOD_CLASSES_IN(::);

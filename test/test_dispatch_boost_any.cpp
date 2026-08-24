@@ -11,6 +11,8 @@
 #include <boost/openmethod/initialize.hpp>
 #include <boost/openmethod/policies/throw_error_handler.hpp>
 
+#include "test_classes.hpp"
+
 #define BOOST_TEST_MODULE dispatch_boost_any
 #include <boost/test/unit_test.hpp>
 
@@ -292,7 +294,7 @@ struct Animal {
 
 struct Cat : Animal {};
 
-BOOST_OPENMETHOD_CLASSES(Animal, Cat);
+BOOST_OPENMETHOD_TEST_CLASSES(Animal, Cat);
 
 BOOST_OPENMETHOD(
     meet, (virtual_<const boost::any&>, virtual_ptr<const Animal>),
@@ -373,7 +375,7 @@ struct Dog : Animal {
     std::string name;
 };
 
-BOOST_OPENMETHOD_CLASSES(Animal, Dog);
+BOOST_OPENMETHOD_TEST_CLASSES(Animal, Dog);
 
 BOOST_OPENMETHOD(poke, (virtual_ptr<const Animal>), std::string);
 
@@ -399,3 +401,7 @@ BOOST_AUTO_TEST_CASE(boost_any_class_in_hierarchy) {
     BOOST_TEST(name(any_spot) == "Spot the dog");
 }
 } // namespace BOOST_OPENMETHOD_GENSYM
+
+// Registers the classes above by reflection, when the compiler supports it.
+// Must come last: reflection sees only what precedes it.
+BOOST_OPENMETHOD_CLASSES_IN(::);

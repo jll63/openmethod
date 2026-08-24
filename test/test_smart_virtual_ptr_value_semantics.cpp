@@ -443,3 +443,7 @@ template struct check_illegal_smart_ops<
 
 template struct check_illegal_smart_ops<
     boost::intrusive_ptr, std::unique_ptr, direct_vector>;
+
+// Registers the classes above by reflection, when the compiler supports it.
+// Must come last: reflection sees only what precedes it.
+BOOST_OPENMETHOD_CLASSES_IN(::);

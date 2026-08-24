@@ -54,6 +54,41 @@ jobs:
       COVERITY_SCAN_NOTIFICATION_EMAIL: ${{ secrets.COVERITY_SCAN_NOTIFICATION_EMAIL }}
       COVERITY_SCAN_TOKEN: ${{ secrets.COVERITY_SCAN_TOKEN }}
 
+  reflection:
+    name: C++26 reflection
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Install GCC 16
+        run: |
+          sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+          sudo apt-get update
+          sudo apt-get install -y g++-16 cmake ninja-build
+
+      - name: Clone Boost.OpenMethod
+        uses: actions/checkout@v4
+
+      - name: Clone Boost
+        uses: alandefreitas/cpp-actions/boost-clone@v1.8.8
+        with:
+          branch: ${{ (github.ref_name == 'master' && github.ref_name) || 'develop' }}
+          boost-dir: ../boost-source
+          scan-modules-dir: .
+          scan-modules-ignore: openmethod
+
+      # The suite is the reflection test: BOOST_OPENMETHOD_TEST_CLASSES expands
+      # to nothing here, so every class has to be found by use_classes_in.
+      - name: Build and test
+        run: |
+          cmake -S . -B ../build -G Ninja \
+            -DCMAKE_BUILD_TYPE=Debug \
+            -DCMAKE_CXX_COMPILER=g++-16 \
+            -DBOOST_OPENMETHOD_ENABLE_REFLECTION=ON \
+            -DBOOST_OPENMETHOD_BUILD_TESTS=ON \
+            -DBOOST_OPENMETHOD_WARNINGS_AS_ERRORS=ON \
+            -DBOOST_SRC_DIR="$(cd .. && pwd)/boost-source"
+          cmake --build ../build --target tests -j $(nproc)
+          ctest --test-dir ../build -j $(nproc) --output-on-failure
+
   antora:
     name: Antora docs
     strategy:

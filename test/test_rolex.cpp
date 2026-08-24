@@ -6,6 +6,8 @@
 #include <boost/openmethod.hpp>
 #include <boost/openmethod/initialize.hpp>
 
+#include "test_classes.hpp"
+
 #define BOOST_TEST_MODULE test_rolex
 #include <boost/test/unit_test.hpp>
 
@@ -37,7 +39,7 @@ struct Metro : Public {};
 struct Taxi : Expense {};
 struct PrivateJet : Expense {};
 
-BOOST_OPENMETHOD_CLASSES(
+BOOST_OPENMETHOD_TEST_CLASSES(
     Role, Employee, Manager, Founder, Expense, Public, Bus, Metro, Taxi,
     PrivateJet);
 
@@ -184,3 +186,7 @@ BOOST_AUTO_TEST_CASE(approve_via_wrapper) {
     BOOST_TEST(call_approve(m, taxi, 10) == true);
     BOOST_TEST(call_approve(f, taxi, 10) == true);
 }
+
+// Registers the classes above by reflection, when the compiler supports it.
+// Must come last: reflection sees only what precedes it.
+BOOST_OPENMETHOD_CLASSES_IN(::);

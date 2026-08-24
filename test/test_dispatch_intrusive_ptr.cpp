@@ -12,6 +12,8 @@
 #include <boost/openmethod.hpp>
 #include <boost/openmethod/interop/boost_intrusive_ptr.hpp>
 #include <boost/openmethod/initialize.hpp>
+
+#include "test_classes.hpp"
 #include <boost/smart_ptr/intrusive_ptr.hpp>
 #include <boost/smart_ptr/intrusive_ref_counter.hpp>
 
@@ -41,7 +43,7 @@ using namespace boost::openmethod;
         using Animal::Animal;                                                  \
     };                                                                         \
                                                                                \
-    BOOST_OPENMETHOD_CLASSES(Animal, Dog, Cat);
+    BOOST_OPENMETHOD_TEST_CLASSES(Animal, Dog, Cat);
 
 namespace BOOST_OPENMETHOD_GENSYM {
 
@@ -166,3 +168,7 @@ BOOST_AUTO_TEST_CASE(intrusive_virtual_ptr_by_const_ref) {
     BOOST_TEST(name(felix) == "Felix the cat");
 }
 } // namespace BOOST_OPENMETHOD_GENSYM
+
+// Registers the classes above by reflection, when the compiler supports it.
+// Must come last: reflection sees only what precedes it.
+BOOST_OPENMETHOD_CLASSES_IN(::);

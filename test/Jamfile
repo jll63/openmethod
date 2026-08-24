@@ -46,6 +46,13 @@ project
     <include>../../type_erasure/include
     <define>BOOST_TYPE_ERASURE_NO_LIB=1
 
+    # C++26 reflection (P2996). GCC provides it only behind a flag, and accepts
+    # that flag only alongside a C++26 standard flag - so this is conditioned on
+    # cxxstd=26, not on cxxstd=2c, which spells the standard -std=c++2c. The
+    # library needs nothing else: it detects reflection from
+    # __cpp_impl_reflection, and falls back to explicit class registration.
+    <toolset>gcc,<cxxstd>26:<cxxflags>-freflection
+
     <warnings>extra
 
     <toolset>clang:<warnings-as-errors>on

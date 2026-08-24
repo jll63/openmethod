@@ -17,6 +17,8 @@ struct static_registry :
 #define BOOST_TEST_MODULE openmethod
 #include <boost/test/unit_test.hpp>
 
+#include "test_classes.hpp"
+
 struct Animal {};
 
 struct Dog : Animal {};
@@ -25,7 +27,7 @@ struct Cat : Animal {};
 
 using namespace boost::openmethod::aliases;
 
-BOOST_OPENMETHOD_CLASSES(Animal, Dog, Cat);
+BOOST_OPENMETHOD_TEST_CLASSES(Animal, Dog, Cat);
 
 BOOST_OPENMETHOD(poke, (virtual_ptr<Animal>, std::ostream&), void);
 
@@ -54,3 +56,7 @@ BOOST_AUTO_TEST_CASE(static_rtti) {
         BOOST_TEST(os.str() == "bark");
     }
 }
+
+// Registers the classes above by reflection, when the compiler supports it.
+// Must come last: reflection sees only what precedes it.
+BOOST_OPENMETHOD_CLASSES_IN(::);

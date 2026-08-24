@@ -29,11 +29,17 @@ class Dolphin : public interfaces::Animal {};
 #include <boost/openmethod.hpp>
 #include <boost/openmethod/initialize.hpp>
 
+#include "test_classes.hpp"
+
 using boost::openmethod::virtual_;
 
-BOOST_OPENMETHOD_CLASSES(
-    interfaces::Animal, canis::Dog, canis::Bulldog, felis::Cat,
-    delphinus::Dolphin);
+BOOST_OPENMETHOD_TEST_CLASSES(
+    interfaces::Animal, canis::Dog, canis::Bulldog, felis::Cat);
+
+// Dolphin has no overrider of its own, and is not named in any method
+// signature, so reflection has no way of finding it. It is registered by hand
+// in C++26 too - along with its base, as use_classes requires.
+BOOST_OPENMETHOD_CLASSES(interfaces::Animal, delphinus::Dolphin);
 
 // open method with single virtual argument <=> virtual function "from outside"
 BOOST_OPENMETHOD(poke, (virtual_<interfaces::Animal&>), std::string);
@@ -102,3 +108,7 @@ auto main() -> int {
     std::cout << "hector meets flipper: " << meet(*hector, *flipper)
               << "\n"; // ignore
 }
+
+// Registers the classes above by reflection, when the compiler supports it.
+// Must come last: reflection sees only what precedes it.
+BOOST_OPENMETHOD_CLASSES_IN(::);
