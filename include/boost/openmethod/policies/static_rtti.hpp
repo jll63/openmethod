@@ -21,8 +21,9 @@ namespace boost::openmethod::policies {
 //!
 //! @par Example
 //!
-//! Selecting the policy, which has to happen before `<boost/openmethod.hpp>`
-//! is included:
+//! Selecting the policy. The registry is declared before
+//! `<boost/openmethod/core.hpp>` (or any header that includes it, like
+//! `<boost/openmethod.hpp>`), and defined after it:
 //!
 //! include:static_rtti.cpp#registry
 //!

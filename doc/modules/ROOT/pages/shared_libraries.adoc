@@ -44,7 +44,9 @@ BOOST_OPENMETHOD_EXPORT_REGISTRY(boost::openmethod::default_registry);
 BOOST_OPENMETHOD_INSTANTIATE_REGISTRY(boost::openmethod::default_registry);
 ----
 
-Use them at namespace scope, after `<boost/openmethod.hpp>` has been included.
+Use them at namespace scope, after `<boost/openmethod.hpp>` has been included
+and after the registry class is defined - they expand to
+`registry_state<REGISTRY::registry_type>`, which needs a complete type.
 Everything they emit is fully qualified, so nothing need be added to
 `namespace boost::openmethod`.
 
@@ -236,12 +238,13 @@ most programs that dynamically load shared libraries do so at the very beginning
 of their execution.
 
 Otherwise, indirect v-table pointers must be used. This is achieved by using a
-registry that contains the cpp:indirect_vptr[] policy.
-`<boost/openmethod/default_registry.hpp>` provides an cpp:indirect_registry[]
-that has the same policies as `default_registry`, plus `indirect_vptr`. Make it
-the registry the `BOOST_OPENMETHOD` macros use by defining
+registry that contains the cpp:indirect_vptr[] policy. The library provides an
+cpp:indirect_registry[] that has the same policies as `default_registry`, plus
+`indirect_vptr`. Make it the registry the `BOOST_OPENMETHOD` macros use by
+defining
 xref:reference:BOOST_OPENMETHOD_DEFAULT_REGISTRY.adoc[BOOST_OPENMETHOD_DEFAULT_REGISTRY]
-_before_ including `<boost/openmethod.hpp>`.
+_before_ including `<boost/openmethod/core.hpp>`, or any header that includes
+it, like `<boost/openmethod.hpp>`.
 
 The `indirect_vptr` example does that in the header both modules share, rather
 than passing a compiler switch from the build system. One place then settles
@@ -277,6 +280,14 @@ A custom registry is shared exactly the same way - name it instead of
 [source,c++]
 ----
 // my_registry.hpp
+#ifndef MY_REGISTRY_DEFINED
+#define MY_REGISTRY_DEFINED
+
+struct my_registry;
+#define BOOST_OPENMETHOD_DEFAULT_REGISTRY my_registry
+
+#include <boost/openmethod.hpp>
+
 struct my_registry : boost::openmethod::registry</* policies... */> {};
 
 #ifdef OWNS_REGISTRY_STATE
@@ -284,7 +295,14 @@ BOOST_OPENMETHOD_EXPORT_REGISTRY(my_registry);
 #else
 BOOST_OPENMETHOD_IMPORT_REGISTRY(my_registry);
 #endif
+
+#endif
 ----
+
+The `#define` makes `my_registry` the registry the `BOOST_OPENMETHOD` macros
+use, exactly as `indirect_vptr/animals.hpp` does above; drop it if the methods
+name their registry explicitly. The sharing macros come last, after the
+definition.
 
 [source,c++]
 ----

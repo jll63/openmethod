@@ -9,15 +9,13 @@
 #define BOOST_TEST_MODULE core
 #include <boost/test/unit_test.hpp>
 
-#include <boost/openmethod/preamble.hpp>
+#include <boost/openmethod.hpp>
+#include <boost/openmethod/inplace_vptr.hpp>
+#include <boost/openmethod/interop/std_shared_ptr.hpp>
 
 using namespace boost::openmethod;
 using namespace boost::openmethod::detail;
 namespace mp11 = boost::mp11;
-
-#include <boost/openmethod.hpp>
-#include <boost/openmethod/inplace_vptr.hpp>
-#include <boost/openmethod/interop/std_shared_ptr.hpp>
 
 #include "test_util.hpp"
 

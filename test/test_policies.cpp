@@ -9,7 +9,7 @@
 #define BOOST_TEST_MODULE policies
 #include <boost/test/unit_test.hpp>
 
-#include <boost/openmethod/default_registry.hpp>
+#include <boost/openmethod.hpp>
 
 #include "test_util.hpp"
 

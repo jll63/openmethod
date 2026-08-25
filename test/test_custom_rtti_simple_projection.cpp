@@ -3,7 +3,11 @@
 // See accompanying file LICENSE_1_0.txt
 // or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-#include <boost/openmethod/default_registry.hpp>
+struct test_registry;
+#define BOOST_OPENMETHOD_DEFAULT_REGISTRY test_registry
+
+#include <boost/openmethod.hpp>
+#include <boost/openmethod/initialize.hpp>
 
 namespace {
 template<typename T>
@@ -75,11 +79,6 @@ struct custom_rtti : boost::openmethod::policies::rtti {
 
 struct test_registry : boost::openmethod::default_registry::with<custom_rtti> {
 };
-
-#define BOOST_OPENMETHOD_DEFAULT_REGISTRY test_registry
-
-#include <boost/openmethod.hpp>
-#include <boost/openmethod/initialize.hpp>
 
 #define BOOST_TEST_MODULE custom_rtti_simple_projection
 #include <boost/test/unit_test.hpp>

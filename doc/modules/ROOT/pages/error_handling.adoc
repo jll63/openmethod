@@ -24,8 +24,12 @@ not implemented
 spin
 ----
 
-We can also replace the `error_handler` policy with our own.
-For example:
+We can also replace the `error_handler` policy with our own. Since the handler
+is part of the registry, this means overriding the default registry: the
+listing opens by declaring `custom_registry` and naming it in
+xref:reference:BOOST_OPENMETHOD_DEFAULT_REGISTRY.adoc[BOOST_OPENMETHOD_DEFAULT_REGISTRY],
+then defines it further down, once the policy it is built from exists. See
+xref:registries_and_policies.adoc[Registries and Policies] for that recipe.
 
 
 [source,c++]

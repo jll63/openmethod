@@ -89,7 +89,8 @@ struct indirect_registry : default_registry::with<policies::indirect_vptr> {};
 //! Enable runtime checks in @ref boost::openmethod::default_registry.
 //!
 //! May be defined by a program before including
-//! `<boost/openmethod/default_registry.hpp>` to enable runtime checks. See
+//! `<boost/openmethod/default_registry.hpp>` (or any header that includes it,
+//! like `<boost/openmethod.hpp>`) to enable runtime checks. See
 //! @ref boost::openmethod::default_registry for details.
 //!
 //! @par Example

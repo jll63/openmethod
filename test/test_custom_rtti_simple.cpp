@@ -3,7 +3,13 @@
 // See accompanying file LICENSE_1_0.txt
 // or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-#include <boost/openmethod/default_registry.hpp>
+struct test_registry;
+#define BOOST_OPENMETHOD_DEFAULT_REGISTRY test_registry
+
+#include <boost/openmethod.hpp>
+#include <boost/openmethod/initialize.hpp>
+
+#include <cstddef>
 
 namespace {
 constexpr std::size_t non_polymorphic_high_bit = std::size_t(1)
@@ -87,11 +93,6 @@ struct custom_rtti : boost::openmethod::policies::rtti {
 struct test_registry
     : boost::openmethod::default_registry::with<custom_rtti>::without<
           boost::openmethod::policies::type_hash> {};
-
-#define BOOST_OPENMETHOD_DEFAULT_REGISTRY test_registry
-
-#include <boost/openmethod.hpp>
-#include <boost/openmethod/initialize.hpp>
 
 #define BOOST_TEST_MODULE custom_rtti_simple
 #include <boost/test/unit_test.hpp>

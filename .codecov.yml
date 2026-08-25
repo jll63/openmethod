@@ -20,4 +20,9 @@ comment:
 # See https://docs.codecov.com/docs/ignoring-paths
 ignore:
   - extra/**/*
-  # - test/**/*
+  # `test/**`, not the sample's `test/**/*`: the latter compiles to
+  # (?s:test/.*/[^\/]*)\Z, which needs a second slash and so matches only the
+  # subdirectories of test/ - every top-level test/test_*.cpp stays counted.
+  # Check a pattern with:
+  #   curl -X POST --data-binary @.codecov.yml https://codecov.io/validate
+  - test/**

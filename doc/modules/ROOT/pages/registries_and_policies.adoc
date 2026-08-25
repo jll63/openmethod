@@ -7,14 +7,48 @@ different registries, it must be registered with each of them.
 
 Class templates cpp:use_classes[], cpp:method[], cpp:virtual_ptr[], and macros
 xref:reference:BOOST_OPENMETHOD.adoc[BOOST_OPENMETHOD] and
-xref:reference:BOOST_OPENMETHOD_CLASSES.adoc[BOOST_OPENMETHOD_CLASSES], take an additional
-argument, a cpp:registry[] class, which defaults to cpp:default_registry[]. The
-default registry can be overridden by defining the macroprocessor symbol
+xref:reference:BOOST_OPENMETHOD_CLASSES.adoc[BOOST_OPENMETHOD_CLASSES], take an
+additional argument, a cpp:registry[] class, which defaults to
+cpp:default_registry[]. The default registry can be overridden by defining the
+preprocessor symbol
 xref:reference:BOOST_OPENMETHOD_DEFAULT_REGISTRY.adoc[BOOST_OPENMETHOD_DEFAULT_REGISTRY]
-_before_ including `<boost/openmethod/core.hpp>`. The value of the symbol is
-used as a default template parameter for `use_classes`, `method`, `virtual_ptr`,
-and others. Once the `core` header has been included, changing
-`BOOST_OPENMETHOD_DEFAULT_REGISTRY` has no effect.
+_before_ including `<boost/openmethod/core.hpp>` (or any header that includes
+it, like `<boost/openmethod.hpp>`). The value of the symbol is used as a default
+template parameter for `use_classes`, `method`, `virtual_ptr`, and others. Once
+it has been included, changing `BOOST_OPENMETHOD_DEFAULT_REGISTRY` has no
+effect.
+
+For a registry the library provides, that is the whole recipe:
+
+[source,c++]
+----
+#define BOOST_OPENMETHOD_DEFAULT_REGISTRY boost::openmethod::indirect_registry
+#include <boost/openmethod.hpp>
+----
+
+A registry of your own is only _declared_ before the include, and defined after
+it, where the policies it is built from are available - the library's, and any
+of your own, written against them:
+
+[source,c++]
+----
+struct my_registry;
+#define BOOST_OPENMETHOD_DEFAULT_REGISTRY my_registry
+
+#include <boost/openmethod.hpp>
+#include <boost/openmethod/policies/vptr_map.hpp>
+
+struct my_registry
+    : boost::openmethod::default_registry::with<
+          boost::openmethod::policies::vptr_map<>> {};
+----
+
+The definition must precede the first construct that instantiates the registry:
+a `BOOST_OPENMETHOD` macro, a `use_classes`, a `method` or a `virtual_ptr`. The
+symbol must name a class, not a typedef or an alias template, and the
+declaration must use the same class-key as the definition. Qualify the name if
+it could also be found in namespace `boost::openmethod` - `registry` in
+particular.
 
 A registry has a collection of _policies_. Each policy belongs to a policy
 category. A registry may contain at most one policy of each category. Policies
@@ -52,7 +86,7 @@ Policies are placed in the cpp:boost::openmethod::policies[] namespace.
 
 |===
 
-if
+If
 xref:reference:BOOST_OPENMETHOD_ENABLE_RUNTIME_CHECKS.adoc[BOOST_OPENMETHOD_ENABLE_RUNTIME_CHECKS]
 is defined, `default_registry` also contains the `runtime_checks` policy. This
 enables extra validations during method dispatch, which can detect missing class
@@ -65,7 +99,8 @@ about xref:shared_libraries.adoc[shared libraries].
 
 Registries can be created from scratch, using the `registry` template. Here is
 the definition of `default_registry`, copied from
-`<boost/openmethod/registry.hpp>`:
+`<boost/openmethod/default_registry.hpp>`, which `<boost/openmethod.hpp>`
+always includes:
 
 [source,c++]
 ----
@@ -115,7 +150,7 @@ left to right; cpp:finalize[] calls each policy's `finalize` in the reverse
 order. A policy that depends on another policy having been initialized must
 therefore be listed _after_ its dependency. In particular, `vptr_vector` reads
 the state of the `type_hash` policy, so the `type_hash` policy must come before
-`vptr_vector` — as in `default_registry` above, where `fast_perfect_hash`
+`vptr_vector` - as in `default_registry` above, where `fast_perfect_hash`
 precedes `vptr_vector`. This particular requirement is enforced with a
 `static_assert`.
 
@@ -129,7 +164,7 @@ struct indirect_registry : default_registry::with<policies::indirect_vptr> {};
 ----
 
 Policies are implemented as unary
-https://www.boost.org/doc/libs/1_89_0/libs/mp11/doc/html/mp11.html[Boost.MP11
+https://www.boost.org/doc/libs/latest/libs/mp11/doc/html/mp11.html[Boost.MP11
 quoted metafunctions]. A policy is an ordinary class that contains a nested
 class template `fn`, which is instantiated by the registry, passing itself as
 the single template argument. The reason for this mechanism is to allow policies

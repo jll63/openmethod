@@ -87,9 +87,22 @@ compile-time constants:
 include::{example}/1/custom_rtti.cpp[tag=classes]
 ----
 
-Let's define a `rtti` policy for this scheme. We are going to replace the
-default registry globally, so we do _not_ include `<boost/openmethod/core.hpp>`
-or `<boost/openmethod.hpp>` - only what we need to implement the policy:
+We are going to replace the default registry for the whole program. That takes
+two lines before the library is included: a declaration of the registry class,
+and a definition of
+xref:reference:BOOST_OPENMETHOD_DEFAULT_REGISTRY.adoc[BOOST_OPENMETHOD_DEFAULT_REGISTRY]
+naming it. The registry itself comes further down; only its _name_ has to be
+known when `<boost/openmethod/core.hpp>` is parsed - which any header that
+includes it, `<boost/openmethod.hpp>` among them, does for you.
+
+[source,c++]
+----
+include::{example}/1/custom_rtti.cpp[tag=setup]
+----
+
+Now we can define a `rtti` policy for our scheme. Everything it needs is
+already in scope: the cpp:rtti[] category and its cpp:rtti::defaults[] came in
+with `<boost/openmethod.hpp>`.
 
 [source,c++]
 ----
@@ -123,13 +136,10 @@ small, dense range. It means that we can use them as indexes in a vector.
 include::{example}/1/custom_rtti.cpp[tag=registry]
 ----
 
-Defining macro
-xref:reference:BOOST_OPENMETHOD_DEFAULT_REGISTRY.adoc[BOOST_OPENMETHOD_DEFAULT_REGISTRY]
-sets the default registry used by all library components that need one.
-
-Next, we include the main header.
-Because `BOOST_OPENMETHOD_DEFAULT_REGISTRY` is defined, its value is used
-for the default registry.
+This is the definition promised by the declaration shown above. It must appear
+before the first `BOOST_OPENMETHOD`, `BOOST_OPENMETHOD_OVERRIDE` or
+`BOOST_OPENMETHOD_CLASSES`: those instantiate the registry, and an incomplete
+type will not do.
 
 The rest of the example is unchanged.
 
@@ -163,4 +173,17 @@ postpones reading the type ids until `initialize` is called:
 [source,c++]
 ----
 include::{example}/2/custom_rtti.cpp[tag=policy]
+----
+
+The setup is the same as before - the registry is declared, named as the default,
+and defined once the library is in scope:
+
+[source,c++]
+----
+include::{example}/2/custom_rtti.cpp[tag=setup]
+----
+
+[source,c++]
+----
+include::{example}/2/custom_rtti.cpp[tag=registry]
 ----

@@ -35,19 +35,45 @@
 //!
 //! `BOOST_OPENMETHOD_DEFAULT_REGISTRY` can be defined by a program to change
 //! the default registry globally, *before* including
-//! `<boost/openmethod/core.hpp>`. After that, changing its value has no effect,
+//! `<boost/openmethod/core.hpp>` (or any header that includes it, like
+//! `<boost/openmethod.hpp>`). After that, changing its value has no effect,
 //! even on other macros.
 //!
-//! To override the default registry, proceed as follows:
+//! To use a registry that the library provides, name it in the macro:
 //!
-//! @li Define a @ref boost::openmethod::registry class, either from scratch, or
-//! by tuning an existing registry. Include `<boost/openmethod/preamble.hpp>`,
-//! `<boost/openmethod/default_registry.hpp>`, and headers under
-//! `boost/openmethod/policies` as needed.
+//! @code
+//! #define BOOST_OPENMETHOD_DEFAULT_REGISTRY boost::openmethod::indirect_registry
+//! #include <boost/openmethod.hpp>
+//! @endcode
 //!
-//! @li Set `BOOST_OPENMETHOD_DEFAULT_REGISTRY` to the new registry class.
+//! To use a registry of your own, *declare* the class before the include, and
+//! *define* it after:
 //!
-//! @li Include `<boost/openmethod/core.hpp>`.
+//! @code
+//! struct my_registry;
+//! #define BOOST_OPENMETHOD_DEFAULT_REGISTRY my_registry
+//!
+//! #include <boost/openmethod.hpp>
+//! // plus any policies/ and interop/ headers needed, in any order
+//!
+//! struct my_registry
+//!     : boost::openmethod::default_registry::with<my_policy> {};
+//! @endcode
+//!
+//! Only the declaration has to precede the include. Deferring the definition is
+//! what makes it possible to build the registry from the policies that
+//! `<boost/openmethod.hpp>` brings in - and from policies of your own, written
+//! against them.
+//!
+//! The registry must be complete before the first construct that instantiates
+//! it: a `BOOST_OPENMETHOD*` macro, @ref boost::openmethod::use_classes,
+//! @ref boost::openmethod::method, @ref boost::openmethod::virtual_ptr, or
+//! @ref BOOST_OPENMETHOD_IMPORT_REGISTRY and its companions.
+//!
+//! @note The value must name a class, not a typedef or an alias template, and
+//! the declaration must use the same class-key as the definition. Qualify the
+//! name (`::my_registry`, `myapp::my_registry`) if it could also be found in
+//! namespace `boost::openmethod` - `registry` in particular.
 //!
 //! @note Use this feature with caution, as it will cause ODR violations if
 //! different translation units define different default registries.
@@ -1951,7 +1977,8 @@ struct validate_method_parameter<
 //! The default value for `Registry` is @ref default_registry, but it can be
 //! overridden by defining the preprocessor symbol
 //! @ref BOOST_OPENMETHOD_DEFAULT_REGISTRY, *before* including
-//! `<boost/openmethod/core.hpp>`. Setting the symbol afterwards has no effect.
+//! `<boost/openmethod/core.hpp>` (or any header that includes it, like
+//! `<boost/openmethod.hpp>`). Setting the symbol afterwards has no effect.
 //!
 //! Specializations of `method` have a single instance: the static member `fn`,
 //! which has an `operator()` that forwards to the appropriate overrider. It is
