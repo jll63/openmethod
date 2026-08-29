@@ -31,8 +31,8 @@ using state_id_fn = const void*();
 
 BOOST_OPENMETHOD_CLASSES(Animal, Dog, Cat);
 
-boost::filesystem::path
-find_lib(const boost::filesystem::path& dir, const char* name_fragment) {
+boost::filesystem::path find_lib(
+    const boost::filesystem::path& dir, const char* name_fragment) {
     for (auto entry : boost::filesystem::directory_iterator(dir)) {
         auto fname = entry.path().filename().string();
         if (fname.find(name_fragment) != std::string::npos) {

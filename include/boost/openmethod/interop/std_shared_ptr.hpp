@@ -33,8 +33,8 @@ struct shared_ptr_cast_traits<std::shared_ptr<T>&&> {
 };
 
 template<typename T, class Registry>
-struct validate_method_parameter<std::shared_ptr<T>&, Registry, void>
-    : std::false_type {
+struct validate_method_parameter<std::shared_ptr<T>&, Registry, void> :
+    std::false_type {
     static_assert(
         false_t<T>,
         "std::shared_ptr cannot be passed by non-const lvalue reference");
@@ -42,8 +42,8 @@ struct validate_method_parameter<std::shared_ptr<T>&, Registry, void>
 
 template<typename T, class Registry>
 struct validate_method_parameter<
-    virtual_ptr<std::shared_ptr<T>, Registry>&, Registry, void>
-    : std::false_type {
+    virtual_ptr<std::shared_ptr<T>, Registry>&, Registry, void> :
+    std::false_type {
     static_assert(
         false_t<T>,
         "std::shared_ptr cannot be passed by non-const lvalue reference");
@@ -91,8 +91,8 @@ struct virtual_traits<std::shared_ptr<Class>, Registry> {
     static auto cast(const std::shared_ptr<Class>& obj) -> decltype(auto) {
         using namespace boost::openmethod::detail;
 
-        if constexpr (requires_dynamic_cast<
-                          Class*, typename Derived::element_type*>) {
+        if constexpr (
+            requires_dynamic_cast<Class*, typename Derived::element_type*>) {
             return std::dynamic_pointer_cast<
                 typename shared_ptr_cast_traits<Derived>::virtual_type>(obj);
         } else {
@@ -120,8 +120,9 @@ struct virtual_traits<std::shared_ptr<Class>, Registry> {
     static auto cast(std::shared_ptr<Class>&& obj) -> decltype(auto) {
         using namespace boost::openmethod::detail;
 
-        if constexpr (requires_dynamic_cast<
-                          Class*, decltype(std::declval<Derived>().get())>) {
+        if constexpr (
+            requires_dynamic_cast<
+                Class*, decltype(std::declval<Derived>().get())>) {
             return std::dynamic_pointer_cast<
                 typename shared_ptr_cast_traits<Derived>::virtual_type>(
                 std::move(obj));

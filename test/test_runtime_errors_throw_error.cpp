@@ -10,8 +10,9 @@ struct test_registry;
 #include <boost/openmethod/initialize.hpp>
 #include <boost/openmethod/policies/throw_error_handler.hpp>
 
-struct test_registry : boost::openmethod::default_registry::with<
-                           boost::openmethod::policies::throw_error_handler> {};
+struct test_registry :
+    boost::openmethod::default_registry::with<
+        boost::openmethod::policies::throw_error_handler> {};
 
 #include "test_util.hpp"
 

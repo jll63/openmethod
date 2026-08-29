@@ -26,8 +26,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(
     using poke = method<
         BOOST_OPENMETHOD_ID(poke),
         auto(virtual_ptr<Player, Registry>)->std::string, Registry>;
-    BOOST_OPENMETHOD_REGISTER(typename poke::template override<
-                              poke_bear<virtual_ptr<Player, Registry>>>);
+    BOOST_OPENMETHOD_REGISTER(
+        typename poke::template override<
+            poke_bear<virtual_ptr<Player, Registry>>>);
 
     initialize<Registry>();
 

@@ -21,16 +21,16 @@ namespace boost::openmethod {
 namespace detail {
 
 template<class Registry>
-struct validate_method_parameter<virtual_<const boost::any&>, Registry, void>
-    : std::true_type {};
+struct validate_method_parameter<virtual_<const boost::any&>, Registry, void> :
+    std::true_type {};
 
 template<class Registry>
-struct validate_method_parameter<virtual_<boost::any&>, Registry, void>
-    : std::true_type {};
+struct validate_method_parameter<virtual_<boost::any&>, Registry, void> :
+    std::true_type {};
 
 template<class Registry>
-struct validate_method_parameter<virtual_<boost::any&&>, Registry, void>
-    : std::true_type {};
+struct validate_method_parameter<virtual_<boost::any&&>, Registry, void> :
+    std::true_type {};
 
 // `boost::any::type()` yields a `std::type_info`, which is a valid `type_id`
 // only for an rtti policy that identifies classes by `&typeid(T)`. Under any
@@ -119,9 +119,9 @@ struct virtual_traits<const boost::any&, Registry> {
             !std::is_reference_v<U> ||
             std::is_const_v<std::remove_reference_t<U>>>>
     static auto cast(const boost::any& arg) -> decltype(auto) {
-        if constexpr (std::is_same_v<
-                          std::remove_cv_t<std::remove_reference_t<U>>,
-                          boost::any>) {
+        if constexpr (
+            std::is_same_v<
+                std::remove_cv_t<std::remove_reference_t<U>>, boost::any>) {
             return (arg);
         } else {
             (void)&detail::use_any_classes<
@@ -202,9 +202,9 @@ struct virtual_traits<boost::any&, Registry> {
     template<
         typename U, typename = std::enable_if_t<!std::is_rvalue_reference_v<U>>>
     static auto cast(boost::any& arg) -> decltype(auto) {
-        if constexpr (std::is_same_v<
-                          std::remove_cv_t<std::remove_reference_t<U>>,
-                          boost::any>) {
+        if constexpr (
+            std::is_same_v<
+                std::remove_cv_t<std::remove_reference_t<U>>, boost::any>) {
             return (arg);
         } else {
             (void)&detail::use_any_classes<
@@ -285,9 +285,9 @@ struct virtual_traits<boost::any&&, Registry> {
             !std::is_lvalue_reference_v<U> ||
             std::is_const_v<std::remove_reference_t<U>>>>
     static auto cast(boost::any&& arg) -> decltype(auto) {
-        if constexpr (std::is_same_v<
-                          std::remove_cv_t<std::remove_reference_t<U>>,
-                          boost::any>) {
+        if constexpr (
+            std::is_same_v<
+                std::remove_cv_t<std::remove_reference_t<U>>, boost::any>) {
             return std::move(arg);
         } else {
             (void)&detail::use_any_classes<

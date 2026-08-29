@@ -21,16 +21,16 @@ namespace boost::openmethod {
 namespace detail {
 
 template<class Registry>
-struct validate_method_parameter<virtual_<const std::any&>, Registry, void>
-    : std::true_type {};
+struct validate_method_parameter<virtual_<const std::any&>, Registry, void> :
+    std::true_type {};
 
 template<class Registry>
-struct validate_method_parameter<virtual_<std::any&>, Registry, void>
-    : std::true_type {};
+struct validate_method_parameter<virtual_<std::any&>, Registry, void> :
+    std::true_type {};
 
 template<class Registry>
-struct validate_method_parameter<virtual_<std::any&&>, Registry, void>
-    : std::true_type {};
+struct validate_method_parameter<virtual_<std::any&&>, Registry, void> :
+    std::true_type {};
 
 // `std::any::type()` yields a `std::type_info`, which is a valid `type_id`
 // only for an rtti policy that identifies classes by `&typeid(T)`. Under any
@@ -109,9 +109,9 @@ struct virtual_traits<const std::any&, Registry> {
     //! @return The value stored in `arg`, cast to `U`.
     template<typename U>
     static auto cast(const std::any& arg) -> decltype(auto) {
-        if constexpr (std::is_same_v<
-                          std::remove_cv_t<std::remove_reference_t<U>>,
-                          std::any>) {
+        if constexpr (
+            std::is_same_v<
+                std::remove_cv_t<std::remove_reference_t<U>>, std::any>) {
             return (arg);
         } else {
             (void)&detail::use_any_classes<Registry, std::any, std::decay_t<U>>;
@@ -182,9 +182,9 @@ struct virtual_traits<std::any&, Registry> {
     //! @return The value stored in `arg`, cast to `U`.
     template<typename U>
     static auto cast(std::any& arg) -> decltype(auto) {
-        if constexpr (std::is_same_v<
-                          std::remove_cv_t<std::remove_reference_t<U>>,
-                          std::any>) {
+        if constexpr (
+            std::is_same_v<
+                std::remove_cv_t<std::remove_reference_t<U>>, std::any>) {
             return (arg);
         } else {
             (void)&detail::use_any_classes<Registry, std::any, std::decay_t<U>>;
@@ -252,9 +252,9 @@ struct virtual_traits<std::any&&, Registry> {
     //! @return The value stored in `arg`, cast to `U`.
     template<typename U>
     static auto cast(std::any&& arg) -> decltype(auto) {
-        if constexpr (std::is_same_v<
-                          std::remove_cv_t<std::remove_reference_t<U>>,
-                          std::any>) {
+        if constexpr (
+            std::is_same_v<
+                std::remove_cv_t<std::remove_reference_t<U>>, std::any>) {
             return std::move(arg);
         } else {
             (void)&detail::use_any_classes<Registry, std::any, std::decay_t<U>>;

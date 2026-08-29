@@ -282,8 +282,8 @@ namespace TEST_NS {
 using test_registry = test_registry_<__COUNTER__>;
 
 struct Animal {
-    friend auto
-    boost_openmethod_vptr(const Animal&, test_registry*) -> vptr_type;
+    friend auto boost_openmethod_vptr(const Animal&, test_registry*)
+        -> vptr_type;
 };
 
 static_assert(detail::has_vptr_fn<Animal, test_registry>);

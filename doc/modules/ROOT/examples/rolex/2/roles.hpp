@@ -11,7 +11,9 @@
 
 #include <boost/openmethod.hpp>
 
-struct Employee { virtual ~Employee() = default; };
+struct Employee {
+    virtual ~Employee() = default;
+};
 
 struct Salesman : Employee {
     double sales = 0.0;

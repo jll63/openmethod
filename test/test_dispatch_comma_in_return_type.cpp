@@ -14,7 +14,7 @@
 using namespace boost::openmethod;
 
 struct Test {
-    virtual ~Test(){};
+    virtual ~Test() {};
 };
 
 BOOST_OPENMETHOD_CLASSES(Test);

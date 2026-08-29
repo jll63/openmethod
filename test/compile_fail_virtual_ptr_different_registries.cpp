@@ -15,8 +15,9 @@ struct Cat {
     }
 };
 
-struct other_registry : default_registry::without<policies::type_hash>::with<
-                            policies::runtime_checks> {};
+struct other_registry :
+    default_registry::without<policies::type_hash>::with<
+        policies::runtime_checks> {};
 
 BOOST_OPENMETHOD(poke, (virtual_ptr<Cat>), void, other_registry);
 

@@ -177,13 +177,13 @@ class static_list {
             return tmp;
         }
 
-        friend auto
-        operator==(const const_iterator& a, const const_iterator& b) -> bool {
+        friend auto operator==(const const_iterator& a, const const_iterator& b)
+            -> bool {
             return a.ptr == b.ptr;
         }
 
-        friend auto
-        operator!=(const const_iterator& a, const const_iterator& b) -> bool {
+        friend auto operator!=(const const_iterator& a, const const_iterator& b)
+            -> bool {
             return a.ptr != b.ptr;
         }
 

@@ -13,8 +13,8 @@ struct static_registry;
 #include <boost/openmethod.hpp>
 #include <boost/openmethod/policies/static_rtti.hpp>
 
-struct static_registry
-    : boost::openmethod::registry<boost::openmethod::policies::static_rtti> {};
+struct static_registry :
+    boost::openmethod::registry<boost::openmethod::policies::static_rtti> {};
 // end::registry[]
 
 #include <boost/openmethod/initialize.hpp>

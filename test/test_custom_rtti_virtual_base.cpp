@@ -115,9 +115,9 @@ struct custom_rtti : boost::openmethod::policies::rtti {
     };
 };
 
-struct test_registry
-    : boost::openmethod::default_registry::with<custom_rtti>::without<
-          boost::openmethod::policies::type_hash> {};
+struct test_registry :
+    boost::openmethod::default_registry::with<custom_rtti>::without<
+        boost::openmethod::policies::type_hash> {};
 
 #define BOOST_TEST_MODULE custom_rtti_virtual_base
 #include <boost/test/unit_test.hpp>

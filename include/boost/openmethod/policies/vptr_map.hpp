@@ -63,8 +63,8 @@ class vptr_map : public vptr {
         //! @param ctx A Context object.
         //! @param options A tuple of option objects.
         template<class Context, class... Options>
-        static void
-        initialize(const Context& ctx, const std::tuple<Options...>&) {
+        static void initialize(
+            const Context& ctx, const std::tuple<Options...>&) {
             decltype(st().vptrs) new_vptrs;
 
             for (auto iter = ctx.classes_begin(); iter != ctx.classes_end();

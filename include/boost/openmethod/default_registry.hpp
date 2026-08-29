@@ -47,16 +47,15 @@ namespace boost::openmethod {
 //! // exactly one .cpp of the owning module:
 //! BOOST_OPENMETHOD_INSTANTIATE_REGISTRY(boost::openmethod::default_registry);
 //! @endcode
-struct default_registry
-    : registry<
-          policies::std_rtti, policies::fast_perfect_hash,
-          policies::vptr_vector, policies::default_error_handler,
-          policies::stderr_output
+struct default_registry :
+    registry<
+        policies::std_rtti, policies::fast_perfect_hash, policies::vptr_vector,
+        policies::default_error_handler, policies::stderr_output
 #ifdef BOOST_OPENMETHOD_ENABLE_RUNTIME_CHECKS
-          ,
-          policies::runtime_checks
+        ,
+        policies::runtime_checks
 #endif
-          > {
+        > {
 };
 
 namespace detail {

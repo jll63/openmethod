@@ -24,9 +24,10 @@ struct custom_registry;
 // directly. The resulting policy list is:
 //
 //     std_rtti, vptr_map<>, default_error_handler, stderr_output
-struct custom_registry : boost::openmethod::default_registry::with<
-                             boost::openmethod::policies::vptr_map<>>::
-                             without<boost::openmethod::policies::type_hash> {};
+struct custom_registry :
+    boost::openmethod::default_registry::
+        with<boost::openmethod::policies::vptr_map<>>::without<
+            boost::openmethod::policies::type_hash> {};
 
 // Both removals above happen implicitly, by category, so assert them.
 static_assert(boost::mp11::mp_contains<

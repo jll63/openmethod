@@ -31,9 +31,10 @@ struct Dog : Animal {};
 namespace std_rtti_demo {
 
 // tag::std_rtti[]
-struct dynamic_registry : registry<
-                              policies::std_rtti, policies::fast_perfect_hash,
-                              policies::vptr_vector> {};
+struct dynamic_registry :
+    registry<
+        policies::std_rtti, policies::fast_perfect_hash,
+        policies::vptr_vector> {};
 // end::std_rtti[]
 
 BOOST_OPENMETHOD_CLASSES(Animal, Cat, Dog, dynamic_registry);
@@ -54,9 +55,10 @@ namespace vptr_vector_demo {
 // tag::vptr_vector[]
 // `fast_perfect_hash` turns the type ids into small indices; without it the
 // vector is indexed by the type id itself, which `std_rtti` makes a pointer
-struct vector_registry : registry<
-                             policies::std_rtti, policies::fast_perfect_hash,
-                             policies::vptr_vector> {};
+struct vector_registry :
+    registry<
+        policies::std_rtti, policies::fast_perfect_hash,
+        policies::vptr_vector> {};
 // end::vptr_vector[]
 
 BOOST_OPENMETHOD_CLASSES(Animal, Cat, Dog, vector_registry);
@@ -97,9 +99,10 @@ namespace fast_perfect_hash_demo {
 // a small integer first. With `std_rtti`, where a type id is a pointer, that
 // makes the difference between a vector of a few entries and one that cannot
 // be allocated at all.
-struct hashed_registry : registry<
-                             policies::std_rtti, policies::fast_perfect_hash,
-                             policies::vptr_vector> {};
+struct hashed_registry :
+    registry<
+        policies::std_rtti, policies::fast_perfect_hash,
+        policies::vptr_vector> {};
 // end::fast_perfect_hash[]
 
 BOOST_OPENMETHOD_CLASSES(Animal, Cat, Dog, hashed_registry);
@@ -118,11 +121,10 @@ BOOST_OPENMETHOD_OVERRIDE(
 namespace stderr_output_demo {
 
 // tag::stderr_output[]
-struct noisy_registry
-    : registry<
-          policies::std_rtti, policies::fast_perfect_hash,
-          policies::vptr_vector, policies::default_error_handler,
-          policies::stderr_output> {};
+struct noisy_registry :
+    registry<
+        policies::std_rtti, policies::fast_perfect_hash, policies::vptr_vector,
+        policies::default_error_handler, policies::stderr_output> {};
 // end::stderr_output[]
 
 BOOST_OPENMETHOD_CLASSES(Animal, Cat, Dog, noisy_registry);
@@ -140,11 +142,10 @@ BOOST_OPENMETHOD_OVERRIDE(
 namespace default_error_handler_demo {
 
 // tag::default_error_handler_registry[]
-struct handled_registry
-    : registry<
-          policies::std_rtti, policies::fast_perfect_hash,
-          policies::vptr_vector, policies::default_error_handler,
-          policies::stderr_output> {};
+struct handled_registry :
+    registry<
+        policies::std_rtti, policies::fast_perfect_hash, policies::vptr_vector,
+        policies::default_error_handler, policies::stderr_output> {};
 // end::default_error_handler_registry[]
 
 BOOST_OPENMETHOD_CLASSES(Animal, Cat, Dog, handled_registry);
@@ -163,10 +164,10 @@ BOOST_OPENMETHOD_OVERRIDE(
 namespace throw_error_handler_demo {
 
 // tag::throw_error_handler_registry[]
-struct throwing_registry
-    : registry<
-          policies::std_rtti, policies::fast_perfect_hash,
-          policies::vptr_vector, policies::throw_error_handler> {};
+struct throwing_registry :
+    registry<
+        policies::std_rtti, policies::fast_perfect_hash, policies::vptr_vector,
+        policies::throw_error_handler> {};
 // end::throw_error_handler_registry[]
 
 BOOST_OPENMETHOD_CLASSES(Animal, Cat, Dog, throwing_registry);

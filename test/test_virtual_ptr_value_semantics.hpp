@@ -62,8 +62,8 @@ struct direct_vector : test_registry_<__COUNTER__> {};
 
 struct indirect_vector : test_registry_<__COUNTER__>::with<indirect_vptr> {};
 
-struct direct_map
-    : test_registry_<__COUNTER__>::with<vptr_map<>>::without<type_hash> {};
+struct direct_map :
+    test_registry_<__COUNTER__>::with<vptr_map<>>::without<type_hash> {};
 
 struct indirect_map : direct_map::with<indirect_vptr> {};
 

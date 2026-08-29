@@ -15,8 +15,9 @@ struct test_registry;
 #include <string>
 
 namespace bom = boost::openmethod;
-struct test_registry : bom::default_registry::without<
-                           bom::policies::vptr, bom::policies::type_hash> {};
+struct test_registry :
+    bom::default_registry::without<
+        bom::policies::vptr, bom::policies::type_hash> {};
 
 #define BOOST_TEST_MODULE intrusive
 #include <boost/test/unit_test.hpp>
@@ -42,9 +43,10 @@ struct Pet : bom::inplace_vptr_base<Pet> {
     std::ostream& os;
 };
 
-struct DomesticCat : Cat,
-                     Pet,
-                     bom::inplace_vptr_derived<DomesticCat, Cat, Pet> {
+struct DomesticCat :
+    Cat,
+    Pet,
+    bom::inplace_vptr_derived<DomesticCat, Cat, Pet> {
     explicit DomesticCat(std::ostream& os);
     ~DomesticCat();
 };

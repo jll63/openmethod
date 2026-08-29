@@ -18,8 +18,7 @@ struct Cat : Animal, inplace_vptr_derived<Cat, Animal> {};
 
 struct Dog : Animal, inplace_vptr_derived<Dog, Animal> {};
 
-BOOST_OPENMETHOD(
-    poke, (virtual_<Animal&> animal, std::ostream& os), void);
+BOOST_OPENMETHOD(poke, (virtual_<Animal&> animal, std::ostream& os), void);
 
 BOOST_OPENMETHOD_OVERRIDE(poke, (Cat&, std::ostream& os), void) {
     os << "hiss\n";

@@ -11,21 +11,32 @@ struct Node {
 };
 
 struct Variable : Node {
-    Variable(int value) : v(value) {}
-    int value() const override { return v; }
+    Variable(int value) : v(value) {
+    }
+    int value() const override {
+        return v;
+    }
     int v;
 };
 
 struct Plus : Node {
-    Plus(const Node& left, const Node& right) : left(left), right(right) {}
-    int value() const override { return left.value() + right.value(); }
-    const Node& left; const Node& right;
+    Plus(const Node& left, const Node& right) : left(left), right(right) {
+    }
+    int value() const override {
+        return left.value() + right.value();
+    }
+    const Node& left;
+    const Node& right;
 };
 
 struct Times : Node {
-    Times(const Node& left, const Node& right) : left(left), right(right) {}
-    int value() const override { return left.value() * right.value(); }
-    const Node& left; const Node& right;
+    Times(const Node& left, const Node& right) : left(left), right(right) {
+    }
+    int value() const override {
+        return left.value() * right.value();
+    }
+    const Node& left;
+    const Node& right;
 };
 
 #include <boost/openmethod.hpp>
@@ -40,8 +51,7 @@ BOOST_OPENMETHOD_OVERRIDE(
     os << var.v;
 }
 
-BOOST_OPENMETHOD_OVERRIDE(
-    postfix, (const Plus& plus, std::ostream& os), void) {
+BOOST_OPENMETHOD_OVERRIDE(postfix, (const Plus& plus, std::ostream& os), void) {
     postfix(plus.left, os);
     os << ' ';
     postfix(plus.right, os);

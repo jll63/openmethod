@@ -258,8 +258,8 @@ struct generic_compiler {
 
         const_class_iterator(
             std::deque<class_>::const_iterator class_iter,
-            std::deque<class_>::const_iterator class_end)
-            : class_iter_(class_iter), class_end_(class_end) {
+            std::deque<class_>::const_iterator class_end) :
+            class_iter_(class_iter), class_end_(class_end) {
             if (class_iter_ != class_end_) {
                 ci_iter_ = class_iter_->ci.begin();
                 advance_to_valid();
@@ -348,8 +348,8 @@ struct trace_stream {
         trace_stream& trace;
         int by;
 
-        explicit indent(trace_stream& trace, int by = 2)
-            : trace(trace), by(by) {
+        explicit indent(trace_stream& trace, int by = 2) :
+            trace(trace), by(by) {
             trace.indentation_level += by;
         }
 
@@ -362,8 +362,8 @@ struct trace_stream {
 struct rflush {
     std::size_t width;
     std::size_t value;
-    explicit rflush(std::size_t width, std::size_t value)
-        : width(width), value(value) {
+    explicit rflush(std::size_t width, std::size_t value) :
+        width(width), value(value) {
     }
 };
 
@@ -405,8 +405,8 @@ auto operator<<(
 struct spec_name {
     spec_name(
         const detail::generic_compiler::method& method,
-        const detail::generic_compiler::overrider* def)
-        : method(method), def(def) {
+        const detail::generic_compiler::overrider* def) :
+        method(method), def(def) {
     }
     const detail::generic_compiler::method& method;
     const detail::generic_compiler::overrider* def;
@@ -568,8 +568,8 @@ struct registry<Policies...>::compiler : detail::generic_compiler {
     static void select_dominant_overriders(
         std::vector<overrider*>& dominants, std::size_t& pick,
         std::size_t& remaining);
-    static auto
-    is_more_specific(const overrider* a, const overrider* b) -> bool;
+    static auto is_more_specific(const overrider* a, const overrider* b)
+        -> bool;
     static auto is_base(const overrider* a, const overrider* b) -> bool;
 
     std::tuple<Options...> options;
@@ -652,8 +652,8 @@ struct msvc_tuple_get<false, T> {
 
 template<class... Policies>
 template<class... Options>
-registry<Policies...>::compiler<Options...>::compiler(Options... opts)
-    : options(opts...) {
+registry<Policies...>::compiler<Options...>::compiler(Options... opts) :
+    options(opts...) {
     if constexpr (has_trace) {
 #ifdef _MSC_VER
         tr.on = detail::msvc_tuple_get<has_trace, trace>::fn(options).on;
@@ -1757,10 +1757,9 @@ void registry<Policies...>::compiler<Options...>::select_dominant_overriders(
                         if (candidates[i]->covariant_return_type->is_base_of(
                                 candidates[j]->covariant_return_type)) {
                             candidates[i] = nullptr;
-                        } else if (candidates[j]
-                                       ->covariant_return_type->is_base_of(
-                                           candidates[i]
-                                               ->covariant_return_type)) {
+                        } else if (
+                            candidates[j]->covariant_return_type->is_base_of(
+                                candidates[i]->covariant_return_type)) {
                             candidates[j] = nullptr;
                         }
                     }

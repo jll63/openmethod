@@ -24,14 +24,14 @@ struct unique final : unique_category {
 };
 
 template<int N, class... Policies>
-struct test_registry_
-    : boost::openmethod::default_registry::with<unique<N>, Policies...> {};
+struct test_registry_ :
+    boost::openmethod::default_registry::with<unique<N>, Policies...> {};
 
 #define TEST_NS BOOST_PP_CAT(test, __COUNTER__)
 
 struct capture_cout {
-    capture_cout(std::streambuf* new_buffer)
-        : old(std::cout.rdbuf(new_buffer)) {
+    capture_cout(std::streambuf* new_buffer) :
+        old(std::cout.rdbuf(new_buffer)) {
     }
 
     ~capture_cout() {
@@ -113,9 +113,9 @@ auto fight_bear(VirtualWarriorPtr, VirtualAxePtr, VirtualBearPtr) {
 }
 
 template<int N>
-struct indirect_test_registry
-    : test_registry_<N>::template with<
-          boost::openmethod::policies::indirect_vptr> {};
+struct indirect_test_registry :
+    test_registry_<N>::template with<
+        boost::openmethod::policies::indirect_vptr> {};
 
 template<int N>
 using policy_types =

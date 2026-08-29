@@ -36,9 +36,10 @@ struct Cat {
     std::string name;
 };
 
-struct Dispatchable : boost::mpl::vector<
-                          te::copy_constructible<>, te::relaxed,
-                          openmethod_vptr<Dispatchable, minimal_registry>> {};
+struct Dispatchable :
+    boost::mpl::vector<
+        te::copy_constructible<>, te::relaxed,
+        openmethod_vptr<Dispatchable, minimal_registry>> {};
 
 using erased = te::any<Dispatchable>;
 

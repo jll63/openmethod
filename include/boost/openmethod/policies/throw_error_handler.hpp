@@ -38,8 +38,8 @@ struct throw_error_handler : error_handler {
         template<class Error>
         [[noreturn]] static auto error(const Error& error) -> void {
             struct wrapper : Error, std::runtime_error {
-                wrapper(const Error& error, std::string&& description)
-                    : Error(error), std::runtime_error(description) {
+                wrapper(const Error& error, std::string&& description) :
+                    Error(error), std::runtime_error(description) {
                 }
             };
 

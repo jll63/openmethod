@@ -282,9 +282,10 @@ struct Dog {
 
 // The concept must name the Concept it is part of: define the Concept as
 // a struct.
-struct Dispatchable : boost::mpl::vector<
-                          te::copy_constructible<>, te::relaxed,
-                          openmethod_vptr<Dispatchable>> {};
+struct Dispatchable :
+    boost::mpl::vector<
+        te::copy_constructible<>, te::relaxed, openmethod_vptr<Dispatchable>> {
+};
 
 using dispatchable = te::any<Dispatchable>;
 using dispatchable_ref = te::any<Dispatchable, te::_self&>;
@@ -346,9 +347,10 @@ struct Dog {
     std::string name;
 };
 
-struct Dispatchable : boost::mpl::vector<
-                          te::copy_constructible<>, te::relaxed,
-                          openmethod_vptr<Dispatchable, indirect_registry>> {};
+struct Dispatchable :
+    boost::mpl::vector<
+        te::copy_constructible<>, te::relaxed,
+        openmethod_vptr<Dispatchable, indirect_registry>> {};
 
 using dispatchable = te::any<Dispatchable>;
 

@@ -24,8 +24,8 @@ struct Node {
 struct Plus : Node {
     Plus(
         shared_virtual_ptr<const Node> left,
-        shared_virtual_ptr<const Node> right)
-        : left(std::move(left)), right(std::move(right)) {
+        shared_virtual_ptr<const Node> right) :
+        left(std::move(left)), right(std::move(right)) {
     }
 
     shared_virtual_ptr<const Node> left, right;
@@ -34,8 +34,8 @@ struct Plus : Node {
 struct Times : Node {
     Times(
         shared_virtual_ptr<const Node> left,
-        shared_virtual_ptr<const Node> right)
-        : left(std::move(left)), right(std::move(right)) {
+        shared_virtual_ptr<const Node> right) :
+        left(std::move(left)), right(std::move(right)) {
     }
 
     shared_virtual_ptr<const Node> left, right;
@@ -82,7 +82,8 @@ BOOST_OPENMETHOD_OVERRIDE(as_forth, (virtual_ptr<const Times> node), string) {
     return as_forth(node->left) + " " + as_forth(node->right) + " *";
 }
 
-BOOST_OPENMETHOD_OVERRIDE(as_forth, (virtual_ptr<const Variable> node), string) {
+BOOST_OPENMETHOD_OVERRIDE(
+    as_forth, (virtual_ptr<const Variable> node), string) {
     return std::to_string(node->value);
 }
 
@@ -111,7 +112,8 @@ auto main() -> int {
     shared_virtual_ptr<Node> node = make_shared_virtual<Times>(
         make_shared_virtual<Variable>(2),
         make_shared_virtual<Plus>(
-            make_shared_virtual<Variable>(3), make_shared_virtual<Variable>(4)));
+            make_shared_virtual<Variable>(3),
+            make_shared_virtual<Variable>(4)));
 
     cout << as_forth(node) << " = " << as_lisp(node) << " = " << value(node)
          << "\n";
