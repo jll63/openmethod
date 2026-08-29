@@ -10,8 +10,9 @@
 // tag::content[]
 struct Node : boost::openmethod::inplace_vptr_base<Node> {};
 
-struct Variable : Node,
-                  boost::openmethod::inplace_vptr_derived<Variable, Node> {
+struct Variable :
+    Node,
+    boost::openmethod::inplace_vptr_derived<Variable, Node> {
     Variable(int value) : v(value) {
     }
 

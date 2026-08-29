@@ -11,8 +11,8 @@ struct static_registry;
 #include <boost/openmethod/interop/std_unique_ptr.hpp>
 #include <boost/openmethod/initialize.hpp>
 
-struct static_registry
-    : boost::openmethod::registry<boost::openmethod::policies::static_rtti> {};
+struct static_registry :
+    boost::openmethod::registry<boost::openmethod::policies::static_rtti> {};
 
 #define BOOST_TEST_MODULE openmethod
 #include <boost/test/unit_test.hpp>

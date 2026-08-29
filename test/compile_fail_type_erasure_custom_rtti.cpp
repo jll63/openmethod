@@ -43,8 +43,8 @@ struct custom_rtti : policies::rtti {
     };
 };
 
-struct custom_rtti_registry
-    : default_registry::with<custom_rtti>::without<policies::type_hash> {};
+struct custom_rtti_registry :
+    default_registry::with<custom_rtti>::without<policies::type_hash> {};
 
 using Concept =
     boost::mpl::vector<te::copy_constructible<>, te::typeid_<>, te::relaxed>;

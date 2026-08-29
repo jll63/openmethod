@@ -29,8 +29,8 @@ struct capture_output : boost::openmethod::policies::output {
     };
 };
 
-struct test_registry
-    : boost::openmethod::default_registry::with<capture_output> {};
+struct test_registry :
+    boost::openmethod::default_registry::with<capture_output> {};
 
 template<class Registry>
 struct capture_errors {

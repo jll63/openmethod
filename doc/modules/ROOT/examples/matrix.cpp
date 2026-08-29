@@ -22,8 +22,8 @@ struct abstract {
     int ref_count = 0;
 };
 
-struct registry
-    : boost::openmethod::registry<boost::openmethod::policies::static_rtti> {};
+struct registry :
+    boost::openmethod::registry<boost::openmethod::policies::static_rtti> {};
 
 template<class Rep>
 using matrix_ptr = boost::openmethod::virtual_ptr<Rep, registry>;

@@ -33,8 +33,8 @@ struct shared_ptr_cast_traits<std::shared_ptr<T>&&> {
 };
 
 template<typename T, class Registry>
-struct validate_method_parameter<std::shared_ptr<T>&, Registry, void>
-    : std::false_type {
+struct validate_method_parameter<std::shared_ptr<T>&, Registry, void> :
+    std::false_type {
     static_assert(
         false_t<T>,
         "std::shared_ptr cannot be passed by non-const lvalue reference");
@@ -42,8 +42,8 @@ struct validate_method_parameter<std::shared_ptr<T>&, Registry, void>
 
 template<typename T, class Registry>
 struct validate_method_parameter<
-    virtual_ptr<std::shared_ptr<T>, Registry>&, Registry, void>
-    : std::false_type {
+    virtual_ptr<std::shared_ptr<T>, Registry>&, Registry, void> :
+    std::false_type {
     static_assert(
         false_t<T>,
         "std::shared_ptr cannot be passed by non-const lvalue reference");

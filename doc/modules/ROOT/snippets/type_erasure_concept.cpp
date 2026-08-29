@@ -29,9 +29,10 @@ struct Dog {
 
 // The concept must name the Concept it is part of, so the Concept is
 // defined as a struct.
-struct Dispatchable : boost::mpl::vector<
-                          te::copy_constructible<>, te::relaxed,
-                          openmethod_vptr<Dispatchable>> {};
+struct Dispatchable :
+    boost::mpl::vector<
+        te::copy_constructible<>, te::relaxed, openmethod_vptr<Dispatchable>> {
+};
 
 using erased = te::any<Dispatchable>;
 

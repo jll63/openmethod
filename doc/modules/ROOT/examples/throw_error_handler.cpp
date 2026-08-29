@@ -33,8 +33,8 @@ struct throw_if_not_implemented : bom::policies::error_handler {
     };
 };
 
-struct custom_registry : bom::default_registry::with<throw_if_not_implemented> {
-};
+struct custom_registry :
+    bom::default_registry::with<throw_if_not_implemented> {};
 
 using boost::openmethod::virtual_ptr;
 

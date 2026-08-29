@@ -1059,8 +1059,8 @@ struct initialize_aux;
     struct BOOST_PP_CAT(has_, BOOST_PP_CAT(FN, _aux)) : std::false_type {};    \
     template<class T, class... Args>                                           \
     struct BOOST_PP_CAT(has_, BOOST_PP_CAT(FN, _aux))<                         \
-        std::void_t<decltype(T::FN(std::declval<Args>()...))>, T, Args...>     \
-        : std::true_type {};                                                   \
+        std::void_t<decltype(T::FN(std::declval<Args>()...))>, T, Args...> :   \
+        std::true_type {};                                                     \
     template<class T, class... Args>                                           \
     constexpr bool BOOST_PP_CAT(has_, FN) =                                    \
         BOOST_PP_CAT(has_, BOOST_PP_CAT(FN, _aux))<void, T, Args...>::value

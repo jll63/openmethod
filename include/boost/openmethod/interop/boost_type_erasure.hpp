@@ -96,28 +96,28 @@ constexpr bool te_pass_through =
 
 template<class C, typename T, class Registry>
 struct validate_method_parameter<
-    virtual_<const boost::type_erasure::any<C, T>&>, Registry, void>
-    : std::true_type {};
+    virtual_<const boost::type_erasure::any<C, T>&>, Registry, void> :
+    std::true_type {};
 
 template<class C, typename T, class Registry>
 struct validate_method_parameter<
-    virtual_<boost::type_erasure::any<C, T>&>, Registry, void>
-    : std::true_type {};
+    virtual_<boost::type_erasure::any<C, T>&>, Registry, void> :
+    std::true_type {};
 
 template<class C, typename T, class Registry>
 struct validate_method_parameter<
-    virtual_<boost::type_erasure::any<C, T>&&>, Registry, void>
-    : std::true_type {};
+    virtual_<boost::type_erasure::any<C, T>&&>, Registry, void> :
+    std::true_type {};
 
 template<class C, typename T, class Registry>
 struct validate_method_parameter<
-    virtual_<boost::type_erasure::any<C, T&>>, Registry, void>
-    : std::true_type {};
+    virtual_<boost::type_erasure::any<C, T&>>, Registry, void> :
+    std::true_type {};
 
 template<class C, typename T, class Registry>
 struct validate_method_parameter<
-    virtual_<boost::type_erasure::any<C, const T&>>, Registry, void>
-    : std::true_type {};
+    virtual_<boost::type_erasure::any<C, const T&>>, Registry, void> :
+    std::true_type {};
 
 template<class C, class Registry>
 struct validate_method_parameter<

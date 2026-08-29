@@ -50,20 +50,21 @@ struct default_error_handler : error_handler {
         template<
             typename T, class... Errors, class Policy, class... MorePolicies>
         struct error_variant_aux<
-            T, std::variant<Errors...>, mp11::mp_list<Policy, MorePolicies...>>
-            : error_variant_aux<
-                  void, std::variant<Errors...>,
-                  mp11::mp_list<MorePolicies...>> {};
+            T, std::variant<Errors...>,
+            mp11::mp_list<Policy, MorePolicies...>> :
+            error_variant_aux<
+                void, std::variant<Errors...>, mp11::mp_list<MorePolicies...>> {
+        };
 
         template<class... Errors, class Policy, class... MorePolicies>
         struct error_variant_aux<
             std::void_t<typename Policy::errors>, std::variant<Errors...>,
-            mp11::mp_list<Policy, MorePolicies...>>
-            : error_variant_aux<
-                  void,
-                  mp11::mp_append<
-                      std::variant<Errors...>, typename Policy::errors>,
-                  mp11::mp_list<MorePolicies...>> {};
+            mp11::mp_list<Policy, MorePolicies...>> :
+            error_variant_aux<
+                void,
+                mp11::mp_append<
+                    std::variant<Errors...>, typename Policy::errors>,
+                mp11::mp_list<MorePolicies...>> {};
 
         template<class... Errors>
         struct error_variant_aux<

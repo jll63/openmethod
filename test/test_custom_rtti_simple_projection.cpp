@@ -77,8 +77,8 @@ struct custom_rtti : boost::openmethod::policies::rtti {
     };
 };
 
-struct test_registry : boost::openmethod::default_registry::with<custom_rtti> {
-};
+struct test_registry :
+    boost::openmethod::default_registry::with<custom_rtti> {};
 
 #define BOOST_TEST_MODULE custom_rtti_simple_projection
 #include <boost/test/unit_test.hpp>

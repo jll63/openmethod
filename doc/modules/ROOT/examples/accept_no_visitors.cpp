@@ -24,8 +24,8 @@ struct Node {
 struct Plus : Node {
     Plus(
         shared_virtual_ptr<const Node> left,
-        shared_virtual_ptr<const Node> right)
-        : left(std::move(left)), right(std::move(right)) {
+        shared_virtual_ptr<const Node> right) :
+        left(std::move(left)), right(std::move(right)) {
     }
 
     shared_virtual_ptr<const Node> left, right;
@@ -34,8 +34,8 @@ struct Plus : Node {
 struct Times : Node {
     Times(
         shared_virtual_ptr<const Node> left,
-        shared_virtual_ptr<const Node> right)
-        : left(std::move(left)), right(std::move(right)) {
+        shared_virtual_ptr<const Node> right) :
+        left(std::move(left)), right(std::move(right)) {
     }
 
     shared_virtual_ptr<const Node> left, right;

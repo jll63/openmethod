@@ -210,8 +210,8 @@ struct requires_dynamic_cast_ref_aux : std::true_type {};
 
 template<typename B, typename D>
 struct requires_dynamic_cast_ref_aux<
-    B, D, std::void_t<decltype(static_cast<D>(std::declval<B>()))>>
-    : std::false_type {};
+    B, D, std::void_t<decltype(static_cast<D>(std::declval<B>()))>> :
+    std::false_type {};
 
 template<class B, class D>
 constexpr bool requires_dynamic_cast =
@@ -424,10 +424,10 @@ template<class...>
 struct use_class_aux;
 
 template<class Registry, class Class, typename... Bases>
-struct use_class_aux<Registry, mp11::mp_list<Class, Bases...>>
-    : std::conditional_t<
-          Registry::has_deferred_static_rtti, detail::deferred_class_info,
-          detail::class_info> {
+struct use_class_aux<Registry, mp11::mp_list<Class, Bases...>> :
+    std::conditional_t<
+        Registry::has_deferred_static_rtti, detail::deferred_class_info,
+        detail::class_info> {
     static type_id bases[sizeof...(Bases)];
     use_class_aux() {
         this->first_base = bases;
@@ -550,8 +550,8 @@ template<typename Class, class Registry>
 struct is_smart_ptr_aux<
     Class, Registry,
     std::void_t<
-        typename virtual_traits<Class, Registry>::template rebind<Class>>>
-    : std::true_type {};
+        typename virtual_traits<Class, Registry>::template rebind<Class>>> :
+    std::true_type {};
 
 template<class Class, class Other, class Registry, typename = void>
 struct same_smart_ptr_aux : std::false_type {};
@@ -560,11 +560,11 @@ template<class Class, class Other, class Registry>
 struct same_smart_ptr_aux<
     Class, Other, Registry,
     std::void_t<typename virtual_traits<Class, Registry>::template rebind<
-        typename Other::element_type>>>
-    : std::is_same<
-          Other,
-          typename virtual_traits<Class, Registry>::template rebind<
-              typename Other::element_type>> {};
+        typename Other::element_type>>> :
+    std::is_same<
+        Other,
+        typename virtual_traits<Class, Registry>::template rebind<
+            typename Other::element_type>> {};
 
 } // namespace detail
 
@@ -622,19 +622,19 @@ template<class Class, class Registry>
 struct is_virtual<virtual_ptr<Class, Registry, void>&> : std::true_type {};
 
 template<class Class, class Registry>
-struct is_virtual<const virtual_ptr<Class, Registry, void>&> : std::true_type {
-};
+struct is_virtual<const virtual_ptr<Class, Registry, void>&> :
+    std::true_type {};
 
 template<typename>
 struct is_virtual_ptr_aux : std::false_type {};
 
 template<class Class, class Registry>
-struct is_virtual_ptr_aux<virtual_ptr<Class, Registry, void>> : std::true_type {
-};
+struct is_virtual_ptr_aux<virtual_ptr<Class, Registry, void>> :
+    std::true_type {};
 
 template<class Class, class Registry>
-struct is_virtual_ptr_aux<const virtual_ptr<Class, Registry, void>&>
-    : std::true_type {};
+struct is_virtual_ptr_aux<const virtual_ptr<Class, Registry, void>&> :
+    std::true_type {};
 
 template<typename T>
 constexpr bool is_virtual_ptr = detail::is_virtual_ptr_aux<T>::value;
@@ -871,9 +871,9 @@ class virtual_ptr {
     //! include:virtual_ptr.cpp#ctor_nullptr
     //!
     //! @param value A `nullptr`.
-    explicit virtual_ptr(std::nullptr_t)
-        : vp(detail::box_vptr<use_indirect_vptrs>(detail::null_vptr)),
-          obj(nullptr) {
+    explicit virtual_ptr(std::nullptr_t) :
+        vp(detail::box_vptr<use_indirect_vptrs>(detail::null_vptr)),
+        obj(nullptr) {
     }
 
     //! Construct a `virtual_ptr` from a reference to an object
@@ -907,10 +907,10 @@ class virtual_ptr {
             BOOST_OPENMETHOD_UNLESS_MRDOCS(detail::)
                 IsPolymorphic<Other, Registry> &&
             std::is_constructible_v<Class*, Other*>>>
-    virtual_ptr(Other& other)
-        : vp(detail::box_vptr<use_indirect_vptrs>(
-              detail::acquire_vptr<Registry>(other))),
-          obj(&other) {
+    virtual_ptr(Other& other) :
+        vp(detail::box_vptr<use_indirect_vptrs>(
+            detail::acquire_vptr<Registry>(other))),
+        obj(&other) {
     }
 
     //! Construct a `virtual_ptr` from a pointer to an object
@@ -946,10 +946,10 @@ class virtual_ptr {
             BOOST_OPENMETHOD_UNLESS_MRDOCS(detail::)
                 IsPolymorphic<Class, Registry> &&
             std::is_constructible_v<Class*, Other*>>>
-    virtual_ptr(Other* other)
-        : vp(detail::box_vptr<use_indirect_vptrs>(
-              detail::acquire_vptr<Registry>(*other))),
-          obj(other) {
+    virtual_ptr(Other* other) :
+        vp(detail::box_vptr<use_indirect_vptrs>(
+            detail::acquire_vptr<Registry>(*other))),
+        obj(other) {
     }
 
     //! Construct a `virtual_ptr` from another `virtual_ptr`
@@ -980,8 +980,8 @@ class virtual_ptr {
         class Other,
         typename = std::enable_if_t<std::is_constructible_v<
             Class*, typename virtual_ptr<Other, Registry>::element_type*>>>
-    virtual_ptr(const virtual_ptr<Other, Registry>& other)
-        : vp(other.vp), obj(other.get()) {
+    virtual_ptr(const virtual_ptr<Other, Registry>& other) :
+        vp(other.vp), obj(other.get()) {
     }
 
     //! Assign a `virtual_ptr` from a reference to an object
@@ -1212,8 +1212,8 @@ class virtual_ptr<
     }
 
     template<typename Arg>
-    virtual_ptr(Arg&& obj, decltype(vp) vp)
-        : vp(vp), obj(std::forward<Arg>(obj)) {
+    virtual_ptr(Arg&& obj, decltype(vp) vp) :
+        vp(vp), obj(std::forward<Arg>(obj)) {
     }
 
   public:
@@ -1227,8 +1227,8 @@ class virtual_ptr<
     //!
     //! @par Example
     //! include:virtual_ptr.cpp#non_polymorphic_classes;shared_ctor_default
-    virtual_ptr()
-        : vp(detail::box_vptr<use_indirect_vptrs>(detail::null_vptr)) {
+    virtual_ptr() :
+        vp(detail::box_vptr<use_indirect_vptrs>(detail::null_vptr)) {
     }
 
     //! Construct from `nullptr`
@@ -1240,17 +1240,16 @@ class virtual_ptr<
     //! include:virtual_ptr.cpp#non_polymorphic_classes;shared_ctor_nullptr
     //!
     //! @param value A `nullptr`.
-    explicit virtual_ptr(std::nullptr_t)
-        : vp(detail::box_vptr<use_indirect_vptrs>(detail::null_vptr)) {
+    explicit virtual_ptr(std::nullptr_t) :
+        vp(detail::box_vptr<use_indirect_vptrs>(detail::null_vptr)) {
     }
 
     virtual_ptr(const virtual_ptr& other) = default;
 
-    virtual_ptr(virtual_ptr&& other)
-        : vp(std::exchange(
-              other.vp,
-              detail::box_vptr<use_indirect_vptrs>(detail::null_vptr))),
-          obj(std::move(other.obj)) {
+    virtual_ptr(virtual_ptr&& other) :
+        vp(std::exchange(
+            other.vp, detail::box_vptr<use_indirect_vptrs>(detail::null_vptr))),
+        obj(std::move(other.obj)) {
     }
 
     //! Construct from a (const) smart pointer to a derived class
@@ -1283,11 +1282,11 @@ class virtual_ptr<
             std::is_constructible_v<SmartPtr, const Other&>>,
         typename = std::enable_if_t<BOOST_OPENMETHOD_UNLESS_MRDOCS(
             detail::) IsPolymorphic<typename Other::element_type, Registry>>>
-    virtual_ptr(const Other& other)
-        : vp(detail::box_vptr<use_indirect_vptrs>(
-              other ? detail::acquire_vptr<Registry>(*other)
-                    : detail::null_vptr)),
-          obj(other) {
+    virtual_ptr(const Other& other) :
+        vp(detail::box_vptr<use_indirect_vptrs>(
+            other ? detail::acquire_vptr<Registry>(*other)
+                  : detail::null_vptr)),
+        obj(other) {
     }
 
     //! Construct from a smart pointer to a derived class
@@ -1312,11 +1311,11 @@ class virtual_ptr<
             std::is_constructible_v<SmartPtr, Other&>>,
         typename = std::enable_if_t<BOOST_OPENMETHOD_UNLESS_MRDOCS(
             detail::) IsPolymorphic<typename Other::element_type, Registry>>>
-    virtual_ptr(Other& other)
-        : vp(detail::box_vptr<use_indirect_vptrs>(
-              other ? detail::acquire_vptr<Registry>(*other)
-                    : detail::null_vptr)),
-          obj(other) {
+    virtual_ptr(Other& other) :
+        vp(detail::box_vptr<use_indirect_vptrs>(
+            other ? detail::acquire_vptr<Registry>(*other)
+                  : detail::null_vptr)),
+        obj(other) {
     }
 
     //! Move-construct from a smart pointer to a derived class
@@ -1348,11 +1347,11 @@ class virtual_ptr<
             std::is_constructible_v<SmartPtr, Other&&>>,
         typename = std::enable_if_t<BOOST_OPENMETHOD_UNLESS_MRDOCS(
             detail::) IsPolymorphic<typename Other::element_type, Registry>>>
-    virtual_ptr(Other&& other)
-        : vp(detail::box_vptr<use_indirect_vptrs>(
-              other ? detail::acquire_vptr<Registry>(*other)
-                    : detail::null_vptr)),
-          obj(std::move(other)) {
+    virtual_ptr(Other&& other) :
+        vp(detail::box_vptr<use_indirect_vptrs>(
+            other ? detail::acquire_vptr<Registry>(*other)
+                  : detail::null_vptr)),
+        obj(std::move(other)) {
     }
 
     //! Construct from a smart virtual (const) pointer to a derived class
@@ -1376,8 +1375,8 @@ class virtual_ptr<
             BOOST_OPENMETHOD_UNLESS_MRDOCS(detail::)
                 SameSmartPtr<SmartPtr, Other, Registry> &&
             std::is_constructible_v<SmartPtr, const Other&>>>
-    virtual_ptr(const virtual_ptr<Other, Registry>& other)
-        : vp(other.vp), obj(other.obj) {
+    virtual_ptr(const virtual_ptr<Other, Registry>& other) :
+        vp(other.vp), obj(other.obj) {
     }
 
     //! Construct-move from a virtual pointer to a derived class
@@ -1409,11 +1408,10 @@ class virtual_ptr<
             BOOST_OPENMETHOD_UNLESS_MRDOCS(detail::)
                 SameSmartPtr<SmartPtr, Other, Registry> &&
             std::is_constructible_v<SmartPtr, Other&&>>>
-    virtual_ptr(virtual_ptr<Other, Registry>&& other)
-        : vp(std::exchange(
-              other.vp,
-              detail::box_vptr<use_indirect_vptrs>(detail::null_vptr))),
-          obj(std::move(other.obj)) {
+    virtual_ptr(virtual_ptr<Other, Registry>&& other) :
+        vp(std::exchange(
+            other.vp, detail::box_vptr<use_indirect_vptrs>(detail::null_vptr))),
+        obj(std::move(other.obj)) {
     }
 
     //! Assign from `nullptr`
@@ -1912,12 +1910,12 @@ template<typename T, class Registry>
 struct parameter_traits<virtual_<T>, Registry> : virtual_traits<T, Registry> {};
 
 template<class Class, class Registry>
-struct parameter_traits<virtual_ptr<Class, Registry, void>, Registry>
-    : virtual_traits<virtual_ptr<Class, Registry, void>, Registry> {};
+struct parameter_traits<virtual_ptr<Class, Registry, void>, Registry> :
+    virtual_traits<virtual_ptr<Class, Registry, void>, Registry> {};
 
 template<class Class, class Registry>
-struct parameter_traits<const virtual_ptr<Class, Registry, void>&, Registry>
-    : virtual_traits<const virtual_ptr<Class, Registry, void>&, Registry> {};
+struct parameter_traits<const virtual_ptr<Class, Registry, void>&, Registry> :
+    virtual_traits<const virtual_ptr<Class, Registry, void>&, Registry> {};
 
 template<typename...>
 constexpr bool false_t = false; // workaround before CWG2518/P2593R1
@@ -1933,10 +1931,10 @@ struct validate_method_parameter<virtual_<T>, Registry, U> : std::false_type {
 template<typename T, class Registry>
 struct validate_method_parameter<
     virtual_<T>, Registry,
-    std::void_t<typename virtual_traits<T, Registry>::virtual_type>>
-    : std::bool_constant<
-          has_vptr_fn<virtual_type<T, Registry>, Registry> ||
-          Registry::rtti::template is_polymorphic<virtual_type<T, Registry>>> {
+    std::void_t<typename virtual_traits<T, Registry>::virtual_type>> :
+    std::bool_constant<
+        has_vptr_fn<virtual_type<T, Registry>, Registry> ||
+        Registry::rtti::template is_polymorphic<virtual_type<T, Registry>>> {
     static_assert(
         validate_method_parameter::value,
         "virtual_<> parameter is not a polymorphic class and no "
@@ -1944,8 +1942,8 @@ struct validate_method_parameter<
 };
 
 template<class Class, class Registry>
-struct validate_method_parameter<virtual_ptr<Class, Registry>, Registry, void>
-    : std::true_type {};
+struct validate_method_parameter<virtual_ptr<Class, Registry>, Registry, void> :
+    std::true_type {};
 
 template<class Class, class Registry, class MethodRegistry>
 struct validate_method_parameter<
@@ -2059,8 +2057,8 @@ class method;
 //! @tparam Registry The registry of the method
 template<
     typename Id, typename... Parameters, typename ReturnType, class Registry>
-class method<Id, ReturnType(Parameters...), Registry>
-    : public detail::method_base<Registry> {
+class method<Id, ReturnType(Parameters...), Registry> :
+    public detail::method_base<Registry> {
     // Deliberately no default for Inline: giving it a default on only one of
     // this template's two forward declarations in this file (the other is
     // below, next to override_impl) is accepted by gcc but rejected by clang
@@ -2281,10 +2279,10 @@ class method<Id, ReturnType(Parameters...), Registry>
     };
 
     template<auto Function, typename FnReturnType, bool Inline = false>
-    struct override_impl
-        : std::conditional_t<
-              Registry::has_deferred_static_rtti,
-              detail::deferred_overrider_info, detail::overrider_info> {
+    struct override_impl :
+        std::conditional_t<
+            Registry::has_deferred_static_rtti, detail::deferred_overrider_info,
+            detail::overrider_info> {
         explicit override_impl(FunctionPointer* next = nullptr);
         void resolve_type_ids();
 
@@ -2598,8 +2596,8 @@ struct validate_overrider_parameter<
 
 template<class T1, class T2>
 struct validate_overrider_parameter<
-    T1, T2, std::enable_if_t<is_virtual_ptr<T1> && !is_virtual_ptr<T2>>>
-    : std::false_type {
+    T1, T2, std::enable_if_t<is_virtual_ptr<T1> && !is_virtual_ptr<T2>>> :
+    std::false_type {
     static_assert(
         false_t<T1, T2>,
         "virtual_ptr<> is required in overrider in same position as in "
@@ -2613,14 +2611,14 @@ template<class T1, class T2>
 struct validate_overrider_parameter<virtual_<T1>, T2, void> : std::true_type {};
 
 template<class T1, class T2>
-struct validate_overrider_parameter<virtual_<T1>, virtual_<T2>, void>
-    : std::false_type {
+struct validate_overrider_parameter<virtual_<T1>, virtual_<T2>, void> :
+    std::false_type {
     static_assert(false_t<T1, T2>, "virtual_<> is not allowed in overriders");
 };
 
 template<class T, class R>
-struct validate_overrider_parameter<virtual_ptr<T, R>, virtual_ptr<T, R>, void>
-    : std::true_type {};
+struct validate_overrider_parameter<
+    virtual_ptr<T, R>, virtual_ptr<T, R>, void> : std::true_type {};
 
 template<class T1, class R, class T2, class R2>
 struct validate_overrider_parameter<
@@ -2637,8 +2635,8 @@ struct validate_overrider_parameter<
 
 template<class T1, class R, class T2, class R2>
 struct validate_overrider_parameter<
-    const virtual_ptr<T1, R>&, const virtual_ptr<T2, R2>&, void>
-    : std::true_type {
+    const virtual_ptr<T1, R>&, const virtual_ptr<T2, R2>&, void> :
+    std::true_type {
     static_assert(std::is_same_v<R, R2>, "registry mismatch");
     using C1 = virtual_type<const virtual_ptr<T1, R>&, R>;
     using C2 = virtual_type<const virtual_ptr<T2, R>&, R>;

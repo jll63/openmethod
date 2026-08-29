@@ -258,8 +258,8 @@ struct generic_compiler {
 
         const_class_iterator(
             std::deque<class_>::const_iterator class_iter,
-            std::deque<class_>::const_iterator class_end)
-            : class_iter_(class_iter), class_end_(class_end) {
+            std::deque<class_>::const_iterator class_end) :
+            class_iter_(class_iter), class_end_(class_end) {
             if (class_iter_ != class_end_) {
                 ci_iter_ = class_iter_->ci.begin();
                 advance_to_valid();
@@ -348,8 +348,8 @@ struct trace_stream {
         trace_stream& trace;
         int by;
 
-        explicit indent(trace_stream& trace, int by = 2)
-            : trace(trace), by(by) {
+        explicit indent(trace_stream& trace, int by = 2) :
+            trace(trace), by(by) {
             trace.indentation_level += by;
         }
 
@@ -362,8 +362,8 @@ struct trace_stream {
 struct rflush {
     std::size_t width;
     std::size_t value;
-    explicit rflush(std::size_t width, std::size_t value)
-        : width(width), value(value) {
+    explicit rflush(std::size_t width, std::size_t value) :
+        width(width), value(value) {
     }
 };
 
@@ -405,8 +405,8 @@ auto operator<<(
 struct spec_name {
     spec_name(
         const detail::generic_compiler::method& method,
-        const detail::generic_compiler::overrider* def)
-        : method(method), def(def) {
+        const detail::generic_compiler::overrider* def) :
+        method(method), def(def) {
     }
     const detail::generic_compiler::method& method;
     const detail::generic_compiler::overrider* def;
@@ -652,8 +652,8 @@ struct msvc_tuple_get<false, T> {
 
 template<class... Policies>
 template<class... Options>
-registry<Policies...>::compiler<Options...>::compiler(Options... opts)
-    : options(opts...) {
+registry<Policies...>::compiler<Options...>::compiler(Options... opts) :
+    options(opts...) {
     if constexpr (has_trace) {
 #ifdef _MSC_VER
         tr.on = detail::msvc_tuple_get<has_trace, trace>::fn(options).on;

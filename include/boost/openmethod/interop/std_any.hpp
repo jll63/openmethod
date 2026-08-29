@@ -21,16 +21,16 @@ namespace boost::openmethod {
 namespace detail {
 
 template<class Registry>
-struct validate_method_parameter<virtual_<const std::any&>, Registry, void>
-    : std::true_type {};
+struct validate_method_parameter<virtual_<const std::any&>, Registry, void> :
+    std::true_type {};
 
 template<class Registry>
-struct validate_method_parameter<virtual_<std::any&>, Registry, void>
-    : std::true_type {};
+struct validate_method_parameter<virtual_<std::any&>, Registry, void> :
+    std::true_type {};
 
 template<class Registry>
-struct validate_method_parameter<virtual_<std::any&&>, Registry, void>
-    : std::true_type {};
+struct validate_method_parameter<virtual_<std::any&&>, Registry, void> :
+    std::true_type {};
 
 // `std::any::type()` yields a `std::type_info`, which is a valid `type_id`
 // only for an rtti policy that identifies classes by `&typeid(T)`. Under any

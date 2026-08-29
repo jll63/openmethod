@@ -322,9 +322,9 @@ namespace BOOST_OPENMETHOD_GENSYM {
 // -----------------------------------------------------------------------------
 // a type that is never named statically anywhere is not registered
 
-struct throw_registry
-    : default_registry::with<
-          policies::runtime_checks, policies::throw_error_handler> {};
+struct throw_registry :
+    default_registry::with<
+        policies::runtime_checks, policies::throw_error_handler> {};
 
 struct Dog {
     std::string name;

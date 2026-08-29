@@ -135,8 +135,8 @@ class virtual_any {
     //! Construct an empty `virtual_any`.
     //!
     //! The `any` is empty, and the v-table pointer is null.
-    virtual_any()
-        : obj(), vp(detail::box_vptr<use_indirect_vptrs>(detail::null_vptr)) {
+    virtual_any() :
+        obj(), vp(detail::box_vptr<use_indirect_vptrs>(detail::null_vptr)) {
     }
 
     //! Construct from an `any` (copy).
@@ -148,9 +148,9 @@ class virtual_any {
     //!
     //! @par Example
     //! include:virtual_any.cpp#from_any
-    virtual_any(const Any& other)
-        : obj(other), vp(detail::box_vptr<use_indirect_vptrs>(
-                          detail::acquire_vptr<Registry>(obj))) {
+    virtual_any(const Any& other) :
+        obj(other), vp(detail::box_vptr<use_indirect_vptrs>(
+                        detail::acquire_vptr<Registry>(obj))) {
     }
 
     //! Construct from an `any` (move).
@@ -159,9 +159,9 @@ class virtual_any {
     //! value, using `virtual_traits<const Any&, Registry>::vptr`.
     //!
     //! @param other An `any`.
-    virtual_any(Any&& other)
-        : obj(std::move(other)), vp(detail::box_vptr<use_indirect_vptrs>(
-                                     detail::acquire_vptr<Registry>(obj))) {
+    virtual_any(Any&& other) :
+        obj(std::move(other)), vp(detail::box_vptr<use_indirect_vptrs>(
+                                   detail::acquire_vptr<Registry>(obj))) {
     }
 
     //! Construct from a value.
@@ -185,10 +185,10 @@ class virtual_any {
         typename = std::enable_if_t<
             !std::is_same_v<std::decay_t<T>, Any> &&
             std::is_constructible_v<Any, T&&>>>
-    virtual_any(T&& value)
-        : obj(std::forward<T>(value)),
-          vp(detail::box_vptr<use_indirect_vptrs>(
-              Registry::template static_vptr<std::decay_t<T>>)) {
+    virtual_any(T&& value) :
+        obj(std::forward<T>(value)),
+        vp(detail::box_vptr<use_indirect_vptrs>(
+            Registry::template static_vptr<std::decay_t<T>>)) {
         (void)&detail::use_any_classes<Registry, Any, std::decay_t<T>>;
         Registry::require_initialized();
         BOOST_ASSERT(detail::unbox_vptr(vp) != nullptr);
@@ -526,16 +526,16 @@ template<class Any, class Registry>
 struct is_virtual<virtual_any<Any, Registry>&&> : std::true_type {};
 
 template<class Any, class Registry>
-struct parameter_traits<virtual_any<Any, Registry>&, Registry>
-    : virtual_traits<virtual_any<Any, Registry>&, Registry> {};
+struct parameter_traits<virtual_any<Any, Registry>&, Registry> :
+    virtual_traits<virtual_any<Any, Registry>&, Registry> {};
 
 template<class Any, class Registry>
-struct parameter_traits<const virtual_any<Any, Registry>&, Registry>
-    : virtual_traits<const virtual_any<Any, Registry>&, Registry> {};
+struct parameter_traits<const virtual_any<Any, Registry>&, Registry> :
+    virtual_traits<const virtual_any<Any, Registry>&, Registry> {};
 
 template<class Any, class Registry>
-struct parameter_traits<virtual_any<Any, Registry>&&, Registry>
-    : virtual_traits<virtual_any<Any, Registry>&&, Registry> {};
+struct parameter_traits<virtual_any<Any, Registry>&&, Registry> :
+    virtual_traits<virtual_any<Any, Registry>&&, Registry> {};
 
 template<class Any, class Registry, class MethodRegistry>
 struct validate_method_parameter<
@@ -546,24 +546,24 @@ struct validate_method_parameter<
 
 template<class Any, class Registry, class MethodRegistry>
 struct validate_method_parameter<
-    virtual_any<Any, Registry>&, MethodRegistry, void>
-    : std::bool_constant<std::is_same_v<Registry, MethodRegistry>> {
+    virtual_any<Any, Registry>&, MethodRegistry, void> :
+    std::bool_constant<std::is_same_v<Registry, MethodRegistry>> {
     static_assert(
         std::is_same_v<Registry, MethodRegistry>, "registry mismatch");
 };
 
 template<class Any, class Registry, class MethodRegistry>
 struct validate_method_parameter<
-    const virtual_any<Any, Registry>&, MethodRegistry, void>
-    : std::bool_constant<std::is_same_v<Registry, MethodRegistry>> {
+    const virtual_any<Any, Registry>&, MethodRegistry, void> :
+    std::bool_constant<std::is_same_v<Registry, MethodRegistry>> {
     static_assert(
         std::is_same_v<Registry, MethodRegistry>, "registry mismatch");
 };
 
 template<class Any, class Registry, class MethodRegistry>
 struct validate_method_parameter<
-    virtual_any<Any, Registry>&&, MethodRegistry, void>
-    : std::bool_constant<std::is_same_v<Registry, MethodRegistry>> {
+    virtual_any<Any, Registry>&&, MethodRegistry, void> :
+    std::bool_constant<std::is_same_v<Registry, MethodRegistry>> {
     static_assert(
         std::is_same_v<Registry, MethodRegistry>, "registry mismatch");
 };
@@ -576,31 +576,31 @@ struct validate_method_parameter<
 // less specialized than <virtual_any cvref, T2>.
 
 template<class Any, class Registry, typename T2>
-struct validate_overrider_parameter<virtual_any<Any, Registry>&, T2, void>
-    : std::true_type {};
+struct validate_overrider_parameter<virtual_any<Any, Registry>&, T2, void> :
+    std::true_type {};
 
 template<class Any, class Registry>
 struct validate_overrider_parameter<
-    virtual_any<Any, Registry>&, virtual_any<Any, Registry>&, void>
-    : std::true_type {};
+    virtual_any<Any, Registry>&, virtual_any<Any, Registry>&, void> :
+    std::true_type {};
 
 template<class Any, class Registry, typename T2>
-struct validate_overrider_parameter<const virtual_any<Any, Registry>&, T2, void>
-    : std::true_type {};
+struct validate_overrider_parameter<
+    const virtual_any<Any, Registry>&, T2, void> : std::true_type {};
 
 template<class Any, class Registry>
 struct validate_overrider_parameter<
-    const virtual_any<Any, Registry>&, const virtual_any<Any, Registry>&, void>
-    : std::true_type {};
+    const virtual_any<Any, Registry>&, const virtual_any<Any, Registry>&,
+    void> : std::true_type {};
 
 template<class Any, class Registry, typename T2>
-struct validate_overrider_parameter<virtual_any<Any, Registry>&&, T2, void>
-    : std::true_type {};
+struct validate_overrider_parameter<virtual_any<Any, Registry>&&, T2, void> :
+    std::true_type {};
 
 template<class Any, class Registry>
 struct validate_overrider_parameter<
-    virtual_any<Any, Registry>&&, virtual_any<Any, Registry>&&, void>
-    : std::true_type {};
+    virtual_any<Any, Registry>&&, virtual_any<Any, Registry>&&, void> :
+    std::true_type {};
 
 template<class Any, class Registry, typename Q>
 struct select_overrider_virtual_type_aux<
