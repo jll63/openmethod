@@ -568,8 +568,8 @@ struct registry<Policies...>::compiler : detail::generic_compiler {
     static void select_dominant_overriders(
         std::vector<overrider*>& dominants, std::size_t& pick,
         std::size_t& remaining);
-    static auto
-    is_more_specific(const overrider* a, const overrider* b) -> bool;
+    static auto is_more_specific(const overrider* a, const overrider* b)
+        -> bool;
     static auto is_base(const overrider* a, const overrider* b) -> bool;
 
     std::tuple<Options...> options;
@@ -1757,10 +1757,9 @@ void registry<Policies...>::compiler<Options...>::select_dominant_overriders(
                         if (candidates[i]->covariant_return_type->is_base_of(
                                 candidates[j]->covariant_return_type)) {
                             candidates[i] = nullptr;
-                        } else if (candidates[j]
-                                       ->covariant_return_type->is_base_of(
-                                           candidates[i]
-                                               ->covariant_return_type)) {
+                        } else if (
+                            candidates[j]->covariant_return_type->is_base_of(
+                                candidates[i]->covariant_return_type)) {
                             candidates[j] = nullptr;
                         }
                     }

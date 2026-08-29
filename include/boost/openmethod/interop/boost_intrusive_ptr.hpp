@@ -102,15 +102,15 @@ struct virtual_traits<const boost::intrusive_ptr<Class>&, Registry> {
     //! @return A `boost::intrusive_ptr` _value_.
     template<class OverriderType>
     static decltype(auto) cast(const boost::intrusive_ptr<Class>& obj) {
-        if constexpr (std::is_same_v<
-                          OverriderType, const boost::intrusive_ptr<Class>&>) {
+        if constexpr (
+            std::is_same_v<OverriderType, const boost::intrusive_ptr<Class>&>) {
             return obj;
         } else {
             using element_type =
                 typename std::remove_reference_t<OverriderType>::element_type;
 
-            if constexpr (detail::requires_dynamic_cast<
-                              Class*, element_type*>) {
+            if constexpr (
+                detail::requires_dynamic_cast<Class*, element_type*>) {
                 // make it work with custom RTTI
                 return std::remove_const_t<
                     std::remove_reference_t<OverriderType>>(

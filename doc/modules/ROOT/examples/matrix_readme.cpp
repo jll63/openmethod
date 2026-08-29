@@ -23,15 +23,18 @@ BOOST_OPENMETHOD_CLASSES(Matrix, SquareMatrix, SymmetricMatrix, DiagonalMatrix);
 
 BOOST_OPENMETHOD(to_json, (virtual_ptr<const Matrix>, std::ostream& os), void);
 
-BOOST_OPENMETHOD_OVERRIDE(to_json, (virtual_ptr<const SquareMatrix>, std::ostream& os), void) {
+BOOST_OPENMETHOD_OVERRIDE(
+    to_json, (virtual_ptr<const SquareMatrix>, std::ostream& os), void) {
     os << "all the elements\n";
 }
 
-BOOST_OPENMETHOD_OVERRIDE(to_json, (virtual_ptr<const SymmetricMatrix>, std::ostream& os), void) {
+BOOST_OPENMETHOD_OVERRIDE(
+    to_json, (virtual_ptr<const SymmetricMatrix>, std::ostream& os), void) {
     os << "elements above and including the diagonal\n";
 }
 
-BOOST_OPENMETHOD_OVERRIDE(to_json, (virtual_ptr<const DiagonalMatrix>, std::ostream& os), void) {
+BOOST_OPENMETHOD_OVERRIDE(
+    to_json, (virtual_ptr<const DiagonalMatrix>, std::ostream& os), void) {
     os << "just the diagonal\n";
 }
 

@@ -109,9 +109,9 @@ struct virtual_traits<const std::any&, Registry> {
     //! @return The value stored in `arg`, cast to `U`.
     template<typename U>
     static auto cast(const std::any& arg) -> decltype(auto) {
-        if constexpr (std::is_same_v<
-                          std::remove_cv_t<std::remove_reference_t<U>>,
-                          std::any>) {
+        if constexpr (
+            std::is_same_v<
+                std::remove_cv_t<std::remove_reference_t<U>>, std::any>) {
             return (arg);
         } else {
             (void)&detail::use_any_classes<Registry, std::any, std::decay_t<U>>;
@@ -182,9 +182,9 @@ struct virtual_traits<std::any&, Registry> {
     //! @return The value stored in `arg`, cast to `U`.
     template<typename U>
     static auto cast(std::any& arg) -> decltype(auto) {
-        if constexpr (std::is_same_v<
-                          std::remove_cv_t<std::remove_reference_t<U>>,
-                          std::any>) {
+        if constexpr (
+            std::is_same_v<
+                std::remove_cv_t<std::remove_reference_t<U>>, std::any>) {
             return (arg);
         } else {
             (void)&detail::use_any_classes<Registry, std::any, std::decay_t<U>>;
@@ -252,9 +252,9 @@ struct virtual_traits<std::any&&, Registry> {
     //! @return The value stored in `arg`, cast to `U`.
     template<typename U>
     static auto cast(std::any&& arg) -> decltype(auto) {
-        if constexpr (std::is_same_v<
-                          std::remove_cv_t<std::remove_reference_t<U>>,
-                          std::any>) {
+        if constexpr (
+            std::is_same_v<
+                std::remove_cv_t<std::remove_reference_t<U>>, std::any>) {
             return std::move(arg);
         } else {
             (void)&detail::use_any_classes<Registry, std::any, std::decay_t<U>>;

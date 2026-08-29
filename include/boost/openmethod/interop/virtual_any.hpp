@@ -336,8 +336,8 @@ struct virtual_traits<const virtual_any<Any, Registry>&, Registry> {
     //!
     //! @param arg A reference to a const `virtual_any`.
     //! @return A reference to the v-table pointer for the stored value.
-    static auto
-    vptr(const virtual_any<Any, Registry>& arg) -> const vptr_type& {
+    static auto vptr(const virtual_any<Any, Registry>& arg)
+        -> const vptr_type& {
         (void)&detail::use_any_classes<Registry, Any>;
         return arg.vptr_ref();
     }
@@ -356,9 +356,10 @@ struct virtual_traits<const virtual_any<Any, Registry>&, Registry> {
     //! @return The value stored in `arg`, cast to `U`.
     template<typename U>
     static auto cast(const virtual_any<Any, Registry>& arg) -> decltype(auto) {
-        if constexpr (std::is_same_v<
-                          std::remove_cv_t<std::remove_reference_t<U>>,
-                          virtual_any<Any, Registry>>) {
+        if constexpr (
+            std::is_same_v<
+                std::remove_cv_t<std::remove_reference_t<U>>,
+                virtual_any<Any, Registry>>) {
             return (arg);
         } else {
             (void)&detail::use_any_classes<Registry, Any, std::decay_t<U>>;
@@ -395,8 +396,8 @@ struct virtual_traits<virtual_any<Any, Registry>&, Registry> {
     //!
     //! @param arg A reference to a `virtual_any`.
     //! @return A reference to the v-table pointer for the stored value.
-    static auto
-    vptr(const virtual_any<Any, Registry>& arg) -> const vptr_type& {
+    static auto vptr(const virtual_any<Any, Registry>& arg)
+        -> const vptr_type& {
         (void)&detail::use_any_classes<Registry, Any>;
         return arg.vptr_ref();
     }
@@ -417,9 +418,10 @@ struct virtual_traits<virtual_any<Any, Registry>&, Registry> {
     //! @return The value stored in `arg`, cast to `U`.
     template<typename U>
     static auto cast(virtual_any<Any, Registry>& arg) -> decltype(auto) {
-        if constexpr (std::is_same_v<
-                          std::remove_cv_t<std::remove_reference_t<U>>,
-                          virtual_any<Any, Registry>>) {
+        if constexpr (
+            std::is_same_v<
+                std::remove_cv_t<std::remove_reference_t<U>>,
+                virtual_any<Any, Registry>>) {
             return (arg);
         } else {
             (void)&detail::use_any_classes<Registry, Any, std::decay_t<U>>;
@@ -455,8 +457,8 @@ struct virtual_traits<virtual_any<Any, Registry>&&, Registry> {
     //!
     //! @param arg A reference to a `virtual_any`.
     //! @return A reference to the v-table pointer for the stored value.
-    static auto
-    vptr(const virtual_any<Any, Registry>& arg) -> const vptr_type& {
+    static auto vptr(const virtual_any<Any, Registry>& arg)
+        -> const vptr_type& {
         (void)&detail::use_any_classes<Registry, Any>;
         return arg.vptr_ref();
     }
@@ -475,9 +477,10 @@ struct virtual_traits<virtual_any<Any, Registry>&&, Registry> {
     //! @return The value stored in `arg`, cast to `U`.
     template<typename U>
     static auto cast(virtual_any<Any, Registry>&& arg) -> decltype(auto) {
-        if constexpr (std::is_same_v<
-                          std::remove_cv_t<std::remove_reference_t<U>>,
-                          virtual_any<Any, Registry>>) {
+        if constexpr (
+            std::is_same_v<
+                std::remove_cv_t<std::remove_reference_t<U>>,
+                virtual_any<Any, Registry>>) {
             return std::move(arg);
         } else {
             (void)&detail::use_any_classes<Registry, Any, std::decay_t<U>>;

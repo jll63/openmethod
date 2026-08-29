@@ -24,7 +24,7 @@ BOOST_OPENMETHOD_INLINE_OVERRIDE(
     return 5000.0;
 }
 
-}
+} // namespace employees
 
 namespace sales {
 

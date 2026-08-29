@@ -40,7 +40,8 @@ class Payroll {
     }
 
     friend BOOST_OPENMETHOD_OVERRIDER(
-        pay, (Payroll & payroll, boost::openmethod::virtual_ptr<const Employee>),
+        pay,
+        (Payroll & payroll, boost::openmethod::virtual_ptr<const Employee>),
         double);
     friend BOOST_OPENMETHOD_OVERRIDER(
         pay,
@@ -83,8 +84,8 @@ int main() {
     Salesman bob;
     bob.sales = 100'000.0;
 
-    std::cout << "pay bill: $" << pay(payroll, bill) << "\n"; // $5000
-    std::cout << "pay bob: $" << pay(payroll, bob) << "\n";   // 10000
+    std::cout << "pay bill: $" << pay(payroll, bill) << "\n";         // $5000
+    std::cout << "pay bob: $" << pay(payroll, bob) << "\n";           // 10000
     std::cout << "remaining balance: $" << payroll.balance() << "\n"; // $985000
 }
 // end::main[]

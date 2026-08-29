@@ -41,8 +41,8 @@ BOOST_SYMBOL_EXPORT void overrider_make_dog(unique_virtual_ptr<Animal>& p) {
     p = make_dog();
 }
 
-BOOST_SYMBOL_EXPORT const char*
-overrider_call_speak(boost::openmethod::virtual_ptr<Animal> animal) {
+BOOST_SYMBOL_EXPORT const char* overrider_call_speak(
+    boost::openmethod::virtual_ptr<Animal> animal) {
     return speak(animal);
 }
 

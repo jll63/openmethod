@@ -46,8 +46,8 @@ BOOST_SYMBOL_EXPORT void method_make_dog(unique_virtual_ptr<Animal>& p) {
     p = make_dog();
 }
 
-BOOST_SYMBOL_EXPORT const char*
-method_call_speak(boost::openmethod::virtual_ptr<Animal> animal) {
+BOOST_SYMBOL_EXPORT const char* method_call_speak(
+    boost::openmethod::virtual_ptr<Animal> animal) {
     return speak(animal);
 }
 

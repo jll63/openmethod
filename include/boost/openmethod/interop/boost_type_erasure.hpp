@@ -182,8 +182,8 @@ struct virtual_traits<const boost::type_erasure::any<C, T>&, Registry> {
     //!
     //! @param arg A reference to a const `any`.
     //! @return A reference to the v-table pointer for the bound value.
-    static auto
-    vptr(const boost::type_erasure::any<C, T>& arg) -> const vptr_type& {
+    static auto vptr(const boost::type_erasure::any<C, T>& arg)
+        -> const vptr_type& {
         detail::assert_std_rtti_type_erasure<Registry>();
         (void)&detail::use_any_classes<Registry, boost::type_erasure::any<C>>;
         return Registry::vptr::vptr(&boost::type_erasure::typeid_of(arg));
@@ -208,10 +208,10 @@ struct virtual_traits<const boost::type_erasure::any<C, T>&, Registry> {
         typename = std::enable_if_t<
             !std::is_rvalue_reference_v<U> &&
             (!detail::te_mutable_target<U> || detail::te_mutable_bound<T>)>>
-    static auto
-    cast(const boost::type_erasure::any<C, T>& arg) -> decltype(auto) {
-        if constexpr (detail::te_pass_through<
-                          U, boost::type_erasure::any<C, T>>) {
+    static auto cast(const boost::type_erasure::any<C, T>& arg)
+        -> decltype(auto) {
+        if constexpr (
+            detail::te_pass_through<U, boost::type_erasure::any<C, T>>) {
             return (arg);
         } else {
             (void)&detail::use_any_classes<
@@ -257,8 +257,8 @@ struct virtual_traits<boost::type_erasure::any<C, T>&, Registry> {
     //!
     //! @param arg A reference to an `any`.
     //! @return A reference to the v-table pointer for the bound value.
-    static auto
-    vptr(const boost::type_erasure::any<C, T>& arg) -> const vptr_type& {
+    static auto vptr(const boost::type_erasure::any<C, T>& arg)
+        -> const vptr_type& {
         detail::assert_std_rtti_type_erasure<Registry>();
         (void)&detail::use_any_classes<Registry, boost::type_erasure::any<C>>;
         return Registry::vptr::vptr(&boost::type_erasure::typeid_of(arg));
@@ -285,8 +285,8 @@ struct virtual_traits<boost::type_erasure::any<C, T>&, Registry> {
             (!detail::te_mutable_target<U> || detail::te_owning<T> ||
              detail::te_mutable_bound<T>)>>
     static auto cast(boost::type_erasure::any<C, T>& arg) -> decltype(auto) {
-        if constexpr (detail::te_pass_through<
-                          U, boost::type_erasure::any<C, T>>) {
+        if constexpr (
+            detail::te_pass_through<U, boost::type_erasure::any<C, T>>) {
             return (arg);
         } else {
             (void)&detail::use_any_classes<
@@ -332,8 +332,8 @@ struct virtual_traits<boost::type_erasure::any<C, T>&&, Registry> {
     //!
     //! @param arg A reference to a const `any`.
     //! @return A reference to the v-table pointer for the bound value.
-    static auto
-    vptr(const boost::type_erasure::any<C, T>& arg) -> const vptr_type& {
+    static auto vptr(const boost::type_erasure::any<C, T>& arg)
+        -> const vptr_type& {
         detail::assert_std_rtti_type_erasure<Registry>();
         (void)&detail::use_any_classes<Registry, boost::type_erasure::any<C>>;
         return Registry::vptr::vptr(&boost::type_erasure::typeid_of(arg));
@@ -361,8 +361,8 @@ struct virtual_traits<boost::type_erasure::any<C, T>&&, Registry> {
             (!detail::te_mutable_target<U> || detail::te_owning<T> ||
              detail::te_mutable_bound<T>)>>
     static auto cast(boost::type_erasure::any<C, T>&& arg) -> decltype(auto) {
-        if constexpr (detail::te_pass_through<
-                          U, boost::type_erasure::any<C, T>>) {
+        if constexpr (
+            detail::te_pass_through<U, boost::type_erasure::any<C, T>>) {
             return std::move(arg);
         } else {
             (void)&detail::use_any_classes<
@@ -421,8 +421,8 @@ struct virtual_traits<boost::type_erasure::any<C, T&>, Registry> {
     //!
     //! @param arg A reference to a const `any`.
     //! @return A reference to the v-table pointer for the bound value.
-    static auto
-    vptr(const boost::type_erasure::any<C, T&>& arg) -> const vptr_type& {
+    static auto vptr(const boost::type_erasure::any<C, T&>& arg)
+        -> const vptr_type& {
         detail::assert_std_rtti_type_erasure<Registry>();
         (void)&detail::use_any_classes<Registry, boost::type_erasure::any<C>>;
         return Registry::vptr::vptr(&boost::type_erasure::typeid_of(arg));
@@ -444,8 +444,8 @@ struct virtual_traits<boost::type_erasure::any<C, T&>, Registry> {
     template<
         typename U, typename = std::enable_if_t<!std::is_rvalue_reference_v<U>>>
     static auto cast(boost::type_erasure::any<C, T&> arg) -> decltype(auto) {
-        if constexpr (detail::te_pass_through<
-                          U, boost::type_erasure::any<C, T&>>) {
+        if constexpr (
+            detail::te_pass_through<U, boost::type_erasure::any<C, T&>>) {
             // by value: a reference would dangle when this function's
             // parameter goes out of scope
             return arg;
@@ -497,8 +497,8 @@ struct virtual_traits<boost::type_erasure::any<C, const T&>, Registry> {
     //!
     //! @param arg A reference to a const `any`.
     //! @return A reference to the v-table pointer for the bound value.
-    static auto
-    vptr(const boost::type_erasure::any<C, const T&>& arg) -> const vptr_type& {
+    static auto vptr(const boost::type_erasure::any<C, const T&>& arg)
+        -> const vptr_type& {
         detail::assert_std_rtti_type_erasure<Registry>();
         (void)&detail::use_any_classes<Registry, boost::type_erasure::any<C>>;
         return Registry::vptr::vptr(&boost::type_erasure::typeid_of(arg));
@@ -519,10 +519,10 @@ struct virtual_traits<boost::type_erasure::any<C, const T&>, Registry> {
         typename U,
         typename = std::enable_if_t<
             !std::is_rvalue_reference_v<U> && !detail::te_mutable_target<U>>>
-    static auto
-    cast(boost::type_erasure::any<C, const T&> arg) -> decltype(auto) {
-        if constexpr (detail::te_pass_through<
-                          U, boost::type_erasure::any<C, const T&>>) {
+    static auto cast(boost::type_erasure::any<C, const T&> arg)
+        -> decltype(auto) {
+        if constexpr (
+            detail::te_pass_through<U, boost::type_erasure::any<C, const T&>>) {
             // by value: a reference would dangle when this function's
             // parameter goes out of scope
             return arg;

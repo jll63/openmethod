@@ -660,9 +660,8 @@ decltype(auto) acquire_vptr(const ArgType& arg) {
 
     Registry::require_initialized();
 
-    if constexpr (has_vptr<
-                      virtual_traits<const ArgType&, Registry>,
-                      const ArgType&>) {
+    if constexpr (
+        has_vptr<virtual_traits<const ArgType&, Registry>, const ArgType&>) {
         return virtual_traits<const ArgType&, Registry>::vptr(arg);
     } else {
         return Registry::template policy<policies::vptr>::dynamic_vptr(arg);
@@ -1766,8 +1765,8 @@ struct virtual_traits<virtual_ptr<Class, Registry>, Registry> {
     //! @return A lvalue reference to a `virtual_ptr` to the same object, cast
     //! to `Derived::element_type`.
     template<typename Derived>
-    static auto
-    cast(const virtual_ptr<Class, Registry>& ptr) -> decltype(auto) {
+    static auto cast(const virtual_ptr<Class, Registry>& ptr)
+        -> decltype(auto) {
         return ptr.template cast<typename Derived::element_type>();
     }
 
@@ -1812,8 +1811,8 @@ struct virtual_traits<const virtual_ptr<Class, Registry>&, Registry> {
     //! @return A lvalue reference to a `virtual_ptr` to the same object, cast
     //! to `Derived::element_type`.
     template<typename Derived>
-    static auto
-    cast(const virtual_ptr<Class, Registry>& ptr) -> decltype(auto) {
+    static auto cast(const virtual_ptr<Class, Registry>& ptr)
+        -> decltype(auto) {
         return ptr.template cast<
             typename std::remove_reference_t<Derived>::element_type>();
     }
@@ -2239,8 +2238,8 @@ class method<Id, ReturnType(Parameters...), Registry>
 
     template<typename MethodArgList, typename ArgType, typename... MoreArgTypes>
     auto resolve_multi_first(
-        const ArgType& arg,
-        const MoreArgTypes&... more_args) const -> detail::word;
+        const ArgType& arg, const MoreArgTypes&... more_args) const
+        -> detail::word;
 
     template<
         std::size_t VirtualArg, typename MethodArgList, typename ArgType,
@@ -2267,15 +2266,15 @@ class method<Id, ReturnType(Parameters...), Registry>
 
     static BOOST_NORETURN auto fn_not_implemented(
         detail::remove_virtual_<Parameters>... args) -> ReturnType;
-    static BOOST_NORETURN auto
-    fn_ambiguous(detail::remove_virtual_<Parameters>... args) -> ReturnType;
+    static BOOST_NORETURN auto fn_ambiguous(
+        detail::remove_virtual_<Parameters>... args) -> ReturnType;
 
     template<
         auto Overrider, typename OverriderReturn,
         typename... OverriderParameters>
     struct thunk<Overrider, OverriderReturn (*)(OverriderParameters...)> {
-        static auto
-        fn(detail::remove_virtual_<Parameters>... arg) -> ReturnType;
+        static auto fn(detail::remove_virtual_<Parameters>... arg)
+            -> ReturnType;
         using OverriderVirtualParameters = detail::overrider_virtual_types<
             DeclaredParameters, mp11::mp_list<OverriderParameters...>,
             Registry>;
@@ -2386,8 +2385,9 @@ method<Id, ReturnType(Parameters...), Registry>::operator()(
     using namespace detail;
     auto pf = resolve(args...);
 
-    return pf(std::forward<typename StripVirtualDecorator<Parameters>::type>(
-        args)...);
+    return pf(
+        std::forward<typename StripVirtualDecorator<Parameters>::type>(
+            args)...);
 }
 
 template<
@@ -2426,9 +2426,9 @@ BOOST_FORCEINLINE auto method<Id, ReturnType(Parameters...), Registry>::vptr(
 
         if constexpr (detail::has_vptr_fn<decltype(obj), Registry>) {
             return boost_openmethod_vptr(obj, static_cast<Registry*>(nullptr));
-        } else if constexpr (detail::has_vptr<
-                                 virtual_traits<MethodArg, Registry>,
-                                 decltype(obj)>) {
+        } else if constexpr (
+            detail::has_vptr<
+                virtual_traits<MethodArg, Registry>, decltype(obj)>) {
             return virtual_traits<MethodArg, Registry>::vptr(obj);
         } else {
             return Registry::template policy<policies::vptr>::dynamic_vptr(obj);
@@ -2441,8 +2441,8 @@ template<
 template<typename MethodArgList, typename ArgType, typename... MoreArgTypes>
 BOOST_FORCEINLINE auto
 method<Id, ReturnType(Parameters...), Registry>::resolve_uni(
-    const ArgType& arg,
-    const MoreArgTypes&... more_args) const -> detail::word {
+    const ArgType& arg, const MoreArgTypes&... more_args) const
+    -> detail::word {
 
     using namespace detail;
     using namespace policies;
@@ -2461,8 +2461,8 @@ template<
 template<typename MethodArgList, typename ArgType, typename... MoreArgTypes>
 BOOST_FORCEINLINE auto
 method<Id, ReturnType(Parameters...), Registry>::resolve_multi_first(
-    const ArgType& arg,
-    const MoreArgTypes&... more_args) const -> detail::word {
+    const ArgType& arg, const MoreArgTypes&... more_args) const
+    -> detail::word {
 
     using namespace detail;
     using namespace boost::mp11;
@@ -2519,8 +2519,8 @@ method<Id, ReturnType(Parameters...), Registry>::resolve_multi_next(
 template<
     typename Id, typename... Parameters, typename ReturnType, class Registry>
 template<auto Fn>
-inline auto
-method<Id, ReturnType(Parameters...), Registry>::has_next() -> bool {
+inline auto method<Id, ReturnType(Parameters...), Registry>::has_next()
+    -> bool {
     if (next<Fn> == fn_not_implemented) {
         return false;
     }

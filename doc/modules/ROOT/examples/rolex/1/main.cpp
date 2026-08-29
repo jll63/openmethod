@@ -15,9 +15,10 @@ int main() {
     boost::openmethod::initialize();
 
     Employee bill;
-    Salesman bob; bob.sales = 100'000.0;
+    Salesman bob;
+    bob.sales = 100'000.0;
 
     std::cout << "pay bill: $" << pay(bill) << "\n"; // pay bill: $5000
-    std::cout << "pay bob: $" << pay(bob) << "\n"; // pay bob: $10000
+    std::cout << "pay bob: $" << pay(bob) << "\n";   // pay bob: $10000
 }
 // end::content[]

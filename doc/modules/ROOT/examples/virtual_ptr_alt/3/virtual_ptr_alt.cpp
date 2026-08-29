@@ -8,24 +8,27 @@
 #include <boost/openmethod/inplace_vptr.hpp>
 
 // tag::content[]
-struct Node : boost::openmethod::inplace_vptr_base<Node> {
-};
+struct Node : boost::openmethod::inplace_vptr_base<Node> {};
 
-struct Variable : Node, boost::openmethod::inplace_vptr_derived<Variable, Node> {
-    Variable(int value) : v(value) {}
+struct Variable : Node,
+                  boost::openmethod::inplace_vptr_derived<Variable, Node> {
+    Variable(int value) : v(value) {
+    }
 
     int v;
 };
 
 struct Plus : Node, boost::openmethod::inplace_vptr_derived<Plus, Node> {
-    Plus(const Node& left, const Node& right) : left(left), right(right) {}
+    Plus(const Node& left, const Node& right) : left(left), right(right) {
+    }
 
     const Node& left;
     const Node& right;
 };
 
 struct Times : Node, boost::openmethod::inplace_vptr_derived<Times, Node> {
-    Times(const Node& left, const Node& right) : left(left), right(right) {}
+    Times(const Node& left, const Node& right) : left(left), right(right) {
+    }
 
     const Node& left;
     const Node& right;
