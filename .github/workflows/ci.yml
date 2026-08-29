@@ -70,6 +70,13 @@ jobs:
       - name: Clone Boost
         uses: alandefreitas/cpp-actions/boost-clone@v1.8.8
         with:
+          # boost-clone excludes `test` and `tests` from the scan
+          # (modules-exclude-paths defaults to them), so it never sees the
+          # includes in our own test/ and would clone neither Boost.Test nor
+          # Boost.DLL - CMake then fails to generate on a missing
+          # Boost::unit_test_framework. `modules` is unioned with the scan,
+          # and their own dependencies are resolved afterwards.
+          modules: test dll
           branch: ${{ (github.ref_name == 'master' && github.ref_name) || 'develop' }}
           boost-dir: ../boost-source
           scan-modules-dir: .
