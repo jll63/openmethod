@@ -47,8 +47,19 @@ consteval void collect_reflected_bases(
 
     types.push_back(type);
 
-    for (auto base :
-         std::meta::bases_of(type, std::meta::access_context::unchecked())) {
+    // The range is held in a named local instead of being left to the
+    // range-for to lifetime-extend. GCC 16, since r16-8246 (the fix for
+    // PR124575), marks a lifetime-extended temporary of consteval-only type -
+    // which `vector<meta::info>` is - `DECL_EXTERNAL`. The constant evaluator
+    // then hands every frame of a recursive call the same object: the inner
+    // call destroys the vector the outer call is still walking, and the loop
+    // fails with "accessing '<anonymous>' outside its lifetime". A plain
+    // automatic variable is not an extended-ref temporary, so each frame gets
+    // its own. `scan_namespace` below recurses too, and does the same.
+    auto bases =
+        std::meta::bases_of(type, std::meta::access_context::unchecked());
+
+    for (auto base : bases) {
         if (std::meta::is_public(base)) {
             collect_reflected_bases(std::meta::type_of(base), types);
         }
@@ -145,8 +156,11 @@ consteval void scan_namespace(
     std::meta::info ns, std::meta::info Template,
     std::vector<std::meta::info>& specializations,
     std::vector<std::meta::info>& classes) {
-    for (auto member :
-         std::meta::members_of(ns, std::meta::access_context::unchecked())) {
+    // A named local, for the reason given in `collect_reflected_bases`.
+    auto members =
+        std::meta::members_of(ns, std::meta::access_context::unchecked());
+
+    for (auto member : members) {
         if (std::meta::is_namespace(member)) {
             if (!is_std_namespace(member)) {
                 scan_namespace(member, Template, specializations, classes);
