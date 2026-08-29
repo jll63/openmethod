@@ -48,15 +48,19 @@ consteval void collect_reflected_bases(
     types.push_back(type);
 
     // The range is held in a named local instead of being left to the
-    // range-for to lifetime-extend. GCC 16, since d51a78f7a8f3 (2026-03-19,
-    // the fix for PR124575), marks a lifetime-extended temporary of
-    // consteval-only type - which `vector<meta::info>` is - `DECL_EXTERNAL`.
-    // The constant evaluator then hands every frame of a recursive call the
-    // same object: the inner call destroys the vector the outer call is still
+    // range-for to lifetime-extend, to work around GCC PR124645/PR124646.
+    // r16-8235 marks a lifetime-extended temporary of consteval-only type -
+    // which `vector<meta::info>` is - `DECL_EXTERNAL` unconditionally, and the
+    // constant evaluator then hands every frame of a recursive call the same
+    // object: the inner call destroys the vector the outer call is still
     // walking, and the loop fails with "accessing '<anonymous>' outside its
     // lifetime". A plain automatic variable is not an extended-ref temporary,
     // so each frame gets its own. `scan_namespace` below recurses too, and
     // does the same.
+    //
+    // Fixed upstream in r16-8430. Drop this once no supported toolchain sits
+    // in between - Ubuntu 26.04, which Boost.CI uses for the C++26 leg, ships
+    // 16-20260322 (r16-8246) and does.
     auto bases =
         std::meta::bases_of(type, std::meta::access_context::unchecked());
 
