@@ -78,13 +78,14 @@ We register the classes with `use_classes`:
 include::{example}/core_api.cpp[tag=use_classes]
 ----
 
-With a compiler that supports C++26 reflection, `use_classes_in` replaces that
-list. It scans a namespace for the registry's methods, and registers the classes
-they dispatch on along with everything in the namespace that derives from them:
+With a compiler that supports C++26 reflection, `register_classes` replaces that
+list. It scans one or more namespaces for the registry's methods, and registers
+the classes they dispatch on along with everything in those namespaces that
+derives from them:
 
 [source,c++]
 ----
-BOOST_OPENMETHOD_REGISTER(use_classes_in<^^::>);
+BOOST_OPENMETHOD_REGISTER(register_classes<^^::>);
 ----
 
 A method declared the way `postfix` is above - an alias for a `method`

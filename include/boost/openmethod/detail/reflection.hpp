@@ -27,7 +27,55 @@
 
 #include <boost/mp11/list.hpp>
 
+namespace boost::openmethod {
+
+//! Options for reflection-based class registration.
+//!
+//! The values alter how @ref register_classes and @ref
+//! BOOST_OPENMETHOD_REGISTER_CLASSES scan namespaces. Combine them with `|`.
+//! A namespace rather than an enum class, so a `using namespace` directive can
+//! make the terse spellings available.
+//!
+//! This namespace is available only if the compiler supports C++26 reflection,
+//! i.e. if `BOOST_OPENMETHOD_HAS_REFLECTION` is 1.
+namespace register_classes_opts {
+
+//! The type of the option values.
+enum opts : unsigned {
+    //! Scan only the members declared directly in the listed namespaces; do
+    //! not descend into the namespaces nested in them.
+    no_recurse = 1,
+    //! Enter the `std` namespace when a scan reaches it. By default it is
+    //! skipped.
+    scan_std = 2,
+    //! Enter the `boost` namespace when a scan reaches it. By default it is
+    //! skipped.
+    scan_boost = 4,
+};
+
+//! Combine two sets of options.
+constexpr auto operator|(opts a, opts b) -> opts {
+    return opts(unsigned(a) | unsigned(b));
+}
+
+} // namespace register_classes_opts
+
+} // namespace boost::openmethod
+
 namespace boost::openmethod::detail {
+
+consteval auto has_opt(
+    register_classes_opts::opts opts, register_classes_opts::opts opt) -> bool {
+    return (unsigned(opts) & unsigned(opt)) != 0;
+}
+
+// The scope enclosing a use of `BOOST_OPENMETHOD_REGISTER_CLASSES`, or the
+// instantiation of `register_classes<>` with an empty argument list. It is a
+// fallback: a scan uses it only when its argument list names no namespace and
+// no class.
+struct scope_marker {
+    std::meta::info scope;
+};
 
 // =============================================================================
 // base classes
@@ -91,13 +139,26 @@ using reflected_bases = typename [: reflected_bases_info<Class>() :];
 // =============================================================================
 // namespace scan
 
-// True if `member` is the `std` namespace, which a scan does not enter.
-// Walking it would cost a great deal and find nothing: a method cannot be
-// declared on a class the program has never heard of. The nested namespaces -
-// `std::chrono`, `std::ranges`, the inline versioning ones - are reached only
-// through their parent, so they are left out with it.
-consteval auto is_std_namespace(std::meta::info member) -> bool {
-    return std::meta::dealias(member) == ^^::std;
+// True if `member` is a namespace that a recursive scan does not enter: `std`
+// and `boost`, unless the options say otherwise. Walking them would cost a
+// great deal and find nothing: a method cannot be declared on a class the
+// program has never heard of. The nested namespaces - `std::chrono`,
+// `boost::mp11`, the inline versioning ones - are reached only through their
+// parent, so they are left out with it. The exclusion applies only to
+// recursion: a namespace listed explicitly is always scanned.
+consteval auto is_excluded_namespace(
+    std::meta::info member, register_classes_opts::opts opts) -> bool {
+    auto ns = std::meta::dealias(member);
+
+    if (ns == ^^::std) {
+        return !has_opt(opts, register_classes_opts::scan_std);
+    }
+
+    if (ns == ^^::boost) {
+        return !has_opt(opts, register_classes_opts::scan_boost);
+    }
+
+    return false;
 }
 
 consteval auto contains(
@@ -153,22 +214,24 @@ consteval auto specialization_named_by(std::meta::info member)
     return std::meta::info();
 }
 
-// Walk `ns` and the namespaces nested in it, collecting the specializations of
-// `Template` that its members name, and the complete class types they declare.
-// Nothing else is retained: the scan of a large namespace must not build a list
-// of everything in it.
+// Walk `ns` and, unless `opts` says `no_recurse`, the namespaces nested in it,
+// collecting the specializations of `Template` that its members name, and the
+// complete class types they declare. Nothing else is retained: the scan of a
+// large namespace must not build a list of everything in it.
 consteval void scan_namespace(
     std::meta::info ns, std::meta::info Template,
     std::vector<std::meta::info>& specializations,
-    std::vector<std::meta::info>& classes) {
+    std::vector<std::meta::info>& classes, register_classes_opts::opts opts) {
     // A named local, for the reason given in `collect_reflected_bases`.
     auto members =
         std::meta::members_of(ns, std::meta::access_context::unchecked());
 
     for (auto member : members) {
         if (std::meta::is_namespace(member)) {
-            if (!is_std_namespace(member)) {
-                scan_namespace(member, Template, specializations, classes);
+            if (!has_opt(opts, register_classes_opts::no_recurse) &&
+                !is_excluded_namespace(member, opts)) {
+                scan_namespace(
+                    member, Template, specializations, classes, opts);
             }
 
             continue;

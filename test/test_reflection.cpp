@@ -3,8 +3,8 @@
 // See accompanying file LICENSE_1_0.txt
 // or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-// Tests for reflection-based class registration - `use_classes_in` and
-// `BOOST_OPENMETHOD_CLASSES_IN`. Without a compiler that supports C++26
+// Tests for reflection-based class registration - `register_classes` and
+// `BOOST_OPENMETHOD_REGISTER_CLASSES`. Without a compiler that supports C++26
 // reflection there is nothing to test, and the whole file reduces to one test
 // case that says so.
 
@@ -84,7 +84,7 @@ BOOST_OPENMETHOD_OVERRIDE(poke, (Cat&), std::string) {
 } // namespace macro_interface
 
 BOOST_OPENMETHOD_REGISTER(
-    use_classes_in<^^macro_interface, macro_interface::test_registry>);
+    register_classes<^^macro_interface, ^^macro_interface::test_registry>);
 
 BOOST_AUTO_TEST_CASE(macro_interface_dispatch) {
     using namespace macro_interface;
@@ -145,7 +145,7 @@ BOOST_OPENMETHOD_REGISTER(value::override<value_literal, value_plus>);
 } // namespace core_interface
 
 BOOST_OPENMETHOD_REGISTER(
-    use_classes_in<^^core_interface, core_interface::test_registry>);
+    register_classes<^^core_interface, ^^core_interface::test_registry>);
 
 BOOST_AUTO_TEST_CASE(core_interface_dispatch) {
     using namespace core_interface;
@@ -184,7 +184,7 @@ BOOST_OPENMETHOD(poke, (virtual_<Animal&>), void, test_registry);
 } // namespace method_only
 
 BOOST_OPENMETHOD_REGISTER(
-    use_classes_in<^^method_only, method_only::test_registry>);
+    register_classes<^^method_only, ^^method_only::test_registry>);
 
 BOOST_AUTO_TEST_CASE(method_without_overrider) {
     using namespace method_only;
@@ -228,7 +228,7 @@ BOOST_OPENMETHOD_OVERRIDE(meet, (Carnivore&, Herbivore&), std::string) {
 } // namespace inheritance
 
 BOOST_OPENMETHOD_REGISTER(
-    use_classes_in<^^inheritance, inheritance::test_registry>);
+    register_classes<^^inheritance, ^^inheritance::test_registry>);
 
 BOOST_AUTO_TEST_CASE(virtual_and_multiple_inheritance) {
     using namespace inheritance;
@@ -286,8 +286,8 @@ BOOST_OPENMETHOD_OVERRIDE(poke, (Dog&), std::string) {
 } // namespace repeated_inheritance
 
 BOOST_OPENMETHOD_REGISTER(
-    use_classes_in<
-        ^^repeated_inheritance, repeated_inheritance::test_registry>);
+    register_classes<
+        ^^repeated_inheritance, ^^repeated_inheritance::test_registry>);
 
 BOOST_AUTO_TEST_CASE(repeated_inheritance_does_not_break_the_scan) {
     using namespace repeated_inheritance;
@@ -336,7 +336,7 @@ BOOST_OPENMETHOD_OVERRIDE(
 
 } // namespace nested
 
-BOOST_OPENMETHOD_REGISTER(use_classes_in<^^nested, nested::test_registry>);
+BOOST_OPENMETHOD_REGISTER(register_classes<^^nested, ^^nested::test_registry>);
 
 BOOST_AUTO_TEST_CASE(nested_namespaces_and_smart_pointers) {
     using namespace nested;
@@ -387,7 +387,7 @@ BOOST_OPENMETHOD_OVERRIDE(poke, (Dog&), std::string) {
 } // namespace unused_bases
 
 BOOST_OPENMETHOD_REGISTER(
-    use_classes_in<^^unused_bases, unused_bases::test_registry>);
+    register_classes<^^unused_bases, ^^unused_bases::test_registry>);
 
 BOOST_AUTO_TEST_CASE(bases_that_take_no_part_in_dispatch_are_left_out) {
     using namespace unused_bases;
@@ -443,7 +443,7 @@ BOOST_OPENMETHOD_OVERRIDE(label, (Dog&), std::string) {
 } // namespace shared_bases
 
 BOOST_OPENMETHOD_REGISTER(
-    use_classes_in<^^shared_bases, shared_bases::test_registry>);
+    register_classes<^^shared_bases, ^^shared_bases::test_registry>);
 
 BOOST_AUTO_TEST_CASE(a_base_another_method_dispatches_on_is_registered) {
     using namespace shared_bases;
@@ -496,7 +496,7 @@ BOOST_OPENMETHOD_OVERRIDE(poke, (C&), std::string) {
 } // namespace direct_bases
 
 BOOST_OPENMETHOD_REGISTER(
-    use_classes_in<^^direct_bases, direct_bases::test_registry>);
+    register_classes<^^direct_bases, ^^direct_bases::test_registry>);
 
 BOOST_AUTO_TEST_CASE(recorded_bases_are_direct) {
     using namespace direct_bases;
@@ -557,13 +557,366 @@ BOOST_OPENMETHOD_OVERRIDE(poke, (Dog&), void) {
 } // namespace opted_out
 
 BOOST_OPENMETHOD_REGISTER(
-    use_classes_in<^^opted_out, opted_out::test_registry>);
+    register_classes<^^opted_out, ^^opted_out::test_registry>);
 
 BOOST_AUTO_TEST_CASE(explicit_class_registration_disables_the_scan) {
     static_assert(!opted_out::test_registry::has_reflected_class_registration);
     // Nothing was registered, so initialize cannot resolve the method's
     // virtual parameter.
     BOOST_CHECK_THROW(initialize<opted_out::test_registry>(), missing_class);
+}
+
+// =============================================================================
+// Several namespaces in one registration
+
+namespace two_namespaces {
+
+struct test_registry : test_registry_<__COUNTER__> {};
+
+namespace zoo {
+
+struct Animal {
+    virtual ~Animal() = default;
+};
+
+BOOST_OPENMETHOD(poke, (virtual_<Animal&>), std::string, test_registry);
+
+BOOST_OPENMETHOD_OVERRIDE(poke, (Animal&), std::string) {
+    return "generic";
+}
+
+} // namespace zoo
+
+namespace pets {
+
+struct Dog : zoo::Animal {};
+
+BOOST_OPENMETHOD_OVERRIDE(poke, (Dog&), std::string) {
+    return "bark";
+}
+
+} // namespace pets
+
+} // namespace two_namespaces
+
+BOOST_OPENMETHOD_REGISTER(
+    register_classes<
+        ^^two_namespaces::zoo, ^^two_namespaces::pets,
+        ^^two_namespaces::test_registry>);
+
+BOOST_AUTO_TEST_CASE(several_namespaces_in_one_registration) {
+    using namespace two_namespaces;
+
+    auto comp = initialize<test_registry>();
+
+    BOOST_TEST((registered<zoo::Animal, test_registry>(comp)));
+    BOOST_TEST((registered<pets::Dog, test_registry>(comp)));
+
+    pets::Dog dog;
+    BOOST_TEST(zoo::poke(dog) == "bark");
+}
+
+// =============================================================================
+// With no namespace and no class, the enclosing namespace is scanned
+
+namespace enclosing_macro {
+
+struct test_registry : test_registry_<__COUNTER__> {};
+
+struct Animal {
+    virtual ~Animal() = default;
+};
+
+struct Dog : Animal {};
+
+BOOST_OPENMETHOD(poke, (virtual_<Animal&>), std::string, test_registry);
+
+BOOST_OPENMETHOD_OVERRIDE(poke, (Dog&), std::string) {
+    return "bark";
+}
+
+// Only the registry is named; the macro captures the enclosing namespace.
+BOOST_OPENMETHOD_REGISTER_CLASSES(^^enclosing_macro::test_registry);
+
+} // namespace enclosing_macro
+
+BOOST_AUTO_TEST_CASE(macro_scans_the_enclosing_namespace) {
+    using namespace enclosing_macro;
+
+    auto comp = initialize<test_registry>();
+
+    BOOST_TEST((registered<Animal, test_registry>(comp)));
+    BOOST_TEST((registered<Dog, test_registry>(comp)));
+
+    Dog dog;
+    BOOST_TEST(poke(dog) == "bark");
+}
+
+namespace enclosing_helper {
+
+struct test_registry : test_registry_<__COUNTER__> {};
+
+struct Animal {
+    virtual ~Animal() = default;
+};
+
+struct Dog : Animal {};
+
+BOOST_OPENMETHOD(poke, (virtual_<Animal&>), std::string, test_registry);
+
+BOOST_OPENMETHOD_OVERRIDE(poke, (Dog&), std::string) {
+    return "bark";
+}
+
+// The bare class template cannot capture the enclosing namespace on its own;
+// `current_namespace()` passes it explicitly.
+BOOST_OPENMETHOD_REGISTER(
+    register_classes<current_namespace(), ^^enclosing_helper::test_registry>);
+
+} // namespace enclosing_helper
+
+BOOST_AUTO_TEST_CASE(current_namespace_names_the_enclosing_namespace) {
+    using namespace enclosing_helper;
+
+    auto comp = initialize<test_registry>();
+
+    BOOST_TEST((registered<Animal, test_registry>(comp)));
+    BOOST_TEST((registered<Dog, test_registry>(comp)));
+
+    Dog dog;
+    BOOST_TEST(poke(dog) == "bark");
+}
+
+// =============================================================================
+// Classes without a namespace: no scan, exactly the listed classes
+
+namespace classes_only {
+
+struct test_registry : test_registry_<__COUNTER__> {};
+
+struct Animal {
+    virtual ~Animal() = default;
+};
+
+struct Dog : Animal {};
+struct Bulldog : Dog {};
+
+BOOST_OPENMETHOD(poke, (virtual_<Animal&>), std::string, test_registry);
+
+BOOST_OPENMETHOD_OVERRIDE(poke, (Animal&), std::string) {
+    return "generic";
+}
+
+} // namespace classes_only
+
+// `Dog` is left out on purpose: only the listed classes are registered, and
+// the inheritance lattice is flattened over the gap - `Bulldog`'s recorded
+// base is `Animal`.
+BOOST_OPENMETHOD_REGISTER(
+    register_classes<
+        ^^classes_only::Animal, ^^classes_only::Bulldog,
+        ^^classes_only::test_registry>);
+
+BOOST_AUTO_TEST_CASE(listed_classes_without_a_namespace_disable_the_scan) {
+    using namespace classes_only;
+
+    auto comp = initialize<test_registry>();
+
+    BOOST_TEST((registered<Animal, test_registry>(comp)));
+    BOOST_TEST((registered<Bulldog, test_registry>(comp)));
+    BOOST_TEST((!registered<Dog, test_registry>(comp)));
+
+    // The flattened lattice records `Animal` as `Bulldog`'s direct base.
+    auto bulldog = comp.class_map.at(
+        test_registry::rtti::type_index(
+            test_registry::rtti::static_type<Bulldog>()));
+    BOOST_TEST(bulldog->direct_bases.size() == 1u);
+
+    // The edge is live: the overrider for `Animal` applies to `Bulldog`.
+    Bulldog snoopy;
+    BOOST_TEST(poke(snoopy) == "generic");
+}
+
+// =============================================================================
+// A listed class is a root for the scan
+
+namespace listed_root {
+
+struct test_registry : test_registry_<__COUNTER__> {};
+
+struct Animal {
+    virtual ~Animal() = default;
+};
+
+BOOST_OPENMETHOD(poke, (virtual_<Animal&>), std::string, test_registry);
+
+BOOST_OPENMETHOD_OVERRIDE(poke, (Animal&), std::string) {
+    return "generic";
+}
+
+// No method dispatches on `Tool`; only listing it registers it - along with
+// `Hammer`, which the scan finds derives from it.
+struct Tool {
+    virtual ~Tool() = default;
+};
+
+struct Hammer : Tool {};
+
+// Unrelated to any root: must be left alone, as always.
+struct Fence {
+    virtual ~Fence() = default;
+};
+
+} // namespace listed_root
+
+BOOST_OPENMETHOD_REGISTER(
+    register_classes<
+        ^^listed_root, ^^listed_root::Tool, ^^listed_root::test_registry>);
+
+BOOST_AUTO_TEST_CASE(a_listed_class_roots_the_scan) {
+    using namespace listed_root;
+
+    auto comp = initialize<test_registry>();
+
+    BOOST_TEST((registered<Animal, test_registry>(comp)));
+    BOOST_TEST((registered<Tool, test_registry>(comp)));
+    BOOST_TEST((registered<Hammer, test_registry>(comp)));
+    BOOST_TEST((!registered<Fence, test_registry>(comp)));
+}
+
+// =============================================================================
+// no_recurse stops at the listed namespaces
+
+namespace no_recurse {
+
+struct test_registry : test_registry_<__COUNTER__> {};
+
+struct Animal {
+    virtual ~Animal() = default;
+};
+
+struct Dog : Animal {};
+
+BOOST_OPENMETHOD(poke, (virtual_<Animal&>), std::string, test_registry);
+
+BOOST_OPENMETHOD_OVERRIDE(poke, (Animal&), std::string) {
+    return "generic";
+}
+
+namespace kennel {
+
+struct Bulldog : Dog {};
+
+} // namespace kennel
+
+} // namespace no_recurse
+
+BOOST_OPENMETHOD_REGISTER(
+    register_classes<
+        ^^no_recurse, register_classes_opts::no_recurse,
+        ^^no_recurse::test_registry>);
+
+BOOST_AUTO_TEST_CASE(no_recurse_skips_nested_namespaces) {
+    using namespace no_recurse;
+
+    auto comp = initialize<test_registry>();
+
+    BOOST_TEST((registered<Animal, test_registry>(comp)));
+    BOOST_TEST((registered<Dog, test_registry>(comp)));
+    BOOST_TEST((!registered<kennel::Bulldog, test_registry>(comp)));
+}
+
+// =============================================================================
+// boost is skipped by default; scan_boost brings it back in
+
+namespace boost_gate {
+
+struct default_registry_ : test_registry_<__COUNTER__> {};
+struct scan_boost_registry : test_registry_<__COUNTER__> {};
+
+struct Animal {
+    virtual ~Animal() = default;
+};
+
+BOOST_OPENMETHOD(poke, (virtual_<Animal&>), std::string, default_registry_);
+BOOST_OPENMETHOD_OVERRIDE(poke, (Animal&), std::string) {
+    return "generic";
+}
+
+BOOST_OPENMETHOD(poke2, (virtual_<Animal&>), std::string, scan_boost_registry);
+BOOST_OPENMETHOD_OVERRIDE(poke2, (Animal&), std::string) {
+    return "generic";
+}
+
+} // namespace boost_gate
+
+namespace boost::om_reflection_test {
+
+struct Stray : boost_gate::Animal {};
+
+} // namespace boost::om_reflection_test
+
+BOOST_OPENMETHOD_REGISTER(
+    register_classes<^^::, ^^boost_gate::default_registry_>);
+
+BOOST_OPENMETHOD_REGISTER(
+    register_classes<
+        ^^::, register_classes_opts::scan_boost,
+        ^^boost_gate::scan_boost_registry>);
+
+BOOST_AUTO_TEST_CASE(boost_is_scanned_only_on_request) {
+    using namespace boost_gate;
+    using boost::om_reflection_test::Stray;
+
+    auto default_comp = initialize<default_registry_>();
+    BOOST_TEST((registered<Animal, default_registry_>(default_comp)));
+    BOOST_TEST((!registered<Stray, default_registry_>(default_comp)));
+
+    auto scan_boost_comp = initialize<scan_boost_registry>();
+    BOOST_TEST((registered<Animal, scan_boost_registry>(scan_boost_comp)));
+    BOOST_TEST((registered<Stray, scan_boost_registry>(scan_boost_comp)));
+}
+
+// =============================================================================
+// Several registries in one registration
+
+namespace two_registries {
+
+struct first_registry : test_registry_<__COUNTER__> {};
+struct second_registry : test_registry_<__COUNTER__> {};
+
+struct Animal {
+    virtual ~Animal() = default;
+};
+
+struct Dog : Animal {};
+
+BOOST_OPENMETHOD(poke, (virtual_<Animal&>), std::string, first_registry);
+
+BOOST_OPENMETHOD_OVERRIDE(poke, (Dog&), std::string) {
+    return "bark";
+}
+
+} // namespace two_registries
+
+BOOST_OPENMETHOD_REGISTER(
+    register_classes<
+        ^^two_registries::Animal, ^^two_registries::Dog,
+        ^^two_registries::first_registry, ^^two_registries::second_registry>);
+
+BOOST_AUTO_TEST_CASE(several_registries_in_one_registration) {
+    using namespace two_registries;
+
+    auto first_comp = initialize<first_registry>();
+    BOOST_TEST((registered<Animal, first_registry>(first_comp)));
+    BOOST_TEST((registered<Dog, first_registry>(first_comp)));
+
+    auto second_comp = initialize<second_registry>();
+    BOOST_TEST((registered<Animal, second_registry>(second_comp)));
+    BOOST_TEST((registered<Dog, second_registry>(second_comp)));
+
+    Dog dog;
+    BOOST_TEST(poke(dog) == "bark");
 }
 
 #endif

@@ -177,7 +177,7 @@ struct not_initialized : openmethod_error {
 //! include:errors_missing_class_call.cpp#classes;use
 //!
 //! @note With a compiler that supports C++26 reflection, @ref
-//! BOOST_OPENMETHOD_CLASSES_IN registers these classes on its own, and the
+//! BOOST_OPENMETHOD_REGISTER_CLASSES registers these classes on its own, and the
 //! examples above no longer report anything. The error remains reachable - for
 //! a class in a namespace the scan does not cover, or in a registry with an
 //! @ref boost::openmethod::policies::explicit_class_registration policy, which
@@ -220,7 +220,7 @@ struct missing_class : openmethod_error {
 //! include:errors_missing_class_call.cpp#fix
 //!
 //! @note With a compiler that supports C++26 reflection, @ref
-//! BOOST_OPENMETHOD_CLASSES_IN registers these classes on its own, and the
+//! BOOST_OPENMETHOD_REGISTER_CLASSES registers these classes on its own, and the
 //! examples above no longer report anything. The error remains reachable - for
 //! a class in a namespace the scan does not cover, or in a registry with an
 //! @ref boost::openmethod::policies::explicit_class_registration policy, which

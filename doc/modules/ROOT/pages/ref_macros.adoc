@@ -14,7 +14,7 @@ uses of the library.
 | Adds an overrider to a method.
 | xref:reference:BOOST_OPENMETHOD_CLASSES.adoc[*BOOST_OPENMETHOD_CLASSES*]
 | Registers classes.
-| xref:reference:BOOST_OPENMETHOD_CLASSES_IN.adoc[*BOOST_OPENMETHOD_CLASSES_IN*]
+| xref:reference:BOOST_OPENMETHOD_REGISTER_CLASSES.adoc[*BOOST_OPENMETHOD_REGISTER_CLASSES*]
 | Registers the classes of a namespace, by reflection.
 | xref:reference:BOOST_OPENMETHOD_INLINE_OVERRIDE.adoc[BOOST_OPENMETHOD_INLINE_OVERRIDE]
 | Adds an overrider to a method as an inline function.

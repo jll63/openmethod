@@ -63,4 +63,4 @@ BOOST_AUTO_TEST_CASE(duplicate_overrider_is_ambiguous) {
 
 // Registers the classes above by reflection, when the compiler supports it.
 // Must come last: reflection sees only what precedes it.
-BOOST_OPENMETHOD_CLASSES_IN(::);
+BOOST_OPENMETHOD_REGISTER_CLASSES(^^::);

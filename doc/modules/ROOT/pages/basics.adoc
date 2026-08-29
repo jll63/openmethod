@@ -86,7 +86,7 @@ inheritance lattice.
 [NOTE]
 ====
 With a compiler that supports C++26 reflection, the class list is unnecessary.
-xref:reference:BOOST_OPENMETHOD_CLASSES_IN.adoc[BOOST_OPENMETHOD_CLASSES_IN]
+xref:reference:BOOST_OPENMETHOD_REGISTER_CLASSES.adoc[BOOST_OPENMETHOD_REGISTER_CLASSES]
 finds the classes on its own - see <<registering_classes_by_reflection>>.
 ====
 
@@ -121,7 +121,7 @@ include::{examplesdir}/ast.cpp[tag=content]
 
 When the compiler supports C++26 reflection (P2996), the library can work out
 the class list for itself. One call to
-xref:reference:BOOST_OPENMETHOD_CLASSES_IN.adoc[BOOST_OPENMETHOD_CLASSES_IN]
+xref:reference:BOOST_OPENMETHOD_REGISTER_CLASSES.adoc[BOOST_OPENMETHOD_REGISTER_CLASSES]
 replaces every
 xref:reference:BOOST_OPENMETHOD_CLASSES.adoc[BOOST_OPENMETHOD_CLASSES] in the
 file:
@@ -139,24 +139,38 @@ BOOST_OPENMETHOD_OVERRIDE(poke, (std::ostream& os, Dog&), void) {
     os << "bark";
 }
 
-BOOST_OPENMETHOD_CLASSES_IN(::); // registers all four classes
+BOOST_OPENMETHOD_REGISTER_CLASSES(^^::); // registers all four classes
 ----
 
-The macro scans the namespace it is given - and the namespaces nested in it -
-for the methods of the registry. It collects the classes those methods dispatch
-on, then registers them, along with every class in the scanned namespaces that
-derives from one of them. `Bulldog` above has no overrider of its own and is
-named nowhere, and is registered all the same.
+The macro scans the namespaces it is given - and the namespaces nested in them
+- for the methods of the registry. It collects the classes those methods
+dispatch on, then registers them, along with every class in the scanned
+namespaces that derives from one of them. `Bulldog` above has no overrider of
+its own and is named nowhere, and is registered all the same.
 
-A base class that no method dispatches on is *not* registered - it could never
-be selected on, and registering it would cost a lattice node, a hash slot and
-dispatch table space for nothing. So a hierarchy rooted in some general-purpose
-base contributes only the part of itself that takes part in dispatch. As soon as
-another method does dispatch on that base, it is registered, and the inheritance
-edges through it with it.
+The arguments come in four groups, each optional, in this order: reflections of
+namespaces to scan; reflections of classes to register; one value combining
+`register_classes_opts` options with `|`; and reflections of registries to register
+the classes in - `boost::openmethod::default_registry` when none is named. A
+listed class is registered whether a method dispatches on it or not, along with
+the classes the scan finds derive from it. With classes but no namespace,
+nothing is scanned: exactly the listed classes are registered, with the
+inheritance relations between them read from reflection. With neither -
+`BOOST_OPENMETHOD_REGISTER_CLASSES()` - the enclosing namespace is scanned.
 
-Classes declared in the standard library's or the compiler's own headers are not
-scanned, so `::` costs little more than the narrower namespace would.
+A base class that no method dispatches on, and that is not listed, is *not*
+registered - it could never be selected on, and registering it would cost a
+lattice node, a hash slot and dispatch table space for nothing. So a hierarchy
+rooted in some general-purpose base contributes only the part of itself that
+takes part in dispatch. As soon as another method does dispatch on that base,
+it is registered, and the inheritance edges through it with it.
+
+A scan does not enter the `std` and `boost` namespaces, so `^^::` costs little
+more than a narrower namespace would - a method cannot dispatch on a class the
+program never heard of anyway. The `register_classes_opts::scan_std` and
+`register_classes_opts::scan_boost` options bring them back in; a namespace *listed*
+explicitly is always scanned. `register_classes_opts::no_recurse` restricts the scan
+to the members declared directly in the listed namespaces.
 
 Reflection sees only what precedes it, so the macro must come *after* the
 declarations it is meant to find. Putting it at the bottom of the file is the
