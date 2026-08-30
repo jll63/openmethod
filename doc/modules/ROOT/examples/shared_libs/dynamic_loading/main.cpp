@@ -28,6 +28,7 @@ BOOST_OPENMETHOD_OVERRIDE(
 }
 
 // tag::load[]
+// tag::unload[]
 int main() {
     // end::load[]
     // end::unload[]
@@ -87,9 +88,10 @@ int main() {
         std::cout << "wolf meets cow -> "
                   << meet(*std::make_unique<Wolf>(), *std::make_unique<Cow>())
                   << "\n"; // greet
-                           // tag::before[]
-                           // tag::load[]
-                           // tag::unload[]
+        // end::unload[]
+        // tag::before[]
+        // tag::load[]
+        // tag::unload[]
 
         // end::before[]
         // end::load[]

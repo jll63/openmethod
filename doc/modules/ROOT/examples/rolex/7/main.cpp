@@ -65,6 +65,7 @@ BOOST_OPENMETHOD_OVERRIDE(
     bool) {
     return true;
 }
+// end::approve[]
 
 // tag::main[]
 int main() {

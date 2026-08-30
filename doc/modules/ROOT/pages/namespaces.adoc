@@ -31,11 +31,12 @@ include::{example}/3/salesman.cpp[tag=content]
 
 We get an error like:
 
-```
+[source,console]
+----
 error: implicit instantiation of undefined template
 'sales::pay_boost_openmethod_overriders<
     double (boost::openmethod::virtual_ptr<const employees::Employee>)>
-```
+----
 
 This is because the overrider container for `pay` in namespace `sales` is
 specialized for `Salesman`, but not for `Employee`.  The overrider for Employee

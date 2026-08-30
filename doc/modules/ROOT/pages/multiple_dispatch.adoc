@@ -52,10 +52,11 @@ include::{example}/ambiguities/1/main.cpp[tag=content]
 
 The program terminates with the following error message:
 
-```
+[source,console]
+----
 ambiguous
 Aborted (core dumped)
-```
+----
 
 This is because the call to `add(a, b)` is ambiguous: both overriders are equally
 good matches. The solution is to add an overrider for the case where both
