@@ -21,11 +21,10 @@
 #define BOOST_OPENMETHOD_HAS_REFLECTION 0
 #endif
 
-#if BOOST_OPENMETHOD_HAS_REFLECTION
-
-#include <vector>
-
-#include <boost/mp11/list.hpp>
+// The option namespace below is plain C++17 - nothing in it is a reflection -
+// so it is also compiled for MrDocs, which cannot parse the rest of this
+// header. See the `#ifdef __MRDOCS__` block further down.
+#if BOOST_OPENMETHOD_HAS_REFLECTION || defined(__MRDOCS__)
 
 namespace boost::openmethod {
 
@@ -61,6 +60,34 @@ constexpr auto operator|(opts a, opts b) -> opts {
 } // namespace register_classes_opts
 
 } // namespace boost::openmethod
+
+#endif
+
+#ifdef __MRDOCS__
+
+// MrDocs' front-end does not implement P2996, so the reflection API cannot be
+// parsed and is documented on stubs instead - see the `#elif defined(__MRDOCS__)`
+// branch at the end of core.hpp. The declarations below exist only so those
+// stubs can spell their real signatures; `include-symbols` in mrdocs.yml keeps
+// them out of the reference. They are never seen by a real compiler.
+namespace std::meta {
+
+struct info;
+
+class access_context {
+  public:
+    static auto current() -> access_context;
+};
+
+} // namespace std::meta
+
+#endif
+
+#if BOOST_OPENMETHOD_HAS_REFLECTION
+
+#include <vector>
+
+#include <boost/mp11/list.hpp>
 
 namespace boost::openmethod::detail {
 

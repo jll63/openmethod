@@ -78,10 +78,10 @@ We register the classes with `use_classes`:
 include::{example}/core_api.cpp[tag=use_classes]
 ----
 
-With a compiler that supports C++26 reflection, `register_classes` replaces that
-list. It scans one or more namespaces for the registry's methods, and registers
-the classes they dispatch on along with everything in those namespaces that
-derives from them:
+With a compiler that supports C++26 reflection, cpp:register_classes[] replaces
+that list. It scans one or more namespaces for the registry's methods, and
+registers the classes they dispatch on along with everything in those
+namespaces that derives from them:
 
 [source,c++]
 ----

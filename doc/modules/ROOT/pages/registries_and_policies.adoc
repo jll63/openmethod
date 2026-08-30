@@ -96,8 +96,8 @@ The `explicit_class_registration` policy does the opposite of adding a
 behaviour: it stops the library from registering classes by reflection, so a
 registry that contains it knows only the classes named in
 xref:reference:BOOST_OPENMETHOD_CLASSES.adoc[BOOST_OPENMETHOD_CLASSES] or
-xref:reference:use_classes.adoc[use_classes]. It has no effect if the compiler
-does not support C++26 reflection. See
+cpp:use_classes[]. It has no effect if the compiler does not support C++26
+reflection. See
 xref:ROOT:basics.adoc#registering_classes_by_reflection[Registering Classes by
 Reflection].
 

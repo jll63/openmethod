@@ -589,6 +589,17 @@ inline constexpr bool method_not_found = false;
 #define BOOST_OPENMETHOD_CLASSES(...)                                          \
     BOOST_OPENMETHOD_REGISTER(::boost::openmethod::use_classes<__VA_ARGS__>)
 
+// The reference documentation for this macro is on the fallback definition
+// below. MrDocs compiles the `#else` branch, and a doc comment separated
+// from its `#define` by preprocessor directives is not attached to it.
+#if BOOST_OPENMETHOD_HAS_REFLECTION
+#define BOOST_OPENMETHOD_REGISTER_CLASSES(...)                                 \
+    BOOST_OPENMETHOD_REGISTER(                                                 \
+        ::boost::openmethod::register_classes<                                 \
+            ::boost::openmethod::detail::scope_marker{                         \
+                ::std::meta::access_context::current().scope() } __VA_OPT__(   \
+                    , ) __VA_ARGS__>)
+#else
 //! Find the classes taking part in dispatch by reflection, and register them.
 //!
 //! It makes @ref BOOST_OPENMETHOD_CLASSES unnecessary in most cases.
@@ -626,14 +637,6 @@ inline constexpr bool method_not_found = false;
 //! @param ... Namespaces, classes, options, registries - see above.
 //!
 //! @see [Methods and Overriders](xref:ROOT:basics.adoc)
-#if BOOST_OPENMETHOD_HAS_REFLECTION
-#define BOOST_OPENMETHOD_REGISTER_CLASSES(...)                                 \
-    BOOST_OPENMETHOD_REGISTER(                                                 \
-        ::boost::openmethod::register_classes<                                 \
-            ::boost::openmethod::detail::scope_marker{                         \
-                ::std::meta::access_context::current().scope() } __VA_OPT__(   \
-                    , ) __VA_ARGS__>)
-#else
 #define BOOST_OPENMETHOD_REGISTER_CLASSES(...) static_assert(true)
 #endif
 

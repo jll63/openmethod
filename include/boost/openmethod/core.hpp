@@ -3116,16 +3116,11 @@ BOOST_FORCEINLINE auto use_reflected_classes_in() -> void {
 
 #if BOOST_OPENMETHOD_HAS_REFLECTION
 
-//! Get the current namespace.
-//!
-//! Returns a reflection of the namespace enclosing the point of the call. Use
-//! it to pass the current namespace to @ref register_classes when the argument
-//! list contains no namespace to scan, e.g.
-//! `register_classes<current_namespace(), ^^my_registry>`. Do not pass an
-//! argument: the default captures the caller's context.
-//!
-//! This function is available only if the compiler supports C++26 reflection,
-//! i.e. if `BOOST_OPENMETHOD_HAS_REFLECTION` is 1.
+// MrDocs' front-end does not implement P2996, so it never sees this branch.
+// The reference documentation for `current_namespace` and `register_classes`
+// is on the stubs in the `#elif` branch below; keep the two in step.
+
+//! @see @ref current_namespace for documentation.
 consteval auto current_namespace(
     std::meta::access_context ctx = std::meta::access_context::current())
     -> std::meta::info {
@@ -3138,69 +3133,7 @@ consteval auto current_namespace(
     return scope;
 }
 
-//! Find the classes taking part in dispatch by reflection, and register them
-//!
-//! `register_classes` is a registrar class that finds the classes taking part in
-//! dispatch by reflection, and adds them to one or more registries. It makes
-//! @ref use_classes unnecessary in most cases.
-//!
-//! The arguments are non-type template arguments, in four groups, each
-//! optional, in this order:
-//!
-//! @li **Namespaces** to scan, as reflections: `^^app`, `^^::`.
-//! @li **Classes** to register, as reflections: `^^Animal`. They are
-//! registered whether a method dispatches on them or not, along with the
-//! classes the scan finds that derive from them.
-//! @li **One @ref register_classes_opts value**, combining options with `|`.
-//! @li **Registries** to register the classes in, as reflections:
-//! `^^my_registry`. Each one receives the registration. The default is
-//! `BOOST_OPENMETHOD_DEFAULT_REGISTRY`.
-//!
-//! The scan covers the listed namespaces and, unless
-//! @ref register_classes_opts::no_recurse is passed, the namespaces nested in them
-//! - except `std` and `boost`, which are skipped unless
-//! @ref register_classes_opts::scan_std or @ref register_classes_opts::scan_boost say
-//! otherwise; a namespace *listed* explicitly is always scanned. The scan
-//! finds the methods of each target registry, collects the classes they
-//! dispatch on, and registers those, the listed classes, and every class in
-//! the scanned namespaces that derives from one of them. A base class that no
-//! method dispatches on, and that is not listed, is not registered: it could
-//! never be selected on.
-//!
-//! If no namespace and no class is given, the scanned namespace is the one
-//! enclosing the registrar. This works for `register_classes<>` and for every
-//! form of @ref BOOST_OPENMETHOD_REGISTER_CLASSES; with any other bare
-//! `register_classes` argument list, the enclosing namespace cannot be captured
-//! - pass it explicitly with @ref current_namespace, e.g.
-//! `register_classes<current_namespace(), ^^my_registry>`.
-//!
-//! If classes are listed but no namespace is, nothing is scanned: exactly the
-//! listed classes are registered, with the inheritance relations between them
-//! read from reflection. A base that is not listed is not registered.
-//!
-//! Reflection sees only what precedes it, so `register_classes` must come
-//! **after** the declarations it is meant to find - at the bottom of the file.
-//!
-//! A method is found through any namespace member that names its `method`
-//! specialization: the alias @ref BOOST_OPENMETHOD declares for it, a `using`
-//! declaration written by hand, or any of its registrar objects - the object
-//! @ref BOOST_OPENMETHOD_OVERRIDE creates, or one written by hand. None of
-//! those requires the method to have an overrider. A core interface method
-//! whose `method<...>` type is spelled out in full at every use, with neither a
-//! `using` declaration nor an overrider, is named by nothing and is not found;
-//! its classes must be registered with @ref use_classes.
-//!
-//! Virtual and multiple inheritance are supported. Unlike @ref use_classes,
-//! which rejects it, repeated inheritance is not an error here: an ambiguous
-//! base cannot take part in dispatch, so it is left out.
-//!
-//! This class template is available only if the compiler supports C++26
-//! reflection, i.e. if `BOOST_OPENMETHOD_HAS_REFLECTION` is 1.
-//!
-//! @tparam First,Rest Reflections of namespaces, classes and registries, and
-//! at most one @ref register_classes_opts value, in that order.
-//!
-//! @see [Core API](xref:ROOT:core_api.adoc)
+//! @see @ref register_classes for documentation.
 template<
     auto First =
         detail::scope_marker{std::meta::access_context::current().scope()},
@@ -3237,6 +3170,97 @@ class register_classes {
     register_classes() {
         use(static_cast<registries*>(nullptr));
     }
+};
+
+#elif defined(__MRDOCS__)
+
+// Documentation stubs. MrDocs compiles this branch instead of the real
+// declarations above, which its front-end cannot parse. The `std::meta`
+// stand-ins they use are declared in detail/reflection.hpp.
+
+//! Get the current namespace.
+//!
+//! Returns a reflection of the namespace enclosing the point of the call. Use
+//! it to pass the current namespace to @ref register_classes when the argument
+//! list contains no namespace to scan, e.g.
+//! `register_classes<current_namespace(), ^^my_registry>`. Do not pass an
+//! argument: the default captures the caller's context.
+//!
+//! This function is available only if the compiler supports C++26 reflection,
+//! i.e. if `BOOST_OPENMETHOD_HAS_REFLECTION` is 1.
+consteval auto current_namespace(
+    std::meta::access_context ctx = std::meta::access_context::current())
+    -> std::meta::info;
+
+//! Find the classes taking part in dispatch by reflection, and register them
+//!
+//! `register_classes` is a registrar class that finds the classes taking part in
+//! dispatch by reflection, and adds them to one or more registries. It makes
+//! @ref use_classes unnecessary in most cases.
+//!
+//! The arguments are non-type template arguments, in four groups, each
+//! optional, in this order:
+//!
+//! @li **Namespaces** to scan, as reflections: `^^app`, `\^^::`.
+//! @li **Classes** to register, as reflections: `^^Animal`. They are
+//! registered whether a method dispatches on them or not, along with the
+//! classes the scan finds that derive from them.
+//! @li **Options**: at most one @ref register_classes_opts value, combining
+//! them with `|`.
+//! @li **Registries** to register the classes in, as reflections:
+//! `^^my_registry`. Each one receives the registration. The default is
+//! `BOOST_OPENMETHOD_DEFAULT_REGISTRY`.
+//!
+//! The scan covers the listed namespaces and, unless
+//! @ref register_classes_opts::no_recurse is passed, the namespaces nested in
+//! them - except `std` and `boost`, which are skipped unless
+//! @ref register_classes_opts::scan_std or @ref register_classes_opts::scan_boost
+//! say otherwise; a namespace *listed* explicitly is always scanned. The scan
+//! finds the methods of each target registry, collects the classes they
+//! dispatch on, and registers those, the listed classes, and every class in
+//! the scanned namespaces that derives from one of them. A base class that no
+//! method dispatches on, and that is not listed, is not registered: it could
+//! never be selected on.
+//!
+//! If no namespace and no class is given, the scanned namespace is the one
+//! enclosing the registrar. This works for `register_classes<>` and for every
+//! form of @ref BOOST_OPENMETHOD_REGISTER_CLASSES; with any other bare
+//! `register_classes` argument list, the enclosing namespace cannot be
+//! captured; pass it explicitly with @ref current_namespace, e.g.
+//! `register_classes<current_namespace(), ^^my_registry>`.
+//!
+//! If classes are listed but no namespace is, nothing is scanned: exactly the
+//! listed classes are registered, with the inheritance relations between them
+//! read from reflection. A base that is not listed is not registered.
+//!
+//! Reflection sees only what precedes it, so `register_classes` must come
+//! **after** the declarations it is meant to find - at the bottom of the file.
+//!
+//! A method is found through any namespace member that names its `method`
+//! specialization: the alias @ref BOOST_OPENMETHOD declares for it, a `using`
+//! declaration written by hand, or any of its registrar objects - the object
+//! @ref BOOST_OPENMETHOD_OVERRIDE creates, or one written by hand. None of
+//! those requires the method to have an overrider. A core interface method
+//! whose `method<...>` type is spelled out in full at every use, with neither a
+//! `using` declaration nor an overrider, is named by nothing and is not found;
+//! its classes must be registered with @ref use_classes.
+//!
+//! Virtual and multiple inheritance are supported. Unlike @ref use_classes,
+//! which rejects it, repeated inheritance is not an error here: an ambiguous
+//! base cannot take part in dispatch, so it is left out.
+//!
+//! This class template is available only if the compiler supports C++26
+//! reflection, i.e. if `BOOST_OPENMETHOD_HAS_REFLECTION` is 1.
+//!
+//! @tparam Args Reflections of namespaces, classes and registries, and at
+//! most one @ref register_classes_opts value, in that order.
+//!
+//! @see [Core API](xref:ROOT:core_api.adoc)
+template<auto... Args>
+class register_classes {
+  public:
+    //! Register the selected classes in each target registry.
+    register_classes();
 };
 
 #endif

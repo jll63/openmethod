@@ -150,8 +150,8 @@ its own and is named nowhere, and is registered all the same.
 
 The arguments come in four groups, each optional, in this order: reflections of
 namespaces to scan; reflections of classes to register; one value combining
-`register_classes_opts` options with `|`; and reflections of registries to register
-the classes in - `boost::openmethod::default_registry` when none is named. A
+cpp:register_classes_opts[] options with `|`; and reflections of registries to
+register the classes in - cpp:default_registry[] when none is named. A
 listed class is registered whether a method dispatches on it or not, along with
 the classes the scan finds derive from it. With classes but no namespace,
 nothing is scanned: exactly the listed classes are registered, with the
@@ -167,10 +167,10 @@ it is registered, and the inheritance edges through it with it.
 
 A scan does not enter the `std` and `boost` namespaces, so `^^::` costs little
 more than a narrower namespace would - a method cannot dispatch on a class the
-program never heard of anyway. The `register_classes_opts::scan_std` and
-`register_classes_opts::scan_boost` options bring them back in; a namespace *listed*
-explicitly is always scanned. `register_classes_opts::no_recurse` restricts the scan
-to the members declared directly in the listed namespaces.
+program never heard of anyway. The cpp:register_classes_opts::scan_std[] and
+cpp:register_classes_opts::scan_boost[] options bring them back in; a namespace
+*listed* explicitly is always scanned. cpp:register_classes_opts::no_recurse[]
+restricts the scan to the members declared directly in the listed namespaces.
 
 Reflection sees only what precedes it, so the macro must come *after* the
 declarations it is meant to find. Putting it at the bottom of the file is the
