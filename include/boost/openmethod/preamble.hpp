@@ -280,8 +280,7 @@ struct ambiguous_call : bad_call {
 //! and dynamic types of the object, as reported by the `rtti` policy,  are the
 //! same. If they are not, and if the registry contains an @ref error_handler
 //! policy, its @ref error function is called with a `final_error` object, then
-//! the program is terminated with
-//! @ref abort.
+//! the program is terminated with `abort`.
 //!
 //! @see [Error Handling](xref:ROOT:error_handling.adoc)
 struct final_error : openmethod_error {
@@ -639,7 +638,7 @@ struct rtti {
 //! OpenMethod itself relies on static constructors to register classes, methods
 //! and overriders. This creates order-of-initialization issues. Deriving a @e
 //! rtti policy from this class - instead of just `rtti` - causes the collection
-//! of type ids to be deferred until the first call to @ref update.
+//! of type ids to be deferred until the first call to @ref initialize.
 //!
 //! @see [Custom RTTI](xref:ROOT:custom_rtti.adoc)
 struct deferred_static_rtti : rtti {};
@@ -1288,7 +1287,8 @@ class registry : public detail::registry_base {
     //! `with` aliases to a registry with additional policies, overwriting any
     //! existing policies in the same category as the new ones.
     //!
-    //! @tparam NewPolicies Models of @ref policies::Policy.
+    //! @tparam NewPolicies Policies, i.e. classes implementing one of the
+    //! blueprints in @ref policies.
     template<class... NewPolicies>
     using with = boost::mp11::mp_apply<
         registry, typename detail::with_aux<policy_list, NewPolicies...>::type>;
@@ -1298,7 +1298,8 @@ class registry : public detail::registry_base {
     //! `without` aliases to a registry containing the same policies, except those
     //! that derive from `Categories`.
     //!
-    //! @tparam Categories Models of @ref policies::PolicyCategory.
+    //! @tparam Categories Policy categories, i.e. the blueprints in
+    //! @ref policies.
     template<class... Categories>
     using without = boost::mp11::mp_apply<
         registry,

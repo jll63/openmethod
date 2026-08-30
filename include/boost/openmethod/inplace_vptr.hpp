@@ -67,8 +67,8 @@ class inplace_vptr_base_tag {};
 //! v-table pointer stored in the object.
 //!
 //! `inplace_vptr_base` registers the class in `Registry`. It is not necessary
-//! to register the class with @ref use_class or
-//! @ref BOOST_OPENMETHOD_REGISTER.
+//! to register the class with @ref use_classes or
+//! @ref BOOST_OPENMETHOD_CLASSES.
 //!
 //! The v-table pointer is obtained directly from the `Registry`\'s @ref
 //! static_vptr variable. No hashing is involved. If all the classes in
@@ -137,8 +137,8 @@ class inplace_vptr_base : protected detail::inplace_vptr_base_tag {
 //! indirect base class.
 //!
 //! `inplace_vptr_derived` registers the class and its bases in `Registry`. It
-//! is not necessary to register them with @ref use_class or
-//! @ref BOOST_OPENMETHOD_REGISTER.
+//! is not necessary to register them with @ref use_classes or
+//! @ref BOOST_OPENMETHOD_CLASSES.
 //!
 //! The v-table pointer is obtained directly from the `Registry`\'s @ref
 //! static_vptr variable. No hashing is involved. If all the classes in

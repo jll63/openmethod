@@ -148,7 +148,7 @@ struct vptr_vector : vptr {
         //! that the index falls within the limits of the vector. If it does
         //! not, and if the registry contains a @ref error_handler policy, calls
         //! its @ref error function with a @ref missing_class value, then
-        //! terminates the program with @ref abort.
+        //! terminates the program with `abort`.
         //!
         //! @tparam Class A registered class.
         //! @param arg A reference to a const object of type `Class`.
@@ -167,7 +167,7 @@ struct vptr_vector : vptr {
         //! that the index falls within the limits of the vector. If it does
         //! not, and if the registry contains a @ref error_handler policy, calls
         //! its @ref error function with a @ref missing_class value, then
-        //! terminates the program with @ref abort.
+        //! terminates the program with `abort`.
         //!
         //! @param type A `type_id`.
         //! @return A reference to the v-table pointer for `type`.

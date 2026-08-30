@@ -128,7 +128,7 @@ struct fast_perfect_hash : type_hash {
         //! specified input values.
         //!
         //! If no suitable values are found, calls the error handler with
-        //! a @ref hash_error object then calls `abort`.
+        //! a @ref search_error object then calls `abort`.
         //!
         //! @tparam Context An @ref InitializeContext.
         //! @param ctx A Context object.

@@ -23,7 +23,8 @@ namespace policies {
 //! pointers to pointers to v-tables.
 //!
 //! @tparam MapFn A mp11 quoted metafunction that takes a key type and a
-//! value type, and returns an @ref AssociativeContainer.
+//! value type, and returns an
+//! [AssociativeContainer](https://en.cppreference.com/w/cpp/named_req/AssociativeContainer).
 //!
 //! @par Example
 //! include:policies.cpp#vptr_map
@@ -92,7 +93,7 @@ class vptr_map : public vptr {
         //! the map contains the type id. If it does not, and if the registry
         //! contains a @ref error_handler policy, calls its
         //! @ref error function with a @ref missing_class value, then
-        //! terminates the program with @ref abort.
+        //! terminates the program with `abort`.
         //!
         //! @tparam Class A registered class.
         //! @param arg A reference to a const object of type `Class`.
@@ -108,7 +109,7 @@ class vptr_map : public vptr {
         //! the map contains the type id. If it does not, and if the registry
         //! contains a @ref error_handler policy, calls its
         //! @ref error function with a @ref missing_class value, then
-        //! terminates the program with @ref abort.
+        //! terminates the program with `abort`.
         //!
         //! @param type A `type_id`.
         //! @return A reference to the v-table pointer for `type`.

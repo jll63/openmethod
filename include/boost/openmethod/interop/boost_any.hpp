@@ -87,7 +87,7 @@ struct virtual_traits<const boost::any&, Registry> {
     //! that the index falls within the limits of the vector. If it does
     //! not, and if the registry contains a @ref error_handler policy, calls
     //! its @ref error function with a @ref missing_class value, then
-    //! terminates the program with @ref abort.
+    //! terminates the program with `abort`.
     //!
     //! @param arg A reference to a const `any`.
     //! @return A reference to the v-table pointer for the stored value.
@@ -170,7 +170,7 @@ struct virtual_traits<boost::any&, Registry> {
     //! that the index falls within the limits of the vector. If it does
     //! not, and if the registry contains a @ref error_handler policy, calls
     //! its @ref error function with a @ref missing_class value, then
-    //! terminates the program with @ref abort.
+    //! terminates the program with `abort`.
     //!
     //! @param arg A reference to a `boost::any`.
     //! @return A reference to the v-table pointer for the stored value.
@@ -253,7 +253,7 @@ struct virtual_traits<boost::any&&, Registry> {
     //! that the index falls within the limits of the vector. If it does
     //! not, and if the registry contains a @ref error_handler policy, calls
     //! its @ref error function with a @ref missing_class value, then
-    //! terminates the program with @ref abort.
+    //! terminates the program with `abort`.
     //!
     //! @param arg A reference to a `boost::any`.
     //! @return A reference to the v-table pointer for the stored value.

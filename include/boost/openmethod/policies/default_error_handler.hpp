@@ -17,7 +17,7 @@ namespace policies {
 
 //! Calls a std::function with the error.
 //!
-//! Wraps the error in a @ref std::variant, and calls a `std::function` with it.
+//! Wraps the error in a `std::variant`, and calls a `std::function` with it.
 //! The function object is initialized to a function (@ref default_handler) that
 //! writes a description of the error, using the @ref output policy, if it is
 //! available in the registry.
@@ -25,7 +25,7 @@ namespace policies {
 //! This is the error handler used by the default registry. In debug variants,
 //! it writes an error message to `stderr`, then returns. In release variants,
 //! no message is emitted. Any call by the library to the error policy is
-//! immediately followed by a call to @ref abort.
+//! immediately followed by a call to `abort`.
 //!
 //! By default, the library is exception-agnostic: it is exception-safe, but it
 //! does not throw exceptions by itself. The program may replace the default
@@ -73,7 +73,7 @@ struct default_error_handler : error_handler {
         };
 
       public:
-        //! A @ref std::variant containing an instance of a subclass of @ref
+        //! A `std::variant` containing an instance of a subclass of @ref
         //! openmethod_error.
         using error_variant = typename error_variant_aux<
             void,

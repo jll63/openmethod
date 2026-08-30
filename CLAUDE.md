@@ -325,6 +325,22 @@ one (`method::operator()` takes
 `typename BOOST_OPENMETHOD_UNLESS_MRDOCS(detail::) StripVirtualDecorator<Parameters>::type...` and
 renders correctly). After a doc build, `grep -rl MRDOCS doc/html/` must return nothing.
 
+**An `@ref` whose target MrDocs cannot find is not an error.** It emits the name as plain text,
+which looks exactly like a deliberate code span in the rendered page - so a wrong target survives
+indefinitely, and one that names a *real but wrong* symbol renders as a confident link to the
+wrong page. Nothing in the build catches either. After a doc build, cross-check every `@ref`
+target in the headers against the labels MrDocs actually turned into links, in the generated
+AsciiDoc under `~/.cache/antora/reference-collector/reference/openmethod/main`:
+
+```bash
+grep -rho '@ref [A-Za-z_][A-Za-z0-9_:]*' include/ | sort -u
+grep -rho 'xref:[^[]*\[`\?[^]`]*' ~/.cache/antora/reference-collector/reference/openmethod/main
+```
+
+A target that is not a library symbol - `abort`, `std::variant`, a named requirement such as
+`AssociativeContainer` - is not an `@ref` at all: use a code span, or a Markdown link for a named
+requirement.
+
 ## Common Development Patterns
 
 ### Working with Shared Libraries / DLL Support

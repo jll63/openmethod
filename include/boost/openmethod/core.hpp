@@ -708,7 +708,7 @@ inline vptr_type null_vptr = nullptr;
 //!
 //! If runtime checks are enabled, and the argument is polymorphic, checks if
 //! the static and dynamic types are the same. If not, calls the error handler
-//! with a @ref final_error value, then terminates the program with @ref abort.
+//! with a @ref final_error value, then terminates the program with `abort`.
 //!
 //! @par Errors
 //!
@@ -2016,7 +2016,7 @@ struct validate_method_parameter<
 //!
 //! @par N2216 Handling of Ambiguous Calls
 //!
-//! If `Registry` was initialized with the @ref N2216 option, ambiguous calls
+//! If `Registry` was initialized with the @ref n2216 option, ambiguous calls
 //! are not an error. Instead, the following extra steps are taken to select an
 //! overrider:
 //!
@@ -2099,7 +2099,7 @@ class method<Id, ReturnType(Parameters...), Registry> :
     //! If `Registry` contains an @ref error_handler policy, call its `error`
     //! function with an object of one of the following types:
     //!
-    //! @li @ref not_implemented: No overrider is applicable.
+    //! @li @ref no_overrider: No overrider is applicable.
     //! @li @ref ambiguous_call: More than one overrider is applicable, and
     //! none is more specialized than all the others.
     //!
