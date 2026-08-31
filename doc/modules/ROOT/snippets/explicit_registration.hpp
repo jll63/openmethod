@@ -16,12 +16,18 @@
 #ifndef BOOST_OPENMETHOD_SNIPPETS_EXPLICIT_REGISTRATION_HPP
 #define BOOST_OPENMETHOD_SNIPPETS_EXPLICIT_REGISTRATION_HPP
 
-#include <boost/openmethod/default_registry.hpp>
+// Like test_capture_errors.hpp, this header owns the whole recipe: the
+// declaration, the BOOST_OPENMETHOD_DEFAULT_REGISTRY definition, the library
+// include, and the registry itself. A pre-core header of the library -
+// preamble.hpp, default_registry.hpp - belongs nowhere outside include/.
+
+struct snippet_registry;
+#define BOOST_OPENMETHOD_DEFAULT_REGISTRY snippet_registry
+
+#include <boost/openmethod.hpp>
 
 struct snippet_registry :
     boost::openmethod::default_registry::with<
         boost::openmethod::policies::explicit_class_registration> {};
-
-#define BOOST_OPENMETHOD_DEFAULT_REGISTRY snippet_registry
 
 #endif
