@@ -166,6 +166,55 @@ BOOST_AUTO_TEST_CASE(core_interface_dispatch) {
 }
 
 // =============================================================================
+// A method with no alias is found through an overrider registrar
+
+namespace registrar_only {
+
+struct test_registry : test_registry_<__COUNTER__> {};
+
+struct Node {
+    virtual ~Node() = default;
+};
+
+struct Literal : Node {};
+
+struct value_id;
+
+auto value_literal(virtual_ptr<Literal, test_registry>) -> std::string {
+    return "literal";
+}
+
+// The method type is spelled out in full; the registrar variable below is the
+// only namespace member whose type involves the specialization. The scan finds
+// the method through it - `specialization_named_by` accepts a variable whose
+// type is nested in a `method` specialization.
+BOOST_OPENMETHOD_REGISTER(
+    method<
+        value_id, std::string(virtual_ptr<Node, test_registry>),
+        test_registry>::override<value_literal>);
+
+} // namespace registrar_only
+
+BOOST_OPENMETHOD_REGISTER(
+    register_classes<{^^registrar_only}, {^^registrar_only::test_registry}>);
+
+BOOST_AUTO_TEST_CASE(method_without_alias_is_found_through_a_registrar) {
+    using namespace registrar_only;
+
+    auto comp = initialize<test_registry>();
+
+    BOOST_TEST((registered<Node, test_registry>(comp)));
+    BOOST_TEST((registered<Literal, test_registry>(comp)));
+
+    Literal literal;
+
+    using value = method<
+        value_id, std::string(virtual_ptr<Node, test_registry>), test_registry>;
+    BOOST_TEST(
+        value::fn(virtual_ptr<Node, test_registry>(literal)) == "literal");
+}
+
+// =============================================================================
 // A method with no overrider at all
 
 namespace method_only {
