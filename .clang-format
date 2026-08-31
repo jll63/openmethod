@@ -133,6 +133,4 @@ StatementMacros:
 TabWidth:        8
 UseCRLF:         false
 UseTab:          Never
-TemplateNames:
-  - register_classes
 ...

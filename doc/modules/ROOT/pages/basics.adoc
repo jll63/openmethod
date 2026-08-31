@@ -139,7 +139,7 @@ BOOST_OPENMETHOD_OVERRIDE(poke, (std::ostream& os, Dog&), void) {
     os << "bark";
 }
 
-BOOST_OPENMETHOD_REGISTER_CLASSES(^^::); // registers all four classes
+BOOST_OPENMETHOD_REGISTER_CLASSES(); // registers all four classes
 ----
 
 The macro scans the namespaces it is given - and the namespaces nested in them
@@ -148,15 +148,26 @@ dispatch on, then registers them, along with every class in the scanned
 namespaces that derives from one of them. `Bulldog` above has no overrider of
 its own and is named nowhere, and is registered all the same.
 
-The arguments come in four groups, each optional, in this order: reflections of
-namespaces to scan; reflections of classes to register; one value combining
-cpp:register_classes_opts[] options with `|`; and reflections of registries to
-register the classes in - cpp:default_registry[] when none is named. A
-listed class is registered whether a method dispatches on it or not, along with
-the classes the scan finds derive from it. With classes but no namespace,
-nothing is scanned: exactly the listed classes are registered, with the
-inheritance relations between them read from reflection. With neither -
-`BOOST_OPENMETHOD_REGISTER_CLASSES()` - the enclosing namespace is scanned.
+The arguments are groups of reflections, each optional, in this order: the
+namespaces to scan; the classes to register; and the registries to register the
+classes in - cpp:default_registry[] when none is named. A group holds one kind
+of reflection, and is written in braces - or, for a group of one, as the
+reflection itself:
+
+[source,c++]
+----
+BOOST_OPENMETHOD_REGISTER_CLASSES({^^zoo, ^^pets}, {^^my_registry});
+BOOST_OPENMETHOD_REGISTER_CLASSES(^^zoo, ^^my_registry);
+----
+
+With no namespace group - `BOOST_OPENMETHOD_REGISTER_CLASSES()`, or any other
+group on its own, `{^^my_registry}` included - the global namespace is scanned.
+Use cpp:current_namespace[] to scan only the namespace the registration sits
+in.
+
+A listed class is registered whether a method dispatches on it or not, and it
+is one more root for the scan: every class the scan finds deriving from it is
+registered too, with the inheritance relations read from reflection.
 
 A base class that no method dispatches on, and that is not listed, is *not*
 registered - it could never be selected on, and registering it would cost a
@@ -165,12 +176,11 @@ rooted in some general-purpose base contributes only the part of itself that
 takes part in dispatch. As soon as another method does dispatch on that base,
 it is registered, and the inheritance edges through it with it.
 
-A scan does not enter the `std` and `boost` namespaces, so `^^::` costs little
-more than a narrower namespace would - a method cannot dispatch on a class the
-program never heard of anyway. The cpp:register_classes_opts::scan_std[] and
-cpp:register_classes_opts::scan_boost[] options bring them back in; a namespace
-*listed* explicitly is always scanned. cpp:register_classes_opts::no_recurse[]
-restricts the scan to the members declared directly in the listed namespaces.
+A scan does not descend into the `std` and `boost` namespaces, so scanning the
+global namespace costs little more than a narrower one would - a method cannot
+dispatch on a class the program never heard of anyway. The exclusion applies to
+recursion only: a namespace *listed* explicitly is always scanned, which is how
+a class in `std` or `boost` gets registered.
 
 Reflection sees only what precedes it, so the macro must come *after* the
 declarations it is meant to find. Putting it at the bottom of the file is the

@@ -337,14 +337,15 @@ documentation stubs in an `#elif defined(__MRDOCS__)` branch at the end of `core
 - **Each doc comment exists exactly once, on the stub.** The real declaration carries only
   `//! @see @ref <name> for documentation.`, as `inplace_vptr_derived` already does. Never copy
   a doc comment into both branches.
-- **`register_classes_opts` is not stubbed.** It is plain C++17, so its guard is widened to
-  `#if BOOST_OPENMETHOD_HAS_REFLECTION || defined(__MRDOCS__)` and the real definition is what
-  MrDocs reads. Prefer widening a guard to writing a stub whenever the code parses as C++20.
+- **Prefer widening a guard to writing a stub** whenever the code parses as C++20: a declaration
+  that is plain C++17 or C++20 can be guarded with
+  `#if BOOST_OPENMETHOD_HAS_REFLECTION || defined(__MRDOCS__)`, and MrDocs then reads the real
+  definition instead of a copy that can drift.
 
-The `register_classes` stub is spelled `template<auto... Args>` where the real one is
-`template<auto First = detail::scope_marker{...}, auto... Rest>` - the split exists only because a
-pack cannot carry a default argument, and MrDocs prints a default argument as raw source text, so
-the real spelling would leak `detail::` into the reference.
+The `register_classes` stub is spelled `template<auto... Groups>` where the real one is
+`template<detail::reflection_group... Groups>`. The stub drops the group type, which is an
+implementation detail the reference has no reason to name - its braces are the only thing a
+caller writes.
 
 **A macro defined in both branches of an `#if` must carry its doc comment on the `#else` one.**
 MrDocs compiles that branch, and a comment separated from its `#define` by preprocessor directives

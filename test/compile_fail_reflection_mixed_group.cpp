@@ -4,7 +4,7 @@
 // or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 // Expected diagnostic, as a CMake regex (see CMakeLists.txt).
-// expected-error: the enclosing namespace cannot be captured here
+// expected-error: a group holds one kind of reflection
 
 #include <boost/openmethod.hpp>
 
@@ -12,7 +12,7 @@
 
 // Without reflection there is nothing to check; produce the expected
 // diagnostic so the test passes under any configuration.
-#error the enclosing namespace cannot be captured here
+#error a group holds one kind of reflection
 
 #else
 
@@ -20,11 +20,13 @@ namespace app {
 
 struct my_registry : boost::openmethod::default_registry::with<> {};
 
-// Only the default template argument of the bare class template - or
-// BOOST_OPENMETHOD_REGISTER_CLASSES - can capture the enclosing namespace. With a
-// registry as the only argument, there is nothing to scan.
+struct Animal {
+    virtual ~Animal() = default;
+};
+
+// A class and a registry cannot share a group.
 BOOST_OPENMETHOD_REGISTER(
-    boost::openmethod::register_classes<^^app::my_registry>);
+    boost::openmethod::register_classes<{^^app::Animal, ^^app::my_registry}>);
 
 } // namespace app
 

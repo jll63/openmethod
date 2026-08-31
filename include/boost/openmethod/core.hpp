@@ -2812,14 +2812,13 @@ struct method_traits_aux<method<Id, ReturnType(Parameters...), Registry>> {
 template<class Method>
 using method_classes = typename method_traits_aux<Method>::type;
 
-// How `register_classes` interprets one of its template arguments.
-enum class register_classes_arg : unsigned char {
-    invalid,
-    scope,      // a scope_marker - the use site's enclosing scope
-    namespace_, // a namespace to scan
-    class_,     // a class to register
-    options,    // a register_classes_opts value
-    registry,   // a registry to add the classes to
+// How `register_classes` interprets an argument group, and the items in it.
+enum class register_classes_kind : unsigned char {
+    invalid,    // not a reflection register_classes accepts, or a mixed group
+    empty,      // `{}` - carries no kind, and takes no part in the ordering
+    namespaces, // namespaces to scan
+    classes,    // classes to register
+    registries, // registries to add the classes to
 };
 
 consteval auto is_registry_type(std::meta::info type) -> bool {
@@ -2829,103 +2828,144 @@ consteval auto is_registry_type(std::meta::info type) -> bool {
             type}));
 }
 
-template<auto Arg>
-consteval auto classify_register_classes_arg() -> register_classes_arg {
-    using Type = decltype(Arg);
+// How `register_classes` interprets one item of one of its argument groups.
+consteval auto register_classes_item_kind(std::meta::info item)
+    -> register_classes_kind {
+    auto entity = std::meta::dealias(item);
 
-    if constexpr (std::is_same_v<Type, scope_marker>) {
-        return register_classes_arg::scope;
-    } else if constexpr (std::is_same_v<Type, register_classes_opts::opts>) {
-        return register_classes_arg::options;
-    } else if constexpr (std::is_same_v<Type, std::meta::info>) {
-        auto entity = std::meta::dealias(Arg);
-
-        if (std::meta::is_namespace(entity)) {
-            return register_classes_arg::namespace_;
-        }
-
-        if (std::meta::is_class_type(entity)) {
-            // A registry is always complete where classes are registered in
-            // it, so an incomplete class cannot be one.
-            if (std::meta::is_complete_type(entity) &&
-                is_registry_type(entity)) {
-                return register_classes_arg::registry;
-            }
-
-            return register_classes_arg::class_;
-        }
-
-        return register_classes_arg::invalid;
-    } else {
-        return register_classes_arg::invalid;
+    if (std::meta::is_namespace(entity)) {
+        return register_classes_kind::namespaces;
     }
+
+    if (std::meta::is_class_type(entity)) {
+        // A registry is always complete where classes are registered in it, so
+        // an incomplete class cannot be one.
+        if (std::meta::is_complete_type(entity) && is_registry_type(entity)) {
+            return register_classes_kind::registries;
+        }
+
+        return register_classes_kind::classes;
+    }
+
+    return register_classes_kind::invalid;
 }
 
-template<auto... Args>
-consteval auto register_classes_args_are_valid() -> bool {
+// True if the group holds an item that is not a reflection `register_classes`
+// accepts. The two checks below let such a group pass, so a mistake yields one
+// diagnostic instead of three.
+template<auto Group>
+consteval auto register_classes_group_has_unknown() -> bool {
+    for (auto index = 0u; index != Group.size; ++index) {
+        if (register_classes_item_kind(Group.items[index]) ==
+            register_classes_kind::invalid) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+// The kind of the items in `Group`; `invalid` if they are not all of the same
+// kind, or if one of them is not a reflection `register_classes` accepts.
+template<auto Group>
+consteval auto register_classes_group_kind() -> register_classes_kind {
+    auto kind = register_classes_kind::empty;
+
+    for (auto index = 0u; index != Group.size; ++index) {
+        auto item = register_classes_item_kind(Group.items[index]);
+
+        if (item == register_classes_kind::invalid) {
+            return register_classes_kind::invalid;
+        }
+
+        if (kind != register_classes_kind::empty && item != kind) {
+            return register_classes_kind::invalid;
+        }
+
+        kind = item;
+    }
+
+    return kind;
+}
+
+template<auto... Groups>
+consteval auto register_classes_groups_are_valid() -> bool {
+    return (... && !register_classes_group_has_unknown<Groups>());
+}
+
+template<auto... Groups>
+consteval auto register_classes_groups_are_homogeneous() -> bool {
     return (
         ... &&
-        (classify_register_classes_arg<Args>() !=
-         register_classes_arg::invalid));
+        (register_classes_group_has_unknown<Groups>() ||
+         register_classes_group_kind<Groups>() !=
+             register_classes_kind::invalid));
 }
 
-// The groups must come in the order the `register_classes_arg` enumerators are
-// declared in: the scope marker, namespaces, classes, options, registries.
-template<auto... Args>
-consteval auto register_classes_args_are_ordered() -> bool {
-    register_classes_arg kinds[] = {classify_register_classes_arg<Args>()...};
+// The groups must come in the order the `register_classes_kind` enumerators
+// are declared in: namespaces, classes, registries.
+template<auto... Groups>
+consteval auto register_classes_groups_are_ordered() -> bool {
+    register_classes_kind kinds[] = {register_classes_group_kind<Groups>()...};
+    auto last = register_classes_kind::empty;
 
-    for (auto index = 1u; index != sizeof...(Args); ++index) {
-        if (kinds[index] < kinds[index - 1]) {
+    for (auto kind : kinds) {
+        // An empty group carries no kind, and a group the checks above
+        // rejected has no meaningful one either.
+        if (kind == register_classes_kind::empty ||
+            kind == register_classes_kind::invalid) {
+            continue;
+        }
+
+        if (kind < last) {
             return false;
         }
+
+        last = kind;
     }
 
     return true;
 }
 
-template<auto... Args>
-consteval auto register_classes_option_count() -> unsigned {
-    return (
-        0u + ... +
-        (classify_register_classes_arg<Args>() ==
-         register_classes_arg::options));
+// The items of every group whose kind is `Kind`, in order, without repeats.
+template<auto... Groups>
+consteval auto register_classes_items(register_classes_kind kind)
+    -> std::vector<std::meta::info> {
+    std::vector<std::meta::info> items;
+
+    (..., [&] {
+        for (auto index = 0u; index != Groups.size; ++index) {
+            auto item = Groups.items[index];
+
+            if (register_classes_item_kind(item) == kind) {
+                push_unique(items, std::meta::dealias(item));
+            }
+        }
+    }());
+
+    return items;
 }
 
-template<auto... Args>
-consteval auto register_classes_has_scan_source() -> bool {
-    return (
-        ... ||
-        (classify_register_classes_arg<Args>() <=
-         register_classes_arg::class_));
+template<auto... Groups>
+consteval auto register_classes_registries_info() -> std::meta::info {
+    return std::meta::substitute(
+        ^^mp11::mp_list,
+        register_classes_items<Groups...>(register_classes_kind::registries));
 }
 
-// `mp_list<Registry>` if `Arg` is a reflection of a registry, `mp_list<>`
-// otherwise.
-template<
-    auto Arg,
-    bool =
-        classify_register_classes_arg<Arg>() == register_classes_arg::registry>
-struct register_classes_registry {
-    using type = mp11::mp_list<>;
-};
+// `mp_list<Registry...>` for the registries the groups name.
+//
+// clang-format off: the formatter predates P2996 and eats the spaces around
+// the splice, leaving `typename[:...:]`.
+template<auto... Groups>
+using register_classes_registries =
+    typename [: register_classes_registries_info<Groups...>() :];
+// clang-format on
 
-template<auto Arg>
-struct register_classes_registry<Arg, true> {
-    // clang-format off: the formatter predates P2996 and eats the spaces
-    // around the splice, leaving `typename[:...:]`.
-    using type = mp11::mp_list<typename [: std::meta::dealias(Arg) :]>;
-    // clang-format on
-};
-
-template<auto... Args>
-using register_classes_registries = mp11::mp_append<
-    mp11::mp_list<>, typename register_classes_registry<Args>::type...>;
-
-// The classes to register for the arguments `Args`, each with its direct
-// bases: the classes the methods of `Registry` dispatch on, the classes listed
-// in `Args`, and the ones a scan of the listed namespaces found that derive
-// from them. Returns `mp_list<mp_list<Class, Class, Base...>, ...>` - the
+// The classes to register for the argument groups `Groups`, each with its
+// direct bases: the classes the methods of `Registry` dispatch on, the classes
+// the groups list, and the ones a scan of the listed namespaces found that
+// derive from them. Returns `mp_list<mp_list<Class, Class, Base...>, ...>` - the
 // shape `use_class_aux` expects, with the class repeated as its own improper
 // base, as `inheritance_map` produces.
 //
@@ -2933,50 +2973,30 @@ using register_classes_registries = mp11::mp_append<
 // scan produces. A scan of the global namespace reaches every class in the
 // program that is not in `std` or `boost`, and instantiating a trait once per
 // pair of them costs far more than walking their base classes does.
-template<class Registry, auto... Args>
+template<class Registry, auto... Groups>
 consteval auto reflected_registered_classes_info() -> std::meta::info {
-    // Partition the arguments. Registries take no part here: the caller calls
+    // Partition the groups. Registries take no part here: the caller calls
     // this function once per registry.
-    std::vector<std::meta::info> namespaces;
-    std::vector<std::meta::info> virtual_classes;
-    auto opts = register_classes_opts::opts{};
-    auto fallback_scope = std::meta::info();
+    auto namespaces =
+        register_classes_items<Groups...>(register_classes_kind::namespaces);
+    auto virtual_classes =
+        register_classes_items<Groups...>(register_classes_kind::classes);
 
-    (..., [&] {
-        constexpr auto kind = classify_register_classes_arg<Args>();
+    for (auto& type : virtual_classes) {
+        type = std::meta::remove_cv(type);
+    }
 
-        if constexpr (kind == register_classes_arg::scope) {
-            fallback_scope = Args.scope;
-        } else if constexpr (kind == register_classes_arg::namespace_) {
-            push_unique(namespaces, std::meta::dealias(Args));
-        } else if constexpr (kind == register_classes_arg::class_) {
-            push_unique(
-                virtual_classes,
-                std::meta::remove_cv(std::meta::dealias(Args)));
-        } else if constexpr (kind == register_classes_arg::options) {
-            opts = Args;
-        }
-    }());
-
-    // With neither a namespace nor a class to start from, scan the namespace
-    // enclosing the use site, which the default template argument - or
-    // BOOST_OPENMETHOD_REGISTER_CLASSES - captured in the scope marker. If classes
-    // are listed but no namespace is, nothing is scanned: exactly the listed
-    // classes are registered.
-    if (namespaces.empty() && virtual_classes.empty()) {
-        auto scope = fallback_scope;
-
-        while (!std::meta::is_namespace(scope)) {
-            scope = std::meta::parent_of(scope);
-        }
-
-        namespaces.push_back(scope);
+    // With no namespace to start from, scan the global namespace. Listing
+    // classes does not change that: they are extra roots for the scan, not a
+    // way to turn it off.
+    if (namespaces.empty()) {
+        namespaces.push_back(^^::);
     }
 
     std::vector<std::meta::info> methods, classes;
 
     for (auto ns : namespaces) {
-        scan_namespace(ns, ^^method, methods, classes, opts);
+        scan_namespace(ns, ^^method, methods, classes);
     }
 
     // Add the classes the methods dispatch on.
@@ -3094,18 +3114,17 @@ consteval auto reflected_registered_classes_info() -> std::meta::info {
 //
 // clang-format off: the formatter predates P2996 and eats the spaces around the
 // splice, leaving `typename[:...:]`.
-template<class Registry, auto... Args>
+template<class Registry, auto... Groups>
 using reflected_registered_classes =
-    typename [: reflected_registered_classes_info<Registry, Args...>() :];
+    typename [: reflected_registered_classes_info<Registry, Groups...>() :];
 // clang-format on
 
-// Register the classes selected by `Args` in one registry - unless it opted
-// out of reflection-based registration, in which case the scan does not even
-// run.
-template<class Registry, auto... Args>
+// Register the classes the groups select in one registry - unless it opted out
+// of reflection-based registration, in which case the scan does not even run.
+template<class Registry, auto... Groups>
 BOOST_FORCEINLINE auto use_reflected_classes_in() -> void {
     if constexpr (Registry::has_reflected_class_registration) {
-        using registered = reflected_registered_classes<Registry, Args...>;
+        using registered = reflected_registered_classes<Registry, Groups...>;
         use_reflected_classes<Registry>(static_cast<registered*>(nullptr));
     }
 }
@@ -3134,36 +3153,27 @@ consteval auto current_namespace(
 }
 
 //! @see @ref register_classes for documentation.
-template<
-    auto First =
-        detail::scope_marker{std::meta::access_context::current().scope()},
-    auto... Rest>
+template<detail::reflection_group... Groups>
 class register_classes {
     static_assert(
-        detail::register_classes_args_are_valid<First, Rest...>(),
-        "arguments must be reflections of namespaces, classes or registries, "
-        "or one register_classes_opts value");
+        detail::register_classes_groups_are_valid<Groups...>(),
+        "a group holds reflections of namespaces, classes or registries");
     static_assert(
-        detail::register_classes_args_are_ordered<First, Rest...>(),
-        "order the arguments as namespaces, classes, options, registries");
+        detail::register_classes_groups_are_homogeneous<Groups...>(),
+        "a group holds one kind of reflection; put the namespaces, the "
+        "classes and the registries in groups of their own");
     static_assert(
-        detail::register_classes_option_count<First, Rest...>() <= 1u,
-        "combine the options into a single register_classes_opts argument with "
-        "|");
-    static_assert(
-        detail::register_classes_has_scan_source<First, Rest...>(),
-        "the enclosing namespace cannot be captured here; pass a namespace, "
-        "or current_namespace(), or use BOOST_OPENMETHOD_REGISTER_CLASSES");
+        detail::register_classes_groups_are_ordered<Groups...>(),
+        "order the groups as namespaces, classes, registries");
 
-    using found_registries =
-        detail::register_classes_registries<First, Rest...>;
+    using found_registries = detail::register_classes_registries<Groups...>;
     using registries = mp11::mp_if<
         mp11::mp_empty<found_registries>,
         mp11::mp_list<BOOST_OPENMETHOD_DEFAULT_REGISTRY>, found_registries>;
 
     template<class... Registries>
     static auto use(mp11::mp_list<Registries...>*) -> void {
-        (..., detail::use_reflected_classes_in<Registries, First, Rest...>());
+        (..., detail::use_reflected_classes_in<Registries, Groups...>());
     }
 
   public:
@@ -3181,10 +3191,13 @@ class register_classes {
 //! Get the current namespace.
 //!
 //! Returns a reflection of the namespace enclosing the point of the call. Use
-//! it to pass the current namespace to @ref register_classes when the argument
-//! list contains no namespace to scan, e.g.
-//! `register_classes<current_namespace(), ^^my_registry>`. Do not pass an
-//! argument: the default captures the caller's context.
+//! it to narrow a scan to that namespace, which @ref register_classes does not
+//! do on its own: with no namespace listed it scans the global one. Do not
+//! pass an argument: the default captures the caller's context.
+//!
+//! @code
+//! register_classes<{current_namespace()}, {^^my_registry}>
+//! @endcode
 //!
 //! This function is available only if the compiler supports C++26 reflection,
 //! i.e. if `BOOST_OPENMETHOD_HAS_REFLECTION` is 1.
@@ -3198,40 +3211,46 @@ consteval auto current_namespace(
 //! dispatch by reflection, and adds them to one or more registries. It makes
 //! @ref use_classes unnecessary in most cases.
 //!
-//! The arguments are non-type template arguments, in four groups, each
-//! optional, in this order:
+//! The arguments are groups of reflections, each written in braces - or, for a
+//! group of one, as the reflection itself. A group holds one kind of
+//! reflection, and the groups come in this order; each one is optional, and
+//! omitting all of them is the common case:
 //!
-//! @li **Namespaces** to scan, as reflections: `^^app`, `\^^::`.
-//! @li **Classes** to register, as reflections: `^^Animal`. They are
-//! registered whether a method dispatches on them or not, along with the
-//! classes the scan finds that derive from them.
-//! @li **Options**: at most one @ref register_classes_opts value, combining
-//! them with `|`.
-//! @li **Registries** to register the classes in, as reflections:
-//! `^^my_registry`. Each one receives the registration. The default is
+//! @li **Namespaces** to scan: `{^^app, ^^zoo}`, `{\^^::}`.
+//! @li **Classes** to register: `{^^Animal}`. They are registered whether a
+//! method dispatches on them or not, and they are extra roots for the scan,
+//! which registers the classes it finds deriving from them.
+//! @li **Registries** to register the classes in: `{^^my_registry}`. Each one
+//! receives the registration. The default is
 //! `BOOST_OPENMETHOD_DEFAULT_REGISTRY`.
 //!
-//! The scan covers the listed namespaces and, unless
-//! @ref register_classes_opts::no_recurse is passed, the namespaces nested in
-//! them - except `std` and `boost`, which are skipped unless
-//! @ref register_classes_opts::scan_std or @ref register_classes_opts::scan_boost
-//! say otherwise; a namespace *listed* explicitly is always scanned. The scan
-//! finds the methods of each target registry, collects the classes they
-//! dispatch on, and registers those, the listed classes, and every class in
-//! the scanned namespaces that derives from one of them. A base class that no
-//! method dispatches on, and that is not listed, is not registered: it could
-//! never be selected on.
+//! @code
+//! register_classes<^^app, ^^my_registry>
+//! register_classes<{^^app, ^^zoo}, {^^r1, ^^r2}>
+//! register_classes<{^^Animal, ^^Dog}>
+//! register_classes<^^my_registry>
+//! register_classes<>
+//! @endcode
 //!
-//! If no namespace and no class is given, the scanned namespace is the one
-//! enclosing the registrar. This works for `register_classes<>` and for every
-//! form of @ref BOOST_OPENMETHOD_REGISTER_CLASSES; with any other bare
-//! `register_classes` argument list, the enclosing namespace cannot be
-//! captured; pass it explicitly with @ref current_namespace, e.g.
-//! `register_classes<current_namespace(), ^^my_registry>`.
+//! A group holding two kinds of reflection is an error, and so is a group out
+//! of order. Braces around a single reflection change nothing:
+//! `register_classes<^^app>` and `register_classes<{^^app}>` are the same
+//! registration.
 //!
-//! If classes are listed but no namespace is, nothing is scanned: exactly the
-//! listed classes are registered, with the inheritance relations between them
-//! read from reflection. A base that is not listed is not registered.
+//! The scan covers the listed namespaces and the namespaces nested in them,
+//! except `std` and `boost`: walking those would cost a great deal and find
+//! nothing, as a method cannot be declared on a class the program has never
+//! heard of. The exclusion applies to recursion only, so a class in `std` or
+//! `boost` is registered by *listing* the namespace it is in. The scan finds
+//! the methods of each target registry, collects the classes they dispatch on,
+//! and registers those, the listed classes, and every class in the scanned
+//! namespaces that derives from one of them. A base class that no method
+//! dispatches on, and that is not listed, is not registered: it could never be
+//! selected on.
+//!
+//! If no namespace is given, the global namespace is scanned - whatever the
+//! other groups hold, and for @ref BOOST_OPENMETHOD_REGISTER_CLASSES too. Use
+//! @ref current_namespace to scan only the namespace the registrar is in.
 //!
 //! Reflection sees only what precedes it, so `register_classes` must come
 //! **after** the declarations it is meant to find - at the bottom of the file.
@@ -3252,11 +3271,11 @@ consteval auto current_namespace(
 //! This class template is available only if the compiler supports C++26
 //! reflection, i.e. if `BOOST_OPENMETHOD_HAS_REFLECTION` is 1.
 //!
-//! @tparam Args Reflections of namespaces, classes and registries, and at
-//! most one @ref register_classes_opts value, in that order.
+//! @tparam Groups Braced groups of reflections: namespaces, classes,
+//! registries, in that order.
 //!
 //! @see [Core API](xref:ROOT:core_api.adoc)
-template<auto... Args>
+template<auto... Groups>
 class register_classes {
   public:
     //! Register the selected classes in each target registry.

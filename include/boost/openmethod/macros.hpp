@@ -595,10 +595,7 @@ inline constexpr bool method_not_found = false;
 #if BOOST_OPENMETHOD_HAS_REFLECTION
 #define BOOST_OPENMETHOD_REGISTER_CLASSES(...)                                 \
     BOOST_OPENMETHOD_REGISTER(                                                 \
-        ::boost::openmethod::register_classes<                                 \
-            ::boost::openmethod::detail::scope_marker{                         \
-                ::std::meta::access_context::current().scope() } __VA_OPT__(   \
-                    , ) __VA_ARGS__>)
+        ::boost::openmethod::register_classes<__VA_ARGS__>)
 #else
 //! Find the classes taking part in dispatch by reflection, and register them.
 //!
@@ -606,11 +603,10 @@ inline constexpr bool method_not_found = false;
 //!
 //! This macro is a wrapper around @ref boost::openmethod::register_classes; see
 //! its documentation for the meaning of the arguments, which are passed
-//! through verbatim: reflections of namespaces to scan, of classes to
-//! register, at most one @ref boost::openmethod::register_classes_opts value, and
-//! reflections of registries - each group optional, in that order. With no
-//! argument at all - or none that names a namespace or a class - the
-//! enclosing namespace is scanned.
+//! through verbatim: groups of reflections, each written in braces - or, for a
+//! group of one, as the reflection itself - holding the namespaces to scan,
+//! the classes to register, and the registries; each group optional, in that
+//! order. With no namespace group, the global namespace is scanned.
 //!
 //! Reflection sees only what precedes it, so this macro must come **after** the
 //! declarations it is meant to find - at the bottom of the file:
@@ -627,14 +623,14 @@ inline constexpr bool method_not_found = false;
 //!     os << "bark";
 //! }
 //!
-//! BOOST_OPENMETHOD_REGISTER_CLASSES(^^::); // registers all four classes
+//! BOOST_OPENMETHOD_REGISTER_CLASSES(); // registers all four classes
 //! @endcode
 //!
 //! Without reflection - in C++17, or in C++26 without the compiler flag that
 //! enables it - this macro expands to nothing, so a file that also calls
 //! @ref BOOST_OPENMETHOD_CLASSES builds under either standard.
 //!
-//! @param ... Namespaces, classes, options, registries - see above.
+//! @param ... Braced groups: namespaces, classes, registries - see above.
 //!
 //! @see [Methods and Overriders](xref:ROOT:basics.adoc)
 #define BOOST_OPENMETHOD_REGISTER_CLASSES(...) static_assert(true)

@@ -446,4 +446,4 @@ template struct check_illegal_smart_ops<
 
 // Registers the classes above by reflection, when the compiler supports it.
 // Must come last: reflection sees only what precedes it.
-BOOST_OPENMETHOD_REGISTER_CLASSES(^^::);
+BOOST_OPENMETHOD_REGISTER_CLASSES();

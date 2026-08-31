@@ -4,7 +4,7 @@
 // or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 // Expected diagnostic, as a CMake regex (see CMakeLists.txt).
-// expected-error: order the arguments as namespaces, classes, options, registries
+// expected-error: order the groups as namespaces, classes, registries
 
 #include <boost/openmethod.hpp>
 
@@ -12,7 +12,7 @@
 
 // Without reflection there is nothing to check; produce the expected
 // diagnostic so the test passes under any configuration.
-#error order the arguments as namespaces, classes, options, registries
+#error order the groups as namespaces, classes, registries
 
 #else
 
@@ -24,9 +24,9 @@ struct Animal {
     virtual ~Animal() = default;
 };
 
-// The registry must come last.
+// The registry group must come last.
 BOOST_OPENMETHOD_REGISTER(
-    boost::openmethod::register_classes<^^app::my_registry, ^^app::Animal>);
+    boost::openmethod::register_classes<{^^app::my_registry}, {^^app::Animal}>);
 
 } // namespace app
 

@@ -79,13 +79,13 @@ include::{example}/core_api.cpp[tag=use_classes]
 ----
 
 With a compiler that supports C++26 reflection, cpp:register_classes[] replaces
-that list. It scans one or more namespaces for the registry's methods, and
-registers the classes they dispatch on along with everything in those
-namespaces that derives from them:
+that list. It scans the global namespace - or the ones it is given - for the
+registry's methods, and registers the classes they dispatch on along with
+everything in those namespaces that derives from them:
 
 [source,c++]
 ----
-BOOST_OPENMETHOD_REGISTER(register_classes<^^::>);
+BOOST_OPENMETHOD_REGISTER(register_classes<>);
 ----
 
 A method declared the way `postfix` is above - an alias for a `method`
