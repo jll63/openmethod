@@ -14,12 +14,10 @@
 using namespace boost::openmethod;
 using namespace test_matrices;
 
-BOOST_OPENMETHOD_TEST_CLASSES(matrix, diagonal_matrix);
-
-// dense_matrix has no overrider of its own, and is not named in any method
-// signature, so reflection has no way of finding it. It is registered by hand
-// in C++26 too - along with its base, as use_classes requires.
-BOOST_OPENMETHOD_CLASSES(matrix, dense_matrix);
+// dense_matrix has no overrider of its own and is named in no method
+// signature, but it is a namespace-scope class deriving publicly from a class
+// the methods below dispatch on, so the scan finds it like the others.
+BOOST_OPENMETHOD_TEST_CLASSES(matrix, diagonal_matrix, dense_matrix);
 
 BOOST_OPENMETHOD(
     times, (virtual_<const matrix&>, virtual_<const matrix&>), string_pair);

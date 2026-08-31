@@ -33,13 +33,12 @@ class Dolphin : public interfaces::Animal {};
 
 using boost::openmethod::virtual_;
 
+// Dolphin has no overrider of its own and is named in no method signature,
+// but it is a namespace-scope class deriving publicly from a class the methods
+// below dispatch on, so the scan finds it like the others.
 BOOST_OPENMETHOD_TEST_CLASSES(
-    interfaces::Animal, canis::Dog, canis::Bulldog, felis::Cat);
-
-// Dolphin has no overrider of its own, and is not named in any method
-// signature, so reflection has no way of finding it. It is registered by hand
-// in C++26 too - along with its base, as use_classes requires.
-BOOST_OPENMETHOD_CLASSES(interfaces::Animal, delphinus::Dolphin);
+    interfaces::Animal, canis::Dog, canis::Bulldog, felis::Cat,
+    delphinus::Dolphin);
 
 // open method with single virtual argument <=> virtual function "from outside"
 BOOST_OPENMETHOD(poke, (virtual_<interfaces::Animal&>), std::string);
