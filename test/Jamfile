@@ -47,11 +47,16 @@ project
     <define>BOOST_TYPE_ERASURE_NO_LIB=1
 
     # C++26 reflection (P2996). GCC provides it only behind a flag, and accepts
-    # that flag only alongside a C++26 standard flag - so this is conditioned on
-    # cxxstd=26, not on cxxstd=2c, which spells the standard -std=c++2c. The
-    # library needs nothing else: it detects reflection from
+    # that flag only alongside a C++26 standard flag, so the probe compiles a
+    # <meta> snippet with -freflection under whatever standard the build
+    # request asks for, and answers yes only when both are in place. Probing
+    # beats matching a toolset version in both directions: a GCC that predates
+    # reflection rejects -freflection outright and would take the whole
+    # directory down with it, and a later one that stops needing the flag is
+    # not left out. The library needs nothing else: it detects reflection from
     # __cpp_impl_reflection, and falls back to explicit class registration.
-    <toolset>gcc,<cxxstd>26:<cxxflags>-freflection
+    [ check-target-builds ../config//has_reflection "C++26 reflection"
+        : <cxxflags>-freflection ]
 
     <warnings>extra
 

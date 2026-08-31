@@ -1,0 +1,13 @@
+#  Boost.OpenMethod Library Configuration Checks Jamfile
+#
+#  Distributed under the Boost Software License, Version 1.0.
+#  See accompanying file LICENSE_1_0.txt or copy at
+#  http://www.boost.org/LICENSE_1_0.txt
+
+# The probe consulted by ../test/Jamfile. It sits here, and not under test/,
+# because a b2 subproject inherits its parent's requirements: a check target
+# declared in the test project would carry the very conditional it is being
+# consulted for, and asking for it would ask for itself.
+
+obj has_reflection : has_reflection.cpp : <cxxflags>-freflection ;
+explicit has_reflection ;
