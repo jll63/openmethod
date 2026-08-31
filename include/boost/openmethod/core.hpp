@@ -3011,7 +3011,7 @@ consteval auto reflected_registered_classes_info() -> std::meta::info {
     std::vector<std::meta::info> methods, classes;
 
     for (auto ns : namespaces) {
-        scan_namespace(ns, ^^method, methods, classes);
+        scan_scope(ns, ^^method, methods, classes);
     }
 
     // Add the classes the methods dispatch on.
@@ -3045,7 +3045,7 @@ consteval auto reflected_registered_classes_info() -> std::meta::info {
 
     for (auto found : classes) {
         std::vector<std::meta::info> bases;
-        collect_reflected_bases(found, bases);
+        collect_dispatchable_bases(found, bases);
 
         for (auto base : bases) {
             if (contains(virtual_classes, base)) {
@@ -3067,7 +3067,7 @@ consteval auto reflected_registered_classes_info() -> std::meta::info {
 
     for (auto index = 0u; index != count; ++index) {
         std::vector<std::meta::info> bases;
-        collect_reflected_bases(registered[index], bases);
+        collect_dispatchable_bases(registered[index], bases);
 
         for (auto base : bases) {
             if (base == registered[index]) {
@@ -3252,11 +3252,14 @@ consteval auto current_namespace(
 //! `register_classes<^^app>` and `register_classes<{^^app}>` are the same
 //! registration.
 //!
-//! The scan covers the listed namespaces and the namespaces nested in them,
-//! except `std` and `boost`: walking those would cost a great deal and find
-//! nothing, as a method cannot be declared on a class the program has never
-//! heard of. The exclusion applies to recursion only, so a class in `std` or
-//! `boost` is registered by *listing* the namespace it is in. The scan finds
+//! The scan covers the listed namespaces, the namespaces nested in them, and
+//! the classes nested in the classes it finds, except `std` and `boost`:
+//! walking those would cost a great deal and find nothing, as a method cannot
+//! be declared on a class the program has never heard of. The exclusion
+//! applies to recursion only, so a class in `std` or `boost` is registered by
+//! *listing* the namespace it is in. A class is also found through an alias
+//! that names it, but the scan does not walk *into* an alias: only a class the
+//! scanned scope declares is descended into. The scan finds
 //! the methods of each target registry, collects the classes they dispatch on,
 //! and registers those, the listed classes, and every class in the scanned
 //! namespaces that derives from one of them. A base class that no method
@@ -3280,8 +3283,10 @@ consteval auto current_namespace(
 //! its classes must be registered with @ref use_classes.
 //!
 //! Virtual and multiple inheritance are supported. Unlike @ref use_classes,
-//! which rejects it, repeated inheritance is not an error here: an ambiguous
-//! base cannot take part in dispatch, so it is left out.
+//! which rejects it, repeated inheritance is not an error here: a base a class
+//! inherits more than once cannot be converted to, so it cannot take part in
+//! that class' dispatch, and it is left out of its bases. A class left with no
+//! registered base is not registered at all.
 //!
 //! This class template is available only if the compiler supports C++26
 //! reflection, i.e. if `BOOST_OPENMETHOD_HAS_REFLECTION` is 1.

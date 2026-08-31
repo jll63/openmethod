@@ -348,6 +348,10 @@ BOOST_AUTO_TEST_CASE(repeated_inheritance_does_not_break_the_scan) {
     BOOST_TEST((registered<Dog, test_registry>(comp)));
     BOOST_TEST((registered<Left, test_registry>(comp)));
     BOOST_TEST((registered<Right, test_registry>(comp)));
+    // Animal is the only registered class Repeated derives from, and it is
+    // ambiguous, so Repeated is left with no base to dispatch under and is not
+    // registered at all.
+    BOOST_TEST((!registered<Repeated, test_registry>(comp)));
 
     Dog dog;
     Left left;
@@ -1002,6 +1006,70 @@ BOOST_AUTO_TEST_CASE(no_registry_group_means_the_default_registry) {
 
     BOOST_TEST((registered<Animal, default_registry>(comp)));
     BOOST_TEST((registered<Dog, default_registry>(comp)));
+}
+
+// =============================================================================
+// Classes nested in classes
+
+namespace nested_classes {
+
+struct test_registry : test_registry_<__COUNTER__> {};
+
+struct Animal {
+    virtual ~Animal() = default;
+};
+
+// The scan descends into a class as it does into a namespace, whatever the
+// access of what it finds: `Kennel::Dog` takes part in dispatch through
+// `Animal&`, and never has to be named from outside.
+struct Kennel {
+    struct Dog : Animal {};
+
+  private:
+    struct Puppy : Dog {};
+
+  public:
+    static auto make_puppy() -> std::unique_ptr<Animal> {
+        return std::make_unique<Puppy>();
+    }
+};
+
+// A class the scope only *names* is registered, but not descended into: Alias
+// adds nothing, and Kennel::Dog is found once. An alias that adds cv-
+// qualification names the same class too, not a second one to give a lattice
+// node, a hash slot and a dispatch table row of its own.
+using Alias = Kennel;
+using ConstDog = const Kennel::Dog;
+
+BOOST_OPENMETHOD(poke, (virtual_<Animal&>), std::string, test_registry);
+
+BOOST_OPENMETHOD_OVERRIDE(poke, (Animal&), std::string) {
+    return "generic";
+}
+
+BOOST_OPENMETHOD_OVERRIDE(poke, (Kennel::Dog&), std::string) {
+    return "bark";
+}
+
+} // namespace nested_classes
+
+BOOST_OPENMETHOD_REGISTER(
+    register_classes<{^^nested_classes}, {^^nested_classes::test_registry}>);
+
+BOOST_AUTO_TEST_CASE(classes_nested_in_classes_are_found) {
+    using namespace nested_classes;
+
+    auto comp = initialize<test_registry>();
+
+    BOOST_TEST((registered<Animal, test_registry>(comp)));
+    BOOST_TEST((registered<Kennel::Dog, test_registry>(comp)));
+
+    Animal animal;
+    Kennel::Dog dog;
+    BOOST_TEST(poke(animal) == "generic");
+    BOOST_TEST(poke(dog) == "bark");
+    // Puppy is private to Kennel, and reached only as an Animal.
+    BOOST_TEST(poke(*Kennel::make_puppy()) == "bark");
 }
 
 #endif
