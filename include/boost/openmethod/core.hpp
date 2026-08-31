@@ -2906,25 +2906,35 @@ consteval auto register_classes_groups_are_homogeneous() -> bool {
 // are declared in: namespaces, classes, registries.
 template<auto... Groups>
 consteval auto register_classes_groups_are_ordered() -> bool {
-    register_classes_kind kinds[] = {register_classes_group_kind<Groups>()...};
-    auto last = register_classes_kind::empty;
+    // `register_classes<>` registers the classes of a scan of the global
+    // namespace, and is the shape `BOOST_OPENMETHOD_REGISTER_CLASSES()`
+    // expands to. It must be taken before the array below is formed: with no
+    // group, that array has size zero, which is not standard C++ - GCC rejects
+    // it outright under -Wpedantic, clang under -pedantic-errors.
+    if constexpr (sizeof...(Groups) == 0) {
+        return true;
+    } else {
+        register_classes_kind kinds[] = {
+            register_classes_group_kind<Groups>()...};
+        auto last = register_classes_kind::empty;
 
-    for (auto kind : kinds) {
-        // An empty group carries no kind, and a group the checks above
-        // rejected has no meaningful one either.
-        if (kind == register_classes_kind::empty ||
-            kind == register_classes_kind::invalid) {
-            continue;
+        for (auto kind : kinds) {
+            // An empty group carries no kind, and a group the checks above
+            // rejected has no meaningful one either.
+            if (kind == register_classes_kind::empty ||
+                kind == register_classes_kind::invalid) {
+                continue;
+            }
+
+            if (kind < last) {
+                return false;
+            }
+
+            last = kind;
         }
 
-        if (kind < last) {
-            return false;
-        }
-
-        last = kind;
+        return true;
     }
-
-    return true;
 }
 
 // The items of every group whose kind is `Kind`, in order, without repeats.
@@ -2932,6 +2942,11 @@ template<auto... Groups>
 consteval auto register_classes_items(register_classes_kind kind)
     -> std::vector<std::meta::info> {
     std::vector<std::meta::info> items;
+
+    // `Groups` is empty for `register_classes<>`, which names nothing and
+    // scans the global namespace. The fold below then expands to nothing and
+    // never reads `kind`, which GCC reports under -Wunused-but-set-parameter.
+    static_cast<void>(kind);
 
     (..., [&] {
         for (auto index = 0u; index != Groups.size; ++index) {
