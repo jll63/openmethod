@@ -74,7 +74,7 @@ class vptr_map : public vptr {
                      type_iter != iter->type_id_end(); ++type_iter) {
 
                     if constexpr (Registry::has_indirect_vptr) {
-                        new_vptrs.emplace(*type_iter, &iter->vptr());
+                        new_vptrs.emplace(*type_iter, iter->static_vptr());
                     } else {
                         new_vptrs.emplace(*type_iter, iter->vptr());
                     }

@@ -128,7 +128,7 @@ struct vptr_vector : vptr {
                     }
 
                     if constexpr (Registry::has_indirect_vptr) {
-                        st().vptrs[index] = &iter->vptr();
+                        st().vptrs[index] = iter->static_vptr();
                     } else {
                         st().vptrs[index] = iter->vptr();
                     }

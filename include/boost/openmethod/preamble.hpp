@@ -520,10 +520,24 @@ struct InitializeClass {
     //! class.
     auto type_id_end() const -> detail::unspecified;
 
-    //! Reference to the v-table pointer for the class.
+    //! The v-table pointer for the class.
     //!
-    //! @return A reference to the v-table pointer for the class.
-    auto vptr() const -> const vptr_type&;
+    //! The value that @ref initialize installs for the class when it succeeds.
+    //! Store it to associate the class' type ids with its v-table.
+    //!
+    //! @return The v-table pointer for the class.
+    auto vptr() const -> vptr_type;
+
+    //! Address of the class' static v-table pointer.
+    //!
+    //! @ref initialize writes @ref vptr to this location when it succeeds, and
+    //! every later call updates it in place. A @ref VptrFn that stores pointers
+    //! to v-table pointers, for use with the @ref indirect_vptr policy, stores
+    //! this address; `*static_vptr()` still holds the previous v-table pointer
+    //! while `initialize` runs.
+    //!
+    //! @return A pointer to the static v-table pointer for the class.
+    auto static_vptr() const -> const vptr_type*;
 };
 
 //! Context for initializing a policy (exposition only).
@@ -707,6 +721,10 @@ struct VptrFn {
     //! Called by @ref registry::initialize to let the policy store the v-table
     //! pointer associated to each `type_id`.
     //!
+    //! If this function, or another policy's `initialize`, throws, the
+    //! policy's `state` is restored to its previous value; see @ref
+    //! initialize.
+    //!
     //! @tparam Context A class that conforms to the @ref InitializeContext
     //! blueprint.
     //! @tparam Options... Zero or more option types, deduced from the
@@ -798,6 +816,10 @@ struct indirect_vptr final {
 template<class Registry>
 struct TypeHashFn {
     //! Initialize the hash table.
+    //!
+    //! If this function, or another policy's `initialize`, throws, the
+    //! policy's `state` is restored to its previous value; see @ref
+    //! initialize.
     //!
     //! @tparam Context A class that conforms to the @ref InitializeContext
     //! blueprint.

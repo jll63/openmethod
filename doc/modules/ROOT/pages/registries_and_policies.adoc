@@ -163,6 +163,14 @@ the state of the `type_hash` policy, so the `type_hash` policy must come before
 precedes `vptr_vector`. This particular requirement is enforced with a
 `static_assert`.
 
+cpp:initialize[] is transactional. If a policy's `initialize` throws -
+`fast_perfect_hash` failing to find hash factors under `throw_error_handler`,
+say - every policy gets its previous state back, and nothing else in the
+registry is modified: the v-table pointers, `next` pointers and dispatch
+tables from the previous call all stay in place. The registry is marked as not
+initialized, though, since that state no longer reflects the registrations,
+and cpp:initialize[] must be called again before calling a method.
+
 A registry can also be created by copying an existing registry's policies,
 using the cpp:with[] and cpp:without[] nested templates. For example,
 `indirect_registry` is a tweak of `default_registry`:
