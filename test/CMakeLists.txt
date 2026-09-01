@@ -98,6 +98,14 @@ foreach(test_cpp ${test_cpp_files})
     boost_openmethod_add_test(${test_target})
     add_dependencies(tests ${test_target})
 
+    # test_slot_allocator.cpp instantiates the compiler for two dozen
+    # registries, more sections than a COFF object holds by default.
+    if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" OR CMAKE_CXX_COMPILER_FRONTEND_VARIANT MATCHES "MSVC")
+        target_compile_options(${test_target} PRIVATE /bigobj)
+    elseif (MINGW OR CYGWIN)
+        target_compile_options(${test_target} PRIVATE -Wa,-mbig-obj)
+    endif()
+
     file(READ ${test_cpp} test_cpp_contents)
     set(test_cpp_overrides_registry -1)
     foreach(marker "BOOST_OPENMETHOD_DEFAULT_REGISTRY" "test_capture_errors.hpp"

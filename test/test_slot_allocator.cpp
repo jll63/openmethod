@@ -297,6 +297,9 @@ struct M;
 #define USE_METHOD(CLASS)                                                      \
     (void)&method<CLASS, auto(virtual_<CLASS&>)->void, test_registry>::fn
 
+#define USE_METHOD_N(CLASS, N)                                                 \
+    (void)&method<M<N>, auto(virtual_<CLASS&>)->void, test_registry>::fn
+
 // A binary method dispatching on CLASS1 and CLASS2.
 #define USE_METHOD2(CLASS1, CLASS2)                                            \
     (void)&method<                                                             \
@@ -304,21 +307,21 @@ struct M;
         test_registry>::fn
 
 // A class registration that the test constructs, and destroys, when it
-// decides to.
+// decides to. Not named `register_classes`: that is the library's C++26 API.
 struct registration {
     virtual ~registration() = default;
 };
 
 template<class... Classes>
-struct registration_of : registration {
+struct registered : registration {
     use_classes<Classes...> classes;
 };
 
 using registration_factory = std::unique_ptr<registration> (*)();
 
 template<class... Classes>
-auto register_classes() -> std::unique_ptr<registration> {
-    return std::make_unique<registration_of<Classes...>>();
+auto registration_of() -> std::unique_ptr<registration> {
+    return std::make_unique<registered<Classes...>>();
 }
 
 using hierarchy = std::vector<registration_factory>;
@@ -550,9 +553,9 @@ BOOST_AUTO_TEST_CASE(test_assign_slots_a_b1_c) {
     ADD_METHOD(B);
 
     hierarchy classes{
-        register_classes<A, test_registry>,
-        register_classes<B, A, test_registry>,
-        register_classes<C, A, test_registry>,
+        registration_of<A, test_registry>,
+        registration_of<B, A, test_registry>,
+        registration_of<C, A, test_registry>,
     };
 
     auto stats = allocate_in_orders<test_registry>(
@@ -587,9 +590,9 @@ BOOST_AUTO_TEST_CASE(test_assign_slots_a1_b1_c1) {
     ADD_METHOD(C);
 
     hierarchy classes{
-        register_classes<A, test_registry>,
-        register_classes<B, A, test_registry>,
-        register_classes<C, A, test_registry>,
+        registration_of<A, test_registry>,
+        registration_of<B, A, test_registry>,
+        registration_of<C, A, test_registry>,
     };
 
     auto stats = allocate_in_orders<test_registry>(
@@ -629,10 +632,10 @@ BOOST_AUTO_TEST_CASE(test_assign_slots_tree_any_order) {
     ADD_METHOD(D);
 
     hierarchy classes{
-        register_classes<A, test_registry>,
-        register_classes<B, A, test_registry>,
-        register_classes<C, A, test_registry>,
-        register_classes<D, B, test_registry>,
+        registration_of<A, test_registry>,
+        registration_of<B, A, test_registry>,
+        registration_of<C, A, test_registry>,
+        registration_of<D, B, test_registry>,
     };
 
     // In a tree, every v-table is dense from slot 0, whatever the order.
@@ -675,15 +678,15 @@ BOOST_AUTO_TEST_CASE(test_assign_slots_a1_b1_d1_c1_d1) {
     struct D : B, C {};
 
     ADD_METHOD(A);
-    ADD_METHOD(B);
-    ADD_METHOD(C);
+    USE_METHOD(B);
+    USE_METHOD(C);
     ADD_METHOD(D);
 
     hierarchy classes{
-        register_classes<A, test_registry>,
-        register_classes<B, A, test_registry>,
-        register_classes<C, A, test_registry>,
-        register_classes<D, B, C, test_registry>,
+        registration_of<A, test_registry>,
+        registration_of<B, A, test_registry>,
+        registration_of<C, A, test_registry>,
+        registration_of<D, B, C, test_registry>,
     };
 
     // B and C both sit above A's slot and must differ in D, so one of them has
@@ -724,19 +727,19 @@ BOOST_AUTO_TEST_CASE(test_assign_slots_a1_b1_d1_c1_d1_e3) {
     struct D : B, C {};
 
     ADD_METHOD(A);
-    ADD_METHOD(B);
-    ADD_METHOD(C);
+    USE_METHOD(B);
+    USE_METHOD(C);
     ADD_METHOD(D);
-    ADD_METHOD_N(E, 1);
-    ADD_METHOD_N(E, 2);
-    ADD_METHOD_N(E, 3);
+    USE_METHOD_N(E, 1);
+    USE_METHOD_N(E, 2);
+    USE_METHOD_N(E, 3);
 
     hierarchy classes{
-        register_classes<A, test_registry>,
-        register_classes<B, A, test_registry>,
-        register_classes<C, A, test_registry>,
-        register_classes<E, C, test_registry>,
-        register_classes<D, B, C, test_registry>,
+        registration_of<A, test_registry>,
+        registration_of<B, A, test_registry>,
+        registration_of<C, A, test_registry>,
+        registration_of<E, C, test_registry>,
+        registration_of<D, B, C, test_registry>,
     };
 
     // E fills the hole in C's v-table, if C has one. Old total: 16.
@@ -774,9 +777,9 @@ BOOST_AUTO_TEST_CASE(test_assign_slots_a1_c1_b1) {
     ADD_METHOD(C);
 
     hierarchy classes{
-        register_classes<A, test_registry>,
-        register_classes<B, test_registry>,
-        register_classes<C, A, B, test_registry>,
+        registration_of<A, test_registry>,
+        registration_of<B, test_registry>,
+        registration_of<C, A, B, test_registry>,
     };
 
     // The second root to be allocated gets slot 1; its v-table starts there,
@@ -815,16 +818,16 @@ BOOST_AUTO_TEST_CASE(test_assign_slots_hole_avoided) {
     struct C : A, B {};
     struct E : B {};
 
-    ADD_METHOD(A);
-    ADD_METHOD(B);
-    ADD_METHOD(C);
-    ADD_METHOD(E);
+    USE_METHOD(A);
+    USE_METHOD(B);
+    USE_METHOD(C);
+    USE_METHOD(E);
 
     hierarchy classes{
-        register_classes<A, test_registry>,
-        register_classes<B, test_registry>,
-        register_classes<C, A, B, test_registry>,
-        register_classes<E, B, test_registry>,
+        registration_of<A, test_registry>,
+        registration_of<B, test_registry>,
+        registration_of<C, A, B, test_registry>,
+        registration_of<E, B, test_registry>,
     };
 
     // E extends B's range by one entry. The old allocator, when it visited A,
@@ -866,22 +869,22 @@ BOOST_AUTO_TEST_CASE(test_assign_slots_grow_down) {
     struct E : B {};
     struct G : E, W {};
 
-    ADD_METHOD_N(A, 1);
-    ADD_METHOD_N(A, 2);
+    USE_METHOD_N(A, 1);
+    USE_METHOD_N(A, 2);
     ADD_METHOD(B);
     ADD_METHOD(W);
     ADD_METHOD(E);
 
     hierarchy classes{
-        register_classes<A, test_registry>,
-        register_classes<Aa, A, test_registry>,
-        register_classes<Ab, A, test_registry>,
-        register_classes<B, test_registry>,
-        register_classes<W, test_registry>,
-        register_classes<C, A, B, test_registry>,
-        register_classes<V, A, W, test_registry>,
-        register_classes<E, B, test_registry>,
-        register_classes<G, E, W, test_registry>,
+        registration_of<A, test_registry>,
+        registration_of<Aa, A, test_registry>,
+        registration_of<Ab, A, test_registry>,
+        registration_of<B, test_registry>,
+        registration_of<W, test_registry>,
+        registration_of<C, A, B, test_registry>,
+        registration_of<V, A, W, test_registry>,
+        registration_of<E, B, test_registry>,
+        registration_of<G, E, W, test_registry>,
     };
 
     // The cones decide the order: A (five classes) takes 0 and 1, B (four)
@@ -931,31 +934,31 @@ BOOST_AUTO_TEST_CASE(test_assign_slots_cone_aware) {
     struct X : P {};
     struct D : X, R {};
 
-    ADD_METHOD_N(Y, 1);
-    ADD_METHOD_N(Y, 2);
-    ADD_METHOD_N(Y, 3);
-    ADD_METHOD_N(Y, 4);
-    ADD_METHOD_N(Y, 5);
+    USE_METHOD_N(Y, 1);
+    USE_METHOD_N(Y, 2);
+    USE_METHOD_N(Y, 3);
+    USE_METHOD_N(Y, 4);
+    USE_METHOD_N(Y, 5);
     ADD_METHOD(P);
-    ADD_METHOD_N(R, 1);
-    ADD_METHOD_N(R, 2);
-    ADD_METHOD_N(R, 3);
-    ADD_METHOD_N(R, 4);
+    USE_METHOD_N(R, 1);
+    USE_METHOD_N(R, 2);
+    USE_METHOD_N(R, 3);
+    USE_METHOD_N(R, 4);
     ADD_METHOD(X);
 
     hierarchy classes{
-        register_classes<Y, test_registry>,
-        register_classes<Ya, Y, test_registry>,
-        register_classes<Yb, Y, test_registry>,
-        register_classes<Yc, Y, test_registry>,
-        register_classes<P, test_registry>,
-        register_classes<R, test_registry>,
-        register_classes<Ra, R, test_registry>,
-        register_classes<Rb, R, test_registry>,
-        register_classes<Rc, R, test_registry>,
-        register_classes<Z, Y, P, test_registry>,
-        register_classes<X, P, test_registry>,
-        register_classes<D, X, R, test_registry>,
+        registration_of<Y, test_registry>,
+        registration_of<Ya, Y, test_registry>,
+        registration_of<Yb, Y, test_registry>,
+        registration_of<Yc, Y, test_registry>,
+        registration_of<P, test_registry>,
+        registration_of<R, test_registry>,
+        registration_of<Ra, R, test_registry>,
+        registration_of<Rb, R, test_registry>,
+        registration_of<Rc, R, test_registry>,
+        registration_of<Z, Y, P, test_registry>,
+        registration_of<X, P, test_registry>,
+        registration_of<D, X, R, test_registry>,
     };
 
     // Y and R, with the widest cones, take 0-4 and 0-3; P lands at 5, and X
@@ -987,14 +990,14 @@ BOOST_AUTO_TEST_CASE(test_assign_slots_several_parameters_per_class) {
     };
     struct B : A {};
 
-    ADD_METHOD_N(A, 1);
-    ADD_METHOD_N(A, 2);
+    USE_METHOD_N(A, 1);
+    USE_METHOD_N(A, 2);
     USE_METHOD2(A, A);
     ADD_METHOD(B);
 
     hierarchy classes{
-        register_classes<A, test_registry>,
-        register_classes<B, A, test_registry>,
+        registration_of<A, test_registry>,
+        registration_of<B, A, test_registry>,
     };
 
     auto stats = allocate_in_orders<test_registry>(
@@ -1030,20 +1033,20 @@ BOOST_AUTO_TEST_CASE(test_assign_slots_method_less_classes) {
     struct S : R {};
     struct T : S {};
 
-    ADD_METHOD(A);
+    USE_METHOD(A);
     ADD_METHOD(C);
     ADD_METHOD(D);
     ADD_METHOD(S);
     ADD_METHOD(T);
 
     hierarchy classes{
-        register_classes<A, test_registry>,
-        register_classes<B, A, test_registry>,
-        register_classes<C, B, test_registry>,
-        register_classes<D, B, test_registry>,
-        register_classes<R, test_registry>,
-        register_classes<S, R, test_registry>,
-        register_classes<T, S, test_registry>,
+        registration_of<A, test_registry>,
+        registration_of<B, A, test_registry>,
+        registration_of<C, B, test_registry>,
+        registration_of<D, B, test_registry>,
+        registration_of<R, test_registry>,
+        registration_of<S, R, test_registry>,
+        registration_of<T, S, test_registry>,
     };
 
     auto stats = allocate_in_orders<test_registry>(
@@ -1077,17 +1080,17 @@ BOOST_AUTO_TEST_CASE(test_assign_slots_components) {
     };
     struct Y : X {};
 
-    ADD_METHOD(A);
+    USE_METHOD(A);
     ADD_METHOD(B);
-    ADD_METHOD(X);
+    USE_METHOD(X);
     ADD_METHOD(Y);
     USE_METHOD2(A, X);
 
     hierarchy classes{
-        register_classes<A, test_registry>,
-        register_classes<B, A, test_registry>,
-        register_classes<X, test_registry>,
-        register_classes<Y, X, test_registry>,
+        registration_of<A, test_registry>,
+        registration_of<B, A, test_registry>,
+        registration_of<X, test_registry>,
+        registration_of<Y, X, test_registry>,
     };
 
     // Unrelated hierarchies do not see each other: both start at slot 0.
@@ -1168,27 +1171,27 @@ BOOST_AUTO_TEST_CASE(test_assign_slots_iso_cpp_streams) {
     USE_METHOD2(basic_ostream, basic_streambuf);
 
     hierarchy classes{
-        register_classes<ios_base, test_registry>,
-        register_classes<basic_ios, ios_base, test_registry>,
-        register_classes<basic_istream, basic_ios, test_registry>,
-        register_classes<basic_ostream, basic_ios, test_registry>,
-        register_classes<
+        registration_of<ios_base, test_registry>,
+        registration_of<basic_ios, ios_base, test_registry>,
+        registration_of<basic_istream, basic_ios, test_registry>,
+        registration_of<basic_ostream, basic_ios, test_registry>,
+        registration_of<
             basic_iostream, basic_istream, basic_ostream, test_registry>,
-        register_classes<basic_ifstream, basic_istream, test_registry>,
-        register_classes<basic_ofstream, basic_ostream, test_registry>,
-        register_classes<basic_fstream, basic_iostream, test_registry>,
-        register_classes<basic_istringstream, basic_istream, test_registry>,
-        register_classes<basic_ostringstream, basic_ostream, test_registry>,
-        register_classes<basic_stringstream, basic_iostream, test_registry>,
-        register_classes<basic_ispanstream, basic_istream, test_registry>,
-        register_classes<basic_ospanstream, basic_ostream, test_registry>,
-        register_classes<basic_spanstream, basic_iostream, test_registry>,
-        register_classes<basic_osyncstream, basic_ostream, test_registry>,
-        register_classes<basic_streambuf, test_registry>,
-        register_classes<basic_filebuf, basic_streambuf, test_registry>,
-        register_classes<basic_stringbuf, basic_streambuf, test_registry>,
-        register_classes<basic_spanbuf, basic_streambuf, test_registry>,
-        register_classes<basic_syncbuf, basic_streambuf, test_registry>,
+        registration_of<basic_ifstream, basic_istream, test_registry>,
+        registration_of<basic_ofstream, basic_ostream, test_registry>,
+        registration_of<basic_fstream, basic_iostream, test_registry>,
+        registration_of<basic_istringstream, basic_istream, test_registry>,
+        registration_of<basic_ostringstream, basic_ostream, test_registry>,
+        registration_of<basic_stringstream, basic_iostream, test_registry>,
+        registration_of<basic_ispanstream, basic_istream, test_registry>,
+        registration_of<basic_ospanstream, basic_ostream, test_registry>,
+        registration_of<basic_spanstream, basic_iostream, test_registry>,
+        registration_of<basic_osyncstream, basic_ostream, test_registry>,
+        registration_of<basic_streambuf, test_registry>,
+        registration_of<basic_filebuf, basic_streambuf, test_registry>,
+        registration_of<basic_stringbuf, basic_streambuf, test_registry>,
+        registration_of<basic_spanbuf, basic_streambuf, test_registry>,
+        registration_of<basic_syncbuf, basic_streambuf, test_registry>,
     };
 
     // The old allocator: 95 to 97 over these orders.
@@ -1258,37 +1261,37 @@ BOOST_AUTO_TEST_CASE(test_assign_slots_socketserver) {
     USE_METHOD2(BaseServer, BaseRequestHandler);
 
     hierarchy classes{
-        register_classes<BaseServer, test_registry>,
-        register_classes<TCPServer, BaseServer, test_registry>,
-        register_classes<UDPServer, TCPServer, test_registry>,
-        register_classes<UnixStreamServer, TCPServer, test_registry>,
-        register_classes<UnixDatagramServer, UDPServer, test_registry>,
-        register_classes<ThreadingMixIn, test_registry>,
-        register_classes<ForkingMixIn, test_registry>,
-        register_classes<
+        registration_of<BaseServer, test_registry>,
+        registration_of<TCPServer, BaseServer, test_registry>,
+        registration_of<UDPServer, TCPServer, test_registry>,
+        registration_of<UnixStreamServer, TCPServer, test_registry>,
+        registration_of<UnixDatagramServer, UDPServer, test_registry>,
+        registration_of<ThreadingMixIn, test_registry>,
+        registration_of<ForkingMixIn, test_registry>,
+        registration_of<
             ThreadingTCPServer, ThreadingMixIn, TCPServer, test_registry>,
-        register_classes<
+        registration_of<
             ThreadingUDPServer, ThreadingMixIn, UDPServer, test_registry>,
-        register_classes<
+        registration_of<
             ForkingTCPServer, ForkingMixIn, TCPServer, test_registry>,
-        register_classes<
+        registration_of<
             ForkingUDPServer, ForkingMixIn, UDPServer, test_registry>,
-        register_classes<
+        registration_of<
             ThreadingUnixStreamServer, ThreadingMixIn, UnixStreamServer,
             test_registry>,
-        register_classes<
+        registration_of<
             ThreadingUnixDatagramServer, ThreadingMixIn, UnixDatagramServer,
             test_registry>,
-        register_classes<
+        registration_of<
             ForkingUnixStreamServer, ForkingMixIn, UnixStreamServer,
             test_registry>,
-        register_classes<
+        registration_of<
             ForkingUnixDatagramServer, ForkingMixIn, UnixDatagramServer,
             test_registry>,
-        register_classes<BaseRequestHandler, test_registry>,
-        register_classes<
+        registration_of<BaseRequestHandler, test_registry>,
+        registration_of<
             StreamRequestHandler, BaseRequestHandler, test_registry>,
-        register_classes<
+        registration_of<
             DatagramRequestHandler, BaseRequestHandler, test_registry>,
     };
 
@@ -1450,100 +1453,98 @@ BOOST_AUTO_TEST_CASE(test_assign_slots_django_views) {
     USE_METHOD(DateDetailView);
 
     hierarchy classes{
-        register_classes<View, test_registry>,
-        register_classes<ContextMixin, test_registry>,
-        register_classes<TemplateResponseMixin, test_registry>,
-        register_classes<
+        registration_of<View, test_registry>,
+        registration_of<ContextMixin, test_registry>,
+        registration_of<TemplateResponseMixin, test_registry>,
+        registration_of<
             TemplateView, TemplateResponseMixin, ContextMixin, View,
             test_registry>,
-        register_classes<RedirectView, View, test_registry>,
-        register_classes<SingleObjectMixin, ContextMixin, test_registry>,
-        register_classes<
-            BaseDetailView, SingleObjectMixin, View, test_registry>,
-        register_classes<
+        registration_of<RedirectView, View, test_registry>,
+        registration_of<SingleObjectMixin, ContextMixin, test_registry>,
+        registration_of<BaseDetailView, SingleObjectMixin, View, test_registry>,
+        registration_of<
             SingleObjectTemplateResponseMixin, TemplateResponseMixin,
             test_registry>,
-        register_classes<
+        registration_of<
             DetailView, SingleObjectTemplateResponseMixin, BaseDetailView,
             test_registry>,
-        register_classes<MultipleObjectMixin, ContextMixin, test_registry>,
-        register_classes<
-            BaseListView, MultipleObjectMixin, View, test_registry>,
-        register_classes<
+        registration_of<MultipleObjectMixin, ContextMixin, test_registry>,
+        registration_of<BaseListView, MultipleObjectMixin, View, test_registry>,
+        registration_of<
             MultipleObjectTemplateResponseMixin, TemplateResponseMixin,
             test_registry>,
-        register_classes<
+        registration_of<
             ListView, MultipleObjectTemplateResponseMixin, BaseListView,
             test_registry>,
-        register_classes<FormMixin, ContextMixin, test_registry>,
-        register_classes<
+        registration_of<FormMixin, ContextMixin, test_registry>,
+        registration_of<
             ModelFormMixin, FormMixin, SingleObjectMixin, test_registry>,
-        register_classes<ProcessFormView, View, test_registry>,
-        register_classes<
+        registration_of<ProcessFormView, View, test_registry>,
+        registration_of<
             BaseFormView, FormMixin, ProcessFormView, test_registry>,
-        register_classes<
+        registration_of<
             FormView, TemplateResponseMixin, BaseFormView, test_registry>,
-        register_classes<
+        registration_of<
             BaseCreateView, ModelFormMixin, ProcessFormView, test_registry>,
-        register_classes<
+        registration_of<
             CreateView, SingleObjectTemplateResponseMixin, BaseCreateView,
             test_registry>,
-        register_classes<
+        registration_of<
             BaseUpdateView, ModelFormMixin, ProcessFormView, test_registry>,
-        register_classes<
+        registration_of<
             UpdateView, SingleObjectTemplateResponseMixin, BaseUpdateView,
             test_registry>,
-        register_classes<DeletionMixin, test_registry>,
-        register_classes<
+        registration_of<DeletionMixin, test_registry>,
+        registration_of<
             BaseDeleteView, DeletionMixin, FormMixin, BaseDetailView,
             test_registry>,
-        register_classes<
+        registration_of<
             DeleteView, SingleObjectTemplateResponseMixin, BaseDeleteView,
             test_registry>,
-        register_classes<YearMixin, test_registry>,
-        register_classes<MonthMixin, test_registry>,
-        register_classes<DayMixin, test_registry>,
-        register_classes<WeekMixin, test_registry>,
-        register_classes<DateMixin, test_registry>,
-        register_classes<
+        registration_of<YearMixin, test_registry>,
+        registration_of<MonthMixin, test_registry>,
+        registration_of<DayMixin, test_registry>,
+        registration_of<WeekMixin, test_registry>,
+        registration_of<DateMixin, test_registry>,
+        registration_of<
             BaseDateListView, MultipleObjectMixin, DateMixin, View,
             test_registry>,
-        register_classes<BaseArchiveIndexView, BaseDateListView, test_registry>,
-        register_classes<
+        registration_of<BaseArchiveIndexView, BaseDateListView, test_registry>,
+        registration_of<
             ArchiveIndexView, MultipleObjectTemplateResponseMixin,
             BaseArchiveIndexView, test_registry>,
-        register_classes<
+        registration_of<
             BaseYearArchiveView, YearMixin, BaseDateListView, test_registry>,
-        register_classes<
+        registration_of<
             YearArchiveView, MultipleObjectTemplateResponseMixin,
             BaseYearArchiveView, test_registry>,
-        register_classes<
+        registration_of<
             BaseMonthArchiveView, YearMixin, MonthMixin, BaseDateListView,
             test_registry>,
-        register_classes<
+        registration_of<
             MonthArchiveView, MultipleObjectTemplateResponseMixin,
             BaseMonthArchiveView, test_registry>,
-        register_classes<
+        registration_of<
             BaseWeekArchiveView, YearMixin, WeekMixin, BaseDateListView,
             test_registry>,
-        register_classes<
+        registration_of<
             WeekArchiveView, MultipleObjectTemplateResponseMixin,
             BaseWeekArchiveView, test_registry>,
-        register_classes<
+        registration_of<
             BaseDayArchiveView, YearMixin, MonthMixin, DayMixin,
             BaseDateListView, test_registry>,
-        register_classes<
+        registration_of<
             DayArchiveView, MultipleObjectTemplateResponseMixin,
             BaseDayArchiveView, test_registry>,
-        register_classes<
+        registration_of<
             BaseTodayArchiveView, BaseDayArchiveView, test_registry>,
-        register_classes<
+        registration_of<
             TodayArchiveView, MultipleObjectTemplateResponseMixin,
             BaseTodayArchiveView, test_registry>,
-        register_classes<
+        registration_of<
             BaseDateDetailView, YearMixin, MonthMixin, DayMixin, DateMixin,
             BaseDetailView, test_registry>,
-        register_classes<
+        registration_of<
             DateDetailView, SingleObjectTemplateResponseMixin,
             BaseDateDetailView, test_registry>,
     };
@@ -1633,43 +1634,42 @@ BOOST_AUTO_TEST_CASE(test_assign_slots_common_lisp_conditions) {
     USE_METHOD(reader_error);
 
     hierarchy classes{
-        register_classes<condition, test_registry>,
-        register_classes<serious_condition, condition, test_registry>,
-        register_classes<warning, condition, test_registry>,
-        register_classes<simple_condition, condition, test_registry>,
-        register_classes<error, serious_condition, test_registry>,
-        register_classes<storage_condition, serious_condition, test_registry>,
-        register_classes<style_warning, warning, test_registry>,
-        register_classes<simple_error, simple_condition, error, test_registry>,
-        register_classes<
+        registration_of<condition, test_registry>,
+        registration_of<serious_condition, condition, test_registry>,
+        registration_of<warning, condition, test_registry>,
+        registration_of<simple_condition, condition, test_registry>,
+        registration_of<error, serious_condition, test_registry>,
+        registration_of<storage_condition, serious_condition, test_registry>,
+        registration_of<style_warning, warning, test_registry>,
+        registration_of<simple_error, simple_condition, error, test_registry>,
+        registration_of<
             simple_warning, simple_condition, warning, test_registry>,
-        register_classes<type_error, error, test_registry>,
-        register_classes<
+        registration_of<type_error, error, test_registry>,
+        registration_of<
             simple_type_error, simple_condition, type_error, test_registry>,
-        register_classes<arithmetic_error, error, test_registry>,
-        register_classes<division_by_zero, arithmetic_error, test_registry>,
-        register_classes<
+        registration_of<arithmetic_error, error, test_registry>,
+        registration_of<division_by_zero, arithmetic_error, test_registry>,
+        registration_of<
             floating_point_inexact, arithmetic_error, test_registry>,
-        register_classes<
+        registration_of<
             floating_point_invalid_operation, arithmetic_error, test_registry>,
-        register_classes<
+        registration_of<
             floating_point_overflow, arithmetic_error, test_registry>,
-        register_classes<
+        registration_of<
             floating_point_underflow, arithmetic_error, test_registry>,
-        register_classes<cell_error, error, test_registry>,
-        register_classes<unbound_variable, cell_error, test_registry>,
-        register_classes<unbound_slot, cell_error, test_registry>,
-        register_classes<undefined_function, cell_error, test_registry>,
-        register_classes<control_error, error, test_registry>,
-        register_classes<file_error, error, test_registry>,
-        register_classes<package_error, error, test_registry>,
-        register_classes<parse_error, error, test_registry>,
-        register_classes<print_not_readable, error, test_registry>,
-        register_classes<program_error, error, test_registry>,
-        register_classes<stream_error, error, test_registry>,
-        register_classes<end_of_file, stream_error, test_registry>,
-        register_classes<
-            reader_error, parse_error, stream_error, test_registry>,
+        registration_of<cell_error, error, test_registry>,
+        registration_of<unbound_variable, cell_error, test_registry>,
+        registration_of<unbound_slot, cell_error, test_registry>,
+        registration_of<undefined_function, cell_error, test_registry>,
+        registration_of<control_error, error, test_registry>,
+        registration_of<file_error, error, test_registry>,
+        registration_of<package_error, error, test_registry>,
+        registration_of<parse_error, error, test_registry>,
+        registration_of<print_not_readable, error, test_registry>,
+        registration_of<program_error, error, test_registry>,
+        registration_of<stream_error, error, test_registry>,
+        registration_of<end_of_file, stream_error, test_registry>,
+        registration_of<reader_error, parse_error, stream_error, test_registry>,
     };
 
     // The old allocator: 131 to 143 over these orders.
@@ -1761,32 +1761,32 @@ BOOST_AUTO_TEST_CASE(test_assign_slots_collections_abc) {
     USE_METHOD(Buffer);
 
     hierarchy classes{
-        register_classes<Container, test_registry>,
-        register_classes<Hashable, test_registry>,
-        register_classes<Iterable, test_registry>,
-        register_classes<Iterator, Iterable, test_registry>,
-        register_classes<Reversible, Iterable, test_registry>,
-        register_classes<Generator, Iterator, test_registry>,
-        register_classes<Sized, test_registry>,
-        register_classes<Callable, test_registry>,
-        register_classes<Collection, Sized, Iterable, Container, test_registry>,
-        register_classes<Sequence, Reversible, Collection, test_registry>,
-        register_classes<MutableSequence, Sequence, test_registry>,
-        register_classes<ByteString, Sequence, test_registry>,
-        register_classes<Set, Collection, test_registry>,
-        register_classes<MutableSet, Set, test_registry>,
-        register_classes<Mapping, Collection, test_registry>,
-        register_classes<MutableMapping, Mapping, test_registry>,
-        register_classes<MappingView, Sized, test_registry>,
-        register_classes<ItemsView, MappingView, Set, test_registry>,
-        register_classes<KeysView, MappingView, Set, test_registry>,
-        register_classes<ValuesView, MappingView, Collection, test_registry>,
-        register_classes<Awaitable, test_registry>,
-        register_classes<Coroutine, Awaitable, test_registry>,
-        register_classes<AsyncIterable, test_registry>,
-        register_classes<AsyncIterator, AsyncIterable, test_registry>,
-        register_classes<AsyncGenerator, AsyncIterator, test_registry>,
-        register_classes<Buffer, test_registry>,
+        registration_of<Container, test_registry>,
+        registration_of<Hashable, test_registry>,
+        registration_of<Iterable, test_registry>,
+        registration_of<Iterator, Iterable, test_registry>,
+        registration_of<Reversible, Iterable, test_registry>,
+        registration_of<Generator, Iterator, test_registry>,
+        registration_of<Sized, test_registry>,
+        registration_of<Callable, test_registry>,
+        registration_of<Collection, Sized, Iterable, Container, test_registry>,
+        registration_of<Sequence, Reversible, Collection, test_registry>,
+        registration_of<MutableSequence, Sequence, test_registry>,
+        registration_of<ByteString, Sequence, test_registry>,
+        registration_of<Set, Collection, test_registry>,
+        registration_of<MutableSet, Set, test_registry>,
+        registration_of<Mapping, Collection, test_registry>,
+        registration_of<MutableMapping, Mapping, test_registry>,
+        registration_of<MappingView, Sized, test_registry>,
+        registration_of<ItemsView, MappingView, Set, test_registry>,
+        registration_of<KeysView, MappingView, Set, test_registry>,
+        registration_of<ValuesView, MappingView, Collection, test_registry>,
+        registration_of<Awaitable, test_registry>,
+        registration_of<Coroutine, Awaitable, test_registry>,
+        registration_of<AsyncIterable, test_registry>,
+        registration_of<AsyncIterator, AsyncIterable, test_registry>,
+        registration_of<AsyncGenerator, AsyncIterator, test_registry>,
+        registration_of<Buffer, test_registry>,
     };
 
     // The old allocator: 102 to 114 over these orders.
