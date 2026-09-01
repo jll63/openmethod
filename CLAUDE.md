@@ -484,6 +484,32 @@ rules:
   `missing template arguments` - but a name that *does* resolve would bind to the wrong type
   silently. `::registry` works.
 
+### Registry affinity
+
+A class can name its registry instead of the program naming one for every class: declare
+`auto boost_openmethod_registry(Class*) -> Registry;`, preferably as a hidden friend. The class
+then has an *affinity* for that registry, inherited by its derived classes, and
+`default_registry_of<T>` reads it back. `virtual_ptr` and the smart pointer aliases default to it,
+and a method declared without a registry argument takes the affinity its virtual parameters agree
+on (`detail::method_registry`, driven by `detail::param_affinity` / `agreed_affinity`).
+
+Having *no* affinity is not the same as an affinity for the default registry: only the former
+yields, which is what lets a method mix a class that has one with a class that has none.
+`detail::affinity_of` is where that mapping happens; nothing public returns an affinity.
+
+Two things deliberately do **not** participate, and both are documented as such:
+
+- `use_classes` / `BOOST_OPENMETHOD_CLASSES` still register into
+  `BOOST_OPENMETHOD_DEFAULT_REGISTRY` unless a registry is listed last. Registering a class that
+  has an affinity without naming its registry is a run-time `missing_class`, not a compile error.
+- The `any` and `type_erasure` interop headers are untouched. `virtual_any<A, R>&` contributes no
+  affinity, so a method over one behaves exactly as before.
+
+**A test that selects a registry through an affinity needs no PCH marker.** The scan below exists
+because `BOOST_OPENMETHOD_DEFAULT_REGISTRY` must be defined before `core.hpp` is parsed, and a
+force-included PCH parses it first. An affinity has no such ordering relation to the library
+headers, so those tests can share the PCH - do not add a fourth marker for them.
+
 `test/CMakeLists.txt` withholds the shared PCH from any `test_*.cpp` that overrides the
 registry - a force-included PCH would still precede the `#define`. It detects them by scanning
 for the token `BOOST_OPENMETHOD_DEFAULT_REGISTRY` **or** for an include of a header that
