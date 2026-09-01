@@ -12,6 +12,7 @@
 #include <algorithm>
 #include <cstdint>
 #include <deque>
+#include <limits>
 #include <map>
 #include <memory>
 #include <numeric>
@@ -143,6 +144,11 @@ inline void set_bit(boost::dynamic_bitset<>& mask, std::size_t bit) {
     mask[bit] = true;
 }
 
+inline auto is_free(
+    const boost::dynamic_bitset<>& unavailable, std::size_t slot) -> bool {
+    return slot >= unavailable.size() || !unavailable[slot];
+}
+
 struct generic_compiler {
 
     struct method;
@@ -166,8 +172,11 @@ struct generic_compiler {
         std::vector<class_*> direct_derived;
         std::unordered_set<class_*> transitive_derived;
         std::vector<parameter> used_by_vp;
+        // The slots occupied in this class's v-table: those of every parameter
+        // allocated so far on the class or on any of its ancestors. Grows only
+        // through `set_bit` and `merge_into`, so `size()` is one past the
+        // highest slot.
         boost::dynamic_bitset<> used_slots;
-        boost::dynamic_bitset<> reserved_slots;
         std::size_t first_slot = 0;
         std::size_t mark = 0; // temporary mark to detect cycles
         bool transitive_bases_done = false;
@@ -181,6 +190,15 @@ struct generic_compiler {
             return ci[0]->is_abstract;
         }
     };
+
+    struct slot_choice {
+        std::size_t slot, cost;
+    };
+
+    template<class Classes>
+    static auto pick_slot(
+        const Classes& cone, const boost::dynamic_bitset<>& unavailable)
+        -> slot_choice;
 
     struct overrider {
         detail::overrider_info* info = nullptr;
@@ -330,6 +348,62 @@ struct generic_compiler {
     std::size_t class_mark = 0;
     bool compilation_done = false;
 };
+
+// Choose the slot for a new parameter of a class. `cone` holds the class and
+// every class deriving from it; `unavailable` is the union of their
+// `used_slots`. The cost of a slot is the number of entries it adds to the
+// cone's v-tables: none inside a v-table's range (a hole gets filled), one per
+// slot of growth beyond either end, one for a class that has no v-table yet.
+// The cheapest free slot wins, the lowest on ties.
+//
+// Each v-table contributes a cost that is flat inside its range and grows by
+// one per slot away from it, so the sum is swept from slot 0 upwards: moving
+// to the next slot adds one per range already ended and removes one per range
+// not yet started.
+template<class Classes>
+auto generic_compiler::pick_slot(
+    const Classes& cone, const boost::dynamic_bitset<>& unavailable)
+    -> slot_choice {
+    // Slot `slots` is beyond every v-table, hence always free.
+    const auto slots = unavailable.size();
+    std::vector<std::size_t> starting_at(slots), ending_at(slots);
+    std::size_t ranges = 0, cost = 0;
+
+    for (auto cls : cone) {
+        const auto& used = cls->used_slots;
+
+        if (used.empty()) {
+            // A one-entry v-table, wherever the slot lands.
+            ++cost;
+            continue;
+        }
+
+        auto first = used.find_first();
+        BOOST_ASSERT(first != boost::dynamic_bitset<>::npos);
+        BOOST_ASSERT(used.size() <= slots);
+        ++starting_at[first];
+        ++ending_at[used.size() - 1];
+        ++ranges;
+        cost += first; // the distance from slot 0
+    }
+
+    slot_choice best{0, std::numeric_limits<std::size_t>::max()};
+    std::size_t started = 0, ended = 0;
+
+    for (std::size_t slot = 0;; ++slot) {
+        if (is_free(unavailable, slot) && cost < best.cost) {
+            best = {slot, cost};
+        }
+
+        if (slot == slots) {
+            return best;
+        }
+
+        started += starting_at[slot];
+        ended += ending_at[slot];
+        cost = cost + ended - (ranges - started);
+    }
+}
 
 template<class Compiler>
 struct trace_stream {
@@ -559,8 +633,7 @@ struct registry<Policies...>::compiler : detail::generic_compiler {
     void calculate_transitive_derived(class_& cls);
     void augment_methods();
     void assign_slots();
-    void assign_tree_slots(class_& cls, std::size_t base_slot);
-    void assign_lattice_slots(class_& cls);
+    void assign_slots(class_& cls);
     void build_dispatch_tables();
     void build_dispatch_table(
         method& m, std::size_t dim,
@@ -1158,41 +1231,56 @@ void registry<Policies...>::compiler<Options...>::assign_slots() {
     {
         indent _(tr);
 
-        ++class_mark;
+        // Allocate first the classes whose slot must fit into the most
+        // v-tables, while those are still alike: the wider a class's cone, the
+        // more it costs to find a slot free in all of it once they have grown
+        // apart. A base's cone strictly includes its derived classes' cones,
+        // so this also puts bases before derived classes. Between unrelated
+        // classes with cones of the same size, the deeper one goes first: it
+        // has an inherited range to extend and fewer options. The order of
+        // registration decides only what is left.
+        std::vector<class_*> order;
+        order.reserve(classes.size());
 
         for (auto& cls : classes) {
-            if (cls.direct_bases.size() == 0) {
-                if (std::find_if(
-                        cls.transitive_derived.begin(),
-                        cls.transitive_derived.end(), [](auto cls) {
-                            return cls->direct_bases.size() > 1;
-                        }) == cls.transitive_derived.end()) {
-                    indent _(tr);
-                    assign_tree_slots(cls, 0);
-                } else {
-                    assign_lattice_slots(cls);
+            order.push_back(&cls);
+        }
+
+        std::stable_sort(
+            order.begin(), order.end(), [](const class_* a, const class_* b) {
+                if (a->transitive_derived.size() !=
+                    b->transitive_derived.size()) {
+                    return a->transitive_derived.size() >
+                        b->transitive_derived.size();
                 }
-            }
+
+                return a->transitive_bases.size() > b->transitive_bases.size();
+            });
+
+        for (auto cls : order) {
+            assign_slots(*cls);
         }
     }
 
-    ++tr << "Allocating MI v-tables...\n";
+    ++tr << "Allocating v-tables...\n";
 
     {
         indent _(tr);
 
         for (auto& cls : classes) {
             if (cls.used_slots.empty()) {
-                // not involved in multiple inheritance
+                // No slot in the class or its ancestors: no v-table.
                 continue;
             }
 
-            auto first_slot = cls.used_slots.find_first();
-            cls.first_slot =
-                first_slot == boost::dynamic_bitset<>::npos ? 0u : first_slot;
+            // Leading unused slots are not stored: the v-table starts at the
+            // first slot in use, and the class's v-table pointer is offset
+            // back by as much.
+            cls.first_slot = cls.used_slots.find_first();
+            BOOST_ASSERT(cls.first_slot != boost::dynamic_bitset<>::npos);
             cls.vtbl.resize(cls.used_slots.size() - cls.first_slot);
             ++tr << cls << " vtbl: " << cls.first_slot << "-"
-                 << cls.used_slots.size() << " slots " << cls.used_slots
+                 << (cls.used_slots.size() - 1) << " slots " << cls.used_slots
                  << "\n";
         }
     }
@@ -1200,101 +1288,37 @@ void registry<Policies...>::compiler<Options...>::assign_slots() {
 
 template<class... Policies>
 template<class... Options>
-void registry<Policies...>::compiler<Options...>::assign_tree_slots(
-    class_& cls, std::size_t base_slot) {
-    auto next_slot = base_slot;
+void registry<Policies...>::compiler<Options...>::assign_slots(class_& cls) {
     using namespace detail;
 
-    for (const auto& mp : cls.used_by_vp) {
-        ++tr << " in " << cls << " for "
-             << type_name(mp.method->infos[0]->method_type_id) << " parameter "
-             << mp.param << ": " << next_slot << "\n";
-        mp.method->slots[mp.param] = next_slot++;
-    }
-
-    cls.first_slot = 0;
-    cls.vtbl.resize(next_slot);
-
-    for (auto pd : cls.direct_derived) {
-        assign_tree_slots(*pd, next_slot);
-    }
-}
-
-template<class... Policies>
-template<class... Options>
-void registry<Policies...>::compiler<Options...>::assign_lattice_slots(
-    class_& cls) {
-    using namespace detail;
-
-    if (cls.mark == class_mark) {
+    if (cls.used_by_vp.empty()) {
         return;
     }
 
-    cls.mark = class_mark;
+    // A slot is off limits if any class deriving from `cls` - itself included -
+    // already has it in its v-table. That is exactly the set of slots that
+    // would collide: two parameters conflict when some class inherits both,
+    // and that class is in the cone of each. Nothing else needs tracking, and
+    // the order in which classes are allocated cannot affect correctness.
+    boost::dynamic_bitset<> unavailable;
 
-    if (!cls.used_by_vp.empty()) {
-        for (const auto& mp : cls.used_by_vp) {
-            ++tr << " in " << cls << " for "
-                 << type_name(mp.method->infos[0]->method_type_id)
-                 << " parameter " << mp.param << "\n";
-
-            indent _(tr);
-
-            ++tr << "reserved slots: " << cls.reserved_slots
-                 << " used slots: " << cls.used_slots << "\n";
-
-            auto unavailable_slots = cls.used_slots;
-            detail::merge_into(cls.reserved_slots, unavailable_slots);
-
-            ++tr << "unavailable slots: " << unavailable_slots << "\n";
-
-            std::size_t slot = 0;
-
-            for (; slot < unavailable_slots.size(); ++slot) {
-                if (!unavailable_slots[slot]) {
-                    break;
-                }
-            }
-
-            ++tr << "first available slot: " << slot << "\n";
-
-            mp.method->slots[mp.param] = slot;
-            detail::set_bit(cls.used_slots, slot);
-            detail::set_bit(cls.reserved_slots, slot);
-
-            {
-                ++tr << "reserve slots " << cls.used_slots << " in:\n";
-                indent _(tr);
-
-                for (auto base : cls.transitive_bases) {
-                    ++tr << *base << "\n";
-                    detail::merge_into(cls.used_slots, base->reserved_slots);
-                }
-            }
-
-            {
-                ++tr << "assign slots " << cls.used_slots << " in:\n";
-                indent _(tr);
-
-                for (auto covariant : cls.transitive_derived) {
-                    if (&cls != covariant) {
-                        ++tr << *covariant << "\n";
-                        detail::merge_into(
-                            cls.used_slots, covariant->used_slots);
-
-                        for (auto base : covariant->transitive_bases) {
-                            ++tr << *base << "\n";
-                            detail::merge_into(
-                                cls.used_slots, base->reserved_slots);
-                        }
-                    }
-                }
-            }
-        }
+    for (auto derived : cls.transitive_derived) {
+        merge_into(derived->used_slots, unavailable);
     }
 
-    for (auto pd : cls.direct_derived) {
-        assign_lattice_slots(*pd);
+    for (const auto& mp : cls.used_by_vp) {
+        auto choice = pick_slot(cls.transitive_derived, unavailable);
+        ++tr << "in " << cls << " for "
+             << type_name(mp.method->infos[0]->method_type_id) << " parameter "
+             << mp.param << ": slot " << choice.slot << ", cost " << choice.cost
+             << ", unavailable " << unavailable << "\n";
+        mp.method->slots[mp.param] = choice.slot;
+        set_bit(unavailable, choice.slot);
+
+        // One bit, to the whole cone: `cls` is in it.
+        for (auto derived : cls.transitive_derived) {
+            set_bit(derived->used_slots, choice.slot);
+        }
     }
 }
 
