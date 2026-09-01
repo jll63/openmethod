@@ -166,8 +166,11 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(
     BOOST_TEST(st.dispatch_data.data() == before.dispatch_data);
     BOOST_TEST(Registry::template static_vptr<Dog> == before.dog_vptr);
     BOOST_TEST(Registry::template static_vptr<Cat> == before.cat_vptr);
+    // Parenthesized: on failure Boost.Test would print the operands, and
+    // streaming a function pointer is a Microsoft extension that clang-cl
+    // rejects under /WX (-Wmicrosoft-cast).
     BOOST_TEST(
-        poke<Registry>::template next<poke_dog<Registry>> == before.next);
+        (poke<Registry>::template next<poke_dog<Registry>> == before.next));
     BOOST_TEST(
         (snapshot<Registry>::type_hash::hash_range() == before.hash_range));
     BOOST_TEST((detail::get<vptr_state>(st.policies).vptrs == before.vptrs()));
