@@ -83,7 +83,8 @@ jobs:
           scan-modules-ignore: openmethod
 
       # The suite is the reflection test: BOOST_OPENMETHOD_TEST_CLASSES expands
-      # to nothing here, so every class has to be found by use_classes_in.
+      # to nothing here, so every class has to be found by the scan that
+      # BOOST_OPENMETHOD_REGISTER_CLASSES starts.
       - name: Build and test
         run: |
           cmake -S . -B ../build -G Ninja \
