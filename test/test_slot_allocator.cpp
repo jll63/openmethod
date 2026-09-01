@@ -11,7 +11,7 @@
 
 #include "test_util.hpp"
 
-#define BOOST_TEST_MODULE compiler
+#define BOOST_TEST_MODULE slot_allocator
 #include <boost/test/unit_test.hpp>
 
 using namespace boost::openmethod;
