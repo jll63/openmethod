@@ -19,9 +19,9 @@
 namespace bom = boost::openmethod;
 
 // An inplace_vptr hierarchy needs neither a vptr policy nor a type hash.
-struct zoo_registry
-    : bom::default_registry::without<bom::policies::vptr, bom::policies::type_hash> {
-};
+struct zoo_registry :
+    bom::default_registry::without<
+        bom::policies::vptr, bom::policies::type_hash> {};
 
 struct Animal : bom::inplace_vptr_base<Animal, zoo_registry> {};
 struct Dog : Animal, bom::inplace_vptr_derived<Dog, Animal> {};
