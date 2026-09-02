@@ -633,6 +633,7 @@ struct registry<Policies...>::compiler : detail::generic_compiler {
     void calculate_transitive_derived(class_& cls);
     void augment_methods();
     void assign_slots();
+    void assign_tree_slots(class_& cls, std::size_t base_slot);
     void assign_slots(class_& cls);
     void build_dispatch_tables();
     void build_dispatch_table(
@@ -1239,19 +1240,41 @@ void registry<Policies...>::compiler<Options...>::assign_slots() {
     {
         indent _(tr);
 
-        // Allocate first the classes whose slot must fit into the most
-        // v-tables, while those are still alike: the wider a class's cone, the
-        // more it costs to find a slot free in all of it once they have grown
-        // apart. A base's cone strictly includes its derived classes' cones,
-        // so this also puts bases before derived classes. Between unrelated
-        // classes with cones of the same size, the deeper one goes first: it
-        // has an inherited range to extend and fewer options. The order of
-        // registration decides only what is left.
-        std::vector<class_*> order;
-        order.reserve(classes.size());
+        // A root whose cone holds no class with more than one direct base
+        // heads a tree, disjoint from every other cone: a class in two cones
+        // would have two direct bases somewhere above it. Trees are the common
+        // case, and the cheap one: a class's slots follow its parent's, and
+        // every v-table is dense from slot 0, in one walk down the tree. The
+        // general algorithm below would produce the same layout at a higher
+        // cost; the classes of a tree are marked so that it skips them.
+        ++class_mark;
 
         for (auto& cls : classes) {
-            order.push_back(&cls);
+            if (cls.direct_bases.empty() &&
+                std::none_of(
+                    cls.transitive_derived.begin(),
+                    cls.transitive_derived.end(), [](const class_* derived) {
+                        return derived->direct_bases.size() > 1;
+                    })) {
+                assign_tree_slots(cls, 0);
+            }
+        }
+
+        // The other classes form lattices. Allocate first the classes whose
+        // slot must fit into the most v-tables, while those are still alike:
+        // the wider a class's cone, the more it costs to find a slot free in
+        // all of it once they have grown apart. A base's cone strictly
+        // includes its derived classes' cones, so this also puts bases before
+        // derived classes. Between unrelated classes with cones of the same
+        // size, the deeper one goes first: it has an inherited range to extend
+        // and fewer options. The order of registration decides only what is
+        // left.
+        std::vector<class_*> order;
+
+        for (auto& cls : classes) {
+            if (cls.mark != class_mark) {
+                order.push_back(&cls);
+            }
         }
 
         std::stable_sort(
@@ -1277,7 +1300,9 @@ void registry<Policies...>::compiler<Options...>::assign_slots() {
 
         for (auto& cls : classes) {
             if (cls.used_slots.empty()) {
-                // No slot in the class or its ancestors: no v-table.
+                // Either a class of a tree, whose v-table assign_tree_slots
+                // sized, or a class with no slot in it or its ancestors, which
+                // has no v-table.
                 continue;
             }
 
@@ -1291,6 +1316,32 @@ void registry<Policies...>::compiler<Options...>::assign_slots() {
                  << (cls.used_slots.size() - 1) << " slots " << cls.used_slots
                  << "\n";
         }
+    }
+}
+
+template<class... Policies>
+template<class... Options>
+void registry<Policies...>::compiler<Options...>::assign_tree_slots(
+    class_& cls, std::size_t base_slot) {
+    using namespace detail;
+
+    cls.mark = class_mark;
+    auto next_slot = base_slot;
+
+    for (const auto& mp : cls.used_by_vp) {
+        ++tr << "in " << cls << " for "
+             << type_name(mp.method->infos[0]->method_type_id) << " parameter "
+             << mp.param << ": slot " << next_slot << "\n";
+        mp.method->slots[mp.param] = next_slot++;
+    }
+
+    // `used_slots` stays empty: the v-table is sized here, and nothing in a
+    // lattice ever looks at a class of a tree.
+    cls.first_slot = 0;
+    cls.vtbl.resize(next_slot);
+
+    for (auto derived : cls.direct_derived) {
+        assign_tree_slots(*derived, next_slot);
     }
 }
 

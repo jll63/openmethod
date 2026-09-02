@@ -33,9 +33,10 @@ Two more things frame the design:
   control. It is the order of static construction across translation units,
   and across shared libraries. An allocator may not rely on it for
   correctness, and the less its result depends on it, the better.
-- Single inheritance is the common case and must stay optimal: in a tree,
-  every v-table should be dense from slot 0, with the slots of a class
-  following those of its ancestors.
+- Single inheritance is the common case and must stay optimal, and cheap:
+  in a tree, every v-table should be dense from slot 0, with the slots of a
+  class following those of its ancestors, and finding that layout should
+  cost no more than a walk down the tree.
 
 ## The old allocator
 
@@ -47,8 +48,8 @@ Otherwise `assign_lattice_slots` did.
 **Trees.** A depth-first walk from the root. Each class receives consecutive
 slots starting right after its parent's last slot, so a class's v-table is
 exactly as long as the number of parameters on it and its ancestors, from
-slot 0. Siblings reuse the same numbers. This is optimal and was kept as a
-requirement for the new allocator.
+slot 0. Siblings reuse the same numbers. This is optimal, linear in the
+size of the tree, and the new allocator keeps it as is.
 
 **Lattices.** Two bit sets per class:
 
@@ -182,15 +183,26 @@ sweep costs O(cone + slots) per parameter. The candidates are the free slots
 in `[0, S]`, where `S` is one past every used slot and therefore always
 free.
 
+### Trees keep their own pass
+
+A root whose cone holds no class with more than one direct base heads a
+tree, and that tree is disjoint from every other cone: a class in two cones
+would have two direct bases somewhere above it. Such roots are handled
+first, by the old depth-first walk, which is linear and gives the optimal
+layout; their classes are marked and the general algorithm skips them. The
+general algorithm would produce the same layout for a tree (bases first
+plus cheapest growth extends the inherited range upward, and siblings reuse
+numbers), only at a higher cost, and trees are the common case.
+
 ### The rest
 
-The class is allocated one parameter at a time; `unavailable` is pulled
-once per class and updated with each slot taken, since only the class's own
-assignments change it meanwhile. The sizing pass is the same for every
-class: no used slot, no v-table; otherwise `first_slot` is the first used
-bit and the v-table spans to the last. The tree special case is gone: for a
-tree, bases first plus cheapest growth reproduces its layout exactly, dense
-from 0 with siblings reusing numbers, so one code path serves both.
+A lattice class is allocated one parameter at a time; `unavailable` is
+pulled once per class and updated with each slot taken, since only the
+class's own assignments change it meanwhile. The sizing pass is the same
+for every lattice class: `first_slot` is the first used bit and the v-table
+spans to the last. A class with no used bit is either a class of a tree,
+already sized by the tree pass, or a class with no slot at all, which has no
+v-table.
 
 Per class the pull costs O(cone × slots / 64) bit operations; per parameter
 the sweep O(cone + slots) and the propagation O(cone). The old allocator
@@ -277,10 +289,80 @@ What the table says:
   trade, and neither could the old allocator; it found it by chance in some
   orders. Both cases are recorded in the test comments.
 
-Beyond the numbers, the rework removes one of the two bit sets, the tree
-special case and a triple loop, and its result can be reasoned about: a slot
-is free for a class iff no class in its cone holds it, and the slot chosen
-is the one that adds the fewest v-table entries.
+Beyond the numbers, the rework removes one of the two bit sets and a triple
+loop, and its result can be reasoned about: a slot is free for a class iff
+no class in its cone holds it, and the slot chosen is the one that adds the
+fewest v-table entries.
+
+## Complexity
+
+Notation: `N` classes, `P` parameters to allocate, `S` slots in use at the
+end (`S <= P`), and for a class `X`, `c(X)` the size of its cone and `b(X)`
+the number of its transitive bases. `R` is the sum of `c(X)` over all
+classes, the number of (ancestor-or-self, descendant) pairs: at most `N^2`,
+about `N` times the depth of the hierarchy in practice. A bit-set operation
+over `S` slots costs `S/w`, with `w` the word width; write `sigma` for that.
+
+**Old allocator, lattice path.** For one parameter of `X`:
+
+| step | cost |
+|---|---|
+| `unavailable = used \| reserved` | `sigma` |
+| scan for the lowest free slot | `S` |
+| push `used(X)` to the reserved set of every transitive base | `b(X) * sigma` |
+| push `used(X)` to the used set of every class `Z` in the cone, then to the reserved set of every base of `Z` | `sum over Z in cone(X) of (1 + b(Z)) * sigma` |
+
+The last row dominates: `c(X) * b_max * sigma` for a class near the top of
+a deep lattice, where both `c(X)` and `b_max` can approach `N`. Over all
+parameters the lattice path is
+
+    O(P * S  +  sum over parameters of c(X) * b_max * sigma)
+    = O(P * S  +  P * N * b_max * S / w)     in the worst case.
+
+The depth-first walk and the per-root tree-or-lattice decision add `O(R)`.
+The dedicated tree path is linear, `O(N + P)`, and the sizing pass is
+`O(N * sigma)`.
+
+**New allocator.** Trees first: finding them costs one look at each class
+of each root's cone, and the walk that allocates a tree is `O(N + P)` over
+the tree, so a hierarchy made of trees is done in `O(N + P)`, as before.
+
+For the lattices, once: sorting their classes, `O(N log N)` (cone sizes are
+known), and pulling `unavailable` for every class that has parameters,
+`c(X) * sigma` each, `O(R * sigma)` in total. Then, for one parameter of `X`:
+
+| step | cost |
+|---|---|
+| range of each class in the cone (`find_first`, `size`) into the histograms | `c(X) * sigma` worst case, `c(X)` when slot 0 is in use, as it almost always is |
+| the cost sweep over the candidates | `S` |
+| propagate the slot to the cone | `c(X)` |
+
+Over all parameters:
+
+    O(N log N  +  R * sigma  +  P * S  +  sum over parameters of c(X) * sigma)
+    = O(P * S  +  P * N * S / w)              in the worst case.
+
+The sizing pass is `O(N * sigma)` as before.
+
+**Reading the bounds.** Both allocators pay `O(S)` per parameter to look at
+the candidate slots (the old scan stops at the first free bit, the new sweep
+visits them all, but the class is the same), so `P * S` is common to both.
+The term that differs is the bit-set traffic: the old allocator's
+`c(X) * b_max * sigma` per parameter becomes `c(X) * sigma`, a factor of
+`b_max`, the depth of the lattice, and it becomes a one-word operation per
+cone member in the usual case where slot 0 is taken. For hierarchies of
+bounded depth `d`, `R` is about `N * d` and both allocators are dominated by
+`P * S`, which is why neither is noticeable at start-up for hierarchies of
+thousands of classes.
+
+The `find_first` per cone member per parameter could be cached in the
+class and maintained by the propagation step, taking the `sigma` out of
+that term altogether. It is deliberately not: the usual-case cost is one
+word, and the cache would be one more invariant to keep.
+
+Memory: the old allocator kept two bit sets per class, `2 * N * sigma`
+words; the new one keeps one, plus a transient `unavailable` and two
+histograms of `S` entries during a class's allocation.
 
 ## Possible refinements
 
