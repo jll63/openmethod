@@ -34,7 +34,7 @@ struct Circle : Shape {};
 
 using shapes::Shape, shapes::Square, shapes::Circle;
 
-static_assert(std::is_same_v<default_registry_of<Shape>, static_registry>);
+static_assert(std::is_same_v<registry_affinity<Shape>, static_registry>);
 static_assert(
     std::is_same_v<virtual_ptr<Square>, virtual_ptr<Square, static_registry>>);
 

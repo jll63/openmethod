@@ -40,13 +40,13 @@ using zoo::Animal, zoo::Dog;
 
 // the anchor is the pointee, whatever the wrapper
 static_assert(
-    std::is_same_v<default_registry_of<std::shared_ptr<Dog>>, zoo_registry>);
+    std::is_same_v<registry_affinity<std::shared_ptr<Dog>>, zoo_registry>);
 static_assert(
-    std::is_same_v<default_registry_of<std::unique_ptr<Dog>>, zoo_registry>);
+    std::is_same_v<registry_affinity<std::unique_ptr<Dog>>, zoo_registry>);
 static_assert(std::is_same_v<
-              default_registry_of<boost::intrusive_ptr<Dog>>, zoo_registry>);
+              registry_affinity<boost::intrusive_ptr<Dog>>, zoo_registry>);
 static_assert(std::is_same_v<
-              default_registry_of<const std::shared_ptr<Dog>&>, zoo_registry>);
+              registry_affinity<const std::shared_ptr<Dog>&>, zoo_registry>);
 
 // so the alias and the type it stands for are the same type
 static_assert(std::is_same_v<

@@ -44,22 +44,22 @@ struct Chimera : Left, Right {};
 using namespace zoo;
 
 // inherited, however deep
-static_assert(std::is_same_v<default_registry_of<Cat>, zoo_registry>);
-static_assert(std::is_same_v<default_registry_of<Persian>, zoo_registry>);
+static_assert(std::is_same_v<registry_affinity<Cat>, zoo_registry>);
+static_assert(std::is_same_v<registry_affinity<Persian>, zoo_registry>);
 
 // the exact match wins, and is itself inherited
-static_assert(std::is_same_v<default_registry_of<Dog>, kennel_registry>);
-static_assert(std::is_same_v<default_registry_of<Poodle>, kennel_registry>);
+static_assert(std::is_same_v<registry_affinity<Dog>, kennel_registry>);
+static_assert(std::is_same_v<registry_affinity<Poodle>, kennel_registry>);
 
 // one Animal, so one affinity
-static_assert(std::is_same_v<default_registry_of<Chimera>, zoo_registry>);
+static_assert(std::is_same_v<registry_affinity<Chimera>, zoo_registry>);
 
 // An unrelated class is untouched by any of it.
 struct Widget {
     virtual ~Widget() = default;
 };
 
-static_assert(std::is_same_v<default_registry_of<Widget>, default_registry>);
+static_assert(std::is_same_v<registry_affinity<Widget>, default_registry>);
 
 BOOST_AUTO_TEST_CASE(inheritance_is_compile_time_only) {
     BOOST_TEST(true);

@@ -27,9 +27,9 @@ struct Animal : bom::inplace_vptr_base<Animal, zoo_registry> {};
 struct Dog : Animal, bom::inplace_vptr_derived<Dog, Animal> {};
 struct Cat : Animal, bom::inplace_vptr_derived<Cat, Animal> {};
 
-// The mixin's hidden friend is what `default_registry_of` reads back.
-static_assert(std::is_same_v<bom::default_registry_of<Animal>, zoo_registry>);
-static_assert(std::is_same_v<bom::default_registry_of<Dog>, zoo_registry>);
+// The mixin's hidden friend is what `registry_affinity` reads back.
+static_assert(std::is_same_v<bom::registry_affinity<Animal>, zoo_registry>);
+static_assert(std::is_same_v<bom::registry_affinity<Dog>, zoo_registry>);
 
 // No registry named, and no #define: the method follows the class.
 BOOST_OPENMETHOD(speak, (bom::virtual_<const Animal&>), std::string);

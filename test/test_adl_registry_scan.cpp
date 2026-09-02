@@ -4,9 +4,9 @@
 // or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 // How a method picks its registry: it takes the affinity its virtual
-// parameters agree on. A class with no affinity contributes nothing, so it
-// yields rather than conflicting. A registry named on the declaration wins
-// outright, and no scan happens.
+// parameters agree on. Only a *declared* affinity constrains it, so a class
+// with the default affinity yields rather than conflicting. A registry named on
+// the declaration wins outright, and no scan happens.
 
 #include <string>
 
@@ -56,7 +56,7 @@ static_assert(
     std::is_same_v<scan<void(virtual_<const Widget&>)>, default_registry>);
 static_assert(std::is_same_v<scan<void()>, default_registry>);
 
-// Mixing a class that has an affinity with one that has none: the one without
+// Mixing a class that declares an affinity with one that does not: the latter
 // yields. This is what keeps a first affinity from cascading errors.
 static_assert(std::is_same_v<
               scan<void(virtual_<const Animal&>, virtual_<const Widget&>)>,

@@ -488,14 +488,16 @@ rules:
 
 A class can name its registry instead of the program naming one for every class: declare
 `auto boost_openmethod_registry(Class*) -> Registry;`, preferably as a hidden friend. The class
-then has an *affinity* for that registry, inherited by its derived classes, and
-`default_registry_of<T>` reads it back. `virtual_ptr` and the smart pointer aliases default to it,
+then *declares* an affinity for that registry, inherited by its derived classes, and
+`registry_affinity<T>` reads it back. `virtual_ptr` and the smart pointer aliases default to it,
 and a method declared without a registry argument takes the affinity its virtual parameters agree
 on (`detail::method_registry`, driven by `detail::param_affinity` / `agreed_affinity`).
 
-Having *no* affinity is not the same as an affinity for the default registry: only the former
-yields, which is what lets a method mix a class that has one with a class that has none.
-`detail::affinity_of` is where that mapping happens; nothing public returns an affinity.
+Every class has an affinity; one that declares none has the *default* affinity. Only a *declared*
+affinity constrains a method, so a method may mix a class that declares one with a class that does
+not - the latter yields. `detail::declared_affinity` maps the default registry to
+`detail::default_affinity` to express that; `registry_affinity` itself is a query and always
+answers.
 
 Two things deliberately do **not** participate, and both are documented as such:
 

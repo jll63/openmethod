@@ -33,8 +33,8 @@ class Dog : public Animal {};
 
 } // namespace zoo
 
-static_assert(std::is_same_v<default_registry_of<zoo::Animal>, zoo_registry>);
-static_assert(std::is_same_v<default_registry_of<zoo::Dog>, zoo_registry>);
+static_assert(std::is_same_v<registry_affinity<zoo::Animal>, zoo_registry>);
+static_assert(std::is_same_v<registry_affinity<zoo::Dog>, zoo_registry>);
 
 // The method lives in a third namespace, and still finds the affinity.
 namespace vet {

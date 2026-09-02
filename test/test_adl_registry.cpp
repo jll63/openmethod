@@ -39,9 +39,9 @@ struct Widget {
 
 using zoo::Animal, zoo::Dog, zoo::Cat;
 
-static_assert(std::is_same_v<default_registry_of<Animal>, zoo_registry>);
-static_assert(std::is_same_v<default_registry_of<Dog>, zoo_registry>);
-static_assert(std::is_same_v<default_registry_of<Widget>, default_registry>);
+static_assert(std::is_same_v<registry_affinity<Animal>, zoo_registry>);
+static_assert(std::is_same_v<registry_affinity<Dog>, zoo_registry>);
+static_assert(std::is_same_v<registry_affinity<Widget>, default_registry>);
 
 // `virtual_ptr` picks it up, so `virtual_ptr<Dog>` is not a `virtual_ptr` in
 // the default registry.
