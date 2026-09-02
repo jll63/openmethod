@@ -1223,6 +1223,14 @@ void registry<Policies...>::compiler<Options...>::augment_methods() {
     }
 }
 
+// Slot allocation. The scheme follows the remarks Steven Watanabe made on the
+// previous allocator, recorded in issue #19: pull the slots a class may not
+// take from the classes deriving from it, instead of pushing reservations up
+// to the bases of its derived classes; propagate a single bit after an
+// assignment, not whole bit sets; allocate bases before derived classes; and
+// place a slot next to, or inside a hole of, the ranges already allocated,
+// rather than at the lowest free number. SLOT_ALLOCATION.md gives the full
+// account, and the measurements against the previous allocator.
 template<class... Policies>
 template<class... Options>
 void registry<Policies...>::compiler<Options...>::assign_slots() {
