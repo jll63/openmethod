@@ -688,8 +688,9 @@ decltype(auto) acquire_vptr(const ArgType& arg) {
 
     Registry::require_initialized();
 
-    if constexpr (
-        has_vptr<virtual_traits<const ArgType&, Registry>, const ArgType&>) {
+    if constexpr (has_vptr<
+                      virtual_traits<const ArgType&, Registry>,
+                      const ArgType&>) {
         return virtual_traits<const ArgType&, Registry>::vptr(arg);
     } else {
         return Registry::template policy<policies::vptr>::dynamic_vptr(arg);
@@ -2264,8 +2265,8 @@ class method<Id, ReturnType(Parameters...), Registry> :
 
     template<typename MethodArgList, typename ArgType, typename... MoreArgTypes>
     auto resolve_multi_first(
-        const ArgType& arg, const MoreArgTypes&... more_args) const
-        -> detail::word;
+        const ArgType& arg,
+        const MoreArgTypes&... more_args) const -> detail::word;
 
     template<
         std::size_t VirtualArg, typename MethodArgList, typename ArgType,
@@ -2411,9 +2412,8 @@ method<Id, ReturnType(Parameters...), Registry>::operator()(
     using namespace detail;
     auto pf = resolve(args...);
 
-    return pf(
-        std::forward<typename StripVirtualDecorator<Parameters>::type>(
-            args)...);
+    return pf(std::forward<typename StripVirtualDecorator<Parameters>::type>(
+        args)...);
 }
 
 template<
@@ -2452,9 +2452,9 @@ BOOST_FORCEINLINE auto method<Id, ReturnType(Parameters...), Registry>::vptr(
 
         if constexpr (detail::has_vptr_fn<decltype(obj), Registry>) {
             return boost_openmethod_vptr(obj, static_cast<Registry*>(nullptr));
-        } else if constexpr (
-            detail::has_vptr<
-                virtual_traits<MethodArg, Registry>, decltype(obj)>) {
+        } else if constexpr (detail::has_vptr<
+                                 virtual_traits<MethodArg, Registry>,
+                                 decltype(obj)>) {
             return virtual_traits<MethodArg, Registry>::vptr(obj);
         } else {
             return Registry::template policy<policies::vptr>::dynamic_vptr(obj);
@@ -2467,8 +2467,8 @@ template<
 template<typename MethodArgList, typename ArgType, typename... MoreArgTypes>
 BOOST_FORCEINLINE auto
 method<Id, ReturnType(Parameters...), Registry>::resolve_uni(
-    const ArgType& arg, const MoreArgTypes&... more_args) const
-    -> detail::word {
+    const ArgType& arg,
+    const MoreArgTypes&... more_args) const -> detail::word {
 
     using namespace detail;
     using namespace policies;
@@ -2487,8 +2487,8 @@ template<
 template<typename MethodArgList, typename ArgType, typename... MoreArgTypes>
 BOOST_FORCEINLINE auto
 method<Id, ReturnType(Parameters...), Registry>::resolve_multi_first(
-    const ArgType& arg, const MoreArgTypes&... more_args) const
-    -> detail::word {
+    const ArgType& arg,
+    const MoreArgTypes&... more_args) const -> detail::word {
 
     using namespace detail;
     using namespace boost::mp11;
@@ -3022,11 +3022,10 @@ consteval auto reflected_registered_classes_info() -> std::meta::info {
             continue;
         }
 
-        auto list = std::meta::dealias(
-            std::meta::substitute(
-                ^^method_classes,
-                {
-                    found}));
+        auto list = std::meta::dealias(std::meta::substitute(
+            ^^method_classes,
+            {
+                found}));
 
         for (auto type : std::meta::template_arguments_of(list)) {
             // A method's return type is `void` unless it is covariant, and a
@@ -3191,9 +3190,10 @@ class register_classes {
 // type, so nothing has to stand in for one.
 
 //! Find the classes taking part in dispatch by reflection, and register them
+//! (C++26 and above).
 //!
-//! `register_classes` is a registrar class that finds the classes taking part in
-//! dispatch by reflection, and adds them to one or more registries. It makes
+//! `register_classes` is a registrar class that finds the classes taking part
+//! in dispatch by reflection, and adds them to one or more registries. It makes
 //! @ref use_classes unnecessary in most cases.
 //!
 //! The arguments are groups of reflections, each written in braces - or, for a
@@ -3210,11 +3210,9 @@ class register_classes {
 //! `BOOST_OPENMETHOD_DEFAULT_REGISTRY`.
 //!
 //! @code
-//! register_classes<^^app, ^^my_registry>
-//! register_classes<{^^app, ^^zoo}, {^^r1, ^^r2}>
-//! register_classes<{^^Animal, ^^Dog}>
-//! register_classes<^^my_registry>
-//! register_classes<>
+//! register_classes<^^app, ^^my_registry> register_classes<{^^app, ^^zoo},
+//! {^^r1, ^^r2}> register_classes<{^^Animal, ^^Dog}>
+//! register_classes<^^my_registry> register_classes<>
 //! @endcode
 //!
 //! A group holding two kinds of reflection is an error, and so is a group out
@@ -3225,16 +3223,15 @@ class register_classes {
 //! The scan covers the listed namespaces, the namespaces nested in them, and
 //! the classes nested in the classes it finds, except `std` and `boost`:
 //! walking those would cost a great deal and find nothing, as a method cannot
-//! be declared on a class the program has never heard of. The exclusion
-//! applies to recursion only, so a class in `std` or `boost` is registered by
-//! *listing* the namespace it is in. A class is also found through an alias
-//! that names it, but the scan does not walk *into* an alias: only a class the
-//! scanned scope declares is descended into. The scan finds
-//! the methods of each target registry, collects the classes they dispatch on,
-//! and registers those, the listed classes, and every class in the scanned
-//! namespaces that derives from one of them. A base class that no method
-//! dispatches on, and that is not listed, is not registered: it could never be
-//! selected on.
+//! be declared on a class the program has never heard of. The exclusion applies
+//! to recursion only, so a class in `std` or `boost` is registered by *listing*
+//! the namespace it is in. A class is also found through an alias that names
+//! it, but the scan does not walk *into* an alias: only a class the scanned
+//! scope declares is descended into. The scan finds the methods of each target
+//! registry, collects the classes they dispatch on, and registers those, the
+//! listed classes, and every class in the scanned namespaces that derives from
+//! one of them. A base class that no method dispatches on, and that is not
+//! listed, is not registered: it could never be selected on.
 //!
 //! If no namespace is given, the global namespace is scanned - whatever the
 //! other groups hold, and for @ref BOOST_OPENMETHOD_REGISTER_CLASSES too. Name
