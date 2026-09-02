@@ -11,6 +11,8 @@ import-search /boost/config/checks ;
 import testing ;
 import config : requires ;
 
+use-project /boost/openmethod/config : ../config ;
+
 project
   : requirements
 
@@ -55,8 +57,8 @@ project
     # directory down with it, and a later one that stops needing the flag is
     # not left out. The library needs nothing else: it detects reflection from
     # __cpp_impl_reflection, and falls back to explicit class registration.
-    [ check-target-builds ../config//has_reflection "C++26 reflection"
-        : <cxxflags>-freflection ]
+    [ check-target-builds /boost/openmethod/config//has_reflection
+        "C++26 reflection" : <cxxflags>-freflection ]
 
     <warnings>extra
 

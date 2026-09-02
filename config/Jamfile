@@ -8,6 +8,12 @@
 # because a b2 subproject inherits its parent's requirements: a check target
 # declared in the test project would carry the very conditional it is being
 # consulted for, and asking for it would ask for itself.
+#
+# The project has an id, and the test Jamfile refers to the probe by it: the
+# requirement is inherited by the test subprojects too, and a relative
+# reference would be resolved from each of their directories.
+
+project /boost/openmethod/config ;
 
 obj has_reflection : has_reflection.cpp : <cxxflags>-freflection ;
 explicit has_reflection ;
