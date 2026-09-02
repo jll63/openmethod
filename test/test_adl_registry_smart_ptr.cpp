@@ -43,8 +43,8 @@ static_assert(
     std::is_same_v<registry_affinity<std::shared_ptr<Dog>>, zoo_registry>);
 static_assert(
     std::is_same_v<registry_affinity<std::unique_ptr<Dog>>, zoo_registry>);
-static_assert(std::is_same_v<
-              registry_affinity<boost::intrusive_ptr<Dog>>, zoo_registry>);
+static_assert(
+    std::is_same_v<registry_affinity<boost::intrusive_ptr<Dog>>, zoo_registry>);
 static_assert(std::is_same_v<
               registry_affinity<const std::shared_ptr<Dog>&>, zoo_registry>);
 

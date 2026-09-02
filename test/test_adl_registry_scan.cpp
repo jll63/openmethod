@@ -42,7 +42,8 @@ template<typename Fn>
 using scan = detail::method_registry<Fn>;
 
 // One virtual parameter with an affinity, in either shape.
-static_assert(std::is_same_v<scan<void(virtual_<const Animal&>)>, zoo_registry>);
+static_assert(
+    std::is_same_v<scan<void(virtual_<const Animal&>)>, zoo_registry>);
 static_assert(std::is_same_v<scan<void(virtual_ptr<Animal>)>, zoo_registry>);
 static_assert(std::is_same_v<scan<void(virtual_ptr<Animal>&)>, zoo_registry>);
 static_assert(
@@ -66,9 +67,9 @@ static_assert(std::is_same_v<
               zoo_registry>);
 
 // Mixed shapes agreeing.
-static_assert(std::is_same_v<
-              scan<void(virtual_ptr<Animal>, virtual_<const Dog&>)>,
-              zoo_registry>);
+static_assert(
+    std::is_same_v<
+        scan<void(virtual_ptr<Animal>, virtual_<const Dog&>)>, zoo_registry>);
 
 // Non-virtual parameters are ignored.
 static_assert(std::is_same_v<
@@ -82,8 +83,8 @@ static_assert(std::is_same_v<
               BOOST_OPENMETHOD_TYPE(
                   ping, (virtual_<const Widget&>), std::string, other_registry),
               method<
-                  BOOST_OPENMETHOD_ID(ping), std::string(virtual_<const Widget&>),
-                  other_registry>>);
+                  BOOST_OPENMETHOD_ID(ping),
+                  std::string(virtual_<const Widget&>), other_registry>>);
 
 BOOST_AUTO_TEST_CASE(scan_is_compile_time_only) {
     BOOST_TEST(true);

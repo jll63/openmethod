@@ -55,13 +55,13 @@ static_assert(std::is_same_v<
                   BOOST_OPENMETHOD_ID(describe),
                   std::string(virtual_<const zoo::Animal&>), zoo_registry>>);
 
-static_assert(std::is_same_v<
-              BOOST_OPENMETHOD_TYPE(
-                  inspect, (virtual_<const garage::Vehicle&>), std::string),
-              method<
-                  BOOST_OPENMETHOD_ID(inspect),
-                  std::string(virtual_<const garage::Vehicle&>),
-                  garage_registry>>);
+static_assert(
+    std::is_same_v<
+        BOOST_OPENMETHOD_TYPE(
+            inspect, (virtual_<const garage::Vehicle&>), std::string),
+        method<
+            BOOST_OPENMETHOD_ID(inspect),
+            std::string(virtual_<const garage::Vehicle&>), garage_registry>>);
 
 BOOST_OPENMETHOD_OVERRIDE(describe, (const zoo::Dog&), std::string) {
     return "a dog";

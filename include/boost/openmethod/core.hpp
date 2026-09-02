@@ -224,9 +224,8 @@ using unadorned = std::remove_cv_t<
     std::remove_pointer_t<std::remove_cv_t<std::remove_reference_t<T>>>>;
 
 template<typename T>
-using adl_registry =
-    typename adl_registry_aux<unadorned<typename registry_anchor<
-        unadorned<T>>::type>>::type;
+using adl_registry = typename adl_registry_aux<
+    unadorned<typename registry_anchor<unadorned<T>>::type>>::type;
 
 } // namespace detail
 
@@ -1828,8 +1827,7 @@ class virtual_ptr<
 //! @param obj A lvalue reference to an object.
 //! @return A `virtual_ptr<Class>`.
 template<class Class>
-virtual_ptr(Class& obj)
-    -> virtual_ptr<Class, registry_affinity<Class>>;
+virtual_ptr(Class& obj) -> virtual_ptr<Class, registry_affinity<Class>>;
 
 //! Construct a `virtual_ptr` from a xvalue reference.
 //!
@@ -1837,8 +1835,7 @@ virtual_ptr(Class& obj)
 //! @param obj A xvalue reference to an object.
 //! @return A `virtual_ptr<Class>`.
 template<class Class>
-virtual_ptr(Class&& obj)
-    -> virtual_ptr<Class, registry_affinity<Class>>;
+virtual_ptr(Class&& obj) -> virtual_ptr<Class, registry_affinity<Class>>;
 
 // Alas this is not allowed:
 // template<class Registry, class Class>
@@ -2182,7 +2179,8 @@ struct default_affinity;
 
 template<class Registry>
 using declared_affinity = std::conditional_t<
-    std::is_same_v<Registry, macro_default_registry>, default_affinity, Registry>;
+    std::is_same_v<Registry, macro_default_registry>, default_affinity,
+    Registry>;
 
 template<typename Parameter>
 struct param_affinity {
@@ -2223,8 +2221,8 @@ struct agreed_affinity<Affinity, More...> {
             std::is_same_v<rest, default_affinity> ||
             std::is_same_v<Affinity, rest>,
         "virtual parameters have conflicting registry affinities");
-    using type = std::
-        conditional_t<std::is_same_v<Affinity, default_affinity>, rest, Affinity>;
+    using type = std::conditional_t<
+        std::is_same_v<Affinity, default_affinity>, rest, Affinity>;
 };
 
 // The registry a method takes when its declaration does not name one.

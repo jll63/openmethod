@@ -12,9 +12,9 @@
 #include <boost/test/unit_test.hpp>
 
 // tag::registry[]
-struct zoo_registry
-    : boost::openmethod::default_registry::with<
-          boost::openmethod::policies::runtime_checks> {};
+struct zoo_registry :
+    boost::openmethod::default_registry::with<
+        boost::openmethod::policies::runtime_checks> {};
 // end::registry[]
 
 using namespace boost::openmethod;
