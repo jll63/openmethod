@@ -12,12 +12,12 @@ namespace detail {
 
 void boost_openmethod_bases(...);
 
-// `inplace_vptr_base` declares the affinity that `default_registry_of` reads
+// `inplace_vptr_base` declares the affinity that `registry_affinity` reads
 // back, so the two are the same question. There is deliberately no catch-all
 // here: the one in core.hpp serves both, and a second one returning `void`
 // would shadow it for lookups from this namespace.
 template<class Class>
-using inplace_vptr_registry = default_registry_of<Class>;
+using inplace_vptr_registry = registry_affinity<Class>;
 
 template<class>
 struct update_vptr_bases;
