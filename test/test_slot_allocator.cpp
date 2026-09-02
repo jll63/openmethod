@@ -9,12 +9,16 @@
 #include <memory>
 #include <numeric>
 #include <random>
+#include <sstream>
 #include <type_traits>
 #include <unordered_map>
 #include <vector>
 
+#include <boost/mp11/algorithm.hpp>
+#include <boost/mp11/list.hpp>
 #include <boost/openmethod.hpp>
 #include <boost/openmethod/initialize.hpp>
+#include <boost/openmethod/policies/vptr_map.hpp>
 
 #include "test_util.hpp"
 
@@ -82,6 +86,8 @@ A   B
    F
 */
 
+namespace diamond {
+
 struct A {
     virtual ~A() {
     }
@@ -101,6 +107,8 @@ struct D : B {};
 struct E : D {};
 
 struct F : C, E {};
+
+} // namespace diamond
 
 // ============================================================================
 // Test use_classes.
@@ -204,6 +212,7 @@ BOOST_AUTO_TEST_CASE(test_use_classes_derived_before_base) {
 
 BOOST_AUTO_TEST_CASE(test_use_classes_diamond) {
     using test_registry = test_registry_<__COUNTER__>;
+    using namespace diamond;
     BOOST_OPENMETHOD_REGISTER(use_classes<A, B, AB, C, D, E, test_registry>);
 
     std::vector<class_*> actual, expected;
@@ -260,15 +269,24 @@ BOOST_AUTO_TEST_CASE(test_use_classes_diamond) {
 // The order in which classes are registered is not under a program's control:
 // it is the order of static construction across translation units, and across
 // modules. The allocator must be correct in every order, and the tests must
-// not assume one. A hierarchy is described as a list of registrations, one
-// `use_classes` per class with its direct bases, and each test registers them
-// in many orders: every permutation for small hierarchies, a fixed sample for
-// larger ones. What is checked is what holds in every order: no two parameters
-// share a slot in any v-table, every v-table is as tight as its slots allow,
-// and the total size of the v-tables is what the expectations say. For every
-// hierarchy below, the harness found the total to be the same in every order;
-// the comments give what the old allocator, before issue #19, produced over
-// the same orders.
+// not assume one. As the compiler sees it, that order is the order of the
+// class records in the registry's class list, so the harness rewrites it:
+// it unlinks the records of the hierarchy under test and links them back in
+// the order it wants - every permutation for small hierarchies, a fixed
+// sample for larger ones. What is checked is what holds in every order: no
+// two parameters share a slot in any v-table, every v-table is as tight as
+// its slots allow, and the total size of the hierarchy's v-tables is what the
+// expectations say. For every hierarchy below, the harness found the total to
+// be the same in every order; the comments give what the old allocator,
+// before issue #19, produced over the same orders.
+//
+// Every hierarchy is a namespace, registered once, into one of two registries:
+// one for the small lattices, one for the real hierarchies. Hierarchies
+// sharing a registry are separate components of the class graph, and the
+// allocator handles components independently, so each test sees the others
+// only through the size of the registry it initializes. Compiling a registry's
+// `initialize` is expensive, and so is every `use_classes`: the tests share
+// both as much as they can.
 
 auto check(const detail::generic_compiler::method* method)
     -> const detail::generic_compiler::method* {
@@ -306,25 +324,18 @@ struct M;
         M<__LINE__>, auto(virtual_<CLASS1&>, virtual_<CLASS2&>)->void,         \
         test_registry>::fn
 
-// A class registration that the test constructs, and destroys, when it
-// decides to. Not named `register_classes`: that is the library's C++26 API.
-struct registration {
-    virtual ~registration() = default;
-};
+// `initialize` spends most of its time in fast_perfect_hash, searching for a
+// perfect hash of the registry's type ids, and the search grows steeply with
+// their number. The slot allocator does not need it: the shared registries
+// use the map-based v-table pointer policy and drop the hash, so that the
+// thousands of initializations the tests run stay cheap.
+struct lattices_registry :
+    default_registry::with<unique<__COUNTER__>, policies::vptr_map<>>::without<
+        policies::fast_perfect_hash> {};
+struct hierarchies_registry :
+    default_registry::with<unique<__COUNTER__>, policies::vptr_map<>>::without<
+        policies::fast_perfect_hash> {};
 
-template<class... Classes>
-struct registered : registration {
-    use_classes<Classes...> classes;
-};
-
-using registration_factory = std::unique_ptr<registration> (*)();
-
-template<class... Classes>
-auto registration_of() -> std::unique_ptr<registration> {
-    return std::make_unique<registered<Classes...>>();
-}
-
-using hierarchy = std::vector<registration_factory>;
 using order = std::vector<std::size_t>;
 
 auto all_orders(std::size_t n) -> std::vector<order> {
@@ -361,9 +372,48 @@ auto sampled_orders(std::size_t n, std::size_t samples) -> std::vector<order> {
     return orders;
 }
 
+// The registry's record of each class, in the order of the list.
+template<class Registry, class... Classes>
+auto records_of(boost::mp11::mp_list<Classes...>)
+    -> std::vector<detail::class_info*> {
+    std::vector<detail::class_info*> records;
+
+    auto find = [&records](type_id type) {
+        for (auto& record : Registry::state().classes) {
+            if (Registry::rtti::type_index(record.type) ==
+                Registry::rtti::type_index(type)) {
+                records.push_back(&record);
+                return;
+            }
+        }
+
+        BOOST_FAIL("class not registered");
+    };
+
+    (find(Registry::rtti::template static_type<Classes>()), ...);
+
+    return records;
+}
+
+// Move the records to the end of the registry's class list, in `by`.
+template<class Registry>
+void reorder(const std::vector<detail::class_info*>& records, const order& by) {
+    auto& list = Registry::state().classes;
+
+    for (auto record : records) {
+        list.remove(*record);
+    }
+
+    for (auto i : by) {
+        list.push_back(*records[i]);
+    }
+}
+
 // Every v-table holds the slots of every class whose methods can be called
 // on the class - the classes it is in the cone of - each at most once, and
-// starts at the first of them and ends at the last.
+// starts at the first of them and ends at the last. One assertion per run:
+// the harness runs this thousands of times, and Boost.Test assertions are not
+// cheap.
 template<class Compiler>
 void check_slots(const Compiler& comp) {
     std::unordered_map<const class_*, std::vector<std::size_t>> held;
@@ -376,36 +426,37 @@ void check_slots(const Compiler& comp) {
         }
     }
 
+    std::ostringstream problems;
+
     for (const auto& cls : comp.classes) {
         auto& slots = held[&cls];
         std::sort(slots.begin(), slots.end());
 
-        BOOST_TEST_CONTEXT("class " << &cls) {
-            bool no_duplicate =
-                std::adjacent_find(slots.begin(), slots.end()) == slots.end();
-            BOOST_TEST(no_duplicate);
+        if (std::adjacent_find(slots.begin(), slots.end()) != slots.end()) {
+            problems << &cls << ": a slot is held twice\n";
+        }
 
-            if (slots.empty()) {
-                BOOST_TEST(cls.vtbl.empty());
-                BOOST_TEST(cls.first_slot == 0u);
-            } else {
-                BOOST_TEST(cls.first_slot == slots.front());
-                BOOST_TEST(
-                    cls.first_slot + cls.vtbl.size() == slots.back() + 1u);
+        if (slots.empty()) {
+            if (!cls.vtbl.empty() || cls.first_slot != 0) {
+                problems << &cls << ": a v-table without slots\n";
             }
+        } else if (
+            cls.first_slot != slots.front() ||
+            cls.first_slot + cls.vtbl.size() != slots.back() + 1) {
+            problems << &cls << ": v-table " << cls.first_slot << "-"
+                     << (cls.first_slot + cls.vtbl.size()) << " for slots "
+                     << slots.front() << "-" << slots.back() << "\n";
         }
     }
+
+    BOOST_TEST(problems.str().empty(), problems.str());
 }
 
-template<class Compiler>
-auto total_vtbl_size(const Compiler& comp) -> std::size_t {
-    std::size_t total = 0;
-
-    for (const auto& cls : comp.classes) {
-        total += cls.vtbl.size();
-    }
-
-    return total;
+// The total size of the v-tables of the listed classes.
+template<class Compiler, class... Classes>
+auto total_vtbl_size(const Compiler& comp, boost::mp11::mp_list<Classes...>)
+    -> std::size_t {
+    return (std::size_t(0) + ... + get_class<Classes>(comp)->vtbl.size());
 }
 
 struct allocation_stats {
@@ -414,25 +465,20 @@ struct allocation_stats {
     std::size_t max_total = 0;
 };
 
-// Register `classes` in each of `orders`, initialize, check the invariants,
+// Register `Classes` in each of `orders`, initialize, check the invariants,
 // let `fn` check what the test expects, and collect the total v-table size.
-template<class Registry, class Fn>
-auto allocate_in_orders(
-    const hierarchy& classes, const std::vector<order>& orders, Fn fn)
+template<class Registry, class Classes, class Fn>
+auto allocate_in_orders(const std::vector<order>& orders, Fn fn)
     -> allocation_stats {
+    auto records = records_of<Registry>(Classes{});
     allocation_stats stats;
 
     for (const auto& registration_order : orders) {
         BOOST_TEST_CONTEXT("registration order " << str(registration_order)) {
-            std::vector<std::unique_ptr<registration>> live;
-
-            for (auto i : registration_order) {
-                live.push_back(classes[i]());
-            }
-
+            reorder<Registry>(records, registration_order);
             auto comp = initialize<Registry>();
             check_slots(comp);
-            auto total = total_vtbl_size(comp);
+            auto total = total_vtbl_size(comp, Classes{});
             stats.min_total = std::min(stats.min_total, total);
             stats.max_total = std::max(stats.max_total, total);
             ++stats.runs;
@@ -453,10 +499,6 @@ auto allocate_in_orders(
 void expect_total(const allocation_stats& stats, std::size_t total) {
     BOOST_TEST(stats.min_total == total);
     BOOST_TEST(stats.max_total == total);
-}
-
-void expect_total_at_most(const allocation_stats& stats, std::size_t worst) {
-    BOOST_TEST(stats.max_total <= worst);
 }
 
 // ----------------------------------------------------------------------------
@@ -535,31 +577,33 @@ BOOST_AUTO_TEST_CASE(test_pick_slot) {
 // ----------------------------------------------------------------------------
 // Small lattices, in every registration order.
 
+namespace a_b1_c {
+
+/*
+  A
+ / \
+B1  C
+*/
+
+struct A {
+    virtual ~A() = default;
+};
+struct B : A {};
+struct C : A {};
+
+using classes = boost::mp11::mp_list<A, B, C>;
+BOOST_OPENMETHOD_REGISTER(use_classes<A, B, C, lattices_registry>);
+
+} // namespace a_b1_c
+
 BOOST_AUTO_TEST_CASE(test_assign_slots_a_b1_c) {
-    using test_registry = test_registry_<__COUNTER__>;
-
-    /*
-      A
-     / \
-    B1  C
-    */
-
-    struct A {
-        virtual ~A() = default;
-    };
-    struct B : A {};
-    struct C : A {};
+    using test_registry = lattices_registry;
+    using namespace a_b1_c;
 
     ADD_METHOD(B);
 
-    hierarchy classes{
-        registration_of<A, test_registry>,
-        registration_of<B, A, test_registry>,
-        registration_of<C, A, test_registry>,
-    };
-
-    auto stats = allocate_in_orders<test_registry>(
-        classes, all_orders(classes.size()), [&](const auto& comp) {
+    auto stats = allocate_in_orders<test_registry, classes>(
+        all_orders(3), [&](const auto& comp) {
             BOOST_TEST_REQUIRE(check(comp[m_B])->slots.size() == 1u);
             BOOST_TEST(check(comp[m_B])->slots[0] == 0u);
             BOOST_TEST(get_class<A>(comp)->vtbl.size() == 0u);
@@ -570,33 +614,35 @@ BOOST_AUTO_TEST_CASE(test_assign_slots_a_b1_c) {
     expect_total(stats, 1);
 }
 
+namespace a1_b1_c1 {
+
+/*
+  A1
+ / \
+B1  C1
+*/
+
+struct A {
+    virtual ~A() = default;
+};
+struct B : A {};
+struct C : A {};
+
+using classes = boost::mp11::mp_list<A, B, C>;
+BOOST_OPENMETHOD_REGISTER(use_classes<A, B, C, lattices_registry>);
+
+} // namespace a1_b1_c1
+
 BOOST_AUTO_TEST_CASE(test_assign_slots_a1_b1_c1) {
-    using test_registry = test_registry_<__COUNTER__>;
-
-    /*
-      A1
-     / \
-    B1  C1
-    */
-
-    struct A {
-        virtual ~A() = default;
-    };
-    struct B : A {};
-    struct C : A {};
+    using test_registry = lattices_registry;
+    using namespace a1_b1_c1;
 
     ADD_METHOD(A);
     ADD_METHOD(B);
     ADD_METHOD(C);
 
-    hierarchy classes{
-        registration_of<A, test_registry>,
-        registration_of<B, A, test_registry>,
-        registration_of<C, A, test_registry>,
-    };
-
-    auto stats = allocate_in_orders<test_registry>(
-        classes, all_orders(classes.size()), [&](const auto& comp) {
+    auto stats = allocate_in_orders<test_registry, classes>(
+        all_orders(3), [&](const auto& comp) {
             BOOST_TEST(check(comp[m_A])->slots[0] == 0u);
             BOOST_TEST(check(comp[m_B])->slots[0] == 1u);
             BOOST_TEST(check(comp[m_C])->slots[0] == 1u);
@@ -608,48 +654,48 @@ BOOST_AUTO_TEST_CASE(test_assign_slots_a1_b1_c1) {
     expect_total(stats, 5);
 }
 
+namespace tree_any_order {
+
+/*
+  A1
+ / \
+B1  C1
+|
+D1
+*/
+
+struct A {
+    virtual ~A() = default;
+};
+struct B : A {};
+struct C : A {};
+struct D : B {};
+
+using classes = boost::mp11::mp_list<A, B, C, D>;
+BOOST_OPENMETHOD_REGISTER(use_classes<A, B, C, D, lattices_registry>);
+
+} // namespace tree_any_order
+
 BOOST_AUTO_TEST_CASE(test_assign_slots_tree_any_order) {
-    using test_registry = test_registry_<__COUNTER__>;
-
-    /*
-      A1
-     / \
-    B1  C1
-    |
-    D1
-    */
-
-    struct A {
-        virtual ~A() = default;
-    };
-    struct B : A {};
-    struct C : A {};
-    struct D : B {};
+    using test_registry = lattices_registry;
+    using namespace tree_any_order;
 
     ADD_METHOD(A);
     ADD_METHOD(B);
     ADD_METHOD(C);
     ADD_METHOD(D);
 
-    hierarchy classes{
-        registration_of<A, test_registry>,
-        registration_of<B, A, test_registry>,
-        registration_of<C, A, test_registry>,
-        registration_of<D, B, test_registry>,
-    };
-
     // In a tree, every v-table is dense from slot 0, whatever the order.
-    auto stats = allocate_in_orders<test_registry>(
-        classes, all_orders(classes.size()), [&](const auto& comp) {
+    auto stats = allocate_in_orders<test_registry, classes>(
+        all_orders(4), [&](const auto& comp) {
             BOOST_TEST(check(comp[m_A])->slots[0] == 0u);
             BOOST_TEST(check(comp[m_B])->slots[0] == 1u);
             BOOST_TEST(check(comp[m_C])->slots[0] == 1u);
             BOOST_TEST(check(comp[m_D])->slots[0] == 2u);
-
-            for (const auto& cls : comp.classes) {
-                BOOST_TEST(cls.first_slot == 0u);
-            }
-
+            BOOST_TEST(get_class<A>(comp)->first_slot == 0u);
+            BOOST_TEST(get_class<B>(comp)->first_slot == 0u);
+            BOOST_TEST(get_class<C>(comp)->first_slot == 0u);
+            BOOST_TEST(get_class<D>(comp)->first_slot == 0u);
             BOOST_TEST(get_class<A>(comp)->vtbl.size() == 1u);
             BOOST_TEST(get_class<B>(comp)->vtbl.size() == 2u);
             BOOST_TEST(get_class<C>(comp)->vtbl.size() == 2u);
@@ -659,41 +705,42 @@ BOOST_AUTO_TEST_CASE(test_assign_slots_tree_any_order) {
     expect_total(stats, 8);
 }
 
+namespace a1_b1_d1_c1_d1 {
+
+/*
+  A1
+ / \
+B1  C1
+ \ /
+  D1
+*/
+
+struct A {
+    virtual ~A() = default;
+};
+struct B : virtual A {};
+struct C : virtual A {};
+struct D : B, C {};
+
+using classes = boost::mp11::mp_list<A, B, C, D>;
+BOOST_OPENMETHOD_REGISTER(use_classes<A, B, C, D, lattices_registry>);
+
+} // namespace a1_b1_d1_c1_d1
+
 BOOST_AUTO_TEST_CASE(test_assign_slots_a1_b1_d1_c1_d1) {
-    using test_registry = test_registry_<__COUNTER__>;
-
-    /*
-      A1
-     / \
-    B1  C1
-     \ /
-      D1
-    */
-
-    struct A {
-        virtual ~A() = default;
-    };
-    struct B : virtual A {};
-    struct C : virtual A {};
-    struct D : B, C {};
+    using test_registry = lattices_registry;
+    using namespace a1_b1_d1_c1_d1;
 
     ADD_METHOD(A);
     USE_METHOD(B);
     USE_METHOD(C);
     ADD_METHOD(D);
 
-    hierarchy classes{
-        registration_of<A, test_registry>,
-        registration_of<B, A, test_registry>,
-        registration_of<C, A, test_registry>,
-        registration_of<D, B, C, test_registry>,
-    };
-
     // B and C both sit above A's slot and must differ in D, so one of them has
     // a hole - there is no way around that. The old allocator gave the other
     // one a hole too, for a total of 11.
-    auto stats = allocate_in_orders<test_registry>(
-        classes, all_orders(classes.size()), [&](const auto& comp) {
+    auto stats = allocate_in_orders<test_registry, classes>(
+        all_orders(4), [&](const auto& comp) {
             BOOST_TEST(check(comp[m_A])->slots[0] == 0u);
             BOOST_TEST(check(comp[m_D])->slots[0] == 3u);
             BOOST_TEST(get_class<A>(comp)->vtbl.size() == 1u);
@@ -707,24 +754,32 @@ BOOST_AUTO_TEST_CASE(test_assign_slots_a1_b1_d1_c1_d1) {
     expect_total(stats, 10);
 }
 
+namespace a1_b1_d1_c1_d1_e3 {
+
+/*
+  A1
+ / \
+B1  C1
+ \ /  \
+  D1  E3
+*/
+
+struct A {
+    virtual ~A() = default;
+};
+struct B : virtual A {};
+struct C : virtual A {};
+struct E : C {};
+struct D : B, C {};
+
+using classes = boost::mp11::mp_list<A, B, C, E, D>;
+BOOST_OPENMETHOD_REGISTER(use_classes<A, B, C, E, D, lattices_registry>);
+
+} // namespace a1_b1_d1_c1_d1_e3
+
 BOOST_AUTO_TEST_CASE(test_assign_slots_a1_b1_d1_c1_d1_e3) {
-    using test_registry = test_registry_<__COUNTER__>;
-
-    /*
-      A1
-     / \
-    B1  C1
-     \ /  \
-      D1  E3
-    */
-
-    struct A {
-        virtual ~A() = default;
-    };
-    struct B : virtual A {};
-    struct C : virtual A {};
-    struct E : C {};
-    struct D : B, C {};
+    using test_registry = lattices_registry;
+    using namespace a1_b1_d1_c1_d1_e3;
 
     ADD_METHOD(A);
     USE_METHOD(B);
@@ -734,17 +789,9 @@ BOOST_AUTO_TEST_CASE(test_assign_slots_a1_b1_d1_c1_d1_e3) {
     USE_METHOD_N(E, 2);
     USE_METHOD_N(E, 3);
 
-    hierarchy classes{
-        registration_of<A, test_registry>,
-        registration_of<B, A, test_registry>,
-        registration_of<C, A, test_registry>,
-        registration_of<E, C, test_registry>,
-        registration_of<D, B, C, test_registry>,
-    };
-
     // E fills the hole in C's v-table, if C has one. Old total: 16.
-    auto stats = allocate_in_orders<test_registry>(
-        classes, all_orders(classes.size()), [&](const auto& comp) {
+    auto stats = allocate_in_orders<test_registry, classes>(
+        all_orders(5), [&](const auto& comp) {
             BOOST_TEST(check(comp[m_A])->slots[0] == 0u);
             BOOST_TEST(check(comp[m_D])->slots[0] == 3u);
             BOOST_TEST(get_class<A>(comp)->vtbl.size() == 1u);
@@ -755,37 +802,39 @@ BOOST_AUTO_TEST_CASE(test_assign_slots_a1_b1_d1_c1_d1_e3) {
     expect_total(stats, 15);
 }
 
+namespace a1_c1_b1 {
+
+/*
+A1  B1
+ \  /
+  C1
+*/
+
+struct A {
+    virtual ~A() = default;
+};
+struct B {
+    virtual ~B() = default;
+};
+struct C : A, B {};
+
+using classes = boost::mp11::mp_list<A, B, C>;
+BOOST_OPENMETHOD_REGISTER(use_classes<A, B, C, lattices_registry>);
+
+} // namespace a1_c1_b1
+
 BOOST_AUTO_TEST_CASE(test_assign_slots_a1_c1_b1) {
-    using test_registry = test_registry_<__COUNTER__>;
-
-    /*
-    A1  B1
-     \  /
-      C1
-    */
-
-    struct A {
-        virtual ~A() = default;
-    };
-    struct B {
-        virtual ~B() = default;
-    };
-    struct C : A, B {};
+    using test_registry = lattices_registry;
+    using namespace a1_c1_b1;
 
     ADD_METHOD(A);
     ADD_METHOD(B);
     ADD_METHOD(C);
 
-    hierarchy classes{
-        registration_of<A, test_registry>,
-        registration_of<B, test_registry>,
-        registration_of<C, A, B, test_registry>,
-    };
-
     // The second root to be allocated gets slot 1; its v-table starts there,
     // since leading unused slots are not stored.
-    auto stats = allocate_in_orders<test_registry>(
-        classes, all_orders(classes.size()), [&](const auto& comp) {
+    auto stats = allocate_in_orders<test_registry, classes>(
+        all_orders(3), [&](const auto& comp) {
             auto a = get_class<A>(comp);
             auto b = get_class<B>(comp);
             BOOST_TEST(
@@ -800,41 +849,42 @@ BOOST_AUTO_TEST_CASE(test_assign_slots_a1_c1_b1) {
     expect_total(stats, 5);
 }
 
+namespace hole_avoided {
+
+/*
+A1  B1
+ \ / \
+ C1   E1
+*/
+
+struct A {
+    virtual ~A() = default;
+};
+struct B {
+    virtual ~B() = default;
+};
+struct C : A, B {};
+struct E : B {};
+
+using classes = boost::mp11::mp_list<A, B, C, E>;
+BOOST_OPENMETHOD_REGISTER(use_classes<A, B, C, E, lattices_registry>);
+
+} // namespace hole_avoided
+
 BOOST_AUTO_TEST_CASE(test_assign_slots_hole_avoided) {
-    using test_registry = test_registry_<__COUNTER__>;
-
-    /*
-    A1  B1
-     \ / \
-     C1   E1
-    */
-
-    struct A {
-        virtual ~A() = default;
-    };
-    struct B {
-        virtual ~B() = default;
-    };
-    struct C : A, B {};
-    struct E : B {};
+    using test_registry = lattices_registry;
+    using namespace hole_avoided;
 
     USE_METHOD(A);
     USE_METHOD(B);
     USE_METHOD(C);
     USE_METHOD(E);
 
-    hierarchy classes{
-        registration_of<A, test_registry>,
-        registration_of<B, test_registry>,
-        registration_of<C, A, B, test_registry>,
-        registration_of<E, B, test_registry>,
-    };
-
     // E extends B's range by one entry. The old allocator, when it visited A,
     // C, B, E, put B at 2 and E at the lowest free slot, 0: a three-entry
     // v-table for E with a hole at 1, and a total of 8 in half of the orders.
-    auto stats = allocate_in_orders<test_registry>(
-        classes, all_orders(classes.size()), [&](const auto& comp) {
+    auto stats = allocate_in_orders<test_registry, classes>(
+        all_orders(4), [&](const auto& comp) {
             BOOST_TEST(get_class<C>(comp)->vtbl.size() == 3u);
             BOOST_TEST(get_class<E>(comp)->vtbl.size() == 2u);
         });
@@ -842,32 +892,41 @@ BOOST_AUTO_TEST_CASE(test_assign_slots_hole_avoided) {
     expect_total(stats, 7);
 }
 
+namespace grow_down {
+
+/*
+A2      B1     W1
+|\ \   / \    / |
+Aa Ab C   E1  |
+         \   |
+          G--'     and V : A, W
+*/
+
+struct A {
+    virtual ~A() = default;
+};
+struct Aa : A {};
+struct Ab : A {};
+struct B {
+    virtual ~B() = default;
+};
+struct W {
+    virtual ~W() = default;
+};
+struct C : A, B {};
+struct V : A, W {};
+struct E : B {};
+struct G : E, W {};
+
+using classes = boost::mp11::mp_list<A, Aa, Ab, B, W, C, V, E, G>;
+BOOST_OPENMETHOD_REGISTER(
+    use_classes<A, Aa, Ab, B, W, C, V, E, G, lattices_registry>);
+
+} // namespace grow_down
+
 BOOST_AUTO_TEST_CASE(test_assign_slots_grow_down) {
-    using test_registry = test_registry_<__COUNTER__>;
-
-    /*
-    A2      B1     W1
-    |\ \   / \    / |
-    Aa Ab C   E1  |
-             \   |
-              G--'     and V : A, W
-    */
-
-    struct A {
-        virtual ~A() = default;
-    };
-    struct Aa : A {};
-    struct Ab : A {};
-    struct B {
-        virtual ~B() = default;
-    };
-    struct W {
-        virtual ~W() = default;
-    };
-    struct C : A, B {};
-    struct V : A, W {};
-    struct E : B {};
-    struct G : E, W {};
+    using test_registry = lattices_registry;
+    using namespace grow_down;
 
     USE_METHOD_N(A, 1);
     USE_METHOD_N(A, 2);
@@ -875,25 +934,13 @@ BOOST_AUTO_TEST_CASE(test_assign_slots_grow_down) {
     ADD_METHOD(W);
     ADD_METHOD(E);
 
-    hierarchy classes{
-        registration_of<A, test_registry>,
-        registration_of<Aa, A, test_registry>,
-        registration_of<Ab, A, test_registry>,
-        registration_of<B, test_registry>,
-        registration_of<W, test_registry>,
-        registration_of<C, A, B, test_registry>,
-        registration_of<V, A, W, test_registry>,
-        registration_of<E, B, test_registry>,
-        registration_of<G, E, W, test_registry>,
-    };
-
     // The cones decide the order: A (five classes) takes 0 and 1, B (four)
     // 2, W (three) 3 - G already holds 2 - and E, inheriting 2 from B, can
     // only extend downward, since G holds 3. The old allocator gave E the
     // lowest free slot, 0, with a hole at 1, in most orders: 20 to 23 in
     // total, against 20 in every order here.
-    auto stats = allocate_in_orders<test_registry>(
-        classes, sampled_orders(classes.size(), 200), [&](const auto& comp) {
+    auto stats = allocate_in_orders<test_registry, classes>(
+        sampled_orders(9, 200), [&](const auto& comp) {
             BOOST_TEST(check(comp[m_B])->slots[0] == 2u);
             BOOST_TEST(check(comp[m_W])->slots[0] == 3u);
             BOOST_TEST(check(comp[m_E])->slots[0] == 1u);
@@ -904,35 +951,44 @@ BOOST_AUTO_TEST_CASE(test_assign_slots_grow_down) {
     expect_total(stats, 20);
 }
 
+namespace cone_aware {
+
+/*
+Y5   P1   R4        Ya, Yb, Yc : Y
+ \  / \  / \        Ra, Rb, Rc : R
+  Z    X1   \
+       \    |
+        D---'
+*/
+
+struct Y {
+    virtual ~Y() = default;
+};
+struct Ya : Y {};
+struct Yb : Y {};
+struct Yc : Y {};
+struct P {
+    virtual ~P() = default;
+};
+struct R {
+    virtual ~R() = default;
+};
+struct Ra : R {};
+struct Rb : R {};
+struct Rc : R {};
+struct Z : Y, P {};
+struct X : P {};
+struct D : X, R {};
+
+using classes = boost::mp11::mp_list<Y, Ya, Yb, Yc, P, R, Ra, Rb, Rc, Z, X, D>;
+BOOST_OPENMETHOD_REGISTER(
+    use_classes<Y, Ya, Yb, Yc, P, R, Ra, Rb, Rc, Z, X, D, lattices_registry>);
+
+} // namespace cone_aware
+
 BOOST_AUTO_TEST_CASE(test_assign_slots_cone_aware) {
-    using test_registry = test_registry_<__COUNTER__>;
-
-    /*
-    Y5   P1   R4        Ya, Yb, Yc : Y
-     \  / \  / \       Ra, Rb, Rc : R
-      Z    X1   \
-           \    |
-            D---'
-    */
-
-    struct Y {
-        virtual ~Y() = default;
-    };
-    struct Ya : Y {};
-    struct Yb : Y {};
-    struct Yc : Y {};
-    struct P {
-        virtual ~P() = default;
-    };
-    struct R {
-        virtual ~R() = default;
-    };
-    struct Ra : R {};
-    struct Rb : R {};
-    struct Rc : R {};
-    struct Z : Y, P {};
-    struct X : P {};
-    struct D : X, R {};
+    using test_registry = lattices_registry;
+    using namespace cone_aware;
 
     USE_METHOD_N(Y, 1);
     USE_METHOD_N(Y, 2);
@@ -946,27 +1002,12 @@ BOOST_AUTO_TEST_CASE(test_assign_slots_cone_aware) {
     USE_METHOD_N(R, 4);
     ADD_METHOD(X);
 
-    hierarchy classes{
-        registration_of<Y, test_registry>,
-        registration_of<Ya, Y, test_registry>,
-        registration_of<Yb, Y, test_registry>,
-        registration_of<Yc, Y, test_registry>,
-        registration_of<P, test_registry>,
-        registration_of<R, test_registry>,
-        registration_of<Ra, R, test_registry>,
-        registration_of<Rb, R, test_registry>,
-        registration_of<Rc, R, test_registry>,
-        registration_of<Z, Y, P, test_registry>,
-        registration_of<X, P, test_registry>,
-        registration_of<D, X, R, test_registry>,
-    };
-
     // Y and R, with the widest cones, take 0-4 and 0-3; P lands at 5, and X
     // inherits {5}. X's own range would grow by one either way, but D, which
     // holds 0-3 and 5, has a hole at 4 and would grow at 6: X goes down. The
     // old allocator: 51 to 55, depending on the order.
-    auto stats = allocate_in_orders<test_registry>(
-        classes, sampled_orders(classes.size(), 200), [&](const auto& comp) {
+    auto stats = allocate_in_orders<test_registry, classes>(
+        sampled_orders(12, 200), [&](const auto& comp) {
             BOOST_TEST(check(comp[m_P])->slots[0] == 5u);
             BOOST_TEST(check(comp[m_X])->slots[0] == 4u);
             BOOST_TEST(get_class<X>(comp)->vtbl.size() == 2u);
@@ -976,32 +1017,35 @@ BOOST_AUTO_TEST_CASE(test_assign_slots_cone_aware) {
     expect_total(stats, 51);
 }
 
+namespace several_parameters_per_class {
+
+/*
+A: two unary methods and a binary method on (A, A)
+|
+B1
+*/
+
+struct A {
+    virtual ~A() = default;
+};
+struct B : A {};
+
+using classes = boost::mp11::mp_list<A, B>;
+BOOST_OPENMETHOD_REGISTER(use_classes<A, B, lattices_registry>);
+
+} // namespace several_parameters_per_class
+
 BOOST_AUTO_TEST_CASE(test_assign_slots_several_parameters_per_class) {
-    using test_registry = test_registry_<__COUNTER__>;
-
-    /*
-    A: two unary methods and a binary method on (A, A)
-    |
-    B1
-    */
-
-    struct A {
-        virtual ~A() = default;
-    };
-    struct B : A {};
+    using test_registry = lattices_registry;
+    using namespace several_parameters_per_class;
 
     USE_METHOD_N(A, 1);
     USE_METHOD_N(A, 2);
     USE_METHOD2(A, A);
     ADD_METHOD(B);
 
-    hierarchy classes{
-        registration_of<A, test_registry>,
-        registration_of<B, A, test_registry>,
-    };
-
-    auto stats = allocate_in_orders<test_registry>(
-        classes, all_orders(classes.size()), [&](const auto& comp) {
+    auto stats = allocate_in_orders<test_registry, classes>(
+        all_orders(2), [&](const auto& comp) {
             BOOST_TEST(get_class<A>(comp)->vtbl.size() == 4u);
             BOOST_TEST(get_class<B>(comp)->vtbl.size() == 5u);
             BOOST_TEST(check(comp[m_B])->slots[0] == 4u);
@@ -1010,28 +1054,36 @@ BOOST_AUTO_TEST_CASE(test_assign_slots_several_parameters_per_class) {
     expect_total(stats, 9);
 }
 
+namespace method_less_classes {
+
+/*
+A1   R
+|    |
+B    S1
+|\   |
+C1 D1 T1
+*/
+
+struct A {
+    virtual ~A() = default;
+};
+struct B : A {};
+struct C : B {};
+struct D : B {};
+struct R {
+    virtual ~R() = default;
+};
+struct S : R {};
+struct T : S {};
+
+using classes = boost::mp11::mp_list<A, B, C, D, R, S, T>;
+BOOST_OPENMETHOD_REGISTER(use_classes<A, B, C, D, R, S, T, lattices_registry>);
+
+} // namespace method_less_classes
+
 BOOST_AUTO_TEST_CASE(test_assign_slots_method_less_classes) {
-    using test_registry = test_registry_<__COUNTER__>;
-
-    /*
-    A1   R
-    |    |
-    B    S1
-    |\   |
-    C1 D1 T1
-    */
-
-    struct A {
-        virtual ~A() = default;
-    };
-    struct B : A {};
-    struct C : B {};
-    struct D : B {};
-    struct R {
-        virtual ~R() = default;
-    };
-    struct S : R {};
-    struct T : S {};
+    using test_registry = lattices_registry;
+    using namespace method_less_classes;
 
     USE_METHOD(A);
     ADD_METHOD(C);
@@ -1039,18 +1091,8 @@ BOOST_AUTO_TEST_CASE(test_assign_slots_method_less_classes) {
     ADD_METHOD(S);
     ADD_METHOD(T);
 
-    hierarchy classes{
-        registration_of<A, test_registry>,
-        registration_of<B, A, test_registry>,
-        registration_of<C, B, test_registry>,
-        registration_of<D, B, test_registry>,
-        registration_of<R, test_registry>,
-        registration_of<S, R, test_registry>,
-        registration_of<T, S, test_registry>,
-    };
-
-    auto stats = allocate_in_orders<test_registry>(
-        classes, all_orders(classes.size()), [&](const auto& comp) {
+    auto stats = allocate_in_orders<test_registry, classes>(
+        all_orders(7), [&](const auto& comp) {
             BOOST_TEST(get_class<B>(comp)->vtbl.size() == 1u);
             BOOST_TEST(check(comp[m_C])->slots[0] == 1u);
             BOOST_TEST(check(comp[m_D])->slots[0] == 1u);
@@ -1062,23 +1104,31 @@ BOOST_AUTO_TEST_CASE(test_assign_slots_method_less_classes) {
     expect_total(stats, 9);
 }
 
+namespace components {
+
+/*
+A1  X1   and a binary method on (A, X)
+|   |
+B1  Y1
+*/
+
+struct A {
+    virtual ~A() = default;
+};
+struct B : A {};
+struct X {
+    virtual ~X() = default;
+};
+struct Y : X {};
+
+using classes = boost::mp11::mp_list<A, B, X, Y>;
+BOOST_OPENMETHOD_REGISTER(use_classes<A, B, X, Y, lattices_registry>);
+
+} // namespace components
+
 BOOST_AUTO_TEST_CASE(test_assign_slots_components) {
-    using test_registry = test_registry_<__COUNTER__>;
-
-    /*
-    A1  X1   and a binary method on (A, X)
-    |   |
-    B1  Y1
-    */
-
-    struct A {
-        virtual ~A() = default;
-    };
-    struct B : A {};
-    struct X {
-        virtual ~X() = default;
-    };
-    struct Y : X {};
+    using test_registry = lattices_registry;
+    using namespace components;
 
     USE_METHOD(A);
     ADD_METHOD(B);
@@ -1086,16 +1136,9 @@ BOOST_AUTO_TEST_CASE(test_assign_slots_components) {
     ADD_METHOD(Y);
     USE_METHOD2(A, X);
 
-    hierarchy classes{
-        registration_of<A, test_registry>,
-        registration_of<B, A, test_registry>,
-        registration_of<X, test_registry>,
-        registration_of<Y, X, test_registry>,
-    };
-
     // Unrelated hierarchies do not see each other: both start at slot 0.
-    auto stats = allocate_in_orders<test_registry>(
-        classes, all_orders(classes.size()), [&](const auto& comp) {
+    auto stats = allocate_in_orders<test_registry, classes>(
+        all_orders(4), [&](const auto& comp) {
             BOOST_TEST(get_class<A>(comp)->vtbl.size() == 2u);
             BOOST_TEST(get_class<B>(comp)->vtbl.size() == 3u);
             BOOST_TEST(get_class<X>(comp)->vtbl.size() == 2u);
@@ -1142,10 +1185,20 @@ struct basic_stringbuf : basic_streambuf {};
 struct basic_spanbuf : basic_streambuf {};
 struct basic_syncbuf : basic_streambuf {};
 
+using classes = boost::mp11::mp_list<
+    ios_base, basic_ios, basic_istream, basic_ostream, basic_iostream,
+    basic_ifstream, basic_ofstream, basic_fstream, basic_istringstream,
+    basic_ostringstream, basic_stringstream, basic_ispanstream,
+    basic_ospanstream, basic_spanstream, basic_osyncstream, basic_streambuf,
+    basic_filebuf, basic_stringbuf, basic_spanbuf, basic_syncbuf>;
+BOOST_OPENMETHOD_REGISTER(
+    boost::mp11::mp_apply<
+        use_classes, boost::mp11::mp_push_back<classes, hierarchies_registry>>);
+
 } // namespace iso_cpp_streams
 
 BOOST_AUTO_TEST_CASE(test_assign_slots_iso_cpp_streams) {
-    using test_registry = test_registry_<__COUNTER__>;
+    using test_registry = hierarchies_registry;
     using namespace iso_cpp_streams;
 
     USE_METHOD(ios_base);
@@ -1170,33 +1223,10 @@ BOOST_AUTO_TEST_CASE(test_assign_slots_iso_cpp_streams) {
     USE_METHOD(basic_syncbuf);
     USE_METHOD2(basic_ostream, basic_streambuf);
 
-    hierarchy classes{
-        registration_of<ios_base, test_registry>,
-        registration_of<basic_ios, ios_base, test_registry>,
-        registration_of<basic_istream, basic_ios, test_registry>,
-        registration_of<basic_ostream, basic_ios, test_registry>,
-        registration_of<
-            basic_iostream, basic_istream, basic_ostream, test_registry>,
-        registration_of<basic_ifstream, basic_istream, test_registry>,
-        registration_of<basic_ofstream, basic_ostream, test_registry>,
-        registration_of<basic_fstream, basic_iostream, test_registry>,
-        registration_of<basic_istringstream, basic_istream, test_registry>,
-        registration_of<basic_ostringstream, basic_ostream, test_registry>,
-        registration_of<basic_stringstream, basic_iostream, test_registry>,
-        registration_of<basic_ispanstream, basic_istream, test_registry>,
-        registration_of<basic_ospanstream, basic_ostream, test_registry>,
-        registration_of<basic_spanstream, basic_iostream, test_registry>,
-        registration_of<basic_osyncstream, basic_ostream, test_registry>,
-        registration_of<basic_streambuf, test_registry>,
-        registration_of<basic_filebuf, basic_streambuf, test_registry>,
-        registration_of<basic_stringbuf, basic_streambuf, test_registry>,
-        registration_of<basic_spanbuf, basic_streambuf, test_registry>,
-        registration_of<basic_syncbuf, basic_streambuf, test_registry>,
-    };
-
     // The old allocator: 95 to 97 over these orders.
-    auto stats = allocate_in_orders<test_registry>(
-        classes, sampled_orders(classes.size(), 64), [](const auto&) {});
+    auto stats = allocate_in_orders<test_registry, classes>(
+        sampled_orders(boost::mp11::mp_size<classes>::value, 64),
+        [](const auto&) {});
 
     expect_total(stats, 88);
 }
@@ -1234,10 +1264,21 @@ struct BaseRequestHandler {
 struct StreamRequestHandler : BaseRequestHandler {};
 struct DatagramRequestHandler : BaseRequestHandler {};
 
+using classes = boost::mp11::mp_list<
+    BaseServer, TCPServer, UDPServer, UnixStreamServer, UnixDatagramServer,
+    ThreadingMixIn, ForkingMixIn, ThreadingTCPServer, ThreadingUDPServer,
+    ForkingTCPServer, ForkingUDPServer, ThreadingUnixStreamServer,
+    ThreadingUnixDatagramServer, ForkingUnixStreamServer,
+    ForkingUnixDatagramServer, BaseRequestHandler, StreamRequestHandler,
+    DatagramRequestHandler>;
+BOOST_OPENMETHOD_REGISTER(
+    boost::mp11::mp_apply<
+        use_classes, boost::mp11::mp_push_back<classes, hierarchies_registry>>);
+
 } // namespace socketserver
 
 BOOST_AUTO_TEST_CASE(test_assign_slots_socketserver) {
-    using test_registry = test_registry_<__COUNTER__>;
+    using test_registry = hierarchies_registry;
     using namespace socketserver;
 
     USE_METHOD(BaseServer);
@@ -1260,45 +1301,11 @@ BOOST_AUTO_TEST_CASE(test_assign_slots_socketserver) {
     USE_METHOD(DatagramRequestHandler);
     USE_METHOD2(BaseServer, BaseRequestHandler);
 
-    hierarchy classes{
-        registration_of<BaseServer, test_registry>,
-        registration_of<TCPServer, BaseServer, test_registry>,
-        registration_of<UDPServer, TCPServer, test_registry>,
-        registration_of<UnixStreamServer, TCPServer, test_registry>,
-        registration_of<UnixDatagramServer, UDPServer, test_registry>,
-        registration_of<ThreadingMixIn, test_registry>,
-        registration_of<ForkingMixIn, test_registry>,
-        registration_of<
-            ThreadingTCPServer, ThreadingMixIn, TCPServer, test_registry>,
-        registration_of<
-            ThreadingUDPServer, ThreadingMixIn, UDPServer, test_registry>,
-        registration_of<
-            ForkingTCPServer, ForkingMixIn, TCPServer, test_registry>,
-        registration_of<
-            ForkingUDPServer, ForkingMixIn, UDPServer, test_registry>,
-        registration_of<
-            ThreadingUnixStreamServer, ThreadingMixIn, UnixStreamServer,
-            test_registry>,
-        registration_of<
-            ThreadingUnixDatagramServer, ThreadingMixIn, UnixDatagramServer,
-            test_registry>,
-        registration_of<
-            ForkingUnixStreamServer, ForkingMixIn, UnixStreamServer,
-            test_registry>,
-        registration_of<
-            ForkingUnixDatagramServer, ForkingMixIn, UnixDatagramServer,
-            test_registry>,
-        registration_of<BaseRequestHandler, test_registry>,
-        registration_of<
-            StreamRequestHandler, BaseRequestHandler, test_registry>,
-        registration_of<
-            DatagramRequestHandler, BaseRequestHandler, test_registry>,
-    };
-
     // The old allocator: 76 to 84 over these orders. Its best order beats
     // this by one entry: the greedy choice is not always the optimum.
-    auto stats = allocate_in_orders<test_registry>(
-        classes, sampled_orders(classes.size(), 64), [](const auto&) {});
+    auto stats = allocate_in_orders<test_registry, classes>(
+        sampled_orders(boost::mp11::mp_size<classes>::value, 64),
+        [](const auto&) {});
 
     expect_total(stats, 77);
 }
@@ -1400,10 +1407,26 @@ struct DateDetailView :
     SingleObjectTemplateResponseMixin,
     BaseDateDetailView {};
 
+using classes = boost::mp11::mp_list<
+    View, ContextMixin, TemplateResponseMixin, TemplateView, RedirectView,
+    SingleObjectMixin, BaseDetailView, SingleObjectTemplateResponseMixin,
+    DetailView, MultipleObjectMixin, BaseListView,
+    MultipleObjectTemplateResponseMixin, ListView, FormMixin, ModelFormMixin,
+    ProcessFormView, BaseFormView, FormView, BaseCreateView, CreateView,
+    BaseUpdateView, UpdateView, DeletionMixin, BaseDeleteView, DeleteView,
+    YearMixin, MonthMixin, DayMixin, WeekMixin, DateMixin, BaseDateListView,
+    BaseArchiveIndexView, ArchiveIndexView, BaseYearArchiveView,
+    YearArchiveView, BaseMonthArchiveView, MonthArchiveView,
+    BaseWeekArchiveView, WeekArchiveView, BaseDayArchiveView, DayArchiveView,
+    BaseTodayArchiveView, TodayArchiveView, BaseDateDetailView, DateDetailView>;
+BOOST_OPENMETHOD_REGISTER(
+    boost::mp11::mp_apply<
+        use_classes, boost::mp11::mp_push_back<classes, hierarchies_registry>>);
+
 } // namespace django_views
 
 BOOST_AUTO_TEST_CASE(test_assign_slots_django_views) {
-    using test_registry = test_registry_<__COUNTER__>;
+    using test_registry = hierarchies_registry;
     using namespace django_views;
 
     USE_METHOD(View);
@@ -1452,107 +1475,11 @@ BOOST_AUTO_TEST_CASE(test_assign_slots_django_views) {
     USE_METHOD(BaseDateDetailView);
     USE_METHOD(DateDetailView);
 
-    hierarchy classes{
-        registration_of<View, test_registry>,
-        registration_of<ContextMixin, test_registry>,
-        registration_of<TemplateResponseMixin, test_registry>,
-        registration_of<
-            TemplateView, TemplateResponseMixin, ContextMixin, View,
-            test_registry>,
-        registration_of<RedirectView, View, test_registry>,
-        registration_of<SingleObjectMixin, ContextMixin, test_registry>,
-        registration_of<BaseDetailView, SingleObjectMixin, View, test_registry>,
-        registration_of<
-            SingleObjectTemplateResponseMixin, TemplateResponseMixin,
-            test_registry>,
-        registration_of<
-            DetailView, SingleObjectTemplateResponseMixin, BaseDetailView,
-            test_registry>,
-        registration_of<MultipleObjectMixin, ContextMixin, test_registry>,
-        registration_of<BaseListView, MultipleObjectMixin, View, test_registry>,
-        registration_of<
-            MultipleObjectTemplateResponseMixin, TemplateResponseMixin,
-            test_registry>,
-        registration_of<
-            ListView, MultipleObjectTemplateResponseMixin, BaseListView,
-            test_registry>,
-        registration_of<FormMixin, ContextMixin, test_registry>,
-        registration_of<
-            ModelFormMixin, FormMixin, SingleObjectMixin, test_registry>,
-        registration_of<ProcessFormView, View, test_registry>,
-        registration_of<
-            BaseFormView, FormMixin, ProcessFormView, test_registry>,
-        registration_of<
-            FormView, TemplateResponseMixin, BaseFormView, test_registry>,
-        registration_of<
-            BaseCreateView, ModelFormMixin, ProcessFormView, test_registry>,
-        registration_of<
-            CreateView, SingleObjectTemplateResponseMixin, BaseCreateView,
-            test_registry>,
-        registration_of<
-            BaseUpdateView, ModelFormMixin, ProcessFormView, test_registry>,
-        registration_of<
-            UpdateView, SingleObjectTemplateResponseMixin, BaseUpdateView,
-            test_registry>,
-        registration_of<DeletionMixin, test_registry>,
-        registration_of<
-            BaseDeleteView, DeletionMixin, FormMixin, BaseDetailView,
-            test_registry>,
-        registration_of<
-            DeleteView, SingleObjectTemplateResponseMixin, BaseDeleteView,
-            test_registry>,
-        registration_of<YearMixin, test_registry>,
-        registration_of<MonthMixin, test_registry>,
-        registration_of<DayMixin, test_registry>,
-        registration_of<WeekMixin, test_registry>,
-        registration_of<DateMixin, test_registry>,
-        registration_of<
-            BaseDateListView, MultipleObjectMixin, DateMixin, View,
-            test_registry>,
-        registration_of<BaseArchiveIndexView, BaseDateListView, test_registry>,
-        registration_of<
-            ArchiveIndexView, MultipleObjectTemplateResponseMixin,
-            BaseArchiveIndexView, test_registry>,
-        registration_of<
-            BaseYearArchiveView, YearMixin, BaseDateListView, test_registry>,
-        registration_of<
-            YearArchiveView, MultipleObjectTemplateResponseMixin,
-            BaseYearArchiveView, test_registry>,
-        registration_of<
-            BaseMonthArchiveView, YearMixin, MonthMixin, BaseDateListView,
-            test_registry>,
-        registration_of<
-            MonthArchiveView, MultipleObjectTemplateResponseMixin,
-            BaseMonthArchiveView, test_registry>,
-        registration_of<
-            BaseWeekArchiveView, YearMixin, WeekMixin, BaseDateListView,
-            test_registry>,
-        registration_of<
-            WeekArchiveView, MultipleObjectTemplateResponseMixin,
-            BaseWeekArchiveView, test_registry>,
-        registration_of<
-            BaseDayArchiveView, YearMixin, MonthMixin, DayMixin,
-            BaseDateListView, test_registry>,
-        registration_of<
-            DayArchiveView, MultipleObjectTemplateResponseMixin,
-            BaseDayArchiveView, test_registry>,
-        registration_of<
-            BaseTodayArchiveView, BaseDayArchiveView, test_registry>,
-        registration_of<
-            TodayArchiveView, MultipleObjectTemplateResponseMixin,
-            BaseTodayArchiveView, test_registry>,
-        registration_of<
-            BaseDateDetailView, YearMixin, MonthMixin, DayMixin, DateMixin,
-            BaseDetailView, test_registry>,
-        registration_of<
-            DateDetailView, SingleObjectTemplateResponseMixin,
-            BaseDateDetailView, test_registry>,
-    };
-
     // The old allocator: 298 to 420 over these orders; its best order beats
     // this by five entries.
-    auto stats = allocate_in_orders<test_registry>(
-        classes, sampled_orders(classes.size(), 64), [](const auto&) {});
+    auto stats = allocate_in_orders<test_registry, classes>(
+        sampled_orders(boost::mp11::mp_size<classes>::value, 64),
+        [](const auto&) {});
 
     expect_total(stats, 303);
 }
@@ -1596,10 +1523,23 @@ struct stream_error : virtual error {};
 struct end_of_file : stream_error {};
 struct reader_error : parse_error, stream_error {};
 
+using classes = boost::mp11::mp_list<
+    condition, serious_condition, warning, simple_condition, error,
+    storage_condition, style_warning, simple_error, simple_warning, type_error,
+    simple_type_error, arithmetic_error, division_by_zero,
+    floating_point_inexact, floating_point_invalid_operation,
+    floating_point_overflow, floating_point_underflow, cell_error,
+    unbound_variable, unbound_slot, undefined_function, control_error,
+    file_error, package_error, parse_error, print_not_readable, program_error,
+    stream_error, end_of_file, reader_error>;
+BOOST_OPENMETHOD_REGISTER(
+    boost::mp11::mp_apply<
+        use_classes, boost::mp11::mp_push_back<classes, hierarchies_registry>>);
+
 } // namespace common_lisp
 
 BOOST_AUTO_TEST_CASE(test_assign_slots_common_lisp_conditions) {
-    using test_registry = test_registry_<__COUNTER__>;
+    using test_registry = hierarchies_registry;
     using namespace common_lisp;
 
     USE_METHOD(condition);
@@ -1633,48 +1573,10 @@ BOOST_AUTO_TEST_CASE(test_assign_slots_common_lisp_conditions) {
     USE_METHOD(end_of_file);
     USE_METHOD(reader_error);
 
-    hierarchy classes{
-        registration_of<condition, test_registry>,
-        registration_of<serious_condition, condition, test_registry>,
-        registration_of<warning, condition, test_registry>,
-        registration_of<simple_condition, condition, test_registry>,
-        registration_of<error, serious_condition, test_registry>,
-        registration_of<storage_condition, serious_condition, test_registry>,
-        registration_of<style_warning, warning, test_registry>,
-        registration_of<simple_error, simple_condition, error, test_registry>,
-        registration_of<
-            simple_warning, simple_condition, warning, test_registry>,
-        registration_of<type_error, error, test_registry>,
-        registration_of<
-            simple_type_error, simple_condition, type_error, test_registry>,
-        registration_of<arithmetic_error, error, test_registry>,
-        registration_of<division_by_zero, arithmetic_error, test_registry>,
-        registration_of<
-            floating_point_inexact, arithmetic_error, test_registry>,
-        registration_of<
-            floating_point_invalid_operation, arithmetic_error, test_registry>,
-        registration_of<
-            floating_point_overflow, arithmetic_error, test_registry>,
-        registration_of<
-            floating_point_underflow, arithmetic_error, test_registry>,
-        registration_of<cell_error, error, test_registry>,
-        registration_of<unbound_variable, cell_error, test_registry>,
-        registration_of<unbound_slot, cell_error, test_registry>,
-        registration_of<undefined_function, cell_error, test_registry>,
-        registration_of<control_error, error, test_registry>,
-        registration_of<file_error, error, test_registry>,
-        registration_of<package_error, error, test_registry>,
-        registration_of<parse_error, error, test_registry>,
-        registration_of<print_not_readable, error, test_registry>,
-        registration_of<program_error, error, test_registry>,
-        registration_of<stream_error, error, test_registry>,
-        registration_of<end_of_file, stream_error, test_registry>,
-        registration_of<reader_error, parse_error, stream_error, test_registry>,
-    };
-
     // The old allocator: 131 to 143 over these orders.
-    auto stats = allocate_in_orders<test_registry>(
-        classes, sampled_orders(classes.size(), 64), [](const auto&) {});
+    auto stats = allocate_in_orders<test_registry, classes>(
+        sampled_orders(boost::mp11::mp_size<classes>::value, 64),
+        [](const auto&) {});
 
     expect_total(stats, 126);
 }
@@ -1727,10 +1629,20 @@ struct Buffer {
     virtual ~Buffer() = default;
 };
 
+using classes = boost::mp11::mp_list<
+    Container, Hashable, Iterable, Iterator, Reversible, Generator, Sized,
+    Callable, Collection, Sequence, MutableSequence, ByteString, Set,
+    MutableSet, Mapping, MutableMapping, MappingView, ItemsView, KeysView,
+    ValuesView, Awaitable, Coroutine, AsyncIterable, AsyncIterator,
+    AsyncGenerator, Buffer>;
+BOOST_OPENMETHOD_REGISTER(
+    boost::mp11::mp_apply<
+        use_classes, boost::mp11::mp_push_back<classes, hierarchies_registry>>);
+
 } // namespace collections_abc
 
 BOOST_AUTO_TEST_CASE(test_assign_slots_collections_abc) {
-    using test_registry = test_registry_<__COUNTER__>;
+    using test_registry = hierarchies_registry;
     using namespace collections_abc;
 
     USE_METHOD(Container);
@@ -1760,38 +1672,10 @@ BOOST_AUTO_TEST_CASE(test_assign_slots_collections_abc) {
     USE_METHOD(AsyncGenerator);
     USE_METHOD(Buffer);
 
-    hierarchy classes{
-        registration_of<Container, test_registry>,
-        registration_of<Hashable, test_registry>,
-        registration_of<Iterable, test_registry>,
-        registration_of<Iterator, Iterable, test_registry>,
-        registration_of<Reversible, Iterable, test_registry>,
-        registration_of<Generator, Iterator, test_registry>,
-        registration_of<Sized, test_registry>,
-        registration_of<Callable, test_registry>,
-        registration_of<Collection, Sized, Iterable, Container, test_registry>,
-        registration_of<Sequence, Reversible, Collection, test_registry>,
-        registration_of<MutableSequence, Sequence, test_registry>,
-        registration_of<ByteString, Sequence, test_registry>,
-        registration_of<Set, Collection, test_registry>,
-        registration_of<MutableSet, Set, test_registry>,
-        registration_of<Mapping, Collection, test_registry>,
-        registration_of<MutableMapping, Mapping, test_registry>,
-        registration_of<MappingView, Sized, test_registry>,
-        registration_of<ItemsView, MappingView, Set, test_registry>,
-        registration_of<KeysView, MappingView, Set, test_registry>,
-        registration_of<ValuesView, MappingView, Collection, test_registry>,
-        registration_of<Awaitable, test_registry>,
-        registration_of<Coroutine, Awaitable, test_registry>,
-        registration_of<AsyncIterable, test_registry>,
-        registration_of<AsyncIterator, AsyncIterable, test_registry>,
-        registration_of<AsyncGenerator, AsyncIterator, test_registry>,
-        registration_of<Buffer, test_registry>,
-    };
-
     // The old allocator: 102 to 114 over these orders.
-    auto stats = allocate_in_orders<test_registry>(
-        classes, sampled_orders(classes.size(), 64), [](const auto&) {});
+    auto stats = allocate_in_orders<test_registry, classes>(
+        sampled_orders(boost::mp11::mp_size<classes>::value, 64),
+        [](const auto&) {});
 
     expect_total(stats, 96);
 }

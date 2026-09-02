@@ -225,15 +225,21 @@ depth-first walk, gave `C` slot 3 and a hole in `D` as well: 11.
 ## Measuring the two
 
 The comparison uses the test file `test/test_slot_allocator.cpp` as the
-instrument. The tests do not assume a registration order. A hierarchy is
-described as one registration per class, with its direct bases, and the
-harness constructs those registrations as local objects in a chosen order,
-runs `initialize`, checks, and destroys them, for every permutation of the
-classes when there are at most seven, or for 66 fixed orders otherwise (the
-listed order, its reverse, and 64 shuffles from a seeded generator, spelled
+instrument. The tests do not assume a registration order. As the compiler
+sees it, that order is the order of the class records in the registry's
+class list, so the harness rewrites it: for each order under test it unlinks
+the records of the hierarchy and links them back in that order, then runs
+`initialize` and checks, for every permutation of the classes when there
+are at most five, or for a fixed sample of orders otherwise (the listed
+order, its reverse, and 64 or 200 shuffles from a seeded generator, spelled
 out so every platform draws the same ones). Every run checks that no two
 parameters share a slot in any v-table, that every v-table starts at its
-first used slot and ends at its last, and records the total v-table size.
+first used slot and ends at its last, and records the total size of the
+hierarchy's v-tables. Hierarchies share a registry, one for the small
+lattices and one for the real hierarchies, since compiling `initialize` and
+`use_classes` is what makes such a test file expensive to build; being
+separate components of the class graph, they do not influence each other's
+result.
 
 The old numbers come from the same test binary compiled against the
 previous `initialize.hpp`, so the same hierarchies, orders and checks apply
