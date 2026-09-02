@@ -21,26 +21,6 @@
 #define BOOST_OPENMETHOD_HAS_REFLECTION 0
 #endif
 
-#ifdef __MRDOCS__
-
-// MrDocs' front-end does not implement P2996, so the reflection API cannot be
-// parsed and is documented on stubs instead - see the `#elif defined(__MRDOCS__)`
-// branch at the end of core.hpp. The declarations below exist only so those
-// stubs can spell their real signatures; `include-symbols` in mrdocs.yml keeps
-// them out of the reference. They are never seen by a real compiler.
-namespace std::meta {
-
-struct info;
-
-class access_context {
-  public:
-    static auto current() -> access_context;
-};
-
-} // namespace std::meta
-
-#endif
-
 #if BOOST_OPENMETHOD_HAS_REFLECTION
 
 #include <cstddef>

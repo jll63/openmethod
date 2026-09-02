@@ -3151,21 +3151,8 @@ BOOST_FORCEINLINE auto use_reflected_classes_in() -> void {
 #if BOOST_OPENMETHOD_HAS_REFLECTION
 
 // MrDocs' front-end does not implement P2996, so it never sees this branch.
-// The reference documentation for `current_namespace` and `register_classes`
-// is on the stubs in the `#elif` branch below; keep the two in step.
-
-//! @see @ref current_namespace for documentation.
-consteval auto current_namespace(
-    std::meta::access_context ctx = std::meta::access_context::current())
-    -> std::meta::info {
-    auto scope = ctx.scope();
-
-    while (!std::meta::is_namespace(scope)) {
-        scope = std::meta::parent_of(scope);
-    }
-
-    return scope;
-}
+// The reference documentation for `register_classes` is on the stub in the
+// `#elif` branch below; keep the two in step.
 
 //! @see @ref register_classes for documentation.
 template<detail::reflection_group... Groups>
@@ -3199,26 +3186,9 @@ class register_classes {
 
 #elif defined(__MRDOCS__)
 
-// Documentation stubs. MrDocs compiles this branch instead of the real
-// declarations above, which its front-end cannot parse. The `std::meta`
-// stand-ins they use are declared in detail/reflection.hpp.
-
-//! Get the current namespace.
-//!
-//! Returns a reflection of the namespace enclosing the point of the call. Use
-//! it to narrow a scan to that namespace, which @ref register_classes does not
-//! do on its own: with no namespace listed it scans the global one. Do not
-//! pass an argument: the default captures the caller's context.
-//!
-//! @code
-//! register_classes<{current_namespace()}, {^^my_registry}>
-//! @endcode
-//!
-//! This function is available only if the compiler supports C++26 reflection,
-//! i.e. if `BOOST_OPENMETHOD_HAS_REFLECTION` is 1.
-consteval auto current_namespace(
-    std::meta::access_context ctx = std::meta::access_context::current())
-    -> std::meta::info;
+// Documentation stub. MrDocs compiles this branch instead of the real
+// declaration above, which its front-end cannot parse. It names no `std::meta`
+// type, so nothing has to stand in for one.
 
 //! Find the classes taking part in dispatch by reflection, and register them
 //!
@@ -3267,8 +3237,8 @@ consteval auto current_namespace(
 //! selected on.
 //!
 //! If no namespace is given, the global namespace is scanned - whatever the
-//! other groups hold, and for @ref BOOST_OPENMETHOD_REGISTER_CLASSES too. Use
-//! @ref current_namespace to scan only the namespace the registrar is in.
+//! other groups hold, and for @ref BOOST_OPENMETHOD_REGISTER_CLASSES too. Name
+//! a namespace to scan only that one.
 //!
 //! Reflection sees only what precedes it, so `register_classes` must come
 //! **after** the declarations it is meant to find - at the bottom of the file.

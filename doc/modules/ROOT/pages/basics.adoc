@@ -162,8 +162,7 @@ BOOST_OPENMETHOD_REGISTER_CLASSES(^^zoo, ^^my_registry);
 
 With no namespace group - `BOOST_OPENMETHOD_REGISTER_CLASSES()`, or any other
 group on its own, `{^^my_registry}` included - the global namespace is scanned.
-Use cpp:current_namespace[] to scan only the namespace the registration sits
-in.
+Name a namespace to scan only that one.
 
 A listed class is registered whether a method dispatches on it or not, and it
 is one more root for the scan: every class the scan finds deriving from it is

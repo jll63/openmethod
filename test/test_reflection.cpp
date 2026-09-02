@@ -751,52 +751,6 @@ BOOST_AUTO_TEST_CASE(template_scans_the_global_namespace) {
 }
 
 // =============================================================================
-// current_namespace() narrows the scan to the enclosing namespace
-
-namespace enclosing_helper {
-
-struct test_registry : test_registry_<__COUNTER__> {};
-
-struct Animal {
-    virtual ~Animal() = default;
-};
-
-struct Dog : Animal {};
-
-BOOST_OPENMETHOD(poke, (virtual_<Animal&>), std::string, test_registry);
-
-BOOST_OPENMETHOD_OVERRIDE(poke, (Dog&), std::string) {
-    return "bark";
-}
-
-// `^^::` would reach `outside::Stray` as well.
-BOOST_OPENMETHOD_REGISTER(
-    register_classes<
-        {current_namespace()}, {^^enclosing_helper::test_registry}>);
-
-} // namespace enclosing_helper
-
-namespace enclosing_helper_outside {
-
-struct Stray : enclosing_helper::Animal {};
-
-} // namespace enclosing_helper_outside
-
-BOOST_AUTO_TEST_CASE(current_namespace_names_the_enclosing_namespace) {
-    using namespace enclosing_helper;
-
-    auto comp = initialize<test_registry>();
-
-    BOOST_TEST((registered<Animal, test_registry>(comp)));
-    BOOST_TEST((registered<Dog, test_registry>(comp)));
-    BOOST_TEST(
-        (!registered<enclosing_helper_outside::Stray, test_registry>(comp)));
-
-    Dog dog;
-    BOOST_TEST(poke(dog) == "bark");
-}
-
-// =============================================================================
 // Classes without a namespace root a scan of the global namespace
 
 namespace classes_only {

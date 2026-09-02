@@ -329,10 +329,11 @@ renders correctly).
 **The C++26 reflection API is the one exception, and it is a forced one.** MrDocs' front-end does
 not implement P2996, so the reference build runs at `-D CMAKE_CXX_STANDARD=20` and
 `BOOST_OPENMETHOD_HAS_REFLECTION` is 0 there: every `#if BOOST_OPENMETHOD_HAS_REFLECTION` block is
-invisible to it. `register_classes` and `current_namespace` are therefore restated as
-documentation stubs in an `#elif defined(__MRDOCS__)` branch at the end of `core.hpp`, and
-`detail/reflection.hpp` forward-declares `std::meta::info` and `std::meta::access_context` under
-`#ifdef __MRDOCS__` so those stubs can spell their real signatures. Two rules contain the drift:
+invisible to it. `register_classes` is therefore restated as a documentation stub in an
+`#elif defined(__MRDOCS__)` branch at the end of `core.hpp`. That stub names no `std::meta` type,
+so nothing has to stand in for one; should a future stub need to spell one, forward-declare it
+under `#ifdef __MRDOCS__` in `detail/reflection.hpp`, where `include-symbols` in `mrdocs.yml`
+(`boost::openmethod::**`) keeps it out of the reference. Two rules contain the drift:
 
 - **Each doc comment exists exactly once, on the stub.** The real declaration carries only
   `//! @see @ref <name> for documentation.`, as `inplace_vptr_derived` already does. Never copy
