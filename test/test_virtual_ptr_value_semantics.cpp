@@ -272,7 +272,9 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(indirect_virtual_ptr, Registry, test_policies) {
     BOOST_TEST(p.vptr() == Registry::template static_vptr<Dog>);
 
     // Add a class, to make sure dispatch data is not re-constructed in the same
-    // place with the same values:
+    // place with the same values. `Cat` is local to this function, so a
+    // namespace scan cannot see it: the registration is by hand under every
+    // standard, like the one in the header.
     struct Cat : Animal {};
     BOOST_OPENMETHOD_CLASSES(Animal, Cat, Registry);
 

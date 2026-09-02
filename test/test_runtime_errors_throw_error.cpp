@@ -22,7 +22,7 @@ struct test_registry :
 using namespace boost::openmethod;
 using namespace test_matrices;
 
-BOOST_OPENMETHOD_CLASSES(matrix, dense_matrix, diagonal_matrix);
+BOOST_OPENMETHOD_TEST_CLASSES(matrix, dense_matrix, diagonal_matrix);
 
 BOOST_OPENMETHOD(
     times, (virtual_<const matrix&>, virtual_<const matrix&>), void);
@@ -41,3 +41,7 @@ BOOST_AUTO_TEST_CASE(throw_error) {
         BOOST_FAIL("wrong exception");
     }
 }
+
+// Registers the classes above by reflection, when the compiler supports it.
+// Must come last: reflection sees only what precedes it.
+BOOST_OPENMETHOD_REGISTER_CLASSES();

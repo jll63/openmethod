@@ -59,6 +59,81 @@ option(
     BOOST_OPENMETHOD_WARNINGS_AS_ERRORS
     "Treat warnings as errors"
     OFF)
+option(
+    BOOST_OPENMETHOD_ENABLE_REFLECTION
+    "Build the tests and examples with C++26 reflection enabled"
+    OFF)
+
+# C++26 reflection (P2996). The library detects it on its own, from
+# __cpp_impl_reflection; this only arranges for the tests to be built in a mode
+# where the compiler provides it, which needs both C++26 and, on GCC, an opt-in
+# flag. It is applied per target rather than through CMAKE_CXX_FLAGS, because
+# CMake probes the compiler before CMAKE_CXX_STANDARD takes effect and GCC
+# rejects -freflection under any other standard.
+set(BOOST_OPENMETHOD_REFLECTION_OPTIONS "")
+
+if (BOOST_OPENMETHOD_ENABLE_REFLECTION)
+    include(CheckCXXSourceCompiles)
+
+    set(BOOST_OPENMETHOD_REFLECTION_TEST_SOURCE [[
+        #include <meta>
+        struct Base {};
+        struct Derived : Base {};
+        consteval auto count() -> int {
+            return static_cast<int>(
+                std::meta::bases_of(
+                    ^^Derived, std::meta::access_context::unchecked()).size());
+        }
+        static_assert(count() == 1);
+        int main() {}
+    ]])
+
+    set(CMAKE_REQUIRED_QUIET ON)
+
+    foreach(candidate "-std=c++26" "-std=c++26;-freflection")
+        string(REPLACE ";" " " candidate_flags "${candidate}")
+        set(CMAKE_REQUIRED_FLAGS "${candidate_flags}")
+        unset(BOOST_OPENMETHOD_HAS_REFLECTION CACHE)
+        check_cxx_source_compiles(
+            "${BOOST_OPENMETHOD_REFLECTION_TEST_SOURCE}"
+            BOOST_OPENMETHOD_HAS_REFLECTION)
+
+        if (BOOST_OPENMETHOD_HAS_REFLECTION)
+            set(BOOST_OPENMETHOD_REFLECTION_OPTIONS ${candidate})
+            break()
+        endif()
+    endforeach()
+
+    unset(CMAKE_REQUIRED_FLAGS)
+    unset(CMAKE_REQUIRED_QUIET)
+
+    if (NOT BOOST_OPENMETHOD_HAS_REFLECTION)
+        message(
+            FATAL_ERROR
+            "BOOST_OPENMETHOD_ENABLE_REFLECTION is ON but ${CMAKE_CXX_COMPILER_ID} "
+            "${CMAKE_CXX_COMPILER_VERSION} does not support C++26 reflection")
+    endif()
+
+    message(
+        STATUS
+        "Boost.OpenMethod: C++26 reflection enabled"
+        " [${BOOST_OPENMETHOD_REFLECTION_OPTIONS}]")
+endif()
+
+# Build `target` with C++26 reflection, if BOOST_OPENMETHOD_ENABLE_REFLECTION is
+# ON. Does nothing otherwise, so callers need no condition of their own.
+function(boost_openmethod_enable_reflection target)
+    if (NOT BOOST_OPENMETHOD_ENABLE_REFLECTION)
+        return()
+    endif()
+
+    # The standard flag is passed here rather than through CXX_STANDARD: CMake
+    # learned the value 26 only in 3.30, and this project supports older ones.
+    # target_compile_options come after the flag CMake derives from the
+    # library's cxx_std_17 requirement, and the last -std wins.
+    target_compile_options(
+        ${target} PRIVATE ${BOOST_OPENMETHOD_REFLECTION_OPTIONS})
+endfunction()
 
 if (BOOST_OPENMETHOD_BUILD_EXAMPLES AND NOT BOOST_OPENMETHOD_BUILD_TESTS)
     message(

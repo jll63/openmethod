@@ -7,6 +7,8 @@
 #include <boost/openmethod/interop/std_unique_ptr.hpp>
 #include <boost/openmethod/initialize.hpp>
 
+#include "test_classes.hpp"
+
 #include <ostream>
 
 #define BOOST_TEST_MODULE virtual_ptr_unique
@@ -22,7 +24,7 @@ struct Animal {
 
 struct Dog : Animal {};
 
-BOOST_OPENMETHOD_CLASSES(Animal, Dog);
+BOOST_OPENMETHOD_TEST_CLASSES(Animal, Dog);
 
 BOOST_OPENMETHOD(poke, (unique_virtual_ptr<Animal>, std::ostream&), void);
 
@@ -40,3 +42,7 @@ BOOST_AUTO_TEST_CASE(test_virtual_unique) {
         BOOST_CHECK(os.is_equal("bark"));
     }
 }
+
+// Registers the classes above by reflection, when the compiler supports it.
+// Must come last: reflection sees only what precedes it.
+BOOST_OPENMETHOD_REGISTER_CLASSES();

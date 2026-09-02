@@ -219,6 +219,8 @@ inline constexpr bool method_not_found = false;
 //! @see [Header and Implementation Files](xref:ROOT:headers.adoc)
 #define BOOST_OPENMETHOD(ID, PARAMETERS, ...)                                  \
     struct BOOST_OPENMETHOD_ID(ID);                                            \
+    using BOOST_OPENMETHOD_GENSYM =                                            \
+        BOOST_OPENMETHOD_TYPE(ID, PARAMETERS, __VA_ARGS__);                    \
     template<typename... ForwarderParameters>                                  \
     typename ::boost::openmethod::detail::enable_forwarder<                    \
         void, BOOST_OPENMETHOD_TYPE(ID, PARAMETERS, __VA_ARGS__),              \
@@ -586,6 +588,53 @@ inline constexpr bool method_not_found = false;
 //! @see [Methods and Overriders](xref:ROOT:basics.adoc)
 #define BOOST_OPENMETHOD_CLASSES(...)                                          \
     BOOST_OPENMETHOD_REGISTER(::boost::openmethod::use_classes<__VA_ARGS__>)
+
+// The reference documentation for this macro is on the fallback definition
+// below. MrDocs compiles the `#else` branch, and a doc comment separated
+// from its `#define` by preprocessor directives is not attached to it.
+#if BOOST_OPENMETHOD_HAS_REFLECTION
+#define BOOST_OPENMETHOD_REGISTER_CLASSES(...)                                 \
+    BOOST_OPENMETHOD_REGISTER(                                                 \
+        ::boost::openmethod::register_classes<__VA_ARGS__>)
+#else
+//! Find the classes taking part in dispatch by reflection, and register them.
+//!
+//! It makes @ref BOOST_OPENMETHOD_CLASSES unnecessary in most cases.
+//!
+//! This macro is a wrapper around @ref boost::openmethod::register_classes; see
+//! its documentation for the meaning of the arguments, which are passed
+//! through verbatim: groups of reflections, each written in braces - or, for a
+//! group of one, as the reflection itself - holding the namespaces to scan,
+//! the classes to register, and the registries; each group optional, in that
+//! order. With no namespace group, the global namespace is scanned.
+//!
+//! Reflection sees only what precedes it, so this macro must come **after** the
+//! declarations it is meant to find - at the bottom of the file:
+//!
+//! @code
+//! struct Animal { virtual ~Animal() = default; };
+//! struct Cat : Animal {};
+//! struct Dog : Animal {};
+//! struct Bulldog : Dog {};
+//!
+//! BOOST_OPENMETHOD(poke, (std::ostream&, virtual_<Animal&>), void);
+//!
+//! BOOST_OPENMETHOD_OVERRIDE(poke, (std::ostream& os, Dog&), void) {
+//!     os << "bark";
+//! }
+//!
+//! BOOST_OPENMETHOD_REGISTER_CLASSES(); // registers all four classes
+//! @endcode
+//!
+//! Without reflection - in C++17, or in C++26 without the compiler flag that
+//! enables it - this macro expands to nothing, so a file that also calls
+//! @ref BOOST_OPENMETHOD_CLASSES builds under either standard.
+//!
+//! @param ... Braced groups: namespaces, classes, registries - see above.
+//!
+//! @see [Methods and Overriders](xref:ROOT:basics.adoc)
+#define BOOST_OPENMETHOD_REGISTER_CLASSES(...) static_assert(true)
+#endif
 
 // The three macros below share a registry's state - the single variable
 // registry_state<R::registry_type>::st, see registry_state in preamble.hpp -

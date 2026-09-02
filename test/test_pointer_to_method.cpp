@@ -6,6 +6,8 @@
 #include <boost/openmethod.hpp>
 #include <boost/openmethod/initialize.hpp>
 
+#include "test_classes.hpp"
+
 #include <string>
 
 #define BOOST_TEST_MODULE openmethod
@@ -21,7 +23,7 @@ class Animal {
 
 class Dog : public Animal {};
 
-BOOST_OPENMETHOD_CLASSES(Animal, Dog, Animal);
+BOOST_OPENMETHOD_TEST_CLASSES(Animal, Dog, Animal);
 
 BOOST_OPENMETHOD(poke, (virtual_<Animal&>), std::string);
 
@@ -35,3 +37,7 @@ BOOST_AUTO_TEST_CASE(noadl) {
     Dog snoopy;
     BOOST_TEST(stimulus(snoopy) == "bark");
 }
+
+// Registers the classes above by reflection, when the compiler supports it.
+// Must come last: reflection sees only what precedes it.
+BOOST_OPENMETHOD_REGISTER_CLASSES();

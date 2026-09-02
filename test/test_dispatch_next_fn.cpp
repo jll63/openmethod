@@ -9,6 +9,8 @@
 #include <boost/openmethod.hpp>
 #include <boost/openmethod/initialize.hpp>
 
+#include "test_classes.hpp"
+
 #define BOOST_TEST_MODULE dispatch_next_fn
 #include <boost/test/unit_test.hpp>
 
@@ -22,7 +24,7 @@ struct Animal {
 struct Dog : Animal {};
 struct Bulldog : Dog {};
 
-BOOST_OPENMETHOD_CLASSES(Animal, Dog, Bulldog);
+BOOST_OPENMETHOD_TEST_CLASSES(Animal, Dog, Bulldog);
 
 struct BOOST_OPENMETHOD_ID(poke);
 using poke =
@@ -49,3 +51,7 @@ BOOST_AUTO_TEST_CASE(test_next_fn) {
     std::unique_ptr<Animal> hector = std::make_unique<Bulldog>();
     BOOST_TEST(poke::fn(*hector) == "bark and bite back");
 }
+
+// Registers the classes above by reflection, when the compiler supports it.
+// Must come last: reflection sees only what precedes it.
+BOOST_OPENMETHOD_REGISTER_CLASSES();

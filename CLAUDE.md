@@ -317,13 +317,62 @@ Two rules keep the reference clean; the long-form version lives next to the macr
 Between them these cover every constraint in the library, so **do not declare a member twice**, an
 unqualified copy under `#ifdef __MRDOCS__` beside the real one. Only MrDocs ever compiles that
 copy, so the two drift apart silently and the reference then documents a constraint the library
-does not have. The `#ifdef __MRDOCS__` blocks that remain remove declarations from the reference
-(friends, deleted overloads, the `VirtualTraits` blueprint) rather than restate them.
+does not have. Most of the `#ifdef __MRDOCS__` blocks therefore *remove* declarations from the
+reference (friends, deleted overloads) or describe something that has no real counterpart at all
+(the `VirtualTraits` blueprint).
 
 Only expressions are affected: types are printed from the AST, so the macro may appear anywhere in
 one (`method::operator()` takes
 `typename BOOST_OPENMETHOD_UNLESS_MRDOCS(detail::) StripVirtualDecorator<Parameters>::type...` and
-renders correctly). After a doc build, `grep -rl MRDOCS doc/html/` must return nothing.
+renders correctly).
+
+**The C++26 reflection API is the one exception, and it is a forced one.** MrDocs' front-end does
+not implement P2996, so the reference build runs at `-D CMAKE_CXX_STANDARD=20` and
+`BOOST_OPENMETHOD_HAS_REFLECTION` is 0 there: every `#if BOOST_OPENMETHOD_HAS_REFLECTION` block is
+invisible to it. `register_classes` is therefore restated as a documentation stub in an
+`#elif defined(__MRDOCS__)` branch at the end of `core.hpp`. That stub names no `std::meta` type,
+so nothing has to stand in for one; should a future stub need to spell one, forward-declare it
+under `#ifdef __MRDOCS__` in `detail/reflection.hpp`, where `include-symbols` in `mrdocs.yml`
+(`boost::openmethod::**`) keeps it out of the reference. Two rules contain the drift:
+
+- **Each doc comment exists exactly once, on the stub.** The real declaration carries only
+  `//! @see @ref <name> for documentation.`, as `inplace_vptr_derived` already does. Never copy
+  a doc comment into both branches.
+- **Prefer widening a guard to writing a stub** whenever the code parses as C++20: a declaration
+  that is plain C++17 or C++20 can be guarded with
+  `#if BOOST_OPENMETHOD_HAS_REFLECTION || defined(__MRDOCS__)`, and MrDocs then reads the real
+  definition instead of a copy that can drift.
+
+The `register_classes` stub is spelled `template<auto... Groups>` where the real one is
+`template<detail::reflection_group... Groups>`. The stub drops the group type, which is an
+implementation detail the reference has no reason to name - its braces are the only thing a
+caller writes.
+
+**A macro defined in both branches of an `#if` must carry its doc comment on the `#else` one.**
+MrDocs compiles that branch, and a comment separated from its `#define` by preprocessor directives
+is not attached to it - `BOOST_OPENMETHOD_REGISTER_CLASSES` silently produced no page at all until
+its comment was moved down. Symptom to watch for: a `xref:reference:<NAME>.adoc` that renders as a
+literal `href="#reference:<NAME>.adoc"`.
+
+### Doc-comment markup traps
+
+MrDocs parses `//!` comments as Markdown plus Doxygen commands, then emits AsciiDoc. Three shapes
+mis-render silently; all three were found by rendering, none by reading the source:
+
+- **A line starting with `- ` becomes a list item.** House style uses ` - ` as an em-dash, which is
+  fine mid-line but starts a stray bullet at the head of one. Rewrap so the dash never begins a
+  line, or reword to a semicolon.
+- **`@ref` inside `**bold**` breaks the span**, leaving literal `**` in the output. Bold plain text
+  only: `**Options**: at most one @ref ... value`, not `**One @ref ... value**`.
+- **An inline `` `^^::` `` loses both carets** and renders as `::`. Escape the first one -
+  `` `\^^::` `` - which comes through as `^^::`. Only this spelling is affected; `` `^^app` `` and
+  `^^::` inside an `@code` block are fine.
+
+An `xref:reference:<name>.adoc` path works only for macros, which MrDocs puts at the top level.
+A namespace-scoped symbol lives under `reference/boost/openmethod/`, so link it with
+`cpp:<name>[]`, which resolves wherever the page ends up.
+
+After a doc build, `grep -rl MRDOCS doc/html/` must return nothing.
 
 **An `@ref` whose target MrDocs cannot find is not an error.** It emits the name as plain text,
 which looks exactly like a deliberate code span in the rendered page - so a wrong target survives

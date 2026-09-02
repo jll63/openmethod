@@ -14,7 +14,10 @@
 using namespace boost::openmethod;
 using namespace test_matrices;
 
-BOOST_OPENMETHOD_CLASSES(matrix, dense_matrix, diagonal_matrix);
+// dense_matrix has no overrider of its own and is named in no method
+// signature, but it is a namespace-scope class deriving publicly from a class
+// the methods below dispatch on, so the scan finds it like the others.
+BOOST_OPENMETHOD_TEST_CLASSES(matrix, diagonal_matrix, dense_matrix);
 
 BOOST_OPENMETHOD(
     times, (virtual_<const matrix&>, virtual_<const matrix&>), string_pair);
@@ -69,3 +72,7 @@ BOOST_AUTO_TEST_CASE(simple) {
             times(diag, 2) == string_pair(DIAGONAL_SCALAR, MATRIX_SCALAR));
     }
 }
+
+// Registers the classes above by reflection, when the compiler supports it.
+// Must come last: reflection sees only what precedes it.
+BOOST_OPENMETHOD_REGISTER_CLASSES();

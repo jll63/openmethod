@@ -147,6 +147,54 @@ BOOST_AUTO_TEST_CASE(test_use_classes_linear) {
     BOOST_CHECK_EQUAL(sstr(d4->transitive_derived), sstr(d4, d5));
 }
 
+// The lattice must not depend on the order in which classes are registered.
+// Every record below carries exactly one, genuinely direct, base; only the order
+// of the calls differs from `test_use_classes_linear`, with D3's own ancestry
+// registered last.
+BOOST_AUTO_TEST_CASE(test_use_classes_derived_before_base) {
+    struct Base {
+        virtual ~Base() = default;
+    };
+
+    struct D1 : Base {};
+    struct D2 : D1 {};
+    struct D3 : D2 {};
+    struct D4 : D3 {};
+    struct D5 : D4 {};
+
+    struct registry : test_registry_<__COUNTER__> {};
+
+    BOOST_OPENMETHOD_CLASSES(D3, D4, registry);
+    BOOST_OPENMETHOD_CLASSES(D4, D5, registry);
+    BOOST_OPENMETHOD_CLASSES(Base, D1, D2, D3, registry);
+
+    auto comp = initialize<registry>();
+
+    auto base = get_class<Base>(comp);
+    auto d1 = get_class<D1>(comp);
+    auto d2 = get_class<D2>(comp);
+    auto d3 = get_class<D3>(comp);
+    auto d4 = get_class<D4>(comp);
+    auto d5 = get_class<D5>(comp);
+
+    BOOST_CHECK_EQUAL(sstr(base->direct_bases), empty);
+    BOOST_CHECK_EQUAL(sstr(d1->direct_bases), sstr(base));
+    BOOST_CHECK_EQUAL(sstr(d2->direct_bases), sstr(d1));
+    BOOST_CHECK_EQUAL(sstr(d3->direct_bases), sstr(d2));
+    BOOST_CHECK_EQUAL(sstr(d4->direct_bases), sstr(d3));
+    // D3 is an *indirect* base of D5, and must not appear here.
+    BOOST_CHECK_EQUAL(sstr(d5->direct_bases), sstr(d4));
+
+    BOOST_CHECK_EQUAL(sstr(d5->transitive_bases), sstr(base, d1, d2, d3, d4));
+    BOOST_CHECK_EQUAL(sstr(d4->transitive_bases), sstr(base, d1, d2, d3));
+
+    BOOST_CHECK_EQUAL(sstr(base->direct_derived), sstr(d1));
+    BOOST_CHECK_EQUAL(sstr(d3->direct_derived), sstr(d4));
+    BOOST_CHECK_EQUAL(sstr(d4->direct_derived), sstr(d5));
+    BOOST_CHECK_EQUAL(
+        sstr(base->transitive_derived), sstr(base, d1, d2, d3, d4, d5));
+}
+
 BOOST_AUTO_TEST_CASE(test_use_classes_diamond) {
     using test_registry = test_registry_<__COUNTER__>;
     BOOST_OPENMETHOD_REGISTER(use_classes<A, B, AB, C, D, E, test_registry>);

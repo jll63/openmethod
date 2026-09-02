@@ -37,6 +37,9 @@ struct Cat : virtual Animal {};
 
 struct Dog : Animal {};
 
+// These tests exercise virtual_ptr itself and declare no method, so there is no
+// virtual parameter for reflection to start from: the classes are registered by
+// hand under every standard.
 BOOST_OPENMETHOD_CLASSES(Animal, Cat, Dog);
 
 struct id;

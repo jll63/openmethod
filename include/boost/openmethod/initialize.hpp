@@ -158,6 +158,9 @@ struct generic_compiler {
 
     struct class_ {
         std::vector<detail::class_info*> ci;
+        // What the records declared, before the closure is computed; emptied by
+        // calculate_transitive_bases.
+        std::vector<class_*> declared_bases;
         std::vector<class_*> transitive_bases;
         std::vector<class_*> direct_bases;
         std::vector<class_*> direct_derived;
@@ -167,6 +170,7 @@ struct generic_compiler {
         boost::dynamic_bitset<> reserved_slots;
         std::size_t first_slot = 0;
         std::size_t mark = 0; // temporary mark to detect cycles
+        bool transitive_bases_done = false;
         std::vector<vtbl_entry> vtbl;
 
         auto is_base_of(class_* other) const -> bool {
@@ -551,7 +555,7 @@ struct registry<Policies...>::compiler : detail::generic_compiler {
     void install_global_tables();
 
     void augment_classes();
-    void collect_transitive_bases(class_* cls, class_* base);
+    void calculate_transitive_bases(class_& cls);
     void calculate_transitive_derived(class_& cls);
     void augment_methods();
     void assign_slots();
@@ -666,18 +670,41 @@ registry<Policies...>::compiler<Options...>::compiler(Options... opts) :
 
 template<class... Policies>
 template<class... Options>
-void registry<Policies...>::compiler<Options...>::collect_transitive_bases(
-    class_* cls, class_* base) {
-    if (base->mark == class_mark) {
+void registry<Policies...>::compiler<Options...>::calculate_transitive_bases(
+    class_& cls) {
+    if (cls.transitive_bases_done) {
         return;
     }
 
-    cls->transitive_bases.push_back(base);
-    base->mark = class_mark;
+    // Set before recursing. Inheritance cannot cycle, so this only guards
+    // against a malformed set of records.
+    cls.transitive_bases_done = true;
 
-    for (auto base_base : base->transitive_bases) {
-        collect_transitive_bases(cls, base_base);
+    // Complete every declared base first, so that merging them below sees
+    // their full closure. Recursing bumps `class_mark`, hence the fresh mark
+    // afterwards.
+    for (auto base : cls.declared_bases) {
+        calculate_transitive_bases(*base);
     }
+
+    auto mark = ++class_mark;
+
+    for (auto base : cls.declared_bases) {
+        if (base->mark != mark) {
+            base->mark = mark;
+            cls.transitive_bases.push_back(base);
+        }
+
+        for (auto base_base : base->transitive_bases) {
+            if (base_base->mark != mark) {
+                base_base->mark = mark;
+                cls.transitive_bases.push_back(base_base);
+            }
+        }
+    }
+
+    cls.declared_bases.clear();
+    cls.declared_bases.shrink_to_fit();
 }
 
 template<class... Policies>
@@ -760,29 +787,21 @@ void registry<Policies...>::compiler<Options...>::augment_classes() {
             if (rtc != rtb) {
                 // At compile time we collected the class as its own
                 // improper base, as per std::is_base_of. Eliminate that.
-                ++class_mark;
-                collect_transitive_bases(rtc, rtb);
+                rtc->declared_bases.push_back(rtb);
             }
         }
     }
 
-    // At this point bases may contain duplicates, and also indirect
-    // bases. Clean that up.
-
-    std::size_t mark = ++class_mark;
+    // `declared_bases` now holds whatever the records said - direct bases,
+    // ancestors, or a mixture, with duplicates. Turn that into the transitive
+    // closure. This is done here rather than while reading the records because
+    // a record's bases are only as informative as the records already seen: a
+    // class registered before its own bases would otherwise be left with a
+    // short list. That matters beyond `transitive_bases` itself, because the
+    // direct-base derivation below sorts on its size.
 
     for (auto& rtc : classes) {
-        decltype(rtc.transitive_bases) bases;
-        mark = ++class_mark;
-
-        for (auto rtb : rtc.transitive_bases) {
-            if (rtb->mark != mark) {
-                bases.push_back(rtb);
-                rtb->mark = mark;
-            }
-        }
-
-        rtc.transitive_bases.swap(bases);
+        calculate_transitive_bases(rtc);
     }
 
     for (auto& rtc : classes) {
@@ -793,7 +812,7 @@ void registry<Policies...>::compiler<Options...>::augment_classes() {
             [](auto a, auto b) {
                 return a->transitive_bases.size() > b->transitive_bases.size();
             });
-        mark = ++class_mark;
+        auto mark = ++class_mark;
 
         // Collect the direct base classes. The first base is certainly a
         // direct one. Remove *its* bases from the candidates, by marking

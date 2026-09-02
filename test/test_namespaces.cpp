@@ -29,9 +29,14 @@ class Dolphin : public interfaces::Animal {};
 #include <boost/openmethod.hpp>
 #include <boost/openmethod/initialize.hpp>
 
+#include "test_classes.hpp"
+
 using boost::openmethod::virtual_;
 
-BOOST_OPENMETHOD_CLASSES(
+// Dolphin has no overrider of its own and is named in no method signature,
+// but it is a namespace-scope class deriving publicly from a class the methods
+// below dispatch on, so the scan finds it like the others.
+BOOST_OPENMETHOD_TEST_CLASSES(
     interfaces::Animal, canis::Dog, canis::Bulldog, felis::Cat,
     delphinus::Dolphin);
 
@@ -102,3 +107,7 @@ auto main() -> int {
     std::cout << "hector meets flipper: " << meet(*hector, *flipper)
               << "\n"; // ignore
 }
+
+// Registers the classes above by reflection, when the compiler supports it.
+// Must come last: reflection sees only what precedes it.
+BOOST_OPENMETHOD_REGISTER_CLASSES();

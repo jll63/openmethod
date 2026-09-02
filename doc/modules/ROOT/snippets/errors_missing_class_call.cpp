@@ -7,6 +7,8 @@
 // which `default_registry` carries only when this symbol is defined.
 #define BOOST_OPENMETHOD_ENABLE_RUNTIME_CHECKS
 
+#include "explicit_registration.hpp"
+
 #include <boost/openmethod.hpp>
 #include <boost/openmethod/initialize.hpp>
 

@@ -8,6 +8,8 @@
 #include <boost/openmethod.hpp>
 #include <boost/openmethod/initialize.hpp>
 
+#include "test_classes.hpp"
+
 #define BOOST_TEST_MODULE dispatch_across_namespaces
 #include <boost/test/unit_test.hpp>
 
@@ -29,7 +31,7 @@ namespace more_animals {
 
 class Dog : public animals::Animal {};
 
-BOOST_OPENMETHOD_CLASSES(Dog, animals::Animal);
+BOOST_OPENMETHOD_TEST_CLASSES(Dog, animals::Animal);
 
 BOOST_OPENMETHOD_OVERRIDE(poke, (const Dog&), std::string) {
     return "bark";
@@ -43,3 +45,7 @@ BOOST_AUTO_TEST_CASE(across_namespaces) {
     const animals::Animal& animal = more_animals::Dog();
     BOOST_TEST("bark" == poke(animal));
 }
+
+// Registers the classes above by reflection, when the compiler supports it.
+// Must come last: reflection sees only what precedes it.
+BOOST_OPENMETHOD_REGISTER_CLASSES();
