@@ -26,4 +26,13 @@ struct Animal {
 BOOST_OPENMETHOD(poke, (virtual_ptr<Animal>), std::string, other_registry);
 
 int main() {
+    // The check is a fold in `method`'s class body, so it needs the class to be
+    // instantiated. Declaring the method is not enough: gcc and clang
+    // instantiate it anyway through the registrar, but MSVC does not, and the
+    // file then compiles. Calling it forces the point, on every compiler - like
+    // compile_fail_virtual_ptr_different_registries.cpp does.
+    Animal animal;
+    poke(animal);
+
+    return 0;
 }
