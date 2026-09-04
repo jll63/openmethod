@@ -9,6 +9,7 @@
 
 #include "method.hpp"
 #include "shared_overrider.hpp"
+#include "../test_classes.hpp"
 
 #if defined(_WIN32) || defined(__CYGWIN__)
 #include <boost/config.hpp>
@@ -29,7 +30,7 @@ BOOST_OPENMETHOD_OVERRIDE(
     return {"wag tails", next_word};
 }
 
-BOOST_OPENMETHOD_CLASSES(Animal, Dog, Cat);
+BOOST_OPENMETHOD_TEST_CLASSES(Animal, Dog, Cat);
 
 extern "C" {
 
@@ -54,3 +55,7 @@ BOOST_SYMBOL_EXPORT void overrider_call_meet(
     result = meet(a, b);
 }
 }
+
+// Registers the classes above by reflection, when the compiler supports it.
+// Last in the file: the standard wants the registrar after what it selects.
+BOOST_OPENMETHOD_REGISTER_CLASSES();

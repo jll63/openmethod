@@ -445,5 +445,5 @@ template struct check_illegal_smart_ops<
     boost::intrusive_ptr, std::unique_ptr, direct_vector>;
 
 // Registers the classes above by reflection, when the compiler supports it.
-// Must come last: reflection sees only what precedes it.
+// Last in the file: the standard wants the registrar after what it selects.
 BOOST_OPENMETHOD_REGISTER_CLASSES();

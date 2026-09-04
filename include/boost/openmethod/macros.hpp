@@ -608,8 +608,11 @@ inline constexpr bool method_not_found = false;
 //! the classes to register, and the registries; each group optional, in that
 //! order. With no namespace group, the global namespace is scanned.
 //!
-//! Reflection sees only what precedes it, so this macro must come **after** the
-//! declarations it is meant to find - at the bottom of the file:
+//! The scan sees the whole translation unit on current compilers, but the
+//! standard promises less: a class or a method it would select, declared after
+//! the macro in the same translation unit, makes the program ill-formed, no
+//! diagnostic required. Put the macro **after** the declarations it is meant to
+//! find, at the bottom of the file:
 //!
 //! @code
 //! struct Animal { virtual ~Animal() = default; };
@@ -627,7 +630,7 @@ inline constexpr bool method_not_found = false;
 //! @endcode
 //!
 //! Without reflection - in C++17, or in C++26 without the compiler flag that
-//! enables it - this macro expands to nothing, so a file that also calls
+//! enables it - this macro expands to a no-op, so a file that also calls
 //! @ref BOOST_OPENMETHOD_CLASSES builds under either standard.
 //!
 //! @param ... Braced groups: namespaces, classes, registries - see above.

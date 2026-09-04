@@ -50,5 +50,5 @@ BOOST_AUTO_TEST_CASE(bad_call_type_ids) {
 }
 
 // Registers the classes above by reflection, when the compiler supports it.
-// Must come last: reflection sees only what precedes it.
+// Last in the file: the standard wants the registrar after what it selects.
 BOOST_OPENMETHOD_REGISTER_CLASSES();

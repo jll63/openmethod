@@ -65,15 +65,30 @@ option(
     OFF)
 
 # C++26 reflection (P2996). The library detects it on its own, from
-# __cpp_impl_reflection; this only arranges for the tests to be built in a mode
-# where the compiler provides it, which needs both C++26 and, on GCC, an opt-in
-# flag. It is applied per target rather than through CMAKE_CXX_FLAGS, because
-# CMake probes the compiler before CMAKE_CXX_STANDARD takes effect and GCC
-# rejects -freflection under any other standard.
+# __cpp_impl_reflection; this only arranges for the tests and examples to be
+# built in a mode where the compiler provides it, which needs both C++26 and, on
+# GCC, an opt-in flag. The options are added to this directory - every test,
+# example and snippet, the shared-library ones in the subdirectories included -
+# rather than to CMAKE_CXX_FLAGS, because CMake probes the compiler before
+# CMAKE_CXX_STANDARD takes effect and GCC rejects -freflection under any other
+# standard.
 set(BOOST_OPENMETHOD_REFLECTION_OPTIONS "")
 
 if (BOOST_OPENMETHOD_ENABLE_REFLECTION)
     include(CheckCXXSourceCompiles)
+
+    # The probe passes its own -std flag, and try_compile appends the one it
+    # derives from CMAKE_CXX_STANDARD *after* CMAKE_REQUIRED_FLAGS (policy
+    # CMP0067), where it would win: a configure that sets the standard - a
+    # preset, a toolchain file, a consuming project - would fail both candidates
+    # and stop at the FATAL_ERROR below. Take the variables out of the probe's
+    # way, and put them back after. Set to nothing rather than unset: a normal
+    # variable hides a cache one - a -D on the command line - where unset would
+    # expose it, and try_compile leaves an empty standard alone.
+    set(BOOST_OPENMETHOD_SAVED_CXX_STANDARD "${CMAKE_CXX_STANDARD}")
+    set(BOOST_OPENMETHOD_SAVED_CXX_EXTENSIONS "${CMAKE_CXX_EXTENSIONS}")
+    set(CMAKE_CXX_STANDARD "")
+    set(CMAKE_CXX_EXTENSIONS "")
 
     set(BOOST_OPENMETHOD_REFLECTION_TEST_SOURCE [[
         #include <meta>
@@ -107,6 +122,16 @@ if (BOOST_OPENMETHOD_ENABLE_REFLECTION)
     unset(CMAKE_REQUIRED_FLAGS)
     unset(CMAKE_REQUIRED_QUIET)
 
+    # An empty one is unset, not set to nothing, which a target would take for
+    # an invalid standard.
+    foreach(var CMAKE_CXX_STANDARD CMAKE_CXX_EXTENSIONS)
+        if ("${BOOST_OPENMETHOD_SAVED_${var}}" STREQUAL "")
+            unset(${var})
+        else()
+            set(${var} "${BOOST_OPENMETHOD_SAVED_${var}}")
+        endif()
+    endforeach()
+
     if (NOT BOOST_OPENMETHOD_HAS_REFLECTION)
         message(
             FATAL_ERROR
@@ -118,22 +143,17 @@ if (BOOST_OPENMETHOD_ENABLE_REFLECTION)
         STATUS
         "Boost.OpenMethod: C++26 reflection enabled"
         " [${BOOST_OPENMETHOD_REFLECTION_OPTIONS}]")
-endif()
-
-# Build `target` with C++26 reflection, if BOOST_OPENMETHOD_ENABLE_REFLECTION is
-# ON. Does nothing otherwise, so callers need no condition of their own.
-function(boost_openmethod_enable_reflection target)
-    if (NOT BOOST_OPENMETHOD_ENABLE_REFLECTION)
-        return()
-    endif()
 
     # The standard flag is passed here rather than through CXX_STANDARD: CMake
     # learned the value 26 only in 3.30, and this project supports older ones.
-    # target_compile_options come after the flag CMake derives from the
-    # library's cxx_std_17 requirement, and the last -std wins.
-    target_compile_options(
-        ${target} PRIVATE ${BOOST_OPENMETHOD_REFLECTION_OPTIONS})
-endfunction()
+    # Directory compile options come after the flag CMake derives from the
+    # library's cxx_std_17 requirement, and the last -std wins. The definition
+    # makes a target that does not end up with reflection fail to build, instead
+    # of quietly falling back to explicit class registration: see
+    # test/test_classes.hpp.
+    add_compile_options(${BOOST_OPENMETHOD_REFLECTION_OPTIONS})
+    add_compile_definitions(BOOST_OPENMETHOD_EXPECT_REFLECTION)
+endif()
 
 if (BOOST_OPENMETHOD_BUILD_EXAMPLES AND NOT BOOST_OPENMETHOD_BUILD_TESTS)
     message(

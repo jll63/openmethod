@@ -16,8 +16,13 @@
 
 #include "registry.hpp"
 #include "classes.hpp"
+#include "../test_classes.hpp"
 
 using namespace boost::openmethod;
 namespace mp11 = boost::mp11;
 
-BOOST_OPENMETHOD_CLASSES(Animal, Dog, Cat);
+BOOST_OPENMETHOD_TEST_CLASSES(Animal, Dog, Cat);
+
+// Registers the classes above by reflection, when the compiler supports it.
+// Last in the file: the standard wants the registrar after what it selects.
+BOOST_OPENMETHOD_REGISTER_CLASSES();
