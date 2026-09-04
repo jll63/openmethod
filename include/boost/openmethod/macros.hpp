@@ -599,6 +599,12 @@ inline constexpr bool method_not_found = false;
 #else
 //! Find the classes taking part in dispatch by reflection, and register them.
 //!
+//! @warning Does its work only with C++26 reflection (P2996): a compiler
+//! that implements it, and the flag that turns it on - `-freflection` with
+//! GCC 16. Without it - in C++17, or in C++26 without the flag - the macro
+//! expands to a no-op, so a file that also calls @ref BOOST_OPENMETHOD_CLASSES
+//! builds under either standard.
+//!
 //! It makes @ref BOOST_OPENMETHOD_CLASSES unnecessary in most cases.
 //!
 //! This macro is a wrapper around @ref boost::openmethod::register_classes; see
@@ -628,10 +634,6 @@ inline constexpr bool method_not_found = false;
 //!
 //! BOOST_OPENMETHOD_REGISTER_CLASSES(); // registers all four classes
 //! @endcode
-//!
-//! Without reflection - in C++17, or in C++26 without the compiler flag that
-//! enables it - this macro expands to a no-op, so a file that also calls
-//! @ref BOOST_OPENMETHOD_CLASSES builds under either standard.
 //!
 //! @param ... Braced groups: namespaces, classes, registries - see above.
 //!

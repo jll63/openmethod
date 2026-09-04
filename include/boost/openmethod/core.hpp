@@ -3205,6 +3205,13 @@ class register_classes {
 //! Find the classes taking part in dispatch by reflection, and register them
 //! (C++26 and above).
 //!
+//! @warning Requires C++26 reflection (P2996): a compiler that implements
+//! it, and the flag that turns it on - `-freflection` with GCC 16. Without it
+//! this class template does not exist: `BOOST_OPENMETHOD_HAS_REFLECTION` is 0,
+//! and classes are registered with @ref use_classes or
+//! @ref BOOST_OPENMETHOD_CLASSES. @ref BOOST_OPENMETHOD_REGISTER_CLASSES wraps
+//! this class in a macro that expands to a no-op under C++17.
+//!
 //! `register_classes` is a registrar class that finds the classes taking part
 //! in dispatch by reflection, and adds them to one or more registries. It makes
 //! @ref use_classes unnecessary in most cases.
@@ -3285,9 +3292,6 @@ class register_classes {
 //! inheritance, and a base it inherits more than once, which no reference to
 //! it can be converted to, is left out of its list. A class with no registered
 //! class above it is not registered at all.
-//!
-//! This class template is available only if the compiler supports C++26
-//! reflection, i.e. if `BOOST_OPENMETHOD_HAS_REFLECTION` is 1.
 //!
 //! @tparam Groups Braced groups of reflections: namespaces, classes,
 //! registries, in that order.
