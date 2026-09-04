@@ -38,3 +38,6 @@ cov-int/**
 # Personal/developer scratch files, not project content.
 .claude/settings.json
 notes.txt
+
+# Flattened headers for Compiler Explorer (dev/flatten.py).
+flat/

@@ -1,26 +1,38 @@
-# YOMM2 on Compiler Explorer
+# Boost.OpenMethod on Compiler Explorer
 
-YOMM2 is available on Compiler Explorer. Make sure that you also select Boost
-version 1.74 or above, and you probably want to add the `-O3 -DNDEBUG` compiler
-switches.
+Compiler Explorer can include a header from a URL, but only one file at a time:
+it does not resolve the includes inside the file it fetches. `dev/flatten.py`
+thus rewrites each public header into a self-sufficient one, and CI publishes
+them at the root of <https://jll63.github.io/openmethod>, next to the
+documentation.
 
-The following examples are available:
+An example on Compiler Explorer therefore includes exactly what it would
+include locally, one line per header, in the same order:
 
-* The [examples](https://jll63.github.io/yomm2/ce/slides.html) from the slides.
-* The matrix example from the GitHub langing page.
+```cpp
+#include <https://jll63.github.io/openmethod/boost/openmethod.hpp>
+#include <https://jll63.github.io/openmethod/boost/openmethod/initialize.hpp>
+```
 
-The following examples use the diff mode to compare open methods with the
-equivalent (closed) virtual function based approaches.
+Every path under `include/boost/` is available under that URL - the interops,
+the policies, `inplace_vptr.hpp`. Two things to know:
 
-* [virtual function call vs uni-method call via plain reference](https://jll63.github.io/yomm2/ce/vf-vs-1m-ref.html)
-* [virtual function call vs uni-method call via virtual_ptr  ](https://jll63.github.io/yomm2/ce/vf-vs-1m-vptr.html)
-* [double dispatch    vs multi-method call via plain reference](https://jll63.github.io/yomm2/ce/2d-vs-2m-ref.html)
-* [double dispatch    vs multi-method call via virtual_ptr ](https://jll63.github.io/yomm2/ce/2d-vs-2m-vptr.html)
+* `boost/openmethod.hpp` comes first. It is the only self-contained file; the
+  others check that it has been included and stop with an `#error` otherwise.
+* Select a Boost version in the *Libraries* dropdown. The flattened headers
+  still include Boost.Mp11, Boost.DynamicBitset and the rest from Boost itself.
 
-YOMM2 can also [add polymorphic operations to non-polymorphic
-classes](https://jll63.github.io/yomm2/ce/vptr-final.html).
+`-std=c++17 -O3 -DNDEBUG` is a good set of options to look at the generated
+code.
 
-When `virtual_ptr` is used in combination with generated static offsets, method
-dispatch matches the speed of virtual functions. It is also possible to generate
-dispatch data that can be installed without calling `update`, a fairly expensive
-operaiton. See [this example](https://jll63.github.io/yomm2/ce/generator.html).
+The sources in this directory are the examples published on Compiler Explorer.
+They are built and run as part of the test suite, and again against the
+flattened headers by `dev/check-flat.sh`, so a broken flattening is caught
+before it reaches the site.
+
+To generate the headers locally:
+
+```bash
+python3 dev/flatten.py               # writes flat/boost/...
+BOOST_SRC_DIR=/path/to/boost dev/check-flat.sh
+```

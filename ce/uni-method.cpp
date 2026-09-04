@@ -21,6 +21,8 @@ struct Cat : Animal {
 
 BOOST_OPENMETHOD_CLASSES(Animal, Dog, Cat);
 
+using boost::openmethod::virtual_;
+
 BOOST_OPENMETHOD(poke, (virtual_<Animal&>, std::ostream&), void);
 
 BOOST_OPENMETHOD_OVERRIDE(poke, (Cat & animal, std::ostream& os), void) {

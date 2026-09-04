@@ -491,6 +491,46 @@ carries the override on the file's behalf (`test_capture_errors.hpp`). Add anoth
 and the scan has to learn about it: miss one and the file still compiles, binds to
 `default_registry`, and fails at run time.
 
+### Flattened headers for Compiler Explorer
+
+`dev/flatten.py` rewrites every public header into a self-sufficient file under `flat/`; the
+`antora` CI job regenerates them into the Pages artifact, so they are served from the root of
+`https://jll63.github.io/openmethod` and a CE example can include them by URL. CE fetches those
+includes client-side, which is why the host has to send CORS headers - GitHub Pages does,
+`access-control-allow-origin: *`.
+
+The point of the exercise is that a CE example's include list matches a local one line for line:
+
+```cpp
+#include <https://jll63.github.io/openmethod/boost/openmethod.hpp>
+#include <https://jll63.github.io/openmethod/boost/openmethod/initialize.hpp>
+```
+
+`boost/openmethod.hpp` is the root and carries its whole closure. **Every other header carries
+only what the root does not provide** - its `detail/` headers, and `interop/virtual_any.hpp`,
+which nothing includes directly. A dependency the root *does* provide becomes a guard check:
+
+```cpp
+#ifndef BOOST_OPENMETHOD_CORE_HPP
+#error "<boost/openmethod/initialize.hpp>: #include <.../boost/openmethod.hpp> first"
+#endif
+```
+
+so a missing root fails on one line instead of a wall of undeclared identifiers. Guard names are
+read from the header being flattened, never hardcoded - several are legacy and do not match their
+path (`initialize.hpp` is `BOOST_OPENMETHOD_COMPILER_HPP`, `preamble.hpp` is
+`BOOST_OPENMETHOD_REGISTRY_HPP`, `policies/static_rtti.hpp` is
+`BOOST_OPENMETHOD_POLICY_MINIMAL_RTTI_HPP`).
+
+The rewriting is line-oriented, which holds only because no `#include <boost/openmethod/...>` in
+the tree sits inside an `#if`. A `//!` doc comment containing one is left alone - the regex is
+anchored at the start of the line.
+
+`dev/check-flat.sh` (the `flat-headers` CI job, and `BOOST_SRC_DIR=... dev/check-flat.sh` locally)
+compiles each generated header after the root, checks that each one *fails* on its own, and builds
+and runs the `ce/*.cpp` examples against the generated tree. Those examples are also ordinary
+tests in the CMake build (`ce/CMakeLists.txt`), so they cannot rot silently.
+
 ### Custom RTTI
 When `<typeinfo>` is unavailable or insufficient, use static_rtti or implement custom RTTI. See `doc/modules/ROOT/examples/custom_rtti/` and policies in `include/boost/openmethod/policies/`.
 

@@ -325,5 +325,7 @@ if (BOOST_OPENMETHOD_BUILD_TESTS)
         add_subdirectory(doc/modules/ROOT/examples)
         # Sources behind the `include:` markers in the reference doc comments.
         add_subdirectory(doc/modules/ROOT/snippets)
+        # Examples published on Compiler Explorer, see ce/README.md.
+        add_subdirectory(ce)
     endif ()
 endif ()

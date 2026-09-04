@@ -97,6 +97,29 @@ jobs:
           cmake --build ../build --target tests -j $(nproc)
           ctest --test-dir ../build -j $(nproc) --output-on-failure
 
+  flat-headers:
+    name: Flat headers
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Clone Boost.OpenMethod
+        uses: actions/checkout@v4
+
+      - name: Clone Boost
+        uses: alandefreitas/cpp-actions/boost-clone@v1.8.8
+        with:
+          branch: ${{ (github.ref_name == 'master' && github.ref_name) || 'develop' }}
+          boost-dir: ../boost-source
+          scan-modules-dir: .
+          scan-modules-ignore: openmethod
+
+      # Each flattened header must compile after boost/openmethod.hpp, and fail
+      # with our own diagnostic without it; the ce/ examples must build and run
+      # against the generated tree.
+      - name: Check the flat headers
+        env:
+          BOOST_SRC_DIR: ${{ github.workspace }}/../boost-source
+        run: dev/check-flat.sh
+
   antora:
     name: Antora docs
     strategy:
@@ -155,6 +178,12 @@ jobs:
               echo "Antora build failed"
               exit 1
           fi
+
+      # Published alongside the docs, at the root of the site, so that a
+      # Compiler Explorer example can include them by URL. See ce/README.md.
+      - name: Build flat headers
+        if: matrix.os == 'ubuntu-latest'
+        run: python3 dev/flatten.py --output-dir doc/html
 
       - name: Create Antora docs artifact
         uses: actions/upload-artifact@v4
