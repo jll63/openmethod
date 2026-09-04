@@ -494,10 +494,17 @@ and the scan has to learn about it: miss one and the file still compiles, binds 
 ### Flattened headers for Compiler Explorer
 
 `dev/flatten.py` rewrites every public header into a self-sufficient file under `flat/`; the
-`antora` CI job regenerates them into the Pages artifact, so they are served from the root of
-`https://jll63.github.io/openmethod` and a CE example can include them by URL. CE fetches those
-includes client-side, which is why the host has to send CORS headers - GitHub Pages does,
-`access-control-allow-origin: *`.
+`antora` CI job regenerates them into the Pages artifact, so they are served from the root of the
+site and a CE example can include them by URL. CE fetches those includes client-side, which is why
+the host has to send CORS headers - GitHub Pages does, `access-control-allow-origin: *`.
+
+**Upstream deploys from `develop` only; the fork deploys from any branch.** Any other branch would
+clobber the site, and the fork is where a branch is tried out before it is merged - which is why
+the `Deploy to GitHub Pages` step tests the repository *and*, for boostorg, the ref. The two sites
+are `https://boostorg.github.io/openmethod` and `https://jll63.github.io/openmethod`, and CI
+derives `--base-url` from `github.repository_owner` rather than hardcoding either: that URL is
+baked into every generated header's banner and guard-check messages, so it has to name the site
+the artifact is about to be deployed to. The script's own default is the fork.
 
 The point of the exercise is that a CE example's include list matches a local one line for line:
 

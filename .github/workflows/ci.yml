@@ -191,7 +191,12 @@ jobs:
       # Compiler Explorer example can include them by URL. See ce/README.md.
       - name: Build flat headers
         if: matrix.os == 'ubuntu-latest'
-        run: python3 dev/flatten.py --output-dir doc/html
+        # The base URL goes into the banner and the guard-check messages of
+        # every generated header, so it has to name the site this artifact is
+        # about to be deployed to - jll63's fork, or boostorg.
+        run: |
+          python3 dev/flatten.py --output-dir doc/html \
+            --base-url "https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}"
 
       - name: Create Antora docs artifact
         uses: actions/upload-artifact@v4
@@ -205,9 +210,14 @@ jobs:
         with:
           path: doc/html
 
-      - name: Deploy to GitHub Pages (jll63)
+      # Upstream deploys from develop only - every other branch would clobber
+      # the site. The fork has no such restriction: it is where a branch is
+      # tried out before it is merged.
+      - name: Deploy to GitHub Pages
         if: >-
           matrix.os == 'ubuntu-latest'
-          && github.repository == 'jll63/openmethod'
           && github.event_name != 'pull_request'
+          && (github.repository == 'jll63/openmethod'
+              || (github.repository == 'boostorg/openmethod'
+                  && github.ref_name == 'develop'))
         uses: actions/deploy-pages@v4
