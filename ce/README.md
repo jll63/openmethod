@@ -25,6 +25,20 @@ the policies, `inplace_vptr.hpp`. Two things to know:
 `-std=c++17 -O3 -DNDEBUG` is a good set of options to look at the generated
 code.
 
+## Reflection
+
+`reflection.cpp` registers the classes by C++26 reflection (P2996). It includes
+the same two headers as the other examples, but needs a compiler that
+implements P2996 - *x86-64 gcc (trunk)* on Compiler Explorer - and
+`-std=c++26 -freflection`.
+
+`Bulldog` is the point of the example. No overrider mentions it, and no
+`BOOST_OPENMETHOD_CLASSES` lists it; the scan started by
+`BOOST_OPENMETHOD_REGISTER_CLASSES()` finds it deriving from `Dog`, registers
+it, and `poke` dispatches it to the overrider for `Dog`.
+
+## The sources
+
 The sources in this directory are the examples published on Compiler Explorer.
 They are built and run as part of the test suite, and again against the
 flattened headers by `dev/check-flat.sh`, so a broken flattening is caught

@@ -101,6 +101,14 @@ jobs:
     name: Flat headers
     runs-on: ubuntu-24.04
     steps:
+      # ce/reflection.cpp needs C++26 reflection; dev/check-flat.sh finds this
+      # compiler on its own, and reports the example as skipped without it.
+      - name: Install GCC 16
+        run: |
+          sudo add-apt-repository -y ppa:ubuntu-toolchain-r/test
+          sudo apt-get update
+          sudo apt-get install -y g++-16
+
       - name: Clone Boost.OpenMethod
         uses: actions/checkout@v4
 

@@ -7,6 +7,13 @@ message(STATUS "Boost.OpenMethod: building Compiler Explorer examples")
 
 file(GLOB cpp_files "*.cpp")
 
+# reflection.cpp registers its classes by reflection, and has no fallback:
+# BOOST_OPENMETHOD_REGISTER_CLASSES expands to nothing without C++26 reflection,
+# and no class is registered at all.
+if (NOT BOOST_OPENMETHOD_ENABLE_REFLECTION)
+    list(REMOVE_ITEM cpp_files "${CMAKE_CURRENT_SOURCE_DIR}/reflection.cpp")
+endif()
+
 foreach (cpp ${cpp_files})
     get_filename_component(stem ${cpp} NAME_WE)
     set(test_target "boost_openmethod-ce-${stem}")

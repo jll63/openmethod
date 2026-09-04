@@ -40,8 +40,49 @@ status=0
 
 report() {
     printf '%-6s %s\n' "$1" "$2"
-    [ "$1" = ok ] || status=1
+    [ "$1" = FAIL ] && status=1
+    return 0
 }
+
+# ce/reflection.cpp needs C++26 reflection; everything else is C++17. Same
+# probe as CMakeLists.txt: the standard alone is not enough, GCC wants a flag.
+probe_reflection() {
+    cat > "$work/probe.cpp" <<'PROBE'
+#include <meta>
+struct Base {};
+struct Derived : Base {};
+consteval auto count() -> int {
+    return static_cast<int>(
+        std::meta::bases_of(
+            ^^Derived, std::meta::access_context::unchecked()).size());
+}
+static_assert(count() == 1);
+int main() {}
+PROBE
+
+    for candidate in "${CXX_REFLECTION:-}" "$cxx" g++-16; do
+        [ -n "$candidate" ] || continue
+        command -v "$candidate" > /dev/null || continue
+
+        for flags in "-std=c++26 -freflection" "-std=c++26"; do
+            # shellcheck disable=SC2086
+            if "$candidate" $flags -fsyntax-only "$work/probe.cpp" \
+                    > /dev/null 2>&1; then
+                # shellcheck disable=SC2086
+                reflection_compile=("$candidate" $flags)
+                return 0
+            fi
+        done
+    done
+
+    return 1
+}
+
+reflection_compile=()
+
+if probe_reflection; then
+    report note "C++26 reflection: ${reflection_compile[*]}"
+fi
 
 cd "$flat_dir" || exit 1
 
@@ -79,8 +120,20 @@ cd "$root_dir" || exit 1
 
 for source in ce/*.cpp; do
     example="$work/$(basename "$source" .cpp)"
+    example_compile=("${compile[@]}")
 
-    if ! "${compile[@]}" -O2 -o "$example" "$source" > "$work/log" 2>&1; then
+    if [ "$source" = ce/reflection.cpp ]; then
+        if [ ${#reflection_compile[@]} -eq 0 ]; then
+            report skip "$source (no C++26 reflection)"
+            continue
+        fi
+
+        example_compile=(
+            "${reflection_compile[@]}" "-I$flat_dir" "${boost_includes[@]}")
+    fi
+
+    if ! "${example_compile[@]}" -O2 -o "$example" "$source" \
+            > "$work/log" 2>&1; then
         report FAIL "$source"
         head -20 "$work/log"
         continue
