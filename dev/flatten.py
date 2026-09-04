@@ -139,7 +139,7 @@ def main():
     parser.add_argument("--include-dir", type=Path, default=Path("include"))
     parser.add_argument("--output-dir", type=Path, default=Path("flat"))
     parser.add_argument(
-        "--base-url", default="https://jll63.github.io/openmethod"
+        "--base-url", default="https://boostorg.github.io/openmethod"
     )
     args = parser.parse_args()
 

@@ -504,7 +504,8 @@ the `Deploy to GitHub Pages` step tests the repository *and*, for boostorg, the 
 are `https://boostorg.github.io/openmethod` and `https://jll63.github.io/openmethod`, and CI
 derives `--base-url` from `github.repository_owner` rather than hardcoding either: that URL is
 baked into every generated header's banner and guard-check messages, so it has to name the site
-the artifact is about to be deployed to. The script's own default is the fork.
+the artifact is about to be deployed to. The script's own default is the canonical site,
+boostorg.
 
 The point of the exercise is that a CE example's include list matches a local one line for line:
 

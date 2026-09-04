@@ -3,15 +3,15 @@
 Compiler Explorer can include a header from a URL, but only one file at a time:
 it does not resolve the includes inside the file it fetches. `dev/flatten.py`
 thus rewrites each public header into a self-sufficient one, and CI publishes
-them at the root of <https://jll63.github.io/openmethod>, next to the
+them at the root of <https://boostorg.github.io/openmethod>, next to the
 documentation.
 
 An example on Compiler Explorer therefore includes exactly what it would
 include locally, one line per header, in the same order:
 
 ```cpp
-#include <https://jll63.github.io/openmethod/boost/openmethod.hpp>
-#include <https://jll63.github.io/openmethod/boost/openmethod/initialize.hpp>
+#include <https://boostorg.github.io/openmethod/boost/openmethod.hpp>
+#include <https://boostorg.github.io/openmethod/boost/openmethod/initialize.hpp>
 ```
 
 Every path under `include/boost/` is available under that URL - the interops,
@@ -37,7 +37,7 @@ implements P2996 - *x86-64 gcc (trunk)* on Compiler Explorer - and
 `BOOST_OPENMETHOD_REGISTER_CLASSES()` finds it deriving from `Dog`, registers
 it, and `poke` dispatches it to the overrider for `Dog`.
 
-On Compiler Explorer: <https://godbolt.org/z/1eTx5f13z>
+On Compiler Explorer: <https://godbolt.org/z/zae53qerd>
 
 ## The sources
 
