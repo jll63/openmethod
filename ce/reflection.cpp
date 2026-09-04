@@ -19,7 +19,7 @@ struct Cat : Animal {
     using Animal::Animal;
 };
 
-// Named nowhere else: no overrider, no BOOST_OPENMETHOD_CLASSES. Only the scan
+// Named nowhere else: no overrider, no BOOST_OPENMETHOD_CLASSES. But the scan
 // finds it.
 struct Bulldog : Dog {
     using Dog::Dog;
@@ -39,8 +39,6 @@ BOOST_OPENMETHOD_OVERRIDE(
     os << animal->name << " barks.\n";
 }
 
-BOOST_OPENMETHOD_REGISTER_CLASSES();
-
 void poke_animals(
     const std::vector<virtual_ptr<Animal>>& animals, std::ostream& os) {
     for (auto animal : animals) {
@@ -58,3 +56,9 @@ auto main() -> int {
 
     poke_animals(animals, std::cout);
 }
+
+// scan for open-methods and register classes used in virtual parameters
+BOOST_OPENMETHOD_REGISTER_CLASSES();
+
+// core API - no macros:
+// inline /* or static */ boost::openmethod::register_classes<> register_my_classes;
