@@ -40,6 +40,7 @@ cmake --build .
 - `BOOST_OPENMETHOD_BUILD_TESTS` - Enable tests (default: ON if root project)
 - `BOOST_OPENMETHOD_BUILD_EXAMPLES` - Enable examples (requires tests enabled)
 - `BOOST_OPENMETHOD_WARNINGS_AS_ERRORS` - Treat warnings as errors
+- `BOOST_OPENMETHOD_ENABLE_REFLECTION` - Build the tests and examples with C++26 reflection; probes the compiler for the flags it needs (`-std=c++26 -freflection` on GCC 16) and fails the configure if it has none
 - `BOOST_SRC_DIR` - Path to Boost source directory (default: `../..` or `$BOOST_SRC_DIR` env var)
 
 ### Boost.Build (b2)

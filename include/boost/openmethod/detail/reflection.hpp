@@ -41,14 +41,13 @@ namespace boost::openmethod::detail {
 template<std::size_t Size>
 struct reflection_group {
     std::meta::info items[Size ? Size : 1]{};
-    std::size_t size = Size;
+    static constexpr std::size_t size = Size;
 
     consteval reflection_group() = default;
 
     template<class... T>
         requires(... && std::is_same_v<T, std::meta::info>)
-    consteval reflection_group(T... items_) :
-        items{items_...}, size(sizeof...(T)) {
+    consteval reflection_group(T... items_) : items{items_...} {
     }
 };
 

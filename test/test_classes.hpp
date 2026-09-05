@@ -22,6 +22,16 @@
 //! unless that macro - or `register_classes` - is used, so the class they
 //! withhold stays withheld under either standard.
 
+//! Register the classes of the translation unit by reflection, when the
+//! compiler supports it - a no-op otherwise.
+//!
+//! The counterpart of @ref BOOST_OPENMETHOD_TEST_CLASSES: a test lists its
+//! classes with that one, for C++17, and ends with this one, for C++26. Last in
+//! the file, because the standard wants the registrar after the declarations it
+//! selects.
+#define BOOST_OPENMETHOD_TEST_REGISTER_CLASSES(...)                            \
+    BOOST_OPENMETHOD_REGISTER_CLASSES(__VA_ARGS__)
+
 #if BOOST_OPENMETHOD_HAS_REFLECTION
 #define BOOST_OPENMETHOD_TEST_CLASSES(...)
 #else

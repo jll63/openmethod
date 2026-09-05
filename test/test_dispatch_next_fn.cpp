@@ -52,6 +52,4 @@ BOOST_AUTO_TEST_CASE(test_next_fn) {
     BOOST_TEST(poke::fn(*hector) == "bark and bite back");
 }
 
-// Registers the classes above by reflection, when the compiler supports it.
-// Last in the file: the standard wants the registrar after what it selects.
-BOOST_OPENMETHOD_REGISTER_CLASSES();
+BOOST_OPENMETHOD_TEST_REGISTER_CLASSES();
