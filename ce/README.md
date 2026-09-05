@@ -37,7 +37,7 @@ implements P2996 - *x86-64 gcc (trunk)* on Compiler Explorer - and
 `BOOST_OPENMETHOD_REGISTER_CLASSES()` finds it deriving from `Dog`, registers
 it, and `poke` dispatches it to the overrider for `Dog`.
 
-On Compiler Explorer: <https://godbolt.org/z/Wr4fPG48a>
+On Compiler Explorer: <https://godbolt.org/z/8T8z9zWfK>
 
 ## The sources
 

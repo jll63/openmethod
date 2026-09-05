@@ -19,7 +19,7 @@ struct Cat : Animal {
     using Animal::Animal;
 };
 
-// Named nowhere else: no overrider, no BOOST_OPENMETHOD_CLASSES. But the scan
+// Not named in any method, overrider, or BOOST_OPENMETHOD_CLASSES. But the scan
 // finds it.
 struct Bulldog : Dog {
     using Dog::Dog;
