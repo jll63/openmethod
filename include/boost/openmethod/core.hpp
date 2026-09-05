@@ -825,6 +825,13 @@ struct same_smart_ptr_aux<
         typename virtual_traits<Class, Registry>::template rebind<
             typename Other::element_type>> {};
 
+template<class T, typename = void>
+constexpr bool has_get = false;
+
+template<class T>
+constexpr bool
+    has_get<T, std::void_t<decltype(std::declval<const T&>().get())>> = true;
+
 } // namespace detail
 
 BOOST_OPENMETHOD_OPEN_NAMESPACE_DETAIL_UNLESS_MRDOCS
@@ -1245,8 +1252,10 @@ class virtual_ptr {
     //! @li @c Other's object pointer must be assignable to a @c Class*.
     template<
         class Other,
-        typename = std::enable_if_t<std::is_constructible_v<
-            Class*, typename virtual_ptr<Other, Registry>::element_type*>>>
+        typename = std::enable_if_t<
+            std::is_constructible_v<
+                Class*, typename virtual_ptr<Other, Registry>::element_type*> &&
+            detail::has_get<virtual_ptr<Other, Registry>>>>
     virtual_ptr(const virtual_ptr<Other, Registry>& other) :
         vp(other.vp), obj(other.get()) {
     }
@@ -1353,8 +1362,11 @@ class virtual_ptr {
     //! @li @c Other's object pointer must be assignable to a @c Class*.
     template<
         class Other,
-        typename = std::enable_if_t<std::is_assignable_v<
-            Class*&, typename virtual_ptr<Other, Registry>::element_type*>>>
+        typename = std::enable_if_t<
+            std::is_assignable_v<
+                Class*&,
+                typename virtual_ptr<Other, Registry>::element_type*> &&
+            detail::has_get<virtual_ptr<Other, Registry>>>>
     virtual_ptr& operator=(const virtual_ptr<Other, Registry>& other) {
         obj = other.get();
         vp = other.vp;
