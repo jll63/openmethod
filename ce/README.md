@@ -6,6 +6,11 @@ thus rewrites each public header into a self-sufficient one, and CI publishes
 them at the root of <https://boostorg.github.io/openmethod>, next to the
 documentation.
 
+The URL is the point: CE's *Libraries* dropdown carries released Boost, and
+these headers are `develop`. Class registration by reflection, for one, lands
+in Boost 1.93, so an example that shows it has to fetch the headers rather than
+pick a version from the dropdown.
+
 An example on Compiler Explorer therefore includes exactly what it would
 include locally, one line per header, in the same order:
 
@@ -19,8 +24,9 @@ the policies, `inplace_vptr.hpp`. Two things to know:
 
 * `boost/openmethod.hpp` comes first. It is the only self-contained file; the
   others check that it has been included and stop with an `#error` otherwise.
-* Select a Boost version in the *Libraries* dropdown. The flattened headers
-  still include Boost.Mp11, Boost.DynamicBitset and the rest from Boost itself.
+* Select a Boost version in the *Libraries* dropdown all the same. The
+  flattened headers still include Boost.Mp11, Boost.DynamicBitset and the rest
+  from Boost itself; only `boost/openmethod` comes from the URLs.
 
 `-std=c++17 -O3 -DNDEBUG` is a good set of options to look at the generated
 code.
