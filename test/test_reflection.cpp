@@ -562,8 +562,8 @@ BOOST_AUTO_TEST_CASE(recorded_bases_are_direct) {
     // its direct bases - four entries for the whole chain, not ten.
     std::size_t recorded = 0;
 
-    for (auto iter = comp.classes_begin(); iter != comp.classes_end(); ++iter) {
-        recorded += iter->last_base - iter->first_base;
+    for (auto& ci : test_registry::state().classes) {
+        recorded += ci.last_base - ci.first_base;
     }
 
     BOOST_TEST(recorded == 7u); // A: 1, B/C/D: 2 each

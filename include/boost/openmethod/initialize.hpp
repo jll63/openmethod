@@ -124,6 +124,43 @@ struct initialize_policies<Registry, mp11::mp_list<Policies...>> {
     }
 };
 
+// Saves the policies' states on construction, and puts them back on
+// destruction unless commit() was called - so a policy's `initialize` that
+// throws, after itself or another policy has already written to shared
+// state, leaves the registry as it was. The registry's mutable state is one
+// variable, registry_state<Registry>::st; its `policies` tuple is copied
+// whole, states of policies without an `initialize` included, since
+// restoring an untouched state is harmless, and simpler than picking. The
+// other members need no saving: initialize() only reads the class and
+// method lists, and write_global_data() replaces dispatch_data at commit
+// time only, after which nothing can throw - on rollback it still holds the
+// previous tables, which the classes' static_vptrs point into. (That is
+// also why a copy could not stand in for it: it would be another buffer.)
+template<class Registry>
+class registry_state_transaction {
+  public:
+    registry_state_transaction() : saved(Registry::state().policies) {
+    }
+
+    ~registry_state_transaction() {
+        if (!committed) {
+            Registry::state().policies = std::move(saved);
+        }
+    }
+
+    registry_state_transaction(const registry_state_transaction&) = delete;
+    auto operator=(const registry_state_transaction&)
+        -> registry_state_transaction& = delete;
+
+    void commit() {
+        committed = true;
+    }
+
+  private:
+    typename registry_state_type<Registry>::policies_type saved;
+    bool committed = false;
+};
+
 inline void merge_into(boost::dynamic_bitset<>& a, boost::dynamic_bitset<>& b) {
     if (b.size() < a.size()) {
         b.resize(a.size());
@@ -181,6 +218,11 @@ struct generic_compiler {
         std::size_t mark = 0; // temporary mark to detect cycles
         bool transitive_bases_done = false;
         std::vector<vtbl_entry> vtbl;
+        // The v-table pointer initialize() is about to install for the class.
+        // Staged here by write_global_data(), where the policies read it (see
+        // class_view); written to the class_infos' static_vptr only once
+        // everything that can fail has succeeded.
+        vptr_type vptr = nullptr;
 
         auto is_base_of(class_* other) const -> bool {
             return transitive_derived.find(other) != transitive_derived.end();
@@ -268,13 +310,56 @@ struct generic_compiler {
 
     std::deque<class_> classes;
 
+    // What a policy's `initialize` sees for each class (the InitializeClass
+    // blueprint): the type ids of one class_info, and the v-table pointer
+    // that initialize() is about to install for the class. `vptr()` is the
+    // value staged in the class_, not what the class_info's static_vptr
+    // holds - that is still the previous v-table, and stays so until every
+    // policy has succeeded. `static_vptr()` is the address that will receive
+    // it, for the policies that store pointers to v-table pointers
+    // (indirect_vptr): the one thing here that is stable across
+    // re-initializations.
+    struct class_view {
+        const detail::class_info* ci;
+        const class_* cls;
+
+        auto type_id_begin() const {
+            return ci->type_id_begin();
+        }
+
+        auto type_id_end() const {
+            return ci->type_id_end();
+        }
+
+        auto vptr() const -> vptr_type {
+            return cls->vptr;
+        }
+
+        auto static_vptr() const -> const vptr_type* {
+            return ci->static_vptr;
+        }
+    };
+
     class const_class_iterator {
       public:
+        // The view is made on the fly, so `operator->` has nothing to point
+        // at; it returns one of these, which points at the view it carries.
+        // The proxy lives until the end of the full expression, which is as
+        // long as a policy needs it: `vptr()` and `static_vptr()` return
+        // values.
+        struct arrow_proxy {
+            class_view view;
+
+            auto operator->() const -> const class_view* {
+                return &view;
+            }
+        };
+
         using iterator_category = std::forward_iterator_tag;
-        using value_type = const detail::class_info*;
+        using value_type = class_view;
         using difference_type = std::ptrdiff_t;
-        using pointer = const detail::class_info**;
-        using reference = const detail::class_info*&;
+        using pointer = arrow_proxy;
+        using reference = class_view;
 
         const_class_iterator() = default;
 
@@ -287,11 +372,12 @@ struct generic_compiler {
                 advance_to_valid();
             }
         }
-        auto operator->() const -> const detail::class_info* {
-            return *ci_iter_;
+        auto operator*() const -> class_view {
+            return {*ci_iter_, &*class_iter_};
         }
-        auto operator*() const -> const detail::class_info* {
-            return *ci_iter_;
+
+        auto operator->() const -> arrow_proxy {
+            return {**this};
         }
 
         auto operator++() -> const_class_iterator& {
@@ -693,11 +779,13 @@ auto registry<Policies...>::compiler<Options...>::compile() {
 template<class... Policies>
 template<class... Options>
 void registry<Policies...>::compiler<Options...>::initialize() {
-    // Clear the flag up front: a re-initialize (the documented dlopen/dlclose
-    // flow) that throws part-way through must not leave the flag `true` from
-    // the previous successful initialize, or require_initialized() would
-    // wrongly pass and dispatch would run against half-written tables. Only a
-    // fully successful run sets it true again.
+    // Clear the flag up front, and set it only once everything has succeeded.
+    // A run that throws leaves the previous dispatch state in place, complete
+    // and consistent (see write_global_data()) - but not marked initialized:
+    // those tables do not reflect the registrations that prompted the call,
+    // and after a dlclose (the documented re-initialize flow) they may point
+    // into unloaded code, so require_initialized() must keep refusing to
+    // dispatch until an initialize() succeeds.
     registry<Policies...>::static_::st.initialized = false;
     compile();
     install_global_tables();
@@ -1671,6 +1759,18 @@ void registry<Policies...>::compiler<Options...>::write_global_data() {
     using namespace policies;
     using namespace detail;
 
+    // Three steps: stage, initialize the policies, commit. Everything that
+    // can fail happens in the first two, and neither writes anything shared
+    // except the policies' own states, which the transaction restores on
+    // failure: the dispatch data is built in a local vector, and each class'
+    // v-table pointer is staged in its class_, where the policies read it.
+    // Only then are the shared locations patched - the method_infos' slots
+    // and strides, the overriders' `next`, the class_infos' static_vptr - and
+    // the dispatch data swapped in; none of that can throw. If a policy
+    // throws, the registry still holds the previous dispatch state, complete
+    // and consistent, rather than pointers into a vector that unwinding has
+    // just freed.
+
     auto dispatch_data_size = std::accumulate(
         methods.begin(), methods.end(), std::size_t(0),
         [](std::size_t sum, const method& m) {
@@ -1689,20 +1789,13 @@ void registry<Policies...>::compiler<Options...>::write_global_data() {
     ++tr << "Initializing multi-method dispatch tables at " << gv_iter << "\n";
 
     for (auto& m : methods) {
-        auto first_info = m.infos[0];
-
-        if (first_info->arity() == 1) {
-            // Uni-methods just need an index in the method table.
-            first_info->slots_strides_ptr[0] = m.slots[0];
-        } else {
-            auto strides_iter = std::copy(
-                m.slots.begin(), m.slots.end(), first_info->slots_strides_ptr);
-            std::copy(m.strides.begin(), m.strides.end(), strides_iter);
-
+        // Uni-methods just need an index in the method table, written at
+        // commit time along with the multi-methods' slots and strides.
+        if (m.infos[0]->arity() > 1) {
             if constexpr (has_trace) {
                 ++tr << rflush(4, dispatch_data_size) << " " << " method #"
                      << m.dispatch_table[0]->method_index << " "
-                     << type_name(first_info->method_type_id) << "\n";
+                     << type_name(m.infos[0]->method_type_id) << "\n";
                 indent _(tr);
 
                 for (auto& entry : m.dispatch_table) {
@@ -1719,23 +1812,7 @@ void registry<Policies...>::compiler<Options...>::write_global_data() {
         }
     }
 
-    // Propagate slots_strides values from the local method_info to all
-    // other module copies of the same method. Each module's `fn` has its
-    // own slots_strides[] array; dispatch reads it directly, so every
-    // copy must hold the same values.
-    for (auto& m : methods) {
-        auto count = 2 * m.infos[0]->arity() - 1;
-        for (auto copy : m.infos) {
-            if (copy == m.infos[0]) {
-                continue;
-            }
-            std::copy(
-                m.infos[0]->slots_strides_ptr,
-                m.infos[0]->slots_strides_ptr + count, copy->slots_strides_ptr);
-        }
-    }
-
-    ++tr << "Setting 'next' pointers\n";
+    ++tr << "'next' pointers\n";
 
     for (auto& m : methods) {
         auto first_info = m.infos[0];
@@ -1750,8 +1827,6 @@ void registry<Policies...>::compiler<Options...>::write_global_data() {
 
                 tr << "#" << overrider.next->spec_index << " "
                    << spec_name(m, overrider.next);
-                *overrider.info->next =
-                    reinterpret_cast<void (*)()>(overrider.next->pf);
             } else {
                 tr << "none";
             }
@@ -1763,9 +1838,7 @@ void registry<Policies...>::compiler<Options...>::write_global_data() {
     ++tr << "Initializing v-tables at " << gv_iter << "\n";
 
     for (auto& cls : classes) {
-        for (auto& ci : cls.ci) {
-            *ci->static_vptr = gv_iter - cls.first_slot;
-        }
+        cls.vptr = gv_iter - cls.first_slot;
 
         ++tr << rflush(4, gv_iter - gv_first) << " " << gv_iter << " vtbl for "
              << cls << " slots " << cls.first_slot << "-"
@@ -1805,7 +1878,53 @@ void registry<Policies...>::compiler<Options...>::write_global_data() {
 
     ++tr << rflush(4, dispatch_data_size) << " " << gv_iter << " end\n";
 
+    detail::registry_state_transaction<registry> transaction;
     detail::initialize_policies<registry>::fn(*this, options);
+    transaction.commit();
+
+    // Commit. Nothing from here on can throw.
+
+    ++tr << "Installing\n";
+
+    for (auto& m : methods) {
+        auto first_info = m.infos[0];
+
+        if (first_info->arity() == 1) {
+            first_info->slots_strides_ptr[0] = m.slots[0];
+        } else {
+            auto strides_iter = std::copy(
+                m.slots.begin(), m.slots.end(), first_info->slots_strides_ptr);
+            std::copy(m.strides.begin(), m.strides.end(), strides_iter);
+        }
+
+        // Propagate slots_strides values from the local method_info to all
+        // other module copies of the same method. Each module's `fn` has its
+        // own slots_strides[] array; dispatch reads it directly, so every
+        // copy must hold the same values.
+        auto count = 2 * first_info->arity() - 1;
+
+        for (auto copy : m.infos) {
+            if (copy != first_info) {
+                std::copy(
+                    first_info->slots_strides_ptr,
+                    first_info->slots_strides_ptr + count,
+                    copy->slots_strides_ptr);
+            }
+        }
+
+        for (auto& overrider : m.overriders) {
+            if (overrider.next) {
+                *overrider.info->next =
+                    reinterpret_cast<void (*)()>(overrider.next->pf);
+            }
+        }
+    }
+
+    for (auto& cls : classes) {
+        for (auto& ci : cls.ci) {
+            *ci->static_vptr = cls.vptr;
+        }
+    }
 
     new_dispatch_data.swap(static_::st.dispatch_data);
 }
@@ -2095,6 +2214,16 @@ void registry<Policies...>::compiler<Options...>::print_slots() {
 //! @li @ref missing_class: A class used in a virtual parameter was not
 //! registered.
 //! @li The registry's policies may report additional errors.
+//!
+//! @par Exception safety
+//!
+//! If `initialize` throws - because a policy's `initialize` does, or an
+//! allocation fails - the registry keeps the dispatch state it had before the
+//! call: no static v-table pointer, `next` pointer, dispatch table or policy
+//! state is modified. The registry is nonetheless marked as not initialized,
+//! since that state does not reflect the current registrations; `initialize`
+//! must be called again, successfully, before any method is called. Policy
+//! states are restored from a copy, so a policy's `state` must be copyable.
 //!
 //! @par Example
 //!
