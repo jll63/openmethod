@@ -1,9 +1,9 @@
 # Multiple dispatch tables
 
-How Boost.OpenMethod dispatches a method with two or more virtual parameters:
-the shape of the tables it dispatches through, the code that reads them, and
-how `initialize()` builds them without spending a cell on every combination
-of classes.
+This document describes how Boost.OpenMethod dispatches a method with two or
+more virtual parameters: the shape of the tables it dispatches through, the
+code that reads them, and how `initialize()` builds them without spending a
+cell on every combination of classes.
 
 Slot numbers are taken as given here. A slot is the index, in the v-table of
 an argument's class, of the entry that belongs to one virtual parameter of
