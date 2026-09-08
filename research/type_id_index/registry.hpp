@@ -22,6 +22,9 @@
 //   direct   fast_perfect_hash *and* vptr_vector replaced by
 //            vptr_direct_vector
 //   pext     fast_perfect_hash replaced by pext_index (needs -mbmi2)
+//   chd      fast_perfect_hash replaced by chd_index - a near-minimal
+//            perfect hash, ~1.05 slots per type id
+//   chdmin   ... by chd_index<2, 100>, an exactly minimal one
 //
 // The policy lists are spelled out rather than derived from default_registry
 // with `with`/`without`: `with` appends, and a type_hash policy must precede
@@ -33,6 +36,8 @@
 #define BOOST_OPENMETHOD_RESEARCH_INDEX16 2
 #define BOOST_OPENMETHOD_RESEARCH_DIRECT 3
 #define BOOST_OPENMETHOD_RESEARCH_PEXT 4
+#define BOOST_OPENMETHOD_RESEARCH_CHD 5
+#define BOOST_OPENMETHOD_RESEARCH_CHDMIN 6
 
 #ifndef RESEARCH_POLICY
 #define RESEARCH_POLICY BOOST_OPENMETHOD_RESEARCH_INDEX
@@ -48,6 +53,11 @@ struct research_registry;
 
 #if RESEARCH_POLICY == BOOST_OPENMETHOD_RESEARCH_PEXT
 #include "pext_index.hpp"
+#endif
+
+#if RESEARCH_POLICY == BOOST_OPENMETHOD_RESEARCH_CHD ||                        \
+    RESEARCH_POLICY == BOOST_OPENMETHOD_RESEARCH_CHDMIN
+#include "chd_index.hpp"
 #endif
 
 #ifdef BOOST_OPENMETHOD_ENABLE_RUNTIME_CHECKS
@@ -100,8 +110,28 @@ using selected_registry = registry<
     policies::default_error_handler,
     policies::stderr_output BOOST_OPENMETHOD_RESEARCH_CHECKS>;
 
+#elif RESEARCH_POLICY == BOOST_OPENMETHOD_RESEARCH_CHD
+
+#define RESEARCH_POLICY_NAME "chd"
+using selected_registry = registry<
+    policies::std_rtti, chd_index<>, policies::vptr_vector,
+    policies::default_error_handler,
+    policies::stderr_output BOOST_OPENMETHOD_RESEARCH_CHECKS>;
+
+#elif RESEARCH_POLICY == BOOST_OPENMETHOD_RESEARCH_CHDMIN
+
+// Exactly one slot per type id. Halving Lambda is what makes a full table
+// affordable, and it doubles the pilot array, which is why this is the more
+// expensive of the two in bytes despite wasting no slot.
+#define RESEARCH_POLICY_NAME "chdmin"
+using selected_registry = registry<
+    policies::std_rtti, chd_index<2, 100>, policies::vptr_vector,
+    policies::default_error_handler,
+    policies::stderr_output BOOST_OPENMETHOD_RESEARCH_CHECKS>;
+
 #else
-#error "RESEARCH_POLICY must be one of fph, index, index16, direct, pext"
+#error                                                                         \
+    "RESEARCH_POLICY must be one of fph, index, index16, direct, pext, chd, chdmin"
 #endif
 
 } // namespace boost::openmethod::research

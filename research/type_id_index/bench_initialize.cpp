@@ -31,6 +31,7 @@
 #include <random>
 #include <string>
 #include <tuple>
+#include <type_traits>
 #include <vector>
 
 namespace bom = boost::openmethod;
@@ -172,6 +173,38 @@ auto time_hash_initialize(const Context& ctx, int runs) -> double {
     }
 }
 
+// The number of slots vptr_vector will allocate: 8 bytes each, and the bulk
+// of what a type_hash policy costs. The `direct` variant has no type_hash
+// policy, and folds the base into the table's address instead.
+template<class TypeHash>
+auto hash_slots() -> std::size_t {
+    if constexpr (std::is_same_v<TypeHash, void>) {
+        return 0;
+    } else {
+        return TypeHash::hash_range().second + 1;
+    }
+}
+
+// Bytes a policy holds beyond the v-table table itself. Only chd_index has
+// any: its pilot array.
+template<class, class = void>
+struct has_aux_bytes : std::false_type {};
+
+template<class TypeHash>
+struct has_aux_bytes<TypeHash, std::void_t<decltype(TypeHash::aux_bytes())>> :
+    std::true_type {};
+
+template<class TypeHash>
+auto aux_bytes() -> std::size_t {
+    if constexpr (std::is_same_v<TypeHash, void>) {
+        return 0;
+    } else if constexpr (has_aux_bytes<TypeHash>::value) {
+        return TypeHash::aux_bytes();
+    } else {
+        return 0;
+    }
+}
+
 template<class TypeHash>
 auto finalize_hash() -> void {
     if constexpr (!std::is_same_v<TypeHash, void>) {
@@ -188,7 +221,9 @@ void measure(
     auto vptr_ns = median_ns([&] { vptr::initialize(ctx, no_options); }, runs);
 
     std::cout << RESEARCH_POLICY_NAME << "," << label << "," << type_ids.size()
-              << "," << hash_ns << "," << vptr_ns << "\n";
+              << "," << hash_ns << "," << vptr_ns << ","
+              << hash_slots<type_hash>() << "," << aux_bytes<type_hash>()
+              << "\n";
 
     vptr::finalize(no_options);
     finalize_hash<type_hash>();
@@ -198,7 +233,7 @@ void measure(
 
 int main(int argc, char** argv) {
     int runs = 3;
-    std::cout << "variant,input,n,hash_init_ns,vptr_init_ns\n";
+    std::cout << "variant,input,n,hash_init_ns,vptr_init_ns,slots,aux_bytes\n";
 
     if (argc > 1) {
         // Replay measured distributions: one file of hex addresses each.

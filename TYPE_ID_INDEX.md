@@ -28,7 +28,24 @@ cover* of bit positions that still separates the type ids and pack them with
 `pext`. It is immune to where the modules are - the `dlopen` case costs one
 extra bit - costs 2x-32x `fast_perfect_hash`'s memory rather than 12x-infinity,
 dispatches as fast, and finds its table deterministically in milliseconds on
-the very input where `fast_perfect_hash` aborts. It is the one worth pursuing.
+the very input where `fast_perfect_hash` aborts.
+
+A third (§12) goes to the other extreme: a *minimal perfect hash*, built by
+hash-and-displace, which spends exactly one slot per type id no matter where
+the addresses are. It is the only scheme here that costs **less** memory than
+`fast_perfect_hash` - 9.45 bytes per type id against 16 KB-128 KB for a
+thousand classes - and it builds that table 3x-1700x faster, on every input
+including the ones that make the incumbent abort. It pays for that with a
+second dependent load on the dispatch path, and it is measurably slower for
+it: +1.0 to +2.3 ns per call on both compilers.
+
+**None of the three is worth shipping as the general v-table lookup.** The
+flat index buys ~1 ns with unusable amounts of memory; the minimal perfect
+hash buys the memory back and gives up ~2 ns; the `pext` cover sits between
+them and is neutral on both. `fast_perfect_hash` is a multiply and a shift,
+and nothing here gets under it. What the exercise does produce is a
+replacement for its *failure* path - see §11.5 and §12.6, where the minimal
+perfect hash is the stronger of the two candidates.
 
 ## 1. The idea
 
@@ -496,6 +513,9 @@ above are the ones to weigh, not the flat table's.
 cd ~/dev/typeinfo-samples
 ./make-samples.sh && ./collect-samples.sh
 python3 analyze-type-ids.py --export-type-ids exported   # -> type-ids.csv, type-ids.md
+# exported/ holds the observed placement plus one file per model in
+# --placement; the `-pie-split` ones are the exe + dlopen case of §5, and are
+# what the §12 tables measure.
 
 # prototypes and measurements
 cmake -B build-research -DBOOST_SRC_DIR=/path/to/boost \
@@ -504,10 +524,215 @@ cmake -B build-research -DBOOST_SRC_DIR=/path/to/boost \
 capped -m 24G -- cmake --build build-research --target research-all -j4  # see 10
 ctest --test-dir build-research -R '^research-'          # correctness
 cmake --build build-research --target research-disasm    # codegen
-build-research/research/type_id_index/research-{fph,index,index16,direct,pext}-bench_dispatch
-build-research/research/type_id_index/research-{fph,index,pext}-bench_initialize
+build-research/research/type_id_index/research-{fph,index,index16,direct,pext,chd,chdmin}-bench_dispatch
+build-research/research/type_id_index/research-{fph,index,pext,chd,chdmin}-bench_initialize
 cd ~/dev/typeinfo-samples && python3 analyze-bits.py     # -> bits.md (§11)
 ```
 
 The harness is off by default (`BOOST_OPENMETHOD_BUILD_RESEARCH`), has no
 Jamfile, and is not part of the library's API.
+
+## 12. Third idea: a minimal perfect hash, by hash and displace
+
+The first two ideas both let the *addresses* set the table size: the flat index
+pays for the span, the `pext` cover pays for the within-module dilution. A
+minimal perfect hash pays for neither. It maps `N` type ids onto `N` slots by
+construction, so the table is `8N` bytes whatever the addresses are, and there
+is no distribution that makes it larger.
+
+The classical construction is "hash, displace and compress" (Belazzougui,
+Botelho and Dietzfelbinger). Split the keys into `N / Lambda` buckets by one
+hash; place the buckets largest first; give each bucket a *pilot*, found by
+trial, that moves all of its keys onto slots that are still free. Lookup reads
+the key's bucket, loads that bucket's pilot, and applies it.
+
+The compression step is dropped here, and that is deliberate. Compressing the
+pilots is what takes CHD to ~2 bits per key, but decoding a compressed integer
+sequence on the dispatch path would cost far more than the bytes it saves. A
+pilot is stored raw, so reading one is a single indexed load.
+
+### 12.1 The formula, and one that does not work
+
+`research::chd_index<Lambda, LoadPercent>`, a `type_hash` policy:
+
+```cpp
+h     = x * seed;                       // one multiply
+pilot = pilots[h >> bucket_shift];      // top bits pick the bucket
+index = mulhi64(h * pilot, slots);      // displace, then reduce
+```
+
+`slots` is `N * 100 / LoadPercent`, and `mulhi64` is Lemire's multiply-shift
+reduction - the top half of a 64x64 product - which lands on `[0, slots)` for
+any `slots`, with no division.
+
+The displacement has to be **multiplicative**, and the first attempt got this
+wrong in a way worth recording, because it fails structurally rather than
+statistically. Adding a pilot, or exclusive-oring one in, leaves two keys in
+the same relation to each other in their high bits, and the reduction reads
+exactly those high bits: two ids that agree there collide under *every* pilot,
+and no seed rescues the bucket. There are about `Lambda / 2` such pairs in a
+table of `N` slots, so the search does not slow down, it stops - on the
+synthetic sweep it burned the whole per-bucket budget on one bucket and then
+gave up on all 16 seeds. A multiplication has no such fixed point: as `p`
+varies, `(h1 - h2) * p` sweeps the whole word. After the change the *first*
+seed succeeds on every sample measured below, with 7 to 21 pilot trials per
+type id.
+
+Two configurations are built, differing only in their template arguments:
+
+| variant | Lambda | LoadPercent | slots | pilots | total |
+|---|---|---|---|---|---|
+| `chd` | 4 | 95 | 1.053N | N/4 x 4 B | **9.45 bytes per type id** |
+| `chdmin` | 2 | 100 | N, exactly | N/2 x 4 B | 10.05 bytes per type id |
+
+`chdmin` is the exactly minimal one. It costs *more* in total, which is the
+useful thing to know: reaching a full table needs the buckets halved, and that
+doubles the pilot array, which is dearer than the 5 % of slots it recovers.
+The pilots cannot be narrowed to 16 bits instead - a pilot multiplies the key,
+so a narrow one cannot move a bucket far enough.
+
+### 12.2 Codegen
+
+GCC 13.3, between the `type_info` load and the indirect call, Intel syntax:
+
+```asm
+imul   rax, QWORD PTR [rip+...]        ; seed
+mov    rsi, rax
+shr    rsi, cl                         ; bucket_shift
+mov    edx, DWORD PTR [rdx+rsi*4]      ; the pilot
+imul   rax, rdx
+mul    QWORD PTR [rip+...]             ; slots, into rdx
+mov    rax, QWORD PTR [rax+rdx*8]
+```
+
+Six instructions where `fast_perfect_hash` has three, and - the part that
+matters - **two dependent loads instead of one**: the pilot has to arrive
+before the index exists. clang 22 generates the same shape.
+
+### 12.3 Memory: the first scheme here that beats the incumbent
+
+Table plus pilots, on the samples of §4-5 and §11.1. `pext_index` is the
+column to compare against for the four-module rows, since `fast_perfect_hash`
+does not get that far.
+
+| sample | N | `fast_perfect_hash` | `pext_index` | `chd` | `chdmin` |
+|---|---|---|---|---|---|
+| flat, 1 module | 1000 | 16 KB | 32 KB | **9 KB** | 10 KB |
+| tree, 1 module | 1000 | 32 KB | 30 KB | **9 KB** | 10 KB |
+| si-heavy, 1 module | 1000 | 128 KB | 128 KB | **9 KB** | 10 KB |
+| mi-heavy, 1 module | 1000 | 128 KB | 128 KB | **9 KB** | 10 KB |
+| si-heavy, 4 modules | 4000 | *aborts* | 448 KB | **37 KB** | 39 KB |
+| mi-heavy, 4 modules | 4000 | *aborts* | 4.0 MB | **37 KB** | 39 KB |
+| si-heavy, exe + `dlopen`ed | 4000 | *aborts* | 2.0 MB | **37 KB** | 39 KB |
+| mi-heavy, exe + `dlopen`ed | 4000 | *aborts* | 2.0 MB | **37 KB** | 39 KB |
+
+The `chd` column is one number, 9.45 bytes per type id, repeated eight times.
+Nothing in the address distribution reaches it - not the shape mix, not the
+module count, not `dlopen`. That is 1.7x to 14x below `fast_perfect_hash`
+where the incumbent works at all, and 12x to 110x below the `pext` cover where
+it does not. It is also the only scheme in this note whose footprint can be
+stated in advance, before seeing an address.
+
+### 12.4 Initialize: bounded, and indifferent to layout
+
+`type_hash::initialize` alone, same protocol as §7 and §11.4, in ms:
+
+| sample | N | `fast_perfect_hash` | `pext_index` | `chd` | `chdmin` |
+|---|---|---|---|---|---|
+| flat, 1 module | 1000 | 0.199 | 1.3 | 0.068 | **0.029** |
+| tree, 1 module | 1000 | 20.2 | 1.4 | 0.058 | **0.031** |
+| si-heavy, 1 module | 1000 | 83.3 | 2.0 | 0.056 | **0.029** |
+| mi-heavy, 1 module | 1000 | 96.9 | 2.3 | 0.062 | **0.034** |
+| si-heavy, 4 modules | 4000 | *aborts* | 12.6 | 0.294 | **0.157** |
+| mi-heavy, 4 modules | 4000 | *aborts* | 15.4 | 0.319 | **0.156** |
+| si-heavy, exe + `dlopen`ed | 4000 | *aborts* | 17.1 | 0.277 | **0.151** |
+| mi-heavy, exe + `dlopen`ed | 4000 | *aborts* | 20.6 | 0.323 | **0.155** |
+
+Three to 1700 times faster than `fast_perfect_hash`, 20 to 130 times faster
+than the cover search, and flat across the samples: the search never looks at
+where the ids are, only at how many. On the synthetic sweep, 65 536 ids take
+3.1 ms (`chdmin`) to 8.5 ms (`chd`), and the stride - which moves
+`fast_perfect_hash` from 0.5 ms to 44 s - moves `chd` by less than a factor of
+two. `chdmin` is the faster of the two because its buckets hold two keys
+rather than four, and a small bucket is far easier to place late.
+
+### 12.5 Dispatch: this is where it is paid for
+
+Same protocol as §6, ns per call, 64 registered classes, Zen 5.
+
+GCC 13.3:
+
+| mode | classes | fph | pext | chd | chdmin | direct |
+|---|---|---|---|---|---|---|
+| latency | 8 | 8.26+-0.22 | 8.59+-0.26 | 9.53+-0.24 | 9.50+-0.28 | **8.05**+-0.22 |
+| latency | 24 | **8.54**+-0.27 | 8.81+-0.29 | 10.18+-0.29 | 10.10+-0.28 | 8.65+-0.24 |
+| latency | 64 | **8.64**+-0.30 | 8.94+-0.28 | 10.23+-0.27 | 10.37+-0.36 | 8.78+-0.24 |
+| throughput | 8 | 7.73+-0.20 | 7.90+-0.22 | 9.99+-0.08 | 9.93+-0.04 | **6.97**+-0.26 |
+| throughput | 24 | 8.35+-0.23 | 8.26+-0.24 | 10.64+-0.07 | 10.68+-0.07 | **7.68**+-0.27 |
+| throughput | 64 | 8.48+-0.24 | 8.41+-0.29 | 10.81+-0.05 | 10.91+-0.10 | **7.82**+-0.31 |
+
+clang 22:
+
+| mode | classes | fph | pext | chd | chdmin | direct |
+|---|---|---|---|---|---|---|
+| latency | 8 | 8.43+-0.28 | 8.38+-0.31 | 10.16+-0.39 | 10.23+-0.39 | **8.01**+-0.24 |
+| latency | 24 | 9.01+-0.32 | 9.23+-0.27 | 10.79+-0.39 | 10.66+-0.38 | **8.32**+-0.28 |
+| latency | 64 | 9.24+-0.24 | 9.42+-0.39 | 10.83+-0.40 | 10.96+-0.36 | **8.45**+-0.34 |
+| throughput | 8 | 8.03+-0.26 | 7.84+-0.12 | 9.94+-0.38 | 9.99+-0.36 | **7.50**+-0.07 |
+| throughput | 24 | 8.55+-0.40 | 8.48+-0.14 | 10.72+-0.44 | 10.73+-0.49 | **7.96**+-0.10 |
+| throughput | 64 | 8.54+-0.46 | 8.57+-0.14 | 10.70+-0.39 | 10.91+-0.14 | **8.04**+-0.12 |
+
+Both compilers, every point: **+1.0 to +1.6 ns on latency, +2.2 to +2.3 ns on
+throughput**, against `fast_perfect_hash`. That is not a marginal call. It is
+two to four times the size of the effect the whole flat-index exercise was
+chasing, in the wrong direction, and it is well outside the noise band - the
+throughput runs have a half-range of 0.05 to 0.1 ns.
+
+Throughput suffers more than latency, which is the signature of instruction
+count rather than dependency depth: the loop can overlap successive calls, so
+what binds is the three extra uops and the second load port access, not the
+chain. The two `chd` configurations are indistinguishable from each other, as
+they should be - they generate identical code and differ only in table size.
+
+### 12.6 Assessment
+
+Against the §9 criteria: G1 passes - 140/140 (`ctest -R '^research-'`), now
+seven variants x two check modes. G2 **fails**, and by more than any other
+prototype here. G3 passes outright, and is the only prototype that does: 0.07x
+to 0.58x `fast_perfect_hash` rather than 2x-149x. G4 passes with no
+restriction at all - the search never reads an address's magnitude.
+
+So the three ideas separate cleanly, and none of them is a win:
+
+| | table | initialize | dispatch | survives `dlopen` |
+|---|---|---|---|---|
+| flat index (§1-9) | 12x-5e8x | fastest | **-0.6 to -1.1 ns** | no |
+| `pext` cover (§11) | 2x-32x | 20x-40x faster | neutral | yes |
+| hash and displace (§12) | **0.07x-0.58x** | **3x-1700x faster** | +1.0 to +2.3 ns | yes |
+
+`fast_perfect_hash` is a multiply and a shift, and there is no room under it:
+any scheme that indirects through a second table to get a denser one gives
+back more time than the memory is worth. The minimal perfect hash is the exact
+opposite trade to the flat index - it buys with time what the flat index buys
+with space - and both lose to the incumbent for the same reason, that dispatch
+is the hot path and `initialize` runs once.
+
+What it is still good for is the same thing §11 identified, and it is a better
+candidate for it than the cover:
+
+- it is the natural **fallback** for `fast_perfect_hash`'s `search_error`,
+  where the alternative today is `abort()`. It succeeds on both 4000-class
+  samples, in 0.16-0.32 ms, in 37 KB;
+- it needs **no instruction-set extension** - a 64-bit multiply and a shift -
+  so unlike `pext_index` it is available on ARM and on pre-Haswell x86;
+- it makes **no assumption about the type ids** beyond their being non-zero,
+  so it is the only prototype here that does not depend on
+  `policies::std_rtti` and the Itanium ABI. Zero is a fixed point of the
+  multiply: a type id of 0 is pinned to slot 0 for every seed and every
+  pilot, and the search fails if another bucket took that slot first. Hashing
+  `x + 1` removes the restriction for one instruction on the dispatch path,
+  which would matter if the policy were ever real.
+
+The measured cost of that fallback is a permanently slower dispatch for the
+programs that need it, which is a trade a program with 4000 classes across
+four modules would take over aborting.
