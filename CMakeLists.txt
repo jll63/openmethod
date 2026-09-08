@@ -63,6 +63,10 @@ option(
     BOOST_OPENMETHOD_ENABLE_REFLECTION
     "Build the tests and examples with C++26 reflection enabled"
     OFF)
+option(
+    BOOST_OPENMETHOD_BUILD_RESEARCH
+    "Build the type_id-index research harness: see TYPE_ID_INDEX.md"
+    OFF)
 
 # C++26 reflection (P2996). The library detects it on its own, from
 # __cpp_impl_reflection; this only arranges for the tests and examples to be
@@ -330,5 +334,11 @@ if (BOOST_OPENMETHOD_BUILD_TESTS)
         add_subdirectory(doc/modules/ROOT/snippets)
         # Examples published on Compiler Explorer, see ce/README.md.
         add_subdirectory(ce)
+    endif ()
+
+    # Research harness for boostorg/openmethod#57. Not a Boost.OpenMethod
+    # component: no Jamfile, off by default, never built by CI.
+    if (BOOST_OPENMETHOD_BUILD_RESEARCH)
+        add_subdirectory(research/type_id_index)
     endif ()
 endif ()

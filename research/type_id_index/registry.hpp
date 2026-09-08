@@ -1,0 +1,97 @@
+// Copyright (c) 2017-2026 Jean-Louis Leroy
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE_1_0.txt
+// or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+// RESEARCH PROTOTYPE - not part of the library's API. See TYPE_ID_INDEX.md.
+
+#ifndef BOOST_OPENMETHOD_RESEARCH_REGISTRY_HPP
+#define BOOST_OPENMETHOD_RESEARCH_REGISTRY_HPP
+
+// This header owns the whole registry recipe, in the manner of
+// test/test_checked_registry.hpp: the forward declaration, the
+// BOOST_OPENMETHOD_DEFAULT_REGISTRY definition, the library include and the
+// registry itself. Force-including it (`-include`, `/FI`) in front of an
+// existing test is enough to re-run that test against a prototype policy.
+//
+// RESEARCH_POLICY selects the configuration under measurement:
+//
+//   fph      stock default_registry - the control
+//   index    fast_perfect_hash replaced by direct_type_id_index<8>
+//   index16  ... by direct_type_id_index<16>
+//   direct   fast_perfect_hash *and* vptr_vector replaced by
+//            vptr_direct_vector
+//
+// The policy lists are spelled out rather than derived from default_registry
+// with `with`/`without`: `with` appends, and a type_hash policy must precede
+// vptr_vector in the list (vptr_vector static_asserts on it, because policies
+// are initialized left to right and it reads the hash's state).
+
+#define BOOST_OPENMETHOD_RESEARCH_FPH 0
+#define BOOST_OPENMETHOD_RESEARCH_INDEX 1
+#define BOOST_OPENMETHOD_RESEARCH_INDEX16 2
+#define BOOST_OPENMETHOD_RESEARCH_DIRECT 3
+
+#ifndef RESEARCH_POLICY
+#define RESEARCH_POLICY BOOST_OPENMETHOD_RESEARCH_INDEX
+#endif
+
+struct research_registry;
+#define BOOST_OPENMETHOD_DEFAULT_REGISTRY research_registry
+
+#include <boost/openmethod.hpp>
+
+#include "direct_type_id_index.hpp"
+#include "vptr_direct_vector.hpp"
+
+#ifdef BOOST_OPENMETHOD_ENABLE_RUNTIME_CHECKS
+#define BOOST_OPENMETHOD_RESEARCH_CHECKS                                       \
+    , boost::openmethod::policies::runtime_checks
+#else
+#define BOOST_OPENMETHOD_RESEARCH_CHECKS
+#endif
+
+namespace boost::openmethod::research {
+
+#if RESEARCH_POLICY == BOOST_OPENMETHOD_RESEARCH_FPH
+
+#define RESEARCH_POLICY_NAME "fph"
+using selected_registry = registry<
+    policies::std_rtti, policies::fast_perfect_hash, policies::vptr_vector,
+    policies::default_error_handler,
+    policies::stderr_output BOOST_OPENMETHOD_RESEARCH_CHECKS>;
+
+#elif RESEARCH_POLICY == BOOST_OPENMETHOD_RESEARCH_INDEX
+
+#define RESEARCH_POLICY_NAME "index"
+using selected_registry = registry<
+    policies::std_rtti, direct_type_id_index<8>, policies::vptr_vector,
+    policies::default_error_handler,
+    policies::stderr_output BOOST_OPENMETHOD_RESEARCH_CHECKS>;
+
+#elif RESEARCH_POLICY == BOOST_OPENMETHOD_RESEARCH_INDEX16
+
+#define RESEARCH_POLICY_NAME "index16"
+using selected_registry = registry<
+    policies::std_rtti, direct_type_id_index<16>, policies::vptr_vector,
+    policies::default_error_handler,
+    policies::stderr_output BOOST_OPENMETHOD_RESEARCH_CHECKS>;
+
+#elif RESEARCH_POLICY == BOOST_OPENMETHOD_RESEARCH_DIRECT
+
+// No type_hash at all: vptr_direct_vector folds the base into the table's
+// address, so there is nothing left for a separate hash policy to do.
+#define RESEARCH_POLICY_NAME "direct"
+using selected_registry = registry<
+    policies::std_rtti, vptr_direct_vector, policies::default_error_handler,
+    policies::stderr_output BOOST_OPENMETHOD_RESEARCH_CHECKS>;
+
+#else
+#error "RESEARCH_POLICY must be one of fph, index, index16, direct"
+#endif
+
+} // namespace boost::openmethod::research
+
+struct research_registry : boost::openmethod::research::selected_registry {};
+
+#endif
