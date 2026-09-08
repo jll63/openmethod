@@ -10,10 +10,12 @@ generator and the address analysis are in a separate repository,
 proof, not a search. The dispatch code it generates is exactly as good as
 predicted: one fused load where `fast_perfect_hash` needs a multiply, a shift
 and a load, and that is worth a real if modest 0.3-1.1 ns per call on two
-compilers. It dies on memory: 12x-149x more than `fast_perfect_hash` within one
-module, 231x across four, and a 31 TB table as soon as a program registers
-classes from both its own executable and a shared library. Recommendation: do
-not ship it as the general v-table lookup.
+compilers. It dies on memory: 12x-149x more than `fast_perfect_hash` even
+in the single-module best case, and a multi-terabyte table the moment a program
+`dlopen`s a module that registers classes of its own. (Implicitly linked shared
+libraries are *not* a problem - copy relocations unify their type_info objects
+into the executable; §5.) Recommendation: do not ship it as the general v-table
+lookup.
 
 The measurements did turn up something else, which is the more useful result of
 the exercise: on realistic type id distributions `fast_perfect_hash`'s *search*
@@ -126,26 +128,61 @@ them. Registering a uniformly random tenth of the reference sample leaves the
 span unchanged and multiplies the blowup by ten: 2526x. Only a *contiguous*
 window shrinks the span, and even then the density stays near 1 %.
 
-## 5. Where it dies: more than one module
+## 5. Where it dies: dynamic loading, not shared libraries
 
-`analyze-type-ids.py` re-places the same records under three models.
+The distinction matters, and an earlier draft of this note got it wrong. It is
+*not* true that any program spanning an executable and a shared library has an
+unusable span. Two cases behave completely differently.
+
+**Implicitly linked DSOs are fine.** The Itanium ABI requires `type_info`
+identity to be pointer identity across modules, and the linker delivers that
+with a copy relocation: a type_info the executable names is copied into the
+executable's image, and the DSO's references are redirected to that copy.
+Measured directly (`g++ -O2 -fPIC -shared` + `-ldso`, default visibility):
+
+```
+exe    typeid(InExe)                    0x64263049ed78
+exe    typeid(InLib) as seen by the exe 0x64263049ed50
+lib    typeid(InLib) as seen by the lib 0x64263049ed50   <- same address
+exe    typeid(std::runtime_error)       0x64263049ed60
+```
+
+40 bytes apart, all in the executable. `std::runtime_error` and
+`std::bad_alloc` come along the same way. A program and its implicitly linked
+libraries therefore have exactly the layout of §4 - the flat table is only as
+bad as the single-module numbers.
+
+**`dlopen` is fatal.** A plugin's own classes are not named by the executable,
+so nothing unifies them; they stay in the plugin's own mapping, which the loader
+places wherever it likes:
+
+```
+exe    InExe      0x60bc535edd90
+plugin InPlugin   0x75e9405c4dc8
+span = 23 282 698 776 632 bytes = 21.2 TB   (41.5 TB on the next run - ASLR)
+```
+
+That is 2.9e12 slots. The placement model in the table below is the same
+scenario computed from the sample data, and lands in the same range:
 
 | placement | span | slots@8 | table@8 | vs `fast_perfect_hash` |
 |---|---|---|---|---|
-| adjacent (`dlopen`ed libraries, packed) | 3.1 MB | 408 272 | 3.1 MB | 50x |
-| observed (as ASLR actually placed them) | 14.4 MB | 1 893 597 | 14.4 MB | 231x |
-| pie-split (a PIE executable + libraries) | 31.6 TB | 4.3e12 | **31.6 TB** | 5e8x |
+| adjacent (several `dlopen`ed libraries, packed together) | 3.1 MB | 408 272 | 3.1 MB | 50x |
+| observed (as ASLR actually placed those libraries) | 14.4 MB | 1 893 597 | 14.4 MB | 231x |
+| split (executable + a `dlopen`ed module) | 31.6 TB | 4.3e12 | **31.6 TB** | 5e8x |
 
-On this machine a PIE executable maps around `0x5b73…` and the shared libraries
-around `0x7b0b…` - about 3.5e13 bytes apart. Any program that registers a class
-of its own *and* a class from a shared library therefore has a type id span of
-tens of terabytes. This is not a tuning problem; it is the end of the flat-table
-idea. The prototype detects it and reports `too_sparse` rather than attempting
-the allocation.
+So the rule is sharper than "more than one module": the flat table survives
+static and implicit dynamic linking, and dies on `dlopen`. Hidden visibility is
+the other unifier-defeating configuration - openmethod's own shared-library
+tests mark their classes `BOOST_SYMBOL_VISIBLE` precisely because RTTI must stay
+default-visibility - and `augment_classes()` already has to cope with one class
+carrying different type ids in different modules. Those extra ids widen the span
+rather than break the mapping.
 
-It fires on the measured single-module data too: 1000 classes spanning 807 704
-bytes need 100 964 slots, 101 per class, past the prototype's 64-per-class
-guard.
+The prototype detects the condition and reports `too_sparse` rather than
+attempting the allocation. It also fires well before the multi-module case: 1000
+classes in *one* module spanning 807 704 bytes need 100 964 slots, 101 per
+class, past the prototype's 64-per-class guard.
 
 ## 6. Dispatch: the codegen claim holds, and it is worth a little
 
@@ -278,13 +315,20 @@ The criteria, fixed before the measurements:
 | G1 | whitelisted tests pass, with and without runtime checks | **pass** - 80/80 (`ctest -R '^research-'`), 4 variants x 2 check modes |
 | G2 | reference path >= 1.5 cycles/dispatch faster, on >= 2 compilers | **pass, narrowly** - 0.6-1.1 ns (~2.5-4.5 cycles) on throughput, GCC and clang agreeing; latency moves only on clang |
 | G3 | table <= 8x `fast_perfect_hash` on realistic subsets | **fail** - 12x-149x in one module, 231x in four |
-| G4 | multi-module case diagnosed, with a checkable rule | pass, but the rule excludes almost every real program |
+| G4 | multi-module case diagnosed, with a checkable rule | **pass** - `too_sparse`, and the rule is precise: no `dlopen`ed module may register classes |
 
-**Do not promote this to a policy.** The speed argument holds, but it buys a
-few percent on the one dispatch path that uses the map, at 12x-149x the memory
-in the best case and no viable table at all in the ordinary
-executable-plus-library case. The page-directory variant that survives the span
-problem is worse than the incumbent on both memory and latency.
+**Do not promote this to a policy** - but the reason is now G3 alone, and it is
+narrower than it first looked. The speed argument holds, and the multi-module
+objection turns out to apply only to `dlopen`, not to shared libraries in
+general. What remains is that the table costs 12x-149x `fast_perfect_hash`'s
+even in the single-module best case, to buy a few percent on the one dispatch
+path that uses the map. The page-directory variant that would survive the
+`dlopen` case is worse than the incumbent on both memory and latency.
+
+If it were ever revisited, the shape to revisit is a *compile-time* opt-in for
+programs that do not `dlopen` class-registering modules - the memory is the
+user's to spend, and `too_sparse` already diagnoses the case where it cannot be.
+That is a bigger change to the policy surface than the few percent justifies.
 
 Two things are worth carrying forward:
 
