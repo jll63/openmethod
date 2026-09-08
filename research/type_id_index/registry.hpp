@@ -21,6 +21,7 @@
 //   index16  ... by direct_type_id_index<16>
 //   direct   fast_perfect_hash *and* vptr_vector replaced by
 //            vptr_direct_vector
+//   pext     fast_perfect_hash replaced by pext_index (needs -mbmi2)
 //
 // The policy lists are spelled out rather than derived from default_registry
 // with `with`/`without`: `with` appends, and a type_hash policy must precede
@@ -31,6 +32,7 @@
 #define BOOST_OPENMETHOD_RESEARCH_INDEX 1
 #define BOOST_OPENMETHOD_RESEARCH_INDEX16 2
 #define BOOST_OPENMETHOD_RESEARCH_DIRECT 3
+#define BOOST_OPENMETHOD_RESEARCH_PEXT 4
 
 #ifndef RESEARCH_POLICY
 #define RESEARCH_POLICY BOOST_OPENMETHOD_RESEARCH_INDEX
@@ -43,6 +45,10 @@ struct research_registry;
 
 #include "direct_type_id_index.hpp"
 #include "vptr_direct_vector.hpp"
+
+#if RESEARCH_POLICY == BOOST_OPENMETHOD_RESEARCH_PEXT
+#include "pext_index.hpp"
+#endif
 
 #ifdef BOOST_OPENMETHOD_ENABLE_RUNTIME_CHECKS
 #define BOOST_OPENMETHOD_RESEARCH_CHECKS                                       \
@@ -86,8 +92,16 @@ using selected_registry = registry<
     policies::std_rtti, vptr_direct_vector, policies::default_error_handler,
     policies::stderr_output BOOST_OPENMETHOD_RESEARCH_CHECKS>;
 
+#elif RESEARCH_POLICY == BOOST_OPENMETHOD_RESEARCH_PEXT
+
+#define RESEARCH_POLICY_NAME "pext"
+using selected_registry = registry<
+    policies::std_rtti, pext_index<>, policies::vptr_vector,
+    policies::default_error_handler,
+    policies::stderr_output BOOST_OPENMETHOD_RESEARCH_CHECKS>;
+
 #else
-#error "RESEARCH_POLICY must be one of fph, index, index16, direct"
+#error "RESEARCH_POLICY must be one of fph, index, index16, direct, pext"
 #endif
 
 } // namespace boost::openmethod::research

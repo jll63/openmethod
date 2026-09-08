@@ -10,7 +10,19 @@ message(STATUS "Boost.OpenMethod: building the type_id-index research harness")
 
 add_custom_target(research-all)
 
-set(BOOST_OPENMETHOD_RESEARCH_VARIANTS fph index index16 direct)
+set(BOOST_OPENMETHOD_RESEARCH_VARIANTS fph index index16 direct pext)
+
+# The pext variant uses BMI2's parallel bit extract. Compiled in only for that
+# variant, so the others measure what a stock build would.
+function(research_variant_flags target variant)
+    if (variant STREQUAL "pext")
+        if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" OR CMAKE_CXX_COMPILER_FRONTEND_VARIANT MATCHES "MSVC")
+            target_compile_options(${target} PRIVATE /arch:AVX2)
+        else()
+            target_compile_options(${target} PRIVATE -mbmi2)
+        endif()
+    endif()
+endfunction()
 
 # test_core is deliberately absent: it names default_registry explicitly, three
 # dozen times, so force-including a different default registry does not
@@ -64,6 +76,7 @@ foreach(variant ${BOOST_OPENMETHOD_RESEARCH_VARIANTS})
                     PRIVATE BOOST_OPENMETHOD_ENABLE_RUNTIME_CHECKS)
             endif()
             research_force_include(${target})
+            research_variant_flags(${target} ${variant})
             add_test(NAME ${target} COMMAND ${target})
             add_dependencies(research-all ${target})
         endforeach()
@@ -79,6 +92,7 @@ foreach(variant ${BOOST_OPENMETHOD_RESEARCH_VARIANTS})
             target_compile_definitions(${target}
                 PRIVATE BOOST_OPENMETHOD_ENABLE_RUNTIME_CHECKS)
         endif()
+        research_variant_flags(${target} ${variant})
         add_test(NAME ${target} COMMAND ${target})
         add_dependencies(research-all ${target})
     endforeach()
@@ -90,6 +104,7 @@ foreach(variant ${BOOST_OPENMETHOD_RESEARCH_VARIANTS})
         target_link_libraries(${target} PRIVATE Boost::openmethod)
         target_compile_definitions(${target}
             PRIVATE RESEARCH_POLICY=BOOST_OPENMETHOD_RESEARCH_${variant_macro})
+        research_variant_flags(${target} ${variant})
         add_dependencies(research-all ${target})
     endforeach()
 endforeach()

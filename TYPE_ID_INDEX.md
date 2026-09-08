@@ -20,8 +20,15 @@ lookup.
 The measurements did turn up something else, which is the more useful result of
 the exercise: on realistic type id distributions `fast_perfect_hash`'s *search*
 is far more expensive than its documentation suggests - 97 ms for 1000 classes
-in one of the measured samples, against 1 µs for a min/max scan. That is worth
-its own issue.
+in one of the measured samples, and on the 4000-class sample it **gives up**
+after 500 000 attempts and aborts. That is worth its own issue.
+
+A second idea, tried afterwards (§11), fares much better: pick the *minimal
+cover* of bit positions that still separates the type ids and pack them with
+`pext`. It is immune to where the modules are - the `dlopen` case costs one
+extra bit - costs 2x-32x `fast_perfect_hash`'s memory rather than 12x-infinity,
+dispatches as fast, and finds its table deterministically in milliseconds on
+the very input where `fast_perfect_hash` aborts. It is the one worth pursuing.
 
 ## 1. The idea
 
@@ -356,6 +363,132 @@ Build it under a memory cap regardless:
 capped -m 24G -- cmake --build build-research --target research-all -j4
 ```
 
+## 11. Second idea: a minimal-cover `pext` index
+
+The flat table fails because the *span* sets the table size. But a set of
+addresses clustered per module and far apart between modules has structure in
+its bits: the low bits vary within a module, the high bits vary between modules
+- and the high bits are perfectly correlated with one another, since they all
+encode nothing but "which module". Only about `log2(modules)` of them carry
+information.
+
+So find the **minimal cover**: the smallest set of bit positions found such
+that `x & mask` is still injective over the registered type ids, and index with
+`pext(x, mask)` - BMI2 parallel bit extract, one instruction, which packs the
+selected bits into `[0, 2^popcount(mask))`. Injectivity of `pext(x, mask)` is
+exactly injectivity of `x & mask`, so the search never needs `pext`. After
+"Perfect Hashing in an Imperfect World", Joaquín M. López Muñoz.
+
+The search is deterministic. The bits that vary at all are trivially a cover;
+one greedy pass drops bits lowest-entropy-first while injectivity holds; a
+second builds a cover bottom-up by adding the bit that resolves the most
+collisions, then trims it the same way; the smaller wins.
+
+### 11.1 On the data
+
+`analyze-bits.py`, same samples as §4-5 (`bits.md` has every configuration):
+
+| sample | modules | N | varying bits | **cover** | floor | table | fph table | blowup | *flat table (§4-5)* |
+|---|---|---|---|---|---|---|---|---|---|
+| flat, 1 module | 1 | 1000 | 14 | **12** | 10 | 32 KB | 16 KB | 2x | 5x |
+| tree, 1 module | 1 | 1000 | 15 | **13** | 10 | 64 KB | 16 KB | 4x | 12x |
+| si-heavy, 1 module | 1 | 1000 | 18 | **14** | 10 | 128 KB | 16 KB | 8x | 49x |
+| mi-heavy, 1 module | 1 | 1000 | 21 | **15** | 10 | 256 KB | 16 KB | 16x | 149x |
+| si-heavy, 4 modules, observed | 4 | 4000 | 22 | **18** | 12 | 2 MB | 64 KB | 32x | 231x |
+| si-heavy, 4 modules, adjacent | 4 | 4000 | 19 | **17** | 12 | 1 MB | 64 KB | 16x | 50x |
+| **si-heavy, exe + `dlopen`ed** | 4 | 4000 | **31** | **18** | 12 | 2 MB | 64 KB | 32x | **5e8x (31 TB)** |
+| flat, exe + `dlopen`ed | 4 | 4000 | 30 | **14** | 12 | 128 KB | 64 KB | 2x | - |
+| tree, exe + `dlopen`ed | 4 | 4000 | 31 | **16** | 12 | 512 KB | 64 KB | 8x | - |
+
+The `dlopen` catastrophe is gone: 31 varying bits cover in 18, the same as the
+observed placement. The 13 high bits that differ between the executable and the
+plugin are one piece of information, and the search keeps one of them. What
+remains is the within-module dilution, 2-5 bits above the `ceil(log2 N)` floor:
+the price of choosing a bit *subset* rather than a 64-bit multiplier.
+
+### 11.2 Prototype C - `research::pext_index<MaxBits>`
+
+A `type_hash` policy, same shape as prototype A; state is `{mask, max_value}`
+plus the control table under runtime checks. `hash` is `_pext_u64(ti, mask)`.
+Needs `-mbmi2`; the CMake harness adds it to the `pext` variant only, so the
+other variants measure what a stock build would. 20/20 of the re-run tests
+pass, checked and unchecked.
+
+Codegen, GCC 13.3, between the `type_info` load and the indirect call:
+
+```asm
+mov    rdx, QWORD PTR [rip+...]           ; table
+pext   rax, rax, QWORD PTR [rip+...]      ; mask, as a memory operand
+mov    rax, QWORD PTR [rdx+rax*8]
+```
+
+One `pext` (3-cycle latency on Zen 3+ and Intel; **microcoded, ~18 cycles, on
+Zen 1/2**) where `fast_perfect_hash` has `imul` + `shr`.
+
+### 11.3 Dispatch
+
+Same protocol as §6, ns per call, 64 registered classes, GCC 13.3, Zen 5:
+
+| mode | classes | fph | pext | direct |
+|---|---|---|---|---|
+| latency | 8 | 8.55+-0.28 | 8.63+-0.27 | 8.47+-0.26 |
+| latency | 24 | 8.98+-0.36 | 8.81+-0.27 | 8.82+-0.30 |
+| latency | 64 | 9.03+-0.29 | 8.93+-0.30 | 8.90+-0.28 |
+| throughput | 8 | 8.02+-0.31 | 7.93+-0.25 | 7.40+-0.27 |
+| throughput | 24 | 8.81+-0.33 | 7.84+-0.22 | 7.82+-0.32 |
+| throughput | 64 | 8.76+-0.28 | 8.40+-0.39 | 7.94+-0.09 |
+
+Same speed class as `fast_perfect_hash`, perhaps a hair better on throughput;
+`direct` keeps its fused-load edge. Table on this benchmark: 126 slots against
+`fast_perfect_hash`'s 128 - for tightly packed classes the cover is as good as
+the hash. This is not a speed play.
+
+### 11.4 Initialize - where it wins
+
+Same protocol as §7. On the **measured** address sets:
+
+| sample | `fast_perfect_hash` | `pext_index` | flat table |
+|---|---|---|---|
+| flat, 1000 | 0.20 ms | 1.31 ms | ~1 µs |
+| tree, 1000 | 21.7 ms | 1.39 ms | ~1 µs |
+| si-heavy, 1000 | 96.9 ms | 2.00 ms | *aborts (`too_sparse`)* |
+| mi-heavy, 1000 | 96.9 ms | 2.43 ms | *aborts* |
+| si-heavy, 4 modules, 4000 | **aborts** | 12.9 ms | *aborts* |
+| mi-heavy, 4 modules, 4000 | - | 15.7 ms | *aborts* |
+
+`fast_perfect_hash` on the 4000-class set: *"could not find hash factors after
+500000 attempts using up to 262144 buckets"*, then `abort()`. That is 5 passes
+x 100 000 multipliers, the table grown to 2^18 slots - 2 MB, the same size as
+`pext_index`'s 18-bit cover - and still no perfect hash. On the same input
+`pext_index` finds its cover, deterministically, in 12.9 ms.
+
+The cover search is `O(bits x N log N)` with a sort per candidate; the
+bottom-up pass dominates. Synthetic sweep, total initialize: 1024 ids
+0.8-2.5 ms, 65 536 ids 142-229 ms, regardless of stride - between the flat
+scan's ~100 µs and `fast_perfect_hash`'s 0.5 ms (regular ids) to 44 s (sparse
+ids). A hash set instead of a sort, and a cheaper add pass, would take a good
+factor off; nothing here is tuned.
+
+### 11.5 Assessment
+
+Against the §9 criteria: G1 passes; G2 is neutral - as fast as the incumbent,
+not faster; G3 is 2x-32x, so it clears the 8x bar in the single-module
+configurations and misses it across modules; G4 passes with *no* restriction -
+`dlopen` costs one bit. Two caveats are real:
+
+- **BMI2.** Absent on ARM and on x86 before Haswell/Zen; slow on Zen 1/2. A
+  software `pext` is a loop over the mask bits, far too slow for the hot path;
+  the honest fallback is `fast_perfect_hash` itself, chosen at compile time.
+- **Memory is still above the incumbent** wherever `fast_perfect_hash`'s search
+  succeeds - and it usually does, up to a few hundred classes per module.
+
+What it delivers that nothing else in this note does: a table that is found
+**deterministically, in bounded time, on inputs where the incumbent aborts**,
+with no dependence on module placement. That makes it the natural *fallback*
+for `fast_perfect_hash`'s `search_error` path, and a candidate primary on
+BMI2 hardware for programs with large registries. Either way the memory numbers
+above are the ones to weigh, not the flat table's.
+
 ## Reproducing
 
 ```bash
@@ -371,8 +504,9 @@ cmake -B build-research -DBOOST_SRC_DIR=/path/to/boost \
 capped -m 24G -- cmake --build build-research --target research-all -j4  # see 10
 ctest --test-dir build-research -R '^research-'          # correctness
 cmake --build build-research --target research-disasm    # codegen
-build-research/research/type_id_index/research-{fph,index,index16,direct}-bench_dispatch
-build-research/research/type_id_index/research-{fph,index}-bench_initialize
+build-research/research/type_id_index/research-{fph,index,index16,direct,pext}-bench_dispatch
+build-research/research/type_id_index/research-{fph,index,pext}-bench_initialize
+cd ~/dev/typeinfo-samples && python3 analyze-bits.py     # -> bits.md (§11)
 ```
 
 The harness is off by default (`BOOST_OPENMETHOD_BUILD_RESEARCH`), has no
