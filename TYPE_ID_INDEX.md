@@ -9,10 +9,11 @@ generator and the address analysis are in a separate repository,
 **Verdict up front.** The mapping works, and works unconditionally - there is a
 proof, not a search. The dispatch code it generates is exactly as good as
 predicted: one fused load where `fast_perfect_hash` needs a multiply, a shift
-and a load. But it is **not measurably faster**, and it costs 12x-500x more
-memory in a single module, and it is impossible - a 31 TB table - as soon as a
-program registers classes from both its own executable and a shared library.
-Recommendation: do not ship it as the general v-table lookup.
+and a load, and that is worth a real if modest 0.3-1.1 ns per call on two
+compilers. It dies on memory: 12x-149x more than `fast_perfect_hash` within one
+module, 231x across four, and a 31 TB table as soon as a program registers
+classes from both its own executable and a shared library. Recommendation: do
+not ship it as the general v-table lookup.
 
 The measurements did turn up something else, which is the more useful result of
 the exercise: on realistic type id distributions `fast_perfect_hash`'s *search*
@@ -146,54 +147,74 @@ It fires on the measured single-module data too: 1000 classes spanning 807 704
 bytes need 100 964 slots, 101 per class, past the prototype's 64-per-class
 guard.
 
-## 6. Dispatch: the codegen claim holds, the timing claim does not
+## 6. Dispatch: the codegen claim holds, and it is worth a little
 
-Three variants were built (`RESEARCH_POLICY=fph|index|index16|direct`) and
+Four variants were built (`RESEARCH_POLICY=fph|index|index16|direct`) and
 disassembled with the `research-disasm` target. The sequence between loading the
-`type_info` pointer and the indirect call, Intel syntax:
+`type_info` pointer and the indirect call, Intel syntax, GCC 13.3:
 
 ```asm
 ; fph - policies::fast_perfect_hash + vptr_vector
-imul   rax, QWORD PTR [rip+…]      ; mult
-shr    rax, cl                     ; shift, in cl
+imul   rax, QWORD PTR [rip+...]     ; mult
+shr    rax, cl                      ; shift, in cl
 mov    rax, QWORD PTR [rdx+rax*8]
 
 ; index - research::direct_type_id_index<8> + vptr_vector
-sub    rax, QWORD PTR [rip+…]      ; base
-shr    rax, 0x3                    ; immediate shift
+sub    rax, QWORD PTR [rip+...]     ; base
+shr    rax, 0x3                     ; immediate shift
 mov    rax, QWORD PTR [rdx+rax*8]
 
 ; direct - research::vptr_direct_vector
-mov    rax, QWORD PTR [rdx+rax*1]  ; rdx = vptrs.data() - min_type_id
+mov    rax, QWORD PTR [rdx+rax*1]   ; rdx = vptrs.data() - min_type_id
 ```
 
 `direct` is exactly the single fused load the idea promises: the `type_id` *is*
 the byte offset, because a slot is `sizeof(vptr_type)` bytes and the ids are at
-least 16 bytes apart. Note that this needs a `vptr` policy, not a `type_hash`
-one: `vptr_vector` ends in `vptrs[index]`, and a compiler cannot know that
-`type_id - base` is a multiple of 8, so the shift survives the `type_hash` seam.
+least 16 bytes apart. clang 22 does better than the above on `index` too - it
+scales the table so the `>>3` disappears into the addressing, leaving `sub` plus
+the fused load - and reproduces the single `mov` for `direct`. Note that GCC
+needs the `vptr` seam for that: `vptr_vector` ends in `vptrs[index]`, and GCC
+does not prove that `type_id - base` is a multiple of 8.
 
-The wall clock, ns per call, 4096 objects, median of 15 runs, calls through a
-plain `const node_base&` (a `virtual_ptr` argument never looks a v-table up):
+Wall clock, ns per call, 4096 objects, 64 registered classes, calls through a
+plain `const node_base&` (a `virtual_ptr` argument never looks a v-table up).
+Median of 5 program runs, each itself the median of 15 timed loops; the +- is
+the half-range across the 5 runs.
+
+GCC 13.3:
 
 | mode | classes | fph | index | index16 | direct |
 |---|---|---|---|---|---|
-| latency | 8 | **7.94** | 8.64 | 8.30 | 8.76 |
-| latency | 64 | **8.48** | 8.87 | 8.77 | 9.26 |
-| latency | 512 | **9.27** | 9.91 | 9.42 | 9.76 |
-| throughput | 8 | 7.46 | 8.07 | **7.35** | 7.76 |
-| throughput | 64 | 7.97 | 8.85 | **7.77** | 8.28 |
-| throughput | 512 | 7.88 | 8.93 | 7.66 | **7.63** |
+| latency | 8 | 8.74+-0.40 | 8.58+-0.32 | 8.28+-0.28 | 8.46+-0.25 |
+| latency | 24 | 8.61+-0.39 | 9.18+-0.39 | 8.52+-0.30 | 8.63+-0.20 |
+| latency | 64 | 8.57+-0.19 | 8.94+-0.41 | 8.67+-0.34 | 8.79+-0.27 |
+| throughput | 8 | 8.15+-0.35 | 7.58+-0.31 | 7.28+-0.25 | **6.94**+-0.28 |
+| throughput | 24 | 8.39+-0.37 | 8.30+-0.34 | 7.73+-0.28 | **7.71**+-0.29 |
+| throughput | 64 | 8.40+-0.26 | 7.85+-0.35 | 7.93+-0.31 | **7.33**+-0.31 |
 
-No variant is reliably faster; the spread is run-to-run noise. The saved
-instructions are 1-2 cycles on a path that costs ~30, and they are hidden behind
-the loads that precede them (object pointer, v-table pointer, `type_info`
-pointer) and the indirect call that follows. This is not a cache effect: the
-tables here are 8 KB (fph), 12 KB (index, direct) and 6 KB (index16), all
-L1/L2-resident.
+clang 22:
 
-**G2 fails.** The instruction-count argument is correct and the codegen confirms
-it; the argument simply does not cash out in time.
+| mode | classes | fph | index | direct |
+|---|---|---|---|---|
+| latency | 8 | 8.65+-0.08 | **8.29**+-0.29 | 8.49+-0.27 |
+| latency | 24 | 9.00+-0.24 | **8.65**+-0.29 | 8.71+-0.28 |
+| latency | 64 | 9.17+-0.13 | 8.83+-0.26 | **8.81**+-0.29 |
+| throughput | 8 | 7.99+-0.22 | 7.54+-0.17 | **7.47**+-0.06 |
+| throughput | 24 | 8.41+-0.30 | 8.07+-0.18 | **7.97**+-0.08 |
+| throughput | 64 | 8.63+-0.22 | 8.12+-0.07 | **7.98**+-0.08 |
+
+The two compilers agree on the direction at every point: `direct` beats `fph` by
+0.6-1.1 ns per call on throughput, and clang shows 0.2-0.4 ns on latency as
+well, where GCC shows nothing. At ~4 GHz that is roughly 1.5-4.5 cycles - the
+right order for removing a dependent `imul` and a shift. It is not a cache
+effect: the tables here are 1.0 KB (fph), 1.5 KB (index, direct) and 0.8 KB
+(index16).
+
+*Correction.* An earlier draft of this note reported no measurable difference.
+That measurement used a 512-class benchmark whose larger tables and heavier
+object mix buried the effect - and whose compilation reached 23.5 GB resident
+per translation unit, enough to fire the OOM killer. The benchmark now
+registers 64 classes and compiles in 0.7 GB; see §10.
 
 ## 7. Initialize: the incumbent is the problem
 
@@ -255,13 +276,15 @@ The criteria, fixed before the measurements:
 | | criterion | outcome |
 |---|---|---|
 | G1 | whitelisted tests pass, with and without runtime checks | **pass** - 80/80 (`ctest -R '^research-'`), 4 variants x 2 check modes |
-| G2 | reference path >= 1.5 cycles/dispatch faster | **fail** - no measurable difference, though the codegen is as predicted |
+| G2 | reference path >= 1.5 cycles/dispatch faster, on >= 2 compilers | **pass, narrowly** - 0.6-1.1 ns (~2.5-4.5 cycles) on throughput, GCC and clang agreeing; latency moves only on clang |
 | G3 | table <= 8x `fast_perfect_hash` on realistic subsets | **fail** - 12x-149x in one module, 231x in four |
 | G4 | multi-module case diagnosed, with a checkable rule | pass, but the rule excludes almost every real program |
 
-**Do not promote this to a policy.** It fails on its own terms, and the
-page-directory variant that survives the span problem is worse than the
-incumbent on both memory and latency.
+**Do not promote this to a policy.** The speed argument holds, but it buys a
+few percent on the one dispatch path that uses the map, at 12x-149x the memory
+in the best case and no viable table at all in the ordinary
+executable-plus-library case. The page-directory variant that survives the span
+problem is worse than the incumbent on both memory and latency.
 
 Two things are worth carrying forward:
 
@@ -272,6 +295,22 @@ Two things are worth carrying forward:
    better-seeded search, even though it is useless as the primary map.
 2. **The injectivity theorem is reusable.** Any future scheme keyed on
    `std::type_info` addresses can rely on a guaranteed 16-byte separation.
+
+## 10. A note on building the harness
+
+`bench_dispatch.cpp` registers a forest of `node<I> : node<(I-1)/2>` classes,
+one overrider each. The compile cost is roughly quadratic in the class count -
+`use_classes` relates every pair - and at 512 classes one translation unit
+reached **23.5 GB resident and 2m37s** on GCC 13.3. Built `-j12`, that is enough
+to exhaust the machine and fire the *global* OOM killer, which then picks off
+whatever is largest, editor and shell included. At 64 classes the same TU takes
+0.7 GB and 5 s, which is why the benchmark registers 64.
+
+Build it under a memory cap regardless:
+
+```bash
+capped -m 24G -- cmake --build build-research --target research-all -j4
+```
 
 ## Reproducing
 
@@ -285,7 +324,7 @@ python3 analyze-type-ids.py --export-type-ids exported   # -> type-ids.csv, type
 cmake -B build-research -DBOOST_SRC_DIR=/path/to/boost \
       -DBOOST_OPENMETHOD_BUILD_TESTS=ON -DBOOST_OPENMETHOD_BUILD_RESEARCH=ON \
       -DCMAKE_BUILD_TYPE=Release
-cmake --build build-research --target research-all -j12
+capped -m 24G -- cmake --build build-research --target research-all -j4  # see 10
 ctest --test-dir build-research -R '^research-'          # correctness
 cmake --build build-research --target research-disasm    # codegen
 build-research/research/type_id_index/research-{fph,index,index16,direct}-bench_dispatch

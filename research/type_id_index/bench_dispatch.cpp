@@ -38,7 +38,12 @@ namespace bom = boost::openmethod;
 
 namespace {
 
-constexpr std::size_t num_classes = 512;
+// Keep this small. use_classes relates every pair of registered classes, so
+// the compile cost is roughly quadratic: at 512 this translation unit reached
+// 23.5 GB resident and 2m37s on GCC 13.3, enough - built in parallel - to fire
+// the machine's OOM killer. At 64 it is 0.7 GB and 5 s. The measured dispatch
+// cost barely moves with the class count anyway; sweep the table size instead.
+constexpr std::size_t num_classes = 64;
 constexpr std::size_t num_objects = 4096;
 
 struct node_base {
@@ -186,7 +191,7 @@ int main() {
 
     std::cout << "variant,mode,classes,ns_per_call\n";
 
-    for (std::size_t classes : {std::size_t(8), std::size_t(64), num_classes}) {
+    for (std::size_t classes : {std::size_t(8), std::size_t(24), num_classes}) {
         auto objects = make_objects(classes, 20260906);
 
         auto latency = median_ns_per_call(

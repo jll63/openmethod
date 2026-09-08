@@ -24,10 +24,16 @@ actually is.
 cmake -B build-research -DBOOST_SRC_DIR=/path/to/boost \
       -DBOOST_OPENMETHOD_BUILD_TESTS=ON -DBOOST_OPENMETHOD_BUILD_RESEARCH=ON \
       -DCMAKE_BUILD_TYPE=Release
-cmake --build build-research --target research-all -j12
+capped -m 24G -- cmake --build build-research --target research-all -j4
 ctest --test-dir build-research -R '^research-'
 cmake --build build-research --target research-disasm
 ```
+
+Build it under a memory cap: `bench_dispatch.cpp`'s compile cost is roughly
+quadratic in the registered class count, and an earlier 512-class version
+reached 23.5 GB resident per translation unit - enough, at `-j12`, to fire the
+global OOM killer. It registers 64 classes now (0.7 GB, 5 s). See
+`TYPE_ID_INDEX.md` §10.
 
 The sample generator and the address analysis live in a separate repository,
 `typeinfo-samples`.
