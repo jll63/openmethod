@@ -37,6 +37,7 @@ to put on that failure path, of which prototype D is the stronger.
 | `two_level_index.hpp` | prototype E: prototype D with the reduction replaced by a shift, `(m2[h1(x)] * h) >> s2`, into a power-of-two table |
 | `registry.hpp` | registry recipes, selected by `-DRESEARCH_POLICY=`; force-include it to re-run an existing test against a prototype |
 | `check_prototype.cpp` | properties of the prototypes, and of the ABI claim they rest on |
+| `msvc_direct_rtti.cpp` | MSVC x64 only, outside the CMake harness: can `&typeid(obj)` be read inline from the complete object locator, and what is it worth (§16) |
 | `bench_dispatch.cpp` | dispatch through a plain reference - the only path that uses the map |
 | `bench_initialize.cpp` | policy `initialize` against a stand-in `InitializeContext` |
 

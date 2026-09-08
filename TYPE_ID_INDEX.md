@@ -47,7 +47,11 @@ measured, so it inherits that 4.5x-138x in full and is dominated on memory by
 both schemes above, at a dispatch sequence no shorter than either. It was
 analysed, not built.
 
-All of this was then rebuilt and re-run with MSVC 19.51 (§15). Every
+All of this was then rebuilt and re-run with MSVC 19.51 (§15), which also
+turned up the largest per-call effect measured anywhere in this note, and not
+in a map at all: MSVC does not inline fetching an object's type id, and doing
+it by hand saves about half a nanosecond per dispatch - twice the biggest
+difference between any two maps there (§16). Every
 prototype's table comes out the same integer there as on GCC, and
 `fast_perfect_hash`'s does not - its randomized search lands on different
 factors under a different toolchain. MSVC agrees on the one result that
@@ -1106,6 +1110,105 @@ bytes apart, and `(x - base) / d` injective at `d = 8` and `d = 16` - passes
 under MSVC as it does under GCC. That is one program's classes, not a
 guarantee. A flat index shipped for Windows would need its own argument, and
 `too_sparse` remains the only thing standing between it and a bad allocation.
+
+## 16. Reading MSVC's type id inline
+
+§15.2 left a loose end: MSVC does not inline fetching an object's type id, so
+every dispatch begins with a call to `__RTtypeid` where GCC and clang emit two
+loads. That is undocumented territory, but the layout is not secret - the
+v-table is preceded by a pointer to a *complete object locator*, and that is
+what `__RTtypeid` itself reads. `research/type_id_index/msvc_direct_rtti.cpp`
+tries it. MSVC x64 only; it is not part of the CMake harness.
+
+### 16.1 It works, and it is six instructions
+
+On x64 the locator's fields are image-relative, so the image base has to be
+recovered from the locator's own address first:
+
+```cpp
+auto vptr = *(const uint8_t* const*)obj;
+auto col = *(const complete_object_locator* const*)(vptr - sizeof(void*));
+return (const uint8_t*)col - col->self + col->type_descriptor;
+```
+
+which MSVC compiles to exactly what it looks like - here beside the call it
+replaces, from the listing of the program's own verification loop:
+
+```asm
+mov  rax, QWORD PTR [rcx]        ; the v-table pointer
+mov  r8,  QWORD PTR [rax-8]      ; the complete object locator
+mov  eax, DWORD PTR [r8+20]      ; col->self, an RVA
+mov  ebx, DWORD PTR [r8+12]      ; col->type_descriptor, an RVA
+sub  rbx, rax
+add  rbx, r8                     ; image base + RVA
+call __RTtypeid                  ; what it is being checked against
+cmp  rbx, rax
+```
+
+Two dependent pointer loads, then two 32-bit fields from one cache line and
+two arithmetic instructions. The `signature` field is 1 and `self` exists only
+on x64; on x86 the locator has no `self` and the other fields are already
+pointers, so this spelling is 64-bit only.
+
+### 16.2 Where it is wrong, and it is wrong silently
+
+Over eleven shapes:
+
+| shape | agrees with `&typeid(obj)` |
+|---|---|
+| single inheritance, as itself and as its base | yes |
+| multiple inheritance, as itself | yes |
+| multiple inheritance, as either base | yes |
+| a class with a virtual base, seen as that base | yes |
+| `VV : V, B`, as `VV`, as `A&`, as `B&` | yes |
+| **a class with a virtual base, as itself** | **no** |
+| **`VV : V, B` as `V&`** | **no** |
+
+The rule is one thing: a class whose first word is a *virtual base table*
+pointer rather than a v-table pointer. MSVC puts the vbtable pointer at offset
+0 for a class with a virtual base, and the read then lands on the wrong word.
+It does not fault. It produces a plausible address that is not a type
+descriptor, so a method would dispatch to the wrong overrider or fail a lookup
+that should have succeeded.
+
+**Nothing catches it at compile time.** MSVC 19.51 at C++17 has neither
+`std::is_virtual_base_of` nor `__builtin_is_virtual_base_of`, and there is no
+other trait that distinguishes "leading word is a v-table pointer". The
+library does know each class's bases - `use_classes` is given them - so a
+registrar could refuse the classes this cannot handle; a `rtti` policy on its
+own cannot. Under `runtime_checks` the honest form is to compute both and
+compare, which costs nothing in a release build.
+
+### 16.3 It is worth more than any map in this note
+
+Measured in the shape a dispatch uses it - fetch the type id, multiply-shift
+it, index a table - 4096 objects over 64 classes, median of 15 runs, three
+repeats:
+
+| | ns per fetch |
+|---|---|
+| `&typeid(obj)` | 1.10, 1.17, 1.14 |
+| inline read | **0.60, 0.65, 0.67** |
+
+About **half a nanosecond per dispatch**, and that number deserves to be put
+next to §15.3's. Every difference between the six maps on MSVC was 0.02 to
+0.25 ns, and the two minimal perfect hashes - the clearest effect in the whole
+table - cost 0.21 to 0.25 ns. Inlining the type id fetch is worth twice the
+largest of them, and it is worth it to *every* configuration at once.
+
+That reframes §15.3 rather than adding to it. The prototypes look compressed
+on MSVC because they are competing for a share of a call that spends a fixed
+half-nanosecond before any of them is reached. On the platform where the map
+matters least, the thing in front of it matters most - and it is the one part
+of the sequence nobody was studying.
+
+It is also the only result in this note that suggests a change worth making to
+the library rather than to a policy: `std_rtti::dynamic_type` could read the
+locator directly on MSVC x64, for classes the registrar can prove have no
+virtual base, and fall back to `typeid` otherwise. That is a bigger and more
+delicate change than any of §§11-14, and unlike them it is not a research
+question - it is a portability question about an undocumented layout that the
+CRT relies on but the ABI does not promise.
 
 ## Reproducing
 
