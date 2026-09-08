@@ -16,7 +16,14 @@ D, §12) is the only one that costs *less* memory than the incumbent - a flat
 faster, but a second dependent load on the dispatch path makes it 1-2 ns per
 call slower.
 
-None of the three is worth shipping as the general v-table lookup. The useful
+Prototype E (§14) is D with the final reduction replaced by a shift into a
+power-of-two table: a nanosecond cheaper on GCC, no cheaper on clang, and it
+trades D's flat table size for a sawtooth. A fifth scheme, a per-module
+directory keyed by the high bits (§13), was analysed rather than built - it
+removes the multi-module span entirely and still loses, because the
+within-module dilution was the expensive half all along.
+
+None of them is worth shipping as the general v-table lookup. The useful
 by-product is a measurement of how expensive `fast_perfect_hash`'s search
 actually is - it aborts outright on the 4000-class samples - and two candidates
 to put on that failure path, of which prototype D is the stronger.
@@ -27,6 +34,7 @@ to put on that failure path, of which prototype D is the stronger.
 | `vptr_direct_vector.hpp` | prototype B: a `vptr` policy that folds the base into the table's address, for the one-instruction lookup |
 | `pext_index.hpp` | prototype C: a `type_hash` policy indexing by `pext(x, mask)` over a minimal cover of the type ids' bits; needs BMI2 |
 | `chd_index.hpp` | prototype D: a `type_hash` policy that is a minimal perfect hash, by hash and displace; one slot per type id |
+| `two_level_index.hpp` | prototype E: prototype D with the reduction replaced by a shift, `(m2[h1(x)] * h) >> s2`, into a power-of-two table |
 | `registry.hpp` | registry recipes, selected by `-DRESEARCH_POLICY=`; force-include it to re-run an existing test against a prototype |
 | `check_prototype.cpp` | properties of the prototypes, and of the ABI claim they rest on |
 | `bench_dispatch.cpp` | dispatch through a plain reference - the only path that uses the map |

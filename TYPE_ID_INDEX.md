@@ -37,7 +37,7 @@ the addresses are. It is the only scheme here that costs **less** memory than
 thousand classes - and it builds that table 3x-1700x faster, on every input
 including the ones that make the incumbent abort. It pays for that with a
 second dependent load on the dispatch path, and it is measurably slower for
-it: +1.0 to +2.3 ns per call on both compilers.
+it: +1.3 to +2.5 ns per call on both compilers.
 
 A fourth (§13), suggested after the others, hashes the per-module high bits
 into a directory of per-module coefficients. It is the honest form of R4 and
@@ -47,7 +47,13 @@ measured, so it inherits that 4.5x-138x in full and is dominated on memory by
 both schemes above, at a dispatch sequence no shorter than either. It was
 analysed, not built.
 
-**None of the four is worth shipping as the general v-table lookup.** The
+A fifth (§14) is the fourth's opposite: keep the displacement, but reduce with
+a shift into a power-of-two table instead of a multiply onto an arbitrary one.
+It recovers about a nanosecond of the third idea's cost on GCC and none of it
+on clang, and it trades a flat table size for a sawtooth between 1.0 and 2.0
+slots per type id.
+
+**None of the five is worth shipping as the general v-table lookup.** The
 flat index buys ~1 ns with unusable amounts of memory; the minimal perfect
 hash buys the memory back and gives up ~2 ns; the `pext` cover sits between
 them and is neutral on both. `fast_perfect_hash` is a multiply and a shift,
@@ -645,33 +651,36 @@ rather than four, and a small bucket is far easier to place late.
 
 Same protocol as §6, ns per call, 64 registered classes, Zen 5.
 
+All six variants were measured in one session, so the table also carries
+`twolevel`, which belongs to §14; the machine drifts by about a nanosecond
+between sessions and only figures taken together are comparable.
+
 GCC 13.3:
 
-| mode | classes | fph | pext | chd | chdmin | direct |
-|---|---|---|---|---|---|---|
-| latency | 8 | 8.26+-0.22 | 8.59+-0.26 | 9.53+-0.24 | 9.50+-0.28 | **8.05**+-0.22 |
-| latency | 24 | **8.54**+-0.27 | 8.81+-0.29 | 10.18+-0.29 | 10.10+-0.28 | 8.65+-0.24 |
-| latency | 64 | **8.64**+-0.30 | 8.94+-0.28 | 10.23+-0.27 | 10.37+-0.36 | 8.78+-0.24 |
-| throughput | 8 | 7.73+-0.20 | 7.90+-0.22 | 9.99+-0.08 | 9.93+-0.04 | **6.97**+-0.26 |
-| throughput | 24 | 8.35+-0.23 | 8.26+-0.24 | 10.64+-0.07 | 10.68+-0.07 | **7.68**+-0.27 |
-| throughput | 64 | 8.48+-0.24 | 8.41+-0.29 | 10.81+-0.05 | 10.91+-0.10 | **7.82**+-0.31 |
+| mode | classes | fph | pext | chd | chdmin | twolevel | direct |
+|---|---|---|---|---|---|---|---|
+| latency | 8 | 9.53+-0.04 | 9.37+-0.32 | 10.82+-0.31 | 10.91+-0.41 | 9.93+-0.38 | **9.23**+-0.31 |
+| latency | 24 | 9.87+-0.12 | 9.59+-0.33 | 11.52+-0.34 | 11.33+-0.48 | 10.61+-0.38 | **9.52**+-0.31 |
+| latency | 64 | 9.86+-0.18 | 9.79+-0.34 | 11.73+-0.44 | 11.76+-0.45 | 10.66+-0.50 | **9.65**+-0.36 |
+| throughput | 8 | 8.84+-0.10 | 8.60+-0.26 | 10.88+-0.10 | 11.09+-0.20 | 9.71+-0.38 | **8.04**+-0.32 |
+| throughput | 24 | 9.50+-0.12 | 9.06+-0.30 | 11.56+-0.14 | 11.67+-0.22 | 10.44+-0.43 | **8.43**+-0.36 |
+| throughput | 64 | 9.55+-0.28 | 9.15+-0.33 | 12.00+-0.14 | 11.81+-0.19 | 10.68+-0.41 | **8.59**+-0.37 |
 
 clang 22:
 
-| mode | classes | fph | pext | chd | chdmin | direct |
-|---|---|---|---|---|---|---|
-| latency | 8 | 8.43+-0.28 | 8.38+-0.31 | 10.16+-0.39 | 10.23+-0.39 | **8.01**+-0.24 |
-| latency | 24 | 9.01+-0.32 | 9.23+-0.27 | 10.79+-0.39 | 10.66+-0.38 | **8.32**+-0.28 |
-| latency | 64 | 9.24+-0.24 | 9.42+-0.39 | 10.83+-0.40 | 10.96+-0.36 | **8.45**+-0.34 |
-| throughput | 8 | 8.03+-0.26 | 7.84+-0.12 | 9.94+-0.38 | 9.99+-0.36 | **7.50**+-0.07 |
-| throughput | 24 | 8.55+-0.40 | 8.48+-0.14 | 10.72+-0.44 | 10.73+-0.49 | **7.96**+-0.10 |
-| throughput | 64 | 8.54+-0.46 | 8.57+-0.14 | 10.70+-0.39 | 10.91+-0.14 | **8.04**+-0.12 |
+| mode | classes | fph | pext | chd | chdmin | twolevel | direct |
+|---|---|---|---|---|---|---|---|
+| latency | 8 | 9.03+-0.23 | 9.55+-0.24 | 10.64+-0.28 | 10.53+-0.28 | 10.50+-0.13 | **8.84**+-0.10 |
+| latency | 24 | 9.49+-0.19 | 10.02+-0.24 | 11.21+-0.34 | 11.22+-0.29 | 10.89+-0.31 | **9.20**+-0.06 |
+| latency | 64 | 9.63+-0.28 | 9.81+-0.28 | 11.30+-0.36 | 11.75+-0.23 | 11.07+-0.30 | **9.35**+-0.27 |
+| throughput | 8 | 8.40+-0.18 | 8.63+-0.05 | 10.40+-0.31 | 10.38+-0.27 | 10.68+-0.15 | **8.33**+-0.11 |
+| throughput | 24 | 8.90+-0.22 | 9.20+-0.69 | 11.07+-0.34 | 11.26+-0.17 | 11.29+-0.14 | **8.87**+-0.08 |
+| throughput | 64 | 9.29+-0.22 | 9.32+-0.06 | 11.29+-0.28 | 11.70+-0.28 | 11.43+-0.16 | **8.75**+-0.11 |
 
-Both compilers, every point: **+1.0 to +1.6 ns on latency, +2.2 to +2.3 ns on
+Both compilers, every point: **+1.3 to +1.9 ns on latency, +2.0 to +2.5 ns on
 throughput**, against `fast_perfect_hash`. That is not a marginal call. It is
 two to four times the size of the effect the whole flat-index exercise was
-chasing, in the wrong direction, and it is well outside the noise band - the
-throughput runs have a half-range of 0.05 to 0.1 ns.
+chasing, in the wrong direction, and it is well outside the noise band.
 
 Throughput suffers more than latency, which is the signature of instruction
 count rather than dependency depth: the loop can overlap successive calls, so
@@ -681,8 +690,8 @@ they should be - they generate identical code and differ only in table size.
 
 ### 12.6 Assessment
 
-Against the §9 criteria: G1 passes - 140/140 (`ctest -R '^research-'`), now
-seven variants x two check modes. G2 **fails**, and by more than any other
+Against the §9 criteria: G1 passes - 180/180 (`ctest -R '^research-'`), eight
+variants x two check modes. G2 **fails**, and by more than any other
 prototype here. G3 passes outright, and is the only prototype that does: 0.07x
 to 0.58x `fast_perfect_hash` rather than 2x-149x. G4 passes with no
 restriction at all - the search never reads an address's magnitude.
@@ -693,8 +702,9 @@ So the three ideas separate cleanly, and none of them is a win:
 |---|---|---|---|---|
 | flat index (§1-9) | 12x-5e8x | fastest | **-0.6 to -1.1 ns** | no |
 | `pext` cover (§11) | 2x-32x | 20x-40x faster | neutral | yes |
-| hash and displace (§12) | **0.07x-0.58x** | **3x-1700x faster** | +1.0 to +2.3 ns | yes |
+| hash and displace (§12) | **0.07x-0.58x** | **3x-1700x faster** | +1.3 to +2.5 ns | yes |
 | per-module directory (§13) | 4.5x-138x | not built | not built | yes |
+| two multiply-shifts (§14) | 0.07x-1.1x | as §12 | +0.4 to +2.4 ns | yes |
 
 `fast_perfect_hash` is a multiply and a shift, and there is no room under it:
 any scheme that indirects through a second table to get a denser one gives
@@ -815,6 +825,162 @@ incumbent's own size while still paying the extra load - and the search does
 not get cheaper for being partitioned, since §7's worst case, 96.9 ms, is
 already one module's 1000 classes.
 
+## 14. Fifth idea: two multiply-shifts, and a shift instead of a reduce
+
+Prototype E, `research::two_level_index<Lambda, M1Candidates>`. An imperfect
+multiply-shift picks a bucket; the bucket names a second multiplier; a second
+multiply-shift produces the index:
+
+```cpp
+h     = m1 * x;                  // mix once
+h1(x) = h >> s1;                 // which bucket, 2^b of them
+h2(x) = (m2[h1(x)] * h) >> s2;   // the index, into 2^t slots
+```
+
+It is prototype D with one thing changed. D displaces multiplicatively too -
+`mulhi(h * pilot, slots)` - and differs only in what turns the displaced key
+into an index: D reduces with the top half of a product, onto a table of any
+size, where this shifts, onto a table of a power-of-two size. Everything else,
+including the bucketing and the largest-bucket-first placement, is the same
+code shape. So the pair isolates exactly one variable.
+
+### 14.1 The second multiply has to act on the mixed key
+
+Written literally as `(m2[h1(x)] * x) >> s2`, on `x` itself, it does not work,
+and it fails the way §12.1's exclusive-or did - structurally. Two type ids in
+one module are 16 to 48 bytes apart, so `m2 * x` differs between them by about
+`m2 * 16`; for a 32-bit `m2` that is below `2^(64 - t)`, the shift discards it,
+and the two ids land on the same slot for every multiplier the search can try.
+The search cannot fail visibly, because it can always grow the table instead -
+which it did, to **2^24 slots for 1000 type ids** before it found an
+assignment, a 134 MB table.
+
+Multiplying the already-mixed `h` fixes it and costs nothing. `h` is ready
+three cycles in, long before `m2` arrives from the directory, so the second
+multiply is not waiting on it.
+
+### 14.2 The shift is cheaper than the reduce, on one compiler
+
+Between the `type_info` load and the indirect call, GCC 13.3:
+
+```asm
+imul   rax, rdx                        ; m1 * x
+shr    rax, cl                         ; >> s1
+mov    eax, DWORD PTR [rcx+rax*4]      ; m2[bucket]
+imul   rax, rdx                        ; m2 * h
+shr    rax, cl                         ; >> s2
+mov    rax, QWORD PTR [rdx+rax*8]      ; the v-table pointer
+```
+
+Six instructions and two dependent loads, one step shorter than prototype D,
+which needs `imul` plus `mul` to reduce. Measured in §12.5's table:
+
+| | vs `chd` | vs `fast_perfect_hash` |
+|---|---|---|
+| GCC, latency | **-0.9 to -1.1 ns** | +0.4 to +0.8 ns |
+| GCC, throughput | **-1.1 to -1.3 ns** | +0.9 to +1.1 ns |
+| clang, latency | -0.1 to -0.3 ns | +1.4 to +1.5 ns |
+| clang, throughput | +0.1 to +0.3 ns | +2.1 to +2.4 ns |
+
+So on GCC it recovers about a nanosecond of prototype D's cost, and on clang
+it recovers nothing. The difference is codegen, not architecture: GCC hoists
+the shift amount out of the loop into `cl`, while clang reloads it on every
+call as `movzx ecx, BYTE PTR [rip+...]` before `shr rax, cl`. Prototype D's
+reduction has nothing to hoist - it is a single `mul` against a memory operand
+- so it is the same on both. A policy that wanted this saving reliably would
+have to make the shift a compile-time constant, which means fixing the table
+size in the type.
+
+Either way it is still slower than the incumbent's multiply and shift, on both
+compilers and at every point.
+
+### 14.3 Memory is a sawtooth
+
+The table is `2^ceil(log2 N)` slots, so between 1.0 and 2.0 per type id, plus
+a 32-bit multiplier per bucket. On the measured samples, `si-heavy` at four
+sizes:
+
+| N | slots | bytes per type id, `twolevel` | bytes per type id, `chd` |
+|---|---|---|---|
+| 1000 | 1024 | **9.22** | 9.45 |
+| 2000 | 2048 | **9.22** | 9.45 |
+| 3000 | 4096 | 12.29 | **9.79** |
+| 4000 | 4096 | **9.22** | 9.45 |
+
+Slightly cheaper than prototype D when the class count sits just under a power
+of two, half as good again when it sits just over - the worst case, `N` one
+above a power of two, is about 17 bytes per type id against D's flat 9.45.
+Which of the two is smaller is decided by a property of the program that no
+one controls.
+
+One thing the power-of-two table does buy: when `N` *is* a power of two the
+load factor is exactly 1, and the search still finds an assignment at
+`Lambda = 4` - 65 536 type ids in 11.5 ms. That is an exactly minimal perfect
+hash at twice `chdmin`'s bucket size and half its directory.
+
+### 14.4 A per-bucket shift needs a per-bucket base, and then it partitions
+
+`{m2, s2}` per bucket, rather than `m2` alone, only means something if each
+bucket has a *private* sub-table - a per-bucket `s2` against a shared table
+would just confine some buckets to a prefix of it, which is strictly worse.
+Private sub-tables need a per-bucket base as well, `base[h1] + h2(x)`, and
+that is the classical Fredman-Komlós-Szemerédi layout.
+
+It costs more, and the reason is structural: sub-tables cannot lend each other
+their slack, where in a shared table a bucket placed late fills the holes the
+earlier ones left. Measured on the same samples, summing the smallest
+power-of-two sub-table that holds each bucket:
+
+| | shared table | FKS floor | FKS, sub-table `2k` |
+|---|---|---|---|
+| slots, `si-heavy` N=4000, `Lambda = 4` | **4096** | 5051 | 10102 |
+| bytes per type id | **9.22** | - | 22.25 |
+
+The floor - one slot per element, rounded up to a power of two per bucket, and
+no room at all to find a perfect multiplier - is already above the shared
+table, at every `Lambda` from 1 to 4. A sizing that leaves the search anything
+to work with doubles that again, to 22-25 bytes per type id on every sample.
+The directory grows too, from 4 bytes to 8 for the base and the shift, and the
+dispatch path gains an unpack and an add. There is no configuration in which
+partitioning wins.
+
+### 14.5 Evening the buckets does not pay
+
+`M1Candidates` first-level multipliers are scored by the sum of the squared
+bucket sizes and the most even is kept. The metric does respond: over 64
+multipliers on `flat` at 1000 ids, the sum ranges from 4252 to 10684 against
+4000 for perfectly even buckets, and the largest bucket from 7 to 19.
+
+The build time does not. Against the `twolevel1` variant, which takes the
+first multiplier it is given:
+
+| sample | 8 candidates | 1 candidate |
+|---|---|---|
+| flat, 1000 | 0.155 ms | **0.114 ms** |
+| si-heavy, 1000 | **0.077 ms** | 0.082 ms |
+| mi-heavy, 1000 | **0.095 ms** | 0.118 ms |
+| si-heavy, 4000 | 0.404 ms | 0.404 ms |
+| 65 536 synthetic | 11.5 ms | **11.0 ms** |
+
+Noise, and at the large end the scoring passes are a small net loss. The
+placement cost is not set by the largest bucket but by the tail, where every
+remaining bucket faces an almost full table - and evening the sizes does not
+change how full the table is. Prototype D reaches the same conclusion from the
+other side: it never looks at `m1` at all and places just as fast.
+
+### 14.6 Assessment
+
+G1 passes - 180/180, now eight variants across two check modes. G2 fails,
+though by less than prototype D on GCC. G3 passes on the same terms as D,
+with the caveat that the sawtooth decides which of the two is smaller. G4
+passes with no restriction.
+
+It is a real refinement of prototype D, worth about a nanosecond where the
+compiler hoists the shift, and it settles the design question the two of them
+straddle: **the shared interleaved table is what makes either work**, and the
+reduction that lets its size be arbitrary is worth its cycle or two precisely
+because it removes the sawtooth. Neither reaches `fast_perfect_hash`.
+
 ## Reproducing
 
 ```bash
@@ -833,8 +999,8 @@ cmake -B build-research -DBOOST_SRC_DIR=/path/to/boost \
 capped -m 24G -- cmake --build build-research --target research-all -j4  # see 10
 ctest --test-dir build-research -R '^research-'          # correctness
 cmake --build build-research --target research-disasm    # codegen
-build-research/research/type_id_index/research-{fph,index,index16,direct,pext,chd,chdmin}-bench_dispatch
-build-research/research/type_id_index/research-{fph,index,pext,chd,chdmin}-bench_initialize
+build-research/research/type_id_index/research-{fph,index,index16,direct,pext,chd,chdmin,twolevel}-bench_dispatch
+build-research/research/type_id_index/research-{fph,index,pext,chd,chdmin,twolevel,twolevel1}-bench_initialize
 cd ~/dev/typeinfo-samples && python3 analyze-bits.py     # -> bits.md (§11)
 python3 analyze-two-step.py                              # -> two-step.md (§13)
 ```

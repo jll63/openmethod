@@ -25,6 +25,10 @@
 //   chd      fast_perfect_hash replaced by chd_index - a near-minimal
 //            perfect hash, ~1.05 slots per type id
 //   chdmin   ... by chd_index<2, 100>, an exactly minimal one
+//   twolevel ... by two_level_index - h2(x) = (m2[h1(x)] * h) >> s2, a
+//            per-bucket multiplier into a power-of-two shared table
+//   twolevel1 ... the same with the first-level multiplier taken as it comes,
+//            to price the search for one that evens the buckets
 //
 // The policy lists are spelled out rather than derived from default_registry
 // with `with`/`without`: `with` appends, and a type_hash policy must precede
@@ -38,6 +42,8 @@
 #define BOOST_OPENMETHOD_RESEARCH_PEXT 4
 #define BOOST_OPENMETHOD_RESEARCH_CHD 5
 #define BOOST_OPENMETHOD_RESEARCH_CHDMIN 6
+#define BOOST_OPENMETHOD_RESEARCH_TWOLEVEL 7
+#define BOOST_OPENMETHOD_RESEARCH_TWOLEVEL1 8
 
 #ifndef RESEARCH_POLICY
 #define RESEARCH_POLICY BOOST_OPENMETHOD_RESEARCH_INDEX
@@ -58,6 +64,11 @@ struct research_registry;
 #if RESEARCH_POLICY == BOOST_OPENMETHOD_RESEARCH_CHD ||                        \
     RESEARCH_POLICY == BOOST_OPENMETHOD_RESEARCH_CHDMIN
 #include "chd_index.hpp"
+#endif
+
+#if RESEARCH_POLICY == BOOST_OPENMETHOD_RESEARCH_TWOLEVEL ||                   \
+    RESEARCH_POLICY == BOOST_OPENMETHOD_RESEARCH_TWOLEVEL1
+#include "two_level_index.hpp"
 #endif
 
 #ifdef BOOST_OPENMETHOD_ENABLE_RUNTIME_CHECKS
@@ -129,9 +140,26 @@ using selected_registry = registry<
     policies::default_error_handler,
     policies::stderr_output BOOST_OPENMETHOD_RESEARCH_CHECKS>;
 
+#elif RESEARCH_POLICY == BOOST_OPENMETHOD_RESEARCH_TWOLEVEL
+
+#define RESEARCH_POLICY_NAME "twolevel"
+using selected_registry = registry<
+    policies::std_rtti, two_level_index<>, policies::vptr_vector,
+    policies::default_error_handler,
+    policies::stderr_output BOOST_OPENMETHOD_RESEARCH_CHECKS>;
+
+#elif RESEARCH_POLICY == BOOST_OPENMETHOD_RESEARCH_TWOLEVEL1
+
+// One first-level multiplier, whatever buckets it happens to give.
+#define RESEARCH_POLICY_NAME "twolevel1"
+using selected_registry = registry<
+    policies::std_rtti, two_level_index<4, 1>, policies::vptr_vector,
+    policies::default_error_handler,
+    policies::stderr_output BOOST_OPENMETHOD_RESEARCH_CHECKS>;
+
 #else
-#error                                                                         \
-    "RESEARCH_POLICY must be one of fph, index, index16, direct, pext, chd, chdmin"
+#error "RESEARCH_POLICY must be one of fph, index, index16, direct, pext, "    \
+    "chd, chdmin, twolevel, twolevel1"
 #endif
 
 } // namespace boost::openmethod::research
