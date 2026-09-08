@@ -39,7 +39,16 @@ including the ones that make the incumbent abort. It pays for that with a
 second dependent load on the dispatch path, and it is measurably slower for
 it: +1.0 to +2.3 ns per call on both compilers.
 
-**None of the three is worth shipping as the general v-table lookup.** The
+A fourth (§13), suggested after the others, hashes the per-module high bits
+into a directory of per-module coefficients. It is the honest form of R4 and
+it works: the `dlopen` span disappears for a directory of under 2 KB. But the
+table
+that remains is the sum of the per-module spans, which is precisely what §4
+measured, so it inherits that 4.5x-138x in full and is dominated on memory by
+both schemes above, at a dispatch sequence no shorter than either. It was
+analysed, not built.
+
+**None of the four is worth shipping as the general v-table lookup.** The
 flat index buys ~1 ns with unusable amounts of memory; the minimal perfect
 hash buys the memory back and gives up ~2 ns; the `pext` cover sits between
 them and is neutral on both. `fast_perfect_hash` is a multiply and a shift,
@@ -326,9 +335,12 @@ already notes this in passing; these are numbers for it.
   `fast_perfect_hash`, at the cost of two dependent loads. Cheaper than the flat
   table by two orders of magnitude, still 5x-26x worse than the incumbent and
   slower to boot. Not promising.
-- **R4 - per-module base.** Rejected on inspection: recovering the module from a
-  pointer needs a range search, several instructions and a mispredictable branch.
-  R3 is the same idea done with a mask.
+- **R4 - per-module base.** Rejected here on inspection, for the wrong reason -
+  recovering the module needs no range search, only a mult-shift over the high
+  bits. Measured properly in §13, where it removes the multi-module span
+  entirely for a directory of under 2 KB, and is still dominated on memory by
+  §11 and §12, at a dispatch sequence no shorter than either, because it
+  leaves the within-module dilution of §4 untouched.
 
 ## 9. Go/no-go
 
@@ -505,32 +517,6 @@ with no dependence on module placement. That makes it the natural *fallback*
 for `fast_perfect_hash`'s `search_error` path, and a candidate primary on
 BMI2 hardware for programs with large registries. Either way the memory numbers
 above are the ones to weigh, not the flat table's.
-
-## Reproducing
-
-```bash
-# data (separate repo)
-cd ~/dev/typeinfo-samples
-./make-samples.sh && ./collect-samples.sh
-python3 analyze-type-ids.py --export-type-ids exported   # -> type-ids.csv, type-ids.md
-# exported/ holds the observed placement plus one file per model in
-# --placement; the `-pie-split` ones are the exe + dlopen case of §5, and are
-# what the §12 tables measure.
-
-# prototypes and measurements
-cmake -B build-research -DBOOST_SRC_DIR=/path/to/boost \
-      -DBOOST_OPENMETHOD_BUILD_TESTS=ON -DBOOST_OPENMETHOD_BUILD_RESEARCH=ON \
-      -DCMAKE_BUILD_TYPE=Release
-capped -m 24G -- cmake --build build-research --target research-all -j4  # see 10
-ctest --test-dir build-research -R '^research-'          # correctness
-cmake --build build-research --target research-disasm    # codegen
-build-research/research/type_id_index/research-{fph,index,index16,direct,pext,chd,chdmin}-bench_dispatch
-build-research/research/type_id_index/research-{fph,index,pext,chd,chdmin}-bench_initialize
-cd ~/dev/typeinfo-samples && python3 analyze-bits.py     # -> bits.md (§11)
-```
-
-The harness is off by default (`BOOST_OPENMETHOD_BUILD_RESEARCH`), has no
-Jamfile, and is not part of the library's API.
 
 ## 12. Third idea: a minimal perfect hash, by hash and displace
 
@@ -709,6 +695,7 @@ So the three ideas separate cleanly, and none of them is a win:
 | flat index (§1-9) | 12x-5e8x | fastest | **-0.6 to -1.1 ns** | no |
 | `pext` cover (§11) | 2x-32x | 20x-40x faster | neutral | yes |
 | hash and displace (§12) | **0.07x-0.58x** | **3x-1700x faster** | +1.0 to +2.3 ns | yes |
+| per-module directory (§13) | 4.5x-138x | not built | not built | yes |
 
 `fast_perfect_hash` is a multiply and a shift, and there is no room under it:
 any scheme that indirects through a second table to get a denser one gives
@@ -736,3 +723,122 @@ candidate for it than the cover:
 The measured cost of that fallback is a permanently slower dispatch for the
 programs that need it, which is a trade a program with 4000 classes across
 four modules would take over aborting.
+
+## 13. Fourth idea: a per-module directory, keyed by the high bits
+
+*No prototype was built for this one.* The table sizes below are measured, on
+the same addresses as §4-5 and §11-12; the dispatch sequence is read off the
+formula rather than off a compiler, and there are no timings. The memory
+result is decisive on its own, and nothing in the scheme can move it.
+
+R4 in §8 was dismissed on inspection, for the wrong reason - that recovering
+the module from a pointer needs a range search. It does not. Hash the *high*
+bits, which is a mult-shift like any other, and use the result to index a
+directory of per-module coefficients:
+
+```cpp
+group = (x >> K) * M >> S;        // which module, in a few instructions
+index = dir[group] + (x >> 3);    // that module's base, plus the flat index
+```
+
+Two steps, and no search: the second level is the flat index of §1, applied
+once per module rather than once per program, so within a module the 16-byte
+ABI separation still makes it injective. Folding the v-table table's address
+and the module's minimum into `dir[group]` recovers §6's fused load, so the
+dispatch sequence is
+
+```asm
+mov    rdx, rax
+shr    rdx, K
+imul   rdx, QWORD PTR [rip+...]        ; M
+shr    rdx, S
+mov    rdx, QWORD PTR [rip+...+rdx*8]  ; dir
+mov    rax, QWORD PTR [rdx+rax*1]      ; fused
+```
+
+six instructions and two dependent loads - between `fast_perfect_hash` and
+prototype D.
+
+**The directory is free, and the second level is not.** Measured on the same
+samples, at four modules and 4000 classes, under the `pie-split` placement -
+an executable plus three `dlopen`ed libraries, the case that defeats §1:
+
+| config | flat index | **two-step** | at `d = 16` | `pext_index` | `chd` | directory, `K = 12` |
+|---|---|---|---|---|---|---|
+| flat | 31.6 TB | 291 KB | 145 KB | - | 37 KB | 76 entries |
+| tree | 31.6 TB | 812 KB | 406 KB | - | 37 KB | 178 entries |
+| si-heavy | 31.6 TB | 3.1 MB | 1.6 MB | 2.0 MB | 37 KB | 192 entries |
+| virt-heavy | 31.6 TB | 5.6 MB | 2.8 MB | - | 37 KB | 190 entries |
+| mi-heavy | 31.6 TB | 8.7 MB | 4.3 MB | 2.0 MB | 37 KB | 196 entries |
+
+The `dlopen` catastrophe is gone, completely and by construction - the span
+between modules is never represented, so the two placement models give the
+same figure to the byte. The directory that does it holds 76 to 196 entries
+here, and never more than 417 on any configuration measured - under 4 KB - and
+finding a perfect mult-shift over a few hundred values is work
+`fast_perfect_hash` already does well. Both halves of the mechanism work.
+
+What is left is **the sum of the per-module spans**, and that is the same
+quantity §4 measured: 291 KB for `flat` is §4's 72 KB per module times four,
+8.7 MB for `mi-heavy` is §4's 2.3 MB times four. §4 was not a fact about
+having several modules. It was a fact about one, and this scheme inherits it
+in full: 4.5x to 138x the 64 KB `fast_perfect_hash` would need for 4000
+classes - it aborts on these samples, so that is the modelled size §4 uses -
+and 8x to 240x prototype D's measured 37 KB. Halving it with `d = 16` costs
+the fused load, as §8's R1 already found.
+
+So the two-step index is **dominated on both axes at every measured point**.
+`pext_index` is smaller on every sample where both were measured, by 1.6x
+here and by 7x on `si-heavy` under the observed placement, where its cover
+costs 448 KB against the same 3.1 MB - *and* faster, since it is one `pext`
+and one load against six instructions and two dependent loads. Prototype D is smaller
+again by two orders of magnitude. There is no setting of `K`, `M` or `S` that
+changes this, because none of them touches the second level.
+
+Two details are worth keeping even so:
+
+- **The directory has to be keyed at page granularity.** `K = 12` leaves every
+  group owned by exactly one module on every sample. `K = 16` does not: under
+  the `pie-split` placement it shares a group between two modules on *all
+  eight* configurations, because the loader packs `dlopen`ed libraries closely
+  enough that two land in one 64 KB window, and the scheme cannot represent
+  that. `K = 24` fails even under the observed placement. The obvious economy
+  of a coarser key is the one thing that breaks it, and nothing detects it but
+  an explicit check at `initialize` time.
+- **A per-module *divisor* buys nothing.** The `d_max` column of `type-ids.md`
+  is 16 on every configuration measured, so no module admits a coarser grid
+  than the global one already does.
+
+The variant with a per-module *mult-shift* instead of a per-module base fares
+no better, for a different reason. Each module's sub-table would be
+`fast_perfect_hash`'s usual 1.25n-2.5n, so the total lands back at the
+incumbent's own size while still paying the extra load - and the search does
+not get cheaper for being partitioned, since §7's worst case, 96.9 ms, is
+already one module's 1000 classes.
+
+## Reproducing
+
+```bash
+# data (separate repo)
+cd ~/dev/typeinfo-samples
+./make-samples.sh && ./collect-samples.sh
+python3 analyze-type-ids.py --export-type-ids exported   # -> type-ids.csv, type-ids.md
+# exported/ holds the observed placement plus one file per model in
+# --placement; the `-pie-split` ones are the exe + dlopen case of §5, and are
+# what the §12 tables measure.
+
+# prototypes and measurements
+cmake -B build-research -DBOOST_SRC_DIR=/path/to/boost \
+      -DBOOST_OPENMETHOD_BUILD_TESTS=ON -DBOOST_OPENMETHOD_BUILD_RESEARCH=ON \
+      -DCMAKE_BUILD_TYPE=Release
+capped -m 24G -- cmake --build build-research --target research-all -j4  # see 10
+ctest --test-dir build-research -R '^research-'          # correctness
+cmake --build build-research --target research-disasm    # codegen
+build-research/research/type_id_index/research-{fph,index,index16,direct,pext,chd,chdmin}-bench_dispatch
+build-research/research/type_id_index/research-{fph,index,pext,chd,chdmin}-bench_initialize
+cd ~/dev/typeinfo-samples && python3 analyze-bits.py     # -> bits.md (§11)
+python3 analyze-two-step.py                              # -> two-step.md (§13)
+```
+
+The harness is off by default (`BOOST_OPENMETHOD_BUILD_RESEARCH`), has no
+Jamfile, and is not part of the library's API.
