@@ -23,6 +23,10 @@
 
 #include <boost/openmethod/initialize.hpp>
 
+#if defined(_MSC_VER) && !defined(__clang__)
+#include <intrin.h>
+#endif
+
 #include <algorithm>
 #include <chrono>
 #include <cstddef>
@@ -139,6 +143,20 @@ auto make_objects(std::size_t classes, std::uint64_t seed)
     return objects;
 }
 
+// Keep a loop's result alive so the loop itself cannot be optimized away.
+// Outside the timed region in every caller, so the sink costs nothing that is
+// measured.
+template<class T>
+void keep_alive(const T& value) {
+#if defined(_MSC_VER) && !defined(__clang__)
+    _ReadWriteBarrier();
+    volatile T sink = value;
+    (void)sink;
+#else
+    asm volatile("" : : "r"(value) : "memory");
+#endif
+}
+
 template<class Fn>
 auto median_ns_per_call(Fn fn, std::size_t calls, int runs) -> double {
     std::vector<double> samples;
@@ -148,8 +166,7 @@ auto median_ns_per_call(Fn fn, std::size_t calls, int runs) -> double {
         auto start = std::chrono::steady_clock::now();
         auto result = fn();
         auto stop = std::chrono::steady_clock::now();
-        // Keep the result alive so the loop cannot be optimized away.
-        asm volatile("" : : "r"(result) : "memory");
+        keep_alive(result);
         samples.push_back(
             std::chrono::duration<double, std::nano>(stop - start).count() /
             double(calls));

@@ -20,13 +20,32 @@
 #include <variant>
 #include <vector>
 
-#if !defined(__BMI2__)
+// MSVC defines no __BMI2__ -- it gates nothing on it and emits the instruction
+// from the intrinsic -- so there the guard is the caller's: the CMake harness
+// passes /arch:AVX2 for this variant only.
+#if !defined(__BMI2__) && !defined(_MSC_VER)
 #error "pext_index needs BMI2: compile with -mbmi2 (or -march=native)"
 #endif
 
 #include <immintrin.h>
 
+#if defined(_MSC_VER)
+#include <intrin.h>
+#endif
+
 namespace boost::openmethod::research {
+
+// At namespace scope rather than in a nested `detail`: a
+// `boost::openmethod::research::detail` would hide
+// `boost::openmethod::detail`, which every prototype here names unqualified
+// for `uintptr`.
+inline auto popcount64(std::uint64_t bits) -> std::size_t {
+#if defined(_MSC_VER)
+    return std::size_t(__popcnt64(bits));
+#else
+    return std::size_t(__builtin_popcountll(bits));
+#endif
+}
 
 //! Map type ids to indexes by extracting a minimal cover of their bits.
 //!
@@ -285,9 +304,7 @@ auto pext_index<MaxBits>::fn<Registry>::minimal_cover(
 
     by_add = drop(by_add);
 
-    return __builtin_popcountll(by_add) < __builtin_popcountll(by_drop)
-        ? by_add
-        : by_drop;
+    return popcount64(by_add) < popcount64(by_drop) ? by_add : by_drop;
 }
 
 template<std::size_t MaxBits>
@@ -321,7 +338,7 @@ auto pext_index<MaxBits>::fn<Registry>::initialize(
     }
 
     auto mask = ids.size() == 1 ? 0 : minimal_cover(ids);
-    auto bits = std::size_t(__builtin_popcountll(mask));
+    auto bits = popcount64(mask);
 
     if (bits > MaxBits) {
         too_many_bits error;

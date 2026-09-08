@@ -40,6 +40,9 @@ to put on that failure path, of which prototype D is the stronger.
 | `bench_dispatch.cpp` | dispatch through a plain reference - the only path that uses the map |
 | `bench_initialize.cpp` | policy `initialize` against a stand-in `InitializeContext` |
 
+Built and run on GCC 13.3, clang 22 and MSVC 19.51; see `TYPE_ID_INDEX.md`
+§15 for the MSVC recipe and what it changes.
+
 ```bash
 cmake -B build-research -DBOOST_SRC_DIR=/path/to/boost \
       -DBOOST_OPENMETHOD_BUILD_TESTS=ON -DBOOST_OPENMETHOD_BUILD_RESEARCH=ON \

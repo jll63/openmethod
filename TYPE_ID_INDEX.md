@@ -47,6 +47,13 @@ measured, so it inherits that 4.5x-138x in full and is dominated on memory by
 both schemes above, at a dispatch sequence no shorter than either. It was
 analysed, not built.
 
+All of this was then rebuilt and re-run with MSVC 19.51 (§15). Every
+prototype's table comes out the same integer there as on GCC, and
+`fast_perfect_hash`'s does not - its randomized search lands on different
+factors under a different toolchain. MSVC agrees on the one result that
+matters, that the minimal perfect hash costs measurably more per call, and
+finds the rest inside its noise.
+
 A fifth (§14) is the fourth's opposite: keep the displacement, but reduce with
 a shift into a power-of-two table instead of a multiply onto an arbitrary one.
 It recovers about a nanosecond of the third idea's cost on GCC and none of it
@@ -981,7 +988,141 @@ straddle: **the shared interleaved table is what makes either work**, and the
 reduction that lets its size be arbitrary is worth its cycle or two precisely
 because it removes the sawtooth. Neither reaches `fast_perfect_hash`.
 
+## 15. A third compiler: MSVC
+
+Everything above is GCC 13.3 and clang 22 on Linux. The whole harness was then
+built and run with **MSVC 19.51 (Visual Studio 18 Build Tools)**, x64, Ninja,
+Release, on the same Zen 5 machine. Three portability fixes were needed and
+none of them touched a measurement: `pext_index` guarded its BMI2 requirement
+on `__BMI2__`, which MSVC does not define, and used `__builtin_popcountll`;
+`bench_dispatch` used a GCC `asm` barrier to keep a loop's result alive.
+
+**It all works.** 180/180 tests pass - eight variants x two check modes x ten
+tests - with no warnings from any of the 417 targets.
+
+### 15.1 The tables are identical, and the incumbent's is not
+
+Slots allocated for the same measured address sets:
+
+| sample | `pext` | `chd` | `chdmin` | `twolevel` | `fast_perfect_hash` |
+|---|---|---|---|---|---|
+| flat, 1000 | 4096 | 1053 | 1000 | 1024 | **2048** vs 2047 |
+| tree, 1000 | 3823 | 1053 | 1000 | 1024 | 4092 |
+| si-heavy, 1000 | 16383 | 1053 | 1000 | 1024 | **16379** vs 16381 |
+| mi-heavy, 1000 | 16384 | 1053 | 1000 | 1024 | **16370** vs 16381 |
+| si-heavy, 4000 | 57343 | 4211 | 4000 | 4096 | *aborts* |
+| mi-heavy, 4000 | 524218 | 4211 | 4000 | 4096 | *aborts* |
+| si-heavy, exe + `dlopen`ed | 260970 | 4211 | 4000 | 4096 | *aborts* |
+| mi-heavy, exe + `dlopen`ed | 261865 | 4211 | 4000 | 4096 | *aborts* |
+
+Every prototype's column is **the same integer as on GCC**, on every sample.
+They should be - each is a deterministic function of the addresses, and the
+addresses come from a file - but it is worth having checked, because
+`fast_perfect_hash`'s column is *not*. Its randomized multiplier search lands
+on different factors under a different toolchain, and its table with it: 2048
+against 2047, 16379 and 16370 against 16381. A program's v-table table is a
+few kilobytes larger or smaller depending on which compiler built it, and
+nothing announces the difference.
+
+`initialize` costs the same order as on GCC and keeps the same shape: 0.03 ms
+for `chdmin` at 1000 type ids against 104 ms for `fast_perfect_hash` on
+`si-heavy`, which is the worst case there too. Both `index` and
+`fast_perfect_hash` fail on exactly the samples they fail on under GCC -
+`too_sparse` for the first, the multiplier search giving up for the second.
+
+### 15.2 Codegen: the sequence is the designed one, plus a call
+
+MSVC generates what §12.2 predicts, `chd` inside the throughput loop:
+
+```asm
+call        <dynamic type>                 ; not inlined
+imul        rax, qword ptr [seed]
+mov         r8, rax
+mov         rcx, qword ptr [bucket_shift]
+shr         r8, cl
+mov         rdx, qword ptr [pilots]
+mov         r8d, dword ptr [rdx+r8*4]      ; the pilot
+imul        r8, rax
+mov         rax, qword ptr [slots]
+mul         rax, r8                        ; mulhi, into rdx
+mov         rax, qword ptr [table]
+mov         r8, qword ptr [rax+rdx*8]
+call        qword ptr [r8+rax*8]
+```
+
+and the same shape for `fast_perfect_hash`, `imul` + `shr` + one load. The
+`__umulh` intrinsic becomes the `mul` the `__uint128_t` spelling produces on
+GCC, so the two really are the same instruction sequence.
+
+The difference from both Unix compilers is the first line: **MSVC does not
+inline fetching the type id**, where GCC and clang emit `mov rax,[rdi]` +
+`mov rax,[rax-8]`. Every dispatch begins with an out-of-line call. That makes
+the map a smaller share of the call, and it is why the differences between the
+prototypes are compressed below.
+
+### 15.3 Dispatch, within the MSVC build
+
+Same protocol as §6, ns per call, 64 registered classes:
+
+| mode | classes | fph | pext | chd | chdmin | twolevel | direct |
+|---|---|---|---|---|---|---|---|
+| latency | 8 | 4.47+-0.02 | **4.47**+-0.04 | 4.48+-0.02 | 4.48+-0.01 | 4.51+-0.03 | 4.48+-0.02 |
+| latency | 24 | 4.54+-0.04 | 4.56+-0.03 | 4.55+-0.02 | **4.53**+-0.01 | 4.56+-0.01 | 4.54+-0.03 |
+| latency | 64 | 4.65+-0.02 | 4.65+-0.01 | **4.65**+-0.01 | 4.66+-0.01 | 4.68+-0.02 | 4.69+-0.04 |
+| throughput | 8 | 2.01+-0.03 | **1.99**+-0.03 | 2.23+-0.04 | 2.26+-0.11 | 2.04+-0.02 | 2.00+-0.03 |
+| throughput | 24 | 2.00+-0.01 | **1.99**+-0.01 | 2.22+-0.03 | 2.25+-0.07 | 2.04+-0.05 | 2.00+-0.02 |
+| throughput | 64 | 2.00+-0.03 | 2.01+-0.01 | 2.21+-0.03 | 2.24+-0.04 | 2.04+-0.03 | **1.99**+-0.05 |
+
+**Do not read these against §6, §11.3, §12.5 or §14.2.** They are a different
+operating system, a different allocator laying out the 4096 objects, and a
+dispatch that starts with a call the other two inline; the absolute numbers
+are not comparable and the ratio between platforms means nothing. What is
+comparable is the column-to-column difference *within this table*:
+
+| against `fast_perfect_hash` | latency | throughput |
+|---|---|---|
+| `pext` | -0.00 to +0.02 | -0.02 to +0.01 |
+| `direct` | +0.00 to +0.04 | -0.00 to +0.00 |
+| `twolevel` | +0.02 to +0.03 | +0.03 to +0.05 |
+| `chd` | -0.01 to +0.01 | **+0.21 to +0.22** |
+| `chdmin` | -0.01 to +0.01 | **+0.24 to +0.25** |
+
+MSVC agrees with the other two compilers on the sign of the one result that
+matters and on nothing else. The minimal perfect hashes cost measurably more
+on throughput, and the effect is again larger on throughput than on latency -
+the signature of instruction count rather than dependency depth, as §12.5
+found. Everything else is inside the noise: the single-load prototypes buy
+nothing here, where GCC and clang both showed them a few tenths of a
+nanosecond ahead. With an un-inlined type id fetch in front of every dispatch,
+there is less left for them to save.
+
+### 15.4 One caveat the ABI does not cover
+
+§2 derives the 16-byte separation of two `type_info` objects from the Itanium
+ABI, and prototypes A and B rest on it. **MSVC is not that ABI**, so the proof
+does not transfer, and nothing here replaces it. What can be said is that
+`check_prototype`'s assertion - distinct `type_info` addresses at least 16
+bytes apart, and `(x - base) / d` injective at `d = 8` and `d = 16` - passes
+under MSVC as it does under GCC. That is one program's classes, not a
+guarantee. A flat index shipped for Windows would need its own argument, and
+`too_sparse` remains the only thing standing between it and a bad allocation.
+
 ## Reproducing
+
+MSVC, from WSL: write a batch file that calls `vcvars64.bat` (Build Tools 18,
+under *Program Files (x86)*), then
+
+```bat
+cmake -G Ninja -B build-msvc -DCMAKE_BUILD_TYPE=Release ^
+  -DBOOST_SRC_DIR=D:/boost -DBOOST_OPENMETHOD_BUILD_TESTS=ON ^
+  -DBOOST_OPENMETHOD_BUILD_RESEARCH=ON
+cmake --build build-msvc --target research-all -j 12
+ctest --test-dir build-msvc -R "^research-" -j 12
+dumpbin /disasm research-chd-bench_dispatch.exe
+```
+
+`cl.exe` cannot read `\\wsl.localhost` paths, so the checkout and the sample
+files have to live on a Windows drive.
 
 ```bash
 # data (separate repo)
