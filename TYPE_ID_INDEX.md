@@ -42,8 +42,7 @@ it: +1.0 to +2.3 ns per call on both compilers.
 A fourth (§13), suggested after the others, hashes the per-module high bits
 into a directory of per-module coefficients. It is the honest form of R4 and
 it works: the `dlopen` span disappears for a directory of under 2 KB. But the
-table
-that remains is the sum of the per-module spans, which is precisely what §4
+table that remains is the sum of the per-module spans, which is what §4
 measured, so it inherits that 4.5x-138x in full and is dominated on memory by
 both schemes above, at a dispatch sequence no shorter than either. It was
 analysed, not built.
