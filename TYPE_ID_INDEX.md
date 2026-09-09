@@ -1202,6 +1202,11 @@ half-nanosecond before any of them is reached. On the platform where the map
 matters least, the thing in front of it matters most - and it is the one part
 of the sequence nobody was studying.
 
+The follow-up has its own branch, `feature/msvc-direct-rtti`, carrying the
+probe and a note of its own: what the layout is, the eleven shapes it was
+checked against, and what excluding the unsafe one would take. Nothing here
+depends on it.
+
 It is also the only result in this note that suggests a change worth making to
 the library rather than to a policy: `std_rtti::dynamic_type` could read the
 locator directly on MSVC x64, for classes the registrar can prove have no
