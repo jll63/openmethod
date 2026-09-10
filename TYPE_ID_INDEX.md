@@ -30,7 +30,7 @@ other:
 |---|---|---|---|---|
 | **A**, **B** - flat index (§1-9) | 5x-5e8x | fastest | **-0.6 to -1.1 ns** | no |
 | **C** - `pext` cover (§10) | 2x-32x, or 1x-2x measured | 20x-40x faster | neutral | yes |
-| **D** - hash and displace (§11) | **0.07x-0.58x** | **3x-1700x faster** | +1.3 to +2.5 ns | yes |
+| **D** - hash and displace (§11) | **0.07x-0.58x** | **3x-5000x faster** | +1.3 to +2.5 ns | yes |
 | per-module directory (§12) | 4.5x-138x | not built | not built | yes |
 | **E** - two multiply-shifts (§13) | 0.07x-1.1x | as D | +0.4 to +2.4 ns | yes |
 
@@ -72,7 +72,7 @@ against the *modelled* baseline, and near parity against the *measured* one;
 slot per type id, whatever the addresses are. It is the only scheme here that
 costs **less** memory than `fast_perfect_hash` - a flat 9.45 bytes per type id
 against 16 KB-128 KB for a thousand classes - and it builds that table
-3x-1700x faster, on every input including the ones that make the incumbent
+3x-5000x faster, on every input including the ones that make the incumbent
 abort. It pays with a second dependent load on the dispatch path, and it is
 measurably slower for it: +1.3 to +2.5 ns per call on both compilers.
 
@@ -91,7 +91,8 @@ between 1.0 and 2.0 slots per type id.
 
 **The by-product is the more useful result of the exercise.** On realistic type
 id distributions `fast_perfect_hash`'s *search* is far more expensive than its
-documentation suggests - 97 ms for 1000 classes in one of the measured samples,
+documentation suggests - up to 175 ms for 1000 classes on the measured
+samples,
 and on the 4000-class sample it **gives up** after 500 000 attempts and aborts.
 That is worth its own issue. C and D are both candidates for the path where it
 gives up, and D is the stronger of the two (§10.5, §11.6).
@@ -385,14 +386,36 @@ On the **measured** address sets (1000 classes, one module), search time alone:
 | tree | 21.7 ms | ~1 µs |
 | si-heavy | **96.9 ms** | ~1 µs |
 
-**The `fast_perfect_hash` column is only comparable within one table.** Its
-search is randomized, so it is re-measured in each session rather than being a
-fixed property of the input, and the three tables that carry it were taken in
-three: this one and §10.4 have `si-heavy` at 96.9 ms, §11.4 at 83.3 ms, a 14 %
-spread on the same addresses. Read each table's columns against each other, not
-a column across tables. One figure in §10.4 is also unconfirmed - `mi-heavy`
-there is the same 96.9 ms as `si-heavy`, where §11.4 measures `si-heavy` at
-83.3 and `mi-heavy` at 96.9; it was not re-run.
+**One figure per sample understates the variation, and the variation is in the
+input, not the measurement.** `fast_perfect_hash`'s cost is a deterministic
+function of the address set - seven invocations on one sample agree to 1 % - but
+it swings by up to 2.5x across the four ASLR replicates of the *same*
+configuration, because a different placement is a different search problem.
+Re-measured across all four, `type_hash::initialize` alone, min to max in ms:
+
+| sample | `fast_perfect_hash` | `pext_index` | `hd` | `hdmin` | fph spread |
+|---|---|---|---|---|---|
+| flat, 1000 | 0.198-0.203 | 1.23-1.48 | 0.062-0.098 | 0.025-0.031 | 1.0x |
+| tree, 1000 | 21.5-54.0 | 1.57-1.68 | 0.049-0.088 | 0.024-0.034 | 2.5x |
+| si-heavy, 1000 | 43.4-103.0 | 2.18-2.71 | 0.045-0.065 | 0.024-0.031 | 2.4x |
+| mi-heavy, 1000 | 110.1-174.7 | 2.65-3.27 | 0.054-0.077 | 0.025-0.037 | 1.6x |
+
+Two things follow. The single figures quoted in this section, §10.4 and §11.4
+are each one replicate, so treat them as order-of-magnitude and compare columns
+within a table rather than a column across tables. And **`mi-heavy` is the worst
+sample, not a tie with `si-heavy`**: both of those tables give it 96.9 ms, below
+every replicate measured here. The ordering the re-run establishes - `flat`
+under a millisecond, `tree` tens, `si-heavy` tens to a hundred, `mi-heavy` over
+a hundred - tracks the sparsity ordering of §4, which is the result the section
+is making; the corrected `mi-heavy` figures strengthen it.
+
+The prototypes' own columns vary by a few percent across replicates and by
+10-15 % against the figures in §10.4 and §11.4, which were taken in an earlier
+session. Their slot counts are identical to the last integer, in this re-run as
+in §14.1. The 4000-class samples were re-run too: `fast_perfect_hash` aborts on
+all four with the message quoted in §10.4, and `pext_index`, `hd` and `hdmin`
+reproduce §14.1's slot counts exactly - 57 343 and 524 218 under the observed
+placement, 260 970 and 261 865 under `pie-split`, against 4211 and 4000.
 
 On synthetic ids at a controlled sparsity (`stride` = mean bytes of span per id):
 
@@ -466,7 +489,7 @@ That is a bigger change to the policy surface than the few percent justifies.
 
 Two things are worth carrying forward:
 
-1. **`fast_perfect_hash`'s search deserves its own issue.** 97 ms for 1000
+1. **`fast_perfect_hash`'s search deserves its own issue.** 43-175 ms for 1000
    classes on measured addresses, and seconds at 10^4-10^5, is a real cost, and
    the failure mode is a `search_error` + `abort`. The bounded, proof-backed
    min/max scan measured here would be a sound basis for a *fallback* or for a
@@ -564,9 +587,9 @@ tables applies here. On the **measured** address sets:
 | flat, 1000 | 0.20 ms | 1.31 ms | ~1 µs |
 | tree, 1000 | 21.7 ms | 1.39 ms | ~1 µs |
 | si-heavy, 1000 | 96.9 ms | 2.00 ms | *aborts (`too_sparse`)* |
-| mi-heavy, 1000 | 96.9 ms | 2.43 ms | *aborts* |
+| mi-heavy, 1000 | **110-175 ms** (§7) | 2.43 ms | *aborts* |
 | si-heavy, 4 modules, 4000 | **aborts** | 12.9 ms | *aborts* |
-| mi-heavy, 4 modules, 4000 | - | 15.7 ms | *aborts* |
+| mi-heavy, 4 modules, 4000 | **aborts** | 15.7 ms | *aborts* |
 
 `fast_perfect_hash` on the 4000-class set: *"could not find hash factors after
 500000 attempts using up to 262144 buckets"*, then `abort()`. That is 5 passes
@@ -732,24 +755,27 @@ stated in advance, before seeing an address.
 
 ### 11.4 Initialize: bounded, and indifferent to layout
 
-`type_hash::initialize` alone, same protocol as §7 and §10.4, in ms. This is a
-later session than either, so the `fast_perfect_hash` column differs from theirs
-- see the note in §7:
+`type_hash::initialize` alone, same protocol as §7 and §10.4, in ms. Each
+`fast_perfect_hash` figure is one ASLR replicate and the choice of replicate is
+worth up to 2.5x - see the note in §7, which also carries the corrected
+`mi-heavy` range used below:
 
 | sample | N | `fast_perfect_hash` | `pext_index` | `hd` | `hdmin` |
 |---|---|---|---|---|---|
 | flat, 1 module | 1000 | 0.199 | 1.3 | 0.068 | **0.029** |
 | tree, 1 module | 1000 | 20.2 | 1.4 | 0.058 | **0.031** |
 | si-heavy, 1 module | 1000 | 83.3 | 2.0 | 0.056 | **0.029** |
-| mi-heavy, 1 module | 1000 | 96.9 | 2.3 | 0.062 | **0.034** |
+| mi-heavy, 1 module | 1000 | **110-175** (§7) | 2.3 | 0.062 | **0.034** |
 | si-heavy, 4 modules | 4000 | *aborts* | 12.6 | 0.294 | **0.157** |
 | mi-heavy, 4 modules | 4000 | *aborts* | 15.4 | 0.319 | **0.156** |
 | si-heavy, exe + `dlopen`ed | 4000 | *aborts* | 17.1 | 0.277 | **0.151** |
 | mi-heavy, exe + `dlopen`ed | 4000 | *aborts* | 20.6 | 0.323 | **0.155** |
 
-Three to 1700 times faster than `fast_perfect_hash`, 20 to 130 times faster
-than the cover search, and flat across the samples: the search never looks at
-where the ids are, only at how many. On the synthetic sweep, 65 536 ids take
+Three to five thousand times faster than `fast_perfect_hash` - 3x on `flat`,
+where the incumbent's search is trivial, and 1500x-5000x on the two samples
+that cost it the most - 20 to 130 times faster than the cover search, and flat
+across the samples: the search never looks at where the ids are, only at how
+many. On the synthetic sweep, 65 536 ids take
 3.1 ms (`hdmin`) to 8.5 ms (`hd`), and the stride - which moves
 `fast_perfect_hash` from 0.5 ms to 44 s - moves `hd` by less than a factor of
 two. `hdmin` is the faster of the two because its buckets hold two keys
@@ -918,7 +944,7 @@ The variant with a per-module *mult-shift* instead of a per-module base fares
 no better, for a different reason. Each module's sub-table would be
 `fast_perfect_hash`'s usual 1.25n-2.5n, so the total lands back at the
 incumbent's own size while still paying the extra load - and the search does
-not get cheaper for being partitioned, since §7's worst case, 96.9 ms, is
+not get cheaper for being partitioned, since §7's worst case, 175 ms, is
 already one module's 1000 classes.
 
 ## 13. Prototype E: two multiply-shifts, and a shift instead of a reduce
@@ -1306,7 +1332,7 @@ Nothing here replaces `fast_perfect_hash` as the general v-table lookup. Four
 things survive the exercise, in the order they are worth doing:
 
 1. **Open an issue for `fast_perfect_hash`'s search.** It is the one defect this
-   note found in shipped code. 97 ms for 1000 classes on measured addresses
+   note found in shipped code. 43-175 ms for 1000 classes on measured addresses
    (§7), seconds at 10^4-10^5, and on both 4000-class samples it gives up after
    500 000 attempts and calls `abort()`. The cost is structural - up to 5 passes
    x 100 000 attempts, each refilling a `2^M` bucket array and re-inserting
@@ -1377,6 +1403,15 @@ ctest --test-dir build-research -R '^research-'          # correctness
 cmake --build build-research --target research-disasm    # codegen
 build-research/research/type_id_index/research-{fph,index,index16,direct,pext,hd,hdmin,twolevel}-bench_dispatch
 build-research/research/type_id_index/research-{fph,index,pext,hd,hdmin,twolevel,twolevel1}-bench_initialize
+
+# §7's replicate table: one sample's four ASLR replicates, per variant. With no
+# file arguments the same binary runs the synthetic sweep instead.
+for v in fph pext hd hdmin; do
+  for cfg in flat tree si-heavy mi-heavy; do
+    build-research/research/type_id_index/research-$v-bench_initialize \
+      ~/dev/typeinfo-samples/exported/$cfg-0000000{0,1,2,3}-1000.txt
+  done
+done
 cd ~/dev/typeinfo-samples && python3 analyze-bits.py     # -> bits.md (§10)
 python3 analyze-two-step.py                              # -> two-step.md (§12)
 ```

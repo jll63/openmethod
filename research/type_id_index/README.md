@@ -15,7 +15,7 @@ against them.
 fast as the incumbent, and costs about twice its memory. **D**, a
 hash-and-displace minimal perfect hash (§11), is the only one that costs *less*
 memory than the incumbent - a flat 9.45 bytes per type id, whatever the
-addresses are - and builds it 3x-1700x faster, but a second dependent load on
+addresses are - and builds it 3x-5000x faster, but a second dependent load on
 the dispatch path makes it 1-2 ns per call slower. **E** (§13) is D with the
 final reduction replaced by a shift into a power-of-two table: a nanosecond
 cheaper on GCC, no cheaper on clang, and it trades D's flat table size for a
