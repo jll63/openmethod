@@ -91,11 +91,14 @@ between 1.0 and 2.0 slots per type id.
 
 **The by-product is the more useful result of the exercise.** On realistic type
 id distributions `fast_perfect_hash`'s *search* is far more expensive than its
-documentation suggests - up to 175 ms for 1000 classes on the measured
-samples,
-and on the 4000-class sample it **gives up** after 500 000 attempts and aborts.
-That is worth its own issue. C and D are both candidates for the path where it
-gives up, and D is the stronger of the two (§10.5, §11.6).
+documentation suggests - up to 175 ms for 1000 classes on the measured samples -
+and on all four 4000-class samples it **gives up** after 500 000 attempts and
+aborts. That is worth its own issue. **C, D and E are all candidates for the
+path where it gives up**, and choosing between them is a trade rather than a
+ranking: D is the only one whose footprint can be stated before seeing an
+address, E dispatches about a nanosecond faster wherever the compiler
+cooperates, and C needs BMI2 and is the largest of the three. §11.6 compares
+them.
 
 **MSVC.** The whole harness was rebuilt and re-run with MSVC 19.51 (§14). Every
 prototype's table comes out the same integer there as on GCC, and
@@ -642,8 +645,9 @@ What it delivers that nothing else in this note does: a table that is found
 with no dependence on module placement. That makes it the natural *fallback*
 for `fast_perfect_hash`'s `search_error` path, and a candidate primary on
 BMI2 hardware for programs with large registries. Either way the memory numbers
-above are the ones to weigh, not the flat table's - and D (§11) beats it on
-every one of them.
+above are the ones to weigh, not the flat table's - and both D (§11) and E
+(§13) beat it on every one of them, which is why §11.6 ranks C last of the
+three fallback candidates.
 
 ## 11. Prototype D: a minimal perfect hash, by hash and displace
 
@@ -835,25 +839,55 @@ index buys with space - and both lose to the incumbent for the same reason,
 that dispatch is the hot path and `initialize` runs once. The summary table
 under *The five schemes* above puts all of them side by side.
 
-What it is still good for is the same thing §10 identified, and it is a better
-candidate for it than the cover:
+What D is still good for is the same thing §10 identified - the natural
+**fallback** for `fast_perfect_hash`'s `search_error`, where the alternative
+today is `abort()`. It succeeds on all four 4000-class samples, in 0.16-0.32 ms,
+in 37 KB.
 
-- it is the natural **fallback** for `fast_perfect_hash`'s `search_error`,
-  where the alternative today is `abort()`. It succeeds on both 4000-class
-  samples, in 0.16-0.32 ms, in 37 KB;
-- it needs **no instruction-set extension** - a 64-bit multiply and a shift -
-  so unlike `pext_index` it is available on ARM and on pre-Haswell x86;
-- it makes **no assumption about the type ids** beyond their being non-zero,
-  so it is the only prototype here that does not depend on
-  `policies::std_rtti` and the Itanium ABI. Zero is a fixed point of the
-  multiply: a type id of 0 is pinned to slot 0 for every seed and every
-  pilot, and the search fails if another bucket took that slot first. Hashing
-  `x + 1` removes the restriction for one instruction on the dispatch path,
-  which would matter if the policy were ever real.
+**There are three candidates for that path, not two**, and the comparison is
+worth making explicitly, because the ranking is not the same on every axis:
 
-The measured cost of that fallback is a permanently slower dispatch for the
-programs that need it, which is a trade a program with 4000 classes across
-four modules would take over aborting.
+| | dispatch vs `fast_perfect_hash` | bytes per type id at N=1000 | needs |
+|---|---|---|---|
+| **C** - `pext` cover | neutral | 33-262, set by the addresses | BMI2 |
+| **D** - hash and displace | +2.0 to +2.5 (GCC), +0.21 (MSVC) | **9.45, flat** | - |
+| **E** - two multiply-shifts | **+0.9 to +1.1 (GCC), +0.04 (MSVC)** | 9.22-17, a sawtooth | - |
+
+**C is the weakest**, and on every axis at once: it needs BMI2, so it is
+unavailable on ARM and on pre-Haswell x86, and slow on Zen 1/2; its table is
+larger than either of the others on every sample measured; and it builds that
+table 20 to 130 times more slowly. D and E both need nothing but a 64-bit
+multiply and a shift.
+
+**Between D and E the honest answer is a trade.** E is the faster of the two at
+dispatch - by 0.9 to 1.3 ns on GCC, and on MSVC throughput it absorbs D's entire
+penalty, +0.04 against +0.21 - with clang a wash in both directions. Dispatch is
+the axis on which both fail G2, so that is not a small point in E's favour. Two
+things keep D the default recommendation even so:
+
+- **D's footprint can be stated before seeing an address** - 9.45 bytes per type
+  id on all eight samples of §11.3. E's is a sawtooth between 9.22 and about 17,
+  decided by where `N` falls relative to a power of two (§13.3), which is a
+  property of the program that nobody controls. A fallback is selected precisely
+  when the registry is large, which is the worst moment to multiply an already
+  large table by an uncontrolled factor.
+- **E's advantage is a codegen accident, not an architectural one.** GCC hoists
+  its shift amount into `cl`; clang reloads it on every call. D's reduction is a
+  single `mul` against a memory operand and behaves the same on both (§13.2).
+  Securing E's nanosecond means making the shift a compile-time constant, and
+  that means fixing the table size in the type.
+
+One property D and E share, and C does not: they make **no assumption about the
+type ids** beyond their being non-zero, so they are the only prototypes here
+that do not depend on `policies::std_rtti` and the Itanium ABI. Zero is a fixed
+point of the multiply - a type id of 0 is pinned to slot 0 for every seed and
+every pilot, and the search fails if another bucket took that slot first.
+Hashing `x + 1` removes the restriction for one instruction on the dispatch
+path, which would matter if either policy were ever real.
+
+The measured cost of either fallback is a permanently slower dispatch for the
+programs that need it, which is a trade a program with 4000 classes across four
+modules would take over aborting.
 
 ## 12. A per-module directory, keyed by the high bits (not built)
 
@@ -1103,6 +1137,11 @@ straddle: **the shared interleaved table is what makes either work**, and the
 reduction that lets its size be arbitrary is worth its cycle or two precisely
 because it removes the sawtooth. Neither reaches `fast_perfect_hash`.
 
+That makes E a candidate for the same fallback role as D, on the same terms -
+nothing but a multiply and a shift, and no assumption about the type ids. It is
+the faster of the two wherever the shift is hoisted, and the less predictable of
+the two in size; §11.6 weighs the pair, and D is recommended only narrowly.
+
 ## 14. A third compiler: MSVC
 
 Everything above is GCC 13.3 and clang 22 on Linux. The whole harness was then
@@ -1343,13 +1382,17 @@ things survive the exercise, in the order they are worth doing:
    (§14.1), and nothing announces it.
 
 2. **D is the candidate for that failure path, and for
-   [#56](https://github.com/boostorg/openmethod/issues/56).** It succeeds on
-   every input measured here, in 0.16-0.32 ms, in 37 KB, with no
-   instruction-set requirement and no dependence on the Itanium ABI (§11.6).
-   The price is a permanently slower dispatch - +1.3 to +2.5 ns - for the
-   programs that select it, which is a trade a program with 4000 classes across
-   four modules takes over aborting. C is the alternative and the weaker one: it
-   needs BMI2, and its table is larger on every sample (§10.5).
+   [#56](https://github.com/boostorg/openmethod/issues/56)** - but E is close
+   enough that the choice should be re-measured, not taken from this note. Both
+   succeed on every input measured here, in 0.16-0.32 ms, in 37 KB, with no
+   instruction-set requirement and no dependence on the Itanium ABI. D is
+   recommended for a footprint that is 9.45 bytes per type id whatever the
+   addresses are, where E's is a sawtooth up to about 17; E is the faster at
+   dispatch, by 0.9-1.3 ns on GCC and by D's whole penalty on MSVC throughput,
+   though that margin rests on the compiler hoisting a shift. §11.6 lays the
+   two out against each other. C is the weakest of the three on every axis -
+   BMI2, the largest table, the slowest build (§10.5) - and is worth keeping
+   only if a target's dispatch cost turns out to matter more than its memory.
 
 3. **Read the type id inline on MSVC x64** (§15). This is the largest per-call
    effect measured anywhere in this note - about half a nanosecond, twice the

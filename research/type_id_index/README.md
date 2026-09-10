@@ -27,8 +27,11 @@ within-module dilution was the expensive half all along.
 
 None of them is worth shipping as the general v-table lookup. The useful
 by-product is a measurement of how expensive `fast_perfect_hash`'s search
-actually is - it aborts outright on the 4000-class samples - and two candidates
-to put on that failure path, of which prototype D is the stronger.
+actually is - it aborts outright on the 4000-class samples - and three
+candidates to put on that failure path. D is recommended, narrowly: its
+footprint is 9.45 bytes per type id whatever the addresses are, where E's is a
+sawtooth, though E is the faster of the two at dispatch. C is the weakest of the
+three. See TYPE_ID_INDEX.md §11.6.
 
 | file | what it is |
 |---|---|
