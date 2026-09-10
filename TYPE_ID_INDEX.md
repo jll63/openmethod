@@ -6,73 +6,108 @@ generator and the address analysis are in a separate repository,
 `typeinfo-samples` (`make-libs.py`, `make-samples.sh`, `collect-samples.sh`,
 `analyze-type-ids.py`).
 
-**Verdict up front.** The mapping works, and works unconditionally - there is a
-proof, not a search. The dispatch code it generates is exactly as good as
-predicted: one fused load where `fast_perfect_hash` needs a multiply, a shift
-and a load, and that is worth a real if modest 0.3-1.1 ns per call on two
-compilers. It dies on memory: 12x-149x more than `fast_perfect_hash` even
-in the single-module best case, and a multi-terabyte table the moment a program
-`dlopen`s a module that registers classes of its own. (Implicitly linked shared
-libraries are *not* a problem - copy relocations unify their type_info objects
-into the executable; §5.) Recommendation: do not ship it as the general v-table
-lookup.
+## The five schemes
 
-The measurements did turn up something else, which is the more useful result of
-the exercise: on realistic type id distributions `fast_perfect_hash`'s *search*
-is far more expensive than its documentation suggests - 97 ms for 1000 classes
-in one of the measured samples, and on the 4000-class sample it **gives up**
-after 500 000 attempts and aborts. That is worth its own issue.
+#57 asked about one mapping; four more were tried against it. Each is named by
+a letter throughout, and every measurement table is keyed on the harness
+variant that builds it (`-DRESEARCH_POLICY=`, see `registry.hpp`):
 
-A second idea, tried afterwards (§11), fares much better: pick the *minimal
-cover* of bit positions that still separates the type ids and pack them with
-`pext`. It is immune to where the modules are - the `dlopen` case costs one
-extra bit - costs 2x-32x `fast_perfect_hash`'s memory rather than 12x-infinity,
-dispatches as fast, and finds its table deterministically in milliseconds on
-the very input where `fast_perfect_hash` aborts.
+| | scheme | § | variant | header | the map |
+|---|---|---|---|---|---|
+| **A** | flat index | §1-9 | `index`, `index16` | `direct_type_id_index.hpp` | `(x - base) / d` |
+| **B** | flat index, fused load | §1-9 | `direct` | `vptr_direct_vector.hpp` | `x` *is* the byte offset |
+| **C** | minimal-cover `pext` | §10 | `pext` | `pext_index.hpp` | `pext(x, mask)` |
+| **D** | hash and displace | §11 | `hd`, `hdmin` | `hd_index.hpp` | `mulhi(h * pilots[h >> k], slots)` |
+| **E** | two multiply-shifts | §13 | `twolevel`, `twolevel1` | `two_level_index.hpp` | `(m2[h >> s1] * h) >> s2` |
+| - | per-module directory | §12 | *not built* | - | `dir[hash(x >> 12)] + (x >> 3)` |
 
-A third (§12) goes to the other extreme: a *minimal perfect hash*, built by
-hash-and-displace, which spends exactly one slot per type id no matter where
-the addresses are. It is the only scheme here that costs **less** memory than
-`fast_perfect_hash` - 9.45 bytes per type id against 16 KB-128 KB for a
-thousand classes - and it builds that table 3x-1700x faster, on every input
-including the ones that make the incumbent abort. It pays for that with a
-second dependent load on the dispatch path, and it is measurably slower for
-it: +1.3 to +2.5 ns per call on both compilers.
+`fph` is the control throughout: stock `default_registry`, whose
+`policies::fast_perfect_hash` searches for a `mult` such that
+`H(x) = (mult * x) >> shift` is collision-free. Against it, and against each
+other:
 
-A fourth (§13), suggested after the others, hashes the per-module high bits
-into a directory of per-module coefficients. It is the honest form of R4 and
-it works: the `dlopen` span disappears for a directory of under 2 KB. But the
-table that remains is the sum of the per-module spans, which is what §4
-measured, so it inherits that 4.5x-138x in full and is dominated on memory by
-both schemes above, at a dispatch sequence no shorter than either. It was
-analysed, not built.
+| | table | initialize | dispatch | survives `dlopen` |
+|---|---|---|---|---|
+| **A**, **B** - flat index (§1-9) | 5x-5e8x | fastest | **-0.6 to -1.1 ns** | no |
+| **C** - `pext` cover (§10) | 2x-32x, or 1x-2x measured | 20x-40x faster | neutral | yes |
+| **D** - hash and displace (§11) | **0.07x-0.58x** | **3x-1700x faster** | +1.3 to +2.5 ns | yes |
+| per-module directory (§12) | 4.5x-138x | not built | not built | yes |
+| **E** - two multiply-shifts (§13) | 0.07x-1.1x | as D | +0.4 to +2.4 ns | yes |
 
-All of this was then rebuilt and re-run with MSVC 19.51 (§15), which also
-turned up the largest per-call effect measured anywhere in this note, and not
-in a map at all: MSVC does not inline fetching an object's type id, and doing
-it by hand saves about half a nanosecond per dispatch - twice the biggest
-difference between any two maps there (§16). Every
+Table sizes are ratios to `fast_perfect_hash`'s, dispatch is ns per call
+against it (negative is faster); §4 explains which `fast_perfect_hash` baseline
+the table column is measured against, and why that choice overstates every
+ratio in it.
+
+## Verdict
+
+**None of the five is worth shipping as the general v-table lookup.**
+`fast_perfect_hash` is a multiply and a shift, and nothing here gets under it:
+A and B buy about a nanosecond with unusable amounts of memory, D buys the
+memory back and gives up two, C sits between them and is neutral on both, E is
+D with a nanosecond of its cost recovered on one compiler. What the exercise
+does produce is a replacement for `fast_perfect_hash`'s *failure* path, and one
+result that is not about a map at all (§15).
+
+**A and B - the flat index.** The mapping works, and works unconditionally -
+there is a proof, not a search (§2). The dispatch code it generates is exactly
+as good as predicted: one fused load where `fast_perfect_hash` needs a
+multiply, a shift and a load, and that is worth a real if modest 0.3-1.1 ns per
+call on two compilers. It dies on memory: 5x-149x more than `fast_perfect_hash`
+even in the single-module best case, and a multi-terabyte table the moment a
+program `dlopen`s a module that registers classes of its own. (Implicitly
+linked shared libraries are *not* a problem - copy relocations unify their
+type_info objects into the executable; §5.)
+
+**C - the minimal-cover `pext` index.** The flat table fails because the
+*span* sets its size; pick instead the smallest set of bit positions that still
+separates the type ids, and pack them with `pext`. C is immune to where the
+modules are - the `dlopen` case costs one extra bit - dispatches as fast as the
+incumbent, and finds its table deterministically in milliseconds on the very
+input where `fast_perfect_hash` aborts. On memory it is 2x-32x the incumbent
+against the *modelled* baseline, and near parity against the *measured* one;
+§4 says why those two differ and §14.1 has the measurements.
+
+**D - a minimal perfect hash, by hash and displace.** The other extreme: one
+slot per type id, whatever the addresses are. It is the only scheme here that
+costs **less** memory than `fast_perfect_hash` - a flat 9.45 bytes per type id
+against 16 KB-128 KB for a thousand classes - and it builds that table
+3x-1700x faster, on every input including the ones that make the incumbent
+abort. It pays with a second dependent load on the dispatch path, and it is
+measurably slower for it: +1.3 to +2.5 ns per call on both compilers.
+
+**The per-module directory**, suggested after the others, hashes the per-module
+high bits into a directory of per-module coefficients. It is the honest form of
+§8's R4 and it works: the `dlopen` span disappears for a directory of under
+2 KB. But the table that remains is the sum of the per-module spans, which is
+what §4 measured, so it inherits that in full and is dominated on memory by
+both C and D, at a dispatch sequence no shorter than either. It was analysed,
+not built.
+
+**E - two multiply-shifts** is D with the final reduction replaced by a shift
+into a power-of-two table. It recovers about a nanosecond of D's cost on GCC
+and none of it on clang, and it trades D's flat table size for a sawtooth
+between 1.0 and 2.0 slots per type id.
+
+**The by-product is the more useful result of the exercise.** On realistic type
+id distributions `fast_perfect_hash`'s *search* is far more expensive than its
+documentation suggests - 97 ms for 1000 classes in one of the measured samples,
+and on the 4000-class sample it **gives up** after 500 000 attempts and aborts.
+That is worth its own issue. C and D are both candidates for the path where it
+gives up, and D is the stronger of the two (§10.5, §11.6).
+
+**MSVC.** The whole harness was rebuilt and re-run with MSVC 19.51 (§14). Every
 prototype's table comes out the same integer there as on GCC, and
 `fast_perfect_hash`'s does not - its randomized search lands on different
 factors under a different toolchain. MSVC agrees on the one result that
-matters, that the minimal perfect hash costs measurably more per call, and
-finds the rest inside its noise.
+matters, that D costs measurably more per call, and finds the rest inside its
+noise. It also turned up the largest per-call effect measured anywhere in this
+note, and not in a map at all: MSVC does not inline fetching an object's type
+id, and doing it by hand saves about half a nanosecond per dispatch - twice the
+biggest difference between any two maps there (§15).
 
-A fifth (§14) is the fourth's opposite: keep the displacement, but reduce with
-a shift into a power-of-two table instead of a multiply onto an arbitrary one.
-It recovers about a nanosecond of the third idea's cost on GCC and none of it
-on clang, and it trades a flat table size for a sawtooth between 1.0 and 2.0
-slots per type id.
 
-**None of the five is worth shipping as the general v-table lookup.** The
-flat index buys ~1 ns with unusable amounts of memory; the minimal perfect
-hash buys the memory back and gives up ~2 ns; the `pext` cover sits between
-them and is neutral on both. `fast_perfect_hash` is a multiply and a shift,
-and nothing here gets under it. What the exercise does produce is a
-replacement for its *failure* path - see §11.5 and §12.6, where the minimal
-perfect hash is the stronger of the two candidates.
-
-## 1. The idea
+## 1. Prototypes A and B: the idea
 
 `type_id` is `const void*`; under `policies::std_rtti` it is `&typeid(X)`, the
 address of an Itanium ABI `type_info` record. `policies::fast_perfect_hash`
@@ -91,6 +126,17 @@ H(x) = (x - base) / d
 ```
 
 where `base` is the lowest registered type id.
+
+That formula is **prototype A**, `research::direct_type_id_index<d>`, a
+`type_hash` policy like the incumbent, built as the `index` (`d = 8`) and
+`index16` (`d = 16`) variants. **Prototype B**,
+`research::vptr_direct_vector`, is the same idea taken one step further: at
+`d = 8` a slot is exactly `sizeof(vptr_type)` bytes, so the type id *is* the
+byte offset into the v-table table, and folding `base` into that table's
+address leaves a single fused load with no arithmetic in front of it (§6). B
+is a `vptr` policy and replaces `vptr_vector`, so it needs no `type_hash`
+policy at all; it is the `direct` variant. The two share every property
+established in §§2-5 - they differ only in where the subtraction happens.
 
 ## 2. What the ABI guarantees
 
@@ -156,10 +202,30 @@ conclusion does not depend on where in the band one lands.
 
 ## 4. What it costs
 
-**One module** (1000 classes each). `fph table` is `fast_perfect_hash`'s bucket
-count, 8 bytes per slot.
+**The `fast_perfect_hash` baseline is modelled here, and the model is
+optimistic.** `analyze-type-ids.py`'s `fph_buckets(n)` returns the bucket count
+the incumbent *starts from* - `1.25n` rounded up to a power of two, so 2048
+slots, 16 KB, for a thousand classes. The search grows the table when it
+cannot place the ids in that many buckets, and on these samples it usually
+does: §14.1 measured what it actually allocates, and only `flat` stops at 2048.
 
-| config | span | slots@8 | density@8 | table@8 | fph table | blowup |
+| sample | modelled | measured (§14.1) |
+|---|---|---|
+| flat, 1000 | 16 KB | 16 KB |
+| tree, 1000 | 16 KB | **32 KB** |
+| si-heavy, 1000 | 16 KB | **128 KB** |
+| mi-heavy, 1000 | 16 KB | **128 KB** |
+
+The modelled figure is the one used in this section and in §10.1, because it is
+the only one available for the 4000-class samples - there the search aborts and
+allocates nothing at all. Every ratio computed against it is therefore an
+*upper* bound on the true blowup, by up to 8x. §11.3 and §14.1 use the measured
+figure instead and say so. Where the two baselines change a conclusion rather
+than a decimal - which is only in §10.5 - both are given.
+
+**One module** (1000 classes each), against the modelled baseline:
+
+| config | span | slots@8 | density@8 | table@8 | fph table (modelled) | blowup |
 |---|---|---|---|---|---|---|
 | si-heavy-tu1000 *(single-TU artefact)* | 34 KB | 4247 | 23.6 % | 33 KB | 16 KB | 2x |
 | flat | 75 KB | 9326 | 10.7 % | 72 KB | 16 KB | 5x |
@@ -167,6 +233,10 @@ count, 8 bytes per slot.
 | si-heavy | 808 KB | 100964 | 1.0 % | 788 KB | 16 KB | 49x |
 | virt-heavy | 1.5 MB | 187190 | 0.5 % | 1.4 MB | 16 KB | 91x |
 | mi-heavy | 2.4 MB | 305079 | 0.3 % | 2.3 MB | 16 KB | 149x |
+
+Discounting the single-TU artefact, that is **5x-149x**, and this note quotes
+that range throughout. Against the measured baseline the same rows are 5x
+(`flat`), 6x (`tree`) and 6x (`si-heavy`); `mi-heavy` is 18x.
 
 **Four modules** (4000 classes): 55x (flat) to 497x (mi-heavy); the reference
 configuration is 231x, 14.4 MB against 64 KB.
@@ -300,7 +370,7 @@ effect: the tables here are 1.0 KB (fph), 1.5 KB (index, direct) and 0.8 KB
 That measurement used a 512-class benchmark whose larger tables and heavier
 object mix buried the effect - and whose compilation reached 23.5 GB resident
 per translation unit, enough to fire the OOM killer. The benchmark now
-registers 64 classes and compiles in 0.7 GB; see §10.
+registers 64 classes and compiles in 0.7 GB; see the appendix.
 
 ## 7. Initialize: the incumbent is the problem
 
@@ -314,6 +384,15 @@ On the **measured** address sets (1000 classes, one module), search time alone:
 | flat | 0.20 ms | ~1 µs |
 | tree | 21.7 ms | ~1 µs |
 | si-heavy | **96.9 ms** | ~1 µs |
+
+**The `fast_perfect_hash` column is only comparable within one table.** Its
+search is randomized, so it is re-measured in each session rather than being a
+fixed property of the input, and the three tables that carry it were taken in
+three: this one and §10.4 have `si-heavy` at 96.9 ms, §11.4 at 83.3 ms, a 14 %
+spread on the same addresses. Read each table's columns against each other, not
+a column across tables. One figure in §10.4 is also unconfirmed - `mi-heavy`
+there is the same 96.9 ms as `si-heavy`, where §11.4 measures `si-heavy` at
+83.3 and `mi-heavy` at 96.9; it was not re-run.
 
 On synthetic ids at a controlled sparsity (`stride` = mean bytes of span per id):
 
@@ -353,29 +432,32 @@ already notes this in passing; these are numbers for it.
   slower to boot. Not promising.
 - **R4 - per-module base.** Rejected here on inspection, for the wrong reason -
   recovering the module needs no range search, only a mult-shift over the high
-  bits. Measured properly in §13, where it removes the multi-module span
+  bits. Measured properly in §12, where it removes the multi-module span
   entirely for a directory of under 2 KB, and is still dominated on memory by
-  §11 and §12, at a dispatch sequence no shorter than either, because it
+  §10 and §11, at a dispatch sequence no shorter than either, because it
   leaves the within-module dilution of §4 untouched.
 
 ## 9. Go/no-go
 
-The criteria, fixed before the measurements:
+The criteria, fixed before the measurements. They were written for A and B, and
+the outcomes below are theirs; §§10.5, 11.6 and 13.6 score C, D and E against
+the same four, so the wording is deliberately scheme-neutral:
 
 | | criterion | outcome |
 |---|---|---|
 | G1 | whitelisted tests pass, with and without runtime checks | **pass** - 80/80 (`ctest -R '^research-'`), 4 variants x 2 check modes |
 | G2 | reference path >= 1.5 cycles/dispatch faster, on >= 2 compilers | **pass, narrowly** - 0.6-1.1 ns (~2.5-4.5 cycles) on throughput, GCC and clang agreeing; latency moves only on clang |
-| G3 | table <= 8x `fast_perfect_hash` on realistic subsets | **fail** - 12x-149x in one module, 231x in four |
+| G3 | table <= 8x `fast_perfect_hash` on realistic subsets | **fail** - 5x-149x in one module, 231x in four |
 | G4 | multi-module case diagnosed, with a checkable rule | **pass** - `too_sparse`, and the rule is precise: no `dlopen`ed module may register classes |
 
-**Do not promote this to a policy** - but the reason is now G3 alone, and it is
-narrower than it first looked. The speed argument holds, and the multi-module
-objection turns out to apply only to `dlopen`, not to shared libraries in
-general. What remains is that the table costs 12x-149x `fast_perfect_hash`'s
-even in the single-module best case, to buy a few percent on the one dispatch
-path that uses the map. The page-directory variant that would survive the
-`dlopen` case is worse than the incumbent on both memory and latency.
+**Do not promote A or B to a policy** - but the reason is now G3 alone, and
+it is narrower than it first looked. The speed argument holds, and the
+multi-module objection turns out to apply only to `dlopen`, not to shared
+libraries in general. What remains is that the table costs 5x-149x what
+`fast_perfect_hash` needs even in the single-module best case, to buy a few
+percent on the one dispatch path that uses the map. The page-directory variant
+that would survive the `dlopen` case is worse than the incumbent on both memory
+and latency.
 
 If it were ever revisited, the shape to revisit is a *compile-time* opt-in for
 programs that do not `dlopen` class-registering modules - the memory is the
@@ -392,23 +474,7 @@ Two things are worth carrying forward:
 2. **The injectivity theorem is reusable.** Any future scheme keyed on
    `std::type_info` addresses can rely on a guaranteed 16-byte separation.
 
-## 10. A note on building the harness
-
-`bench_dispatch.cpp` registers a forest of `node<I> : node<(I-1)/2>` classes,
-one overrider each. The compile cost is roughly quadratic in the class count -
-`use_classes` relates every pair - and at 512 classes one translation unit
-reached **23.5 GB resident and 2m37s** on GCC 13.3. Built `-j12`, that is enough
-to exhaust the machine and fire the *global* OOM killer, which then picks off
-whatever is largest, editor and shell included. At 64 classes the same TU takes
-0.7 GB and 5 s, which is why the benchmark registers 64.
-
-Build it under a memory cap regardless:
-
-```bash
-capped -m 24G -- cmake --build build-research --target research-all -j4
-```
-
-## 11. Second idea: a minimal-cover `pext` index
+## 10. Prototype C: a minimal-cover `pext` index
 
 The flat table fails because the *span* sets the table size. But a set of
 addresses clustered per module and far apart between modules has structure in
@@ -429,7 +495,7 @@ one greedy pass drops bits lowest-entropy-first while injectivity holds; a
 second builds a cover bottom-up by adding the bit that resolves the most
 collisions, then trims it the same way; the smaller wins.
 
-### 11.1 On the data
+### 10.1 On the data
 
 `analyze-bits.py`, same samples as §4-5 (`bits.md` has every configuration):
 
@@ -451,7 +517,7 @@ plugin are one piece of information, and the search keeps one of them. What
 remains is the within-module dilution, 2-5 bits above the `ceil(log2 N)` floor:
 the price of choosing a bit *subset* rather than a 64-bit multiplier.
 
-### 11.2 Prototype C - `research::pext_index<MaxBits>`
+### 10.2 The policy - `research::pext_index<MaxBits>`
 
 A `type_hash` policy, same shape as prototype A; state is `{mask, max_value}`
 plus the control table under runtime checks. `hash` is `_pext_u64(ti, mask)`.
@@ -470,7 +536,7 @@ mov    rax, QWORD PTR [rdx+rax*8]
 One `pext` (3-cycle latency on Zen 3+ and Intel; **microcoded, ~18 cycles, on
 Zen 1/2**) where `fast_perfect_hash` has `imul` + `shr`.
 
-### 11.3 Dispatch
+### 10.3 Dispatch
 
 Same protocol as §6, ns per call, 64 registered classes, GCC 13.3, Zen 5:
 
@@ -488,9 +554,10 @@ Same speed class as `fast_perfect_hash`, perhaps a hair better on throughput;
 `fast_perfect_hash`'s 128 - for tightly packed classes the cover is as good as
 the hash. This is not a speed play.
 
-### 11.4 Initialize - where it wins
+### 10.4 Initialize - where it wins
 
-Same protocol as §7. On the **measured** address sets:
+Same protocol as §7, whose note on comparing `fast_perfect_hash` figures across
+tables applies here. On the **measured** address sets:
 
 | sample | `fast_perfect_hash` | `pext_index` | flat table |
 |---|---|---|---|
@@ -514,30 +581,51 @@ scan's ~100 µs and `fast_perfect_hash`'s 0.5 ms (regular ids) to 44 s (sparse
 ids). A hash set instead of a sort, and a cheaper add pass, would take a good
 factor off; nothing here is tuned.
 
-### 11.5 Assessment
+### 10.5 Assessment
 
 Against the §9 criteria: G1 passes; G2 is neutral - as fast as the incumbent,
-not faster; G3 is 2x-32x, so it clears the 8x bar in the single-module
-configurations and misses it across modules; G4 passes with *no* restriction -
-`dlopen` costs one bit. Two caveats are real:
+not faster; G4 passes with *no* restriction - `dlopen` costs one bit.
+
+**G3 is the one criterion whose answer depends on which baseline §4 is read
+with**, and it is worth being explicit, because the two readings say different
+things:
+
+| sample | cover | fph, modelled | fph, measured (§14.1) |
+|---|---|---|---|
+| flat, 1000 | 32 KB | 16 KB - 2x | 16 KB - **2x** |
+| tree, 1000 | 64 KB | 16 KB - 4x | 32 KB - **2x** |
+| si-heavy, 1000 | 128 KB | 16 KB - 8x | 128 KB - **1x** |
+| mi-heavy, 1000 | 256 KB | 16 KB - 16x | 128 KB - **2x** |
+
+Against the modelled baseline the cover costs 2x-32x, clearing the 8x bar in
+the single-module configurations and missing it across modules. Against the
+measured one it is **at or near parity on every sample where the incumbent
+finishes at all** - 1x-2x - and the reason is not subtle: both schemes are
+paying for the same thing. `fast_perfect_hash` grows its table when the ids are
+sparse, and the `pext` cover widens by the same bits for the same reason. They
+degrade together.
+
+So G3 is a pass on the measured baseline and a partial pass on the modelled
+one. The honest summary is that C costs about twice `fast_perfect_hash` on the
+samples where `fast_perfect_hash` works, not the eight to thirty-two times the
+modelled column suggests. One caveat survives either reading:
 
 - **BMI2.** Absent on ARM and on x86 before Haswell/Zen; slow on Zen 1/2. A
   software `pext` is a loop over the mask bits, far too slow for the hot path;
   the honest fallback is `fast_perfect_hash` itself, chosen at compile time.
-- **Memory is still above the incumbent** wherever `fast_perfect_hash`'s search
-  succeeds - and it usually does, up to a few hundred classes per module.
 
 What it delivers that nothing else in this note does: a table that is found
 **deterministically, in bounded time, on inputs where the incumbent aborts**,
 with no dependence on module placement. That makes it the natural *fallback*
 for `fast_perfect_hash`'s `search_error` path, and a candidate primary on
 BMI2 hardware for programs with large registries. Either way the memory numbers
-above are the ones to weigh, not the flat table's.
+above are the ones to weigh, not the flat table's - and D (§11) beats it on
+every one of them.
 
-## 12. Third idea: a minimal perfect hash, by hash and displace
+## 11. Prototype D: a minimal perfect hash, by hash and displace
 
-The first two ideas both let the *addresses* set the table size: the flat index
-pays for the span, the `pext` cover pays for the within-module dilution. A
+A, B and C all let the *addresses* set the table size: the flat index pays for
+the span, the `pext` cover pays for the within-module dilution. A
 minimal perfect hash pays for neither. It maps `N` type ids onto `N` slots by
 construction, so the table is `8N` bytes whatever the addresses are, and there
 is no distribution that makes it larger.
@@ -556,11 +644,11 @@ pilot is stored raw, so reading one is a single indexed load.
 **Which is why the policy is `hd_index` and the variants are `hd` and `hdmin`,
 not `chd`.** The published algorithm is *compress, hash and displace*, and its C
 is the step this drops; carrying the letter would promise the ~2 bits per key
-that the compression buys and this does not, against the 9.45 bytes §12.3
+that the compression buys and this does not, against the 9.45 bytes §11.3
 measures - a factor of 38. The construction is still CHD's, and it is cited as
 such above; only the two steps that are implemented are named.
 
-### 12.1 The formula, and one that does not work
+### 11.1 The formula, and one that does not work
 
 `research::hd_index<Lambda, LoadPercent>`, a `type_hash` policy:
 
@@ -600,7 +688,7 @@ doubles the pilot array, which is dearer than the 5 % of slots it recovers.
 The pilots cannot be narrowed to 16 bits instead - a pilot multiplies the key,
 so a narrow one cannot move a bucket far enough.
 
-### 12.2 Codegen
+### 11.2 Codegen
 
 GCC 13.3, between the `type_info` load and the indirect call, Intel syntax:
 
@@ -618,9 +706,9 @@ Six instructions where `fast_perfect_hash` has three, and - the part that
 matters - **two dependent loads instead of one**: the pilot has to arrive
 before the index exists. clang 22 generates the same shape.
 
-### 12.3 Memory: the first scheme here that beats the incumbent
+### 11.3 Memory: the first scheme here that beats the incumbent
 
-Table plus pilots, on the samples of §4-5 and §11.1. `pext_index` is the
+Table plus pilots, on the samples of §4-5 and §10.1. `pext_index` is the
 column to compare against for the four-module rows, since `fast_perfect_hash`
 does not get that far.
 
@@ -642,9 +730,11 @@ where the incumbent works at all, and 12x to 110x below the `pext` cover where
 it does not. It is also the only scheme in this note whose footprint can be
 stated in advance, before seeing an address.
 
-### 12.4 Initialize: bounded, and indifferent to layout
+### 11.4 Initialize: bounded, and indifferent to layout
 
-`type_hash::initialize` alone, same protocol as §7 and §11.4, in ms:
+`type_hash::initialize` alone, same protocol as §7 and §10.4, in ms. This is a
+later session than either, so the `fast_perfect_hash` column differs from theirs
+- see the note in §7:
 
 | sample | N | `fast_perfect_hash` | `pext_index` | `hd` | `hdmin` |
 |---|---|---|---|---|---|
@@ -665,12 +755,12 @@ where the ids are, only at how many. On the synthetic sweep, 65 536 ids take
 two. `hdmin` is the faster of the two because its buckets hold two keys
 rather than four, and a small bucket is far easier to place late.
 
-### 12.5 Dispatch: this is where it is paid for
+### 11.5 Dispatch: this is where it is paid for
 
 Same protocol as §6, ns per call, 64 registered classes, Zen 5.
 
 All six variants were measured in one session, so the table also carries
-`twolevel`, which belongs to §14; the machine drifts by about a nanosecond
+`twolevel`, which belongs to §13; the machine drifts by about a nanosecond
 between sessions and only figures taken together are comparable.
 
 GCC 13.3:
@@ -706,32 +796,20 @@ what binds is the three extra uops and the second load port access, not the
 chain. The two `hd` configurations are indistinguishable from each other, as
 they should be - they generate identical code and differ only in table size.
 
-### 12.6 Assessment
+### 11.6 Assessment
 
-Against the §9 criteria: G1 passes - 180/180 (`ctest -R '^research-'`), eight
-variants x two check modes. G2 **fails**, and by more than any other
-prototype here. G3 passes outright, and is the only prototype that does: 0.07x
-to 0.58x `fast_perfect_hash` rather than 2x-149x. G4 passes with no
-restriction at all - the search never reads an address's magnitude.
+Against the §9 criteria: G1 passes - 180/180 (`ctest -R '^research-'`), nine
+variants x two check modes x ten targets. G2 **fails**, and by more than any
+other prototype here. G3 passes outright, and is the only prototype that does:
+0.07x to 0.58x `fast_perfect_hash`, where A, B and C span 2x to 149x. G4 passes
+with no restriction at all - the search never reads an address's magnitude.
 
-So the three ideas separate cleanly, and none of them is a win:
+D is the exact opposite trade to A and B - it buys with time what the flat
+index buys with space - and both lose to the incumbent for the same reason,
+that dispatch is the hot path and `initialize` runs once. The summary table
+under *The five schemes* above puts all of them side by side.
 
-| | table | initialize | dispatch | survives `dlopen` |
-|---|---|---|---|---|
-| flat index (§1-9) | 12x-5e8x | fastest | **-0.6 to -1.1 ns** | no |
-| `pext` cover (§11) | 2x-32x | 20x-40x faster | neutral | yes |
-| hash and displace (§12) | **0.07x-0.58x** | **3x-1700x faster** | +1.3 to +2.5 ns | yes |
-| per-module directory (§13) | 4.5x-138x | not built | not built | yes |
-| two multiply-shifts (§14) | 0.07x-1.1x | as §12 | +0.4 to +2.4 ns | yes |
-
-`fast_perfect_hash` is a multiply and a shift, and there is no room under it:
-any scheme that indirects through a second table to get a denser one gives
-back more time than the memory is worth. The minimal perfect hash is the exact
-opposite trade to the flat index - it buys with time what the flat index buys
-with space - and both lose to the incumbent for the same reason, that dispatch
-is the hot path and `initialize` runs once.
-
-What it is still good for is the same thing §11 identified, and it is a better
+What it is still good for is the same thing §10 identified, and it is a better
 candidate for it than the cover:
 
 - it is the natural **fallback** for `fast_perfect_hash`'s `search_error`,
@@ -751,10 +829,10 @@ The measured cost of that fallback is a permanently slower dispatch for the
 programs that need it, which is a trade a program with 4000 classes across
 four modules would take over aborting.
 
-## 13. Fourth idea: a per-module directory, keyed by the high bits
+## 12. A per-module directory, keyed by the high bits (not built)
 
 *No prototype was built for this one.* The table sizes below are measured, on
-the same addresses as §4-5 and §11-12; the dispatch sequence is read off the
+the same addresses as §4-5 and §10-11; the dispatch sequence is read off the
 formula rather than off a compiler, and there are no timings. The memory
 result is decisive on its own, and nothing in the scheme can move it.
 
@@ -818,9 +896,9 @@ So the two-step index is **dominated on both axes at every measured point**.
 `pext_index` is smaller on every sample where both were measured, by 1.6x
 here and by 7x on `si-heavy` under the observed placement, where its cover
 costs 448 KB against the same 3.1 MB - *and* faster, since it is one `pext`
-and one load against six instructions and two dependent loads. Prototype D is smaller
-again by two orders of magnitude. There is no setting of `K`, `M` or `S` that
-changes this, because none of them touches the second level.
+and one load against six instructions and two dependent loads. Prototype D is
+smaller again by two orders of magnitude. There is no setting of `K`, `M` or
+`S` that changes this, because none of them touches the second level.
 
 Two details are worth keeping even so:
 
@@ -843,7 +921,7 @@ incumbent's own size while still paying the extra load - and the search does
 not get cheaper for being partitioned, since §7's worst case, 96.9 ms, is
 already one module's 1000 classes.
 
-## 14. Fifth idea: two multiply-shifts, and a shift instead of a reduce
+## 13. Prototype E: two multiply-shifts, and a shift instead of a reduce
 
 Prototype E, `research::two_level_index<Lambda, M1Candidates>`. An imperfect
 multiply-shift picks a bucket; the bucket names a second multiplier; a second
@@ -862,10 +940,10 @@ size, where this shifts, onto a table of a power-of-two size. Everything else,
 including the bucketing and the largest-bucket-first placement, is the same
 code shape. So the pair isolates exactly one variable.
 
-### 14.1 The second multiply has to act on the mixed key
+### 13.1 The second multiply has to act on the mixed key
 
 Written literally as `(m2[h1(x)] * x) >> s2`, on `x` itself, it does not work,
-and it fails the way §12.1's exclusive-or did - structurally. Two type ids in
+and it fails the way §11.1's exclusive-or did - structurally. Two type ids in
 one module are 16 to 48 bytes apart, so `m2 * x` differs between them by about
 `m2 * 16`; for a 32-bit `m2` that is below `2^(64 - t)`, the shift discards it,
 and the two ids land on the same slot for every multiplier the search can try.
@@ -877,7 +955,7 @@ Multiplying the already-mixed `h` fixes it and costs nothing. `h` is ready
 three cycles in, long before `m2` arrives from the directory, so the second
 multiply is not waiting on it.
 
-### 14.2 The shift is cheaper than the reduce, on one compiler
+### 13.2 The shift is cheaper than the reduce, on one compiler
 
 Between the `type_info` load and the indirect call, GCC 13.3:
 
@@ -891,7 +969,7 @@ mov    rax, QWORD PTR [rdx+rax*8]      ; the v-table pointer
 ```
 
 Six instructions and two dependent loads, one step shorter than prototype D,
-which needs `imul` plus `mul` to reduce. Measured in §12.5's table:
+which needs `imul` plus `mul` to reduce. Measured in §11.5's table:
 
 | | vs `hd` | vs `fast_perfect_hash` |
 |---|---|---|
@@ -912,7 +990,7 @@ size in the type.
 Either way it is still slower than the incumbent's multiply and shift, on both
 compilers and at every point.
 
-### 14.3 Memory is a sawtooth
+### 13.3 Memory is a sawtooth
 
 The table is `2^ceil(log2 N)` slots, so between 1.0 and 2.0 per type id, plus
 a 32-bit multiplier per bucket. On the measured samples, `si-heavy` at four
@@ -936,7 +1014,7 @@ load factor is exactly 1, and the search still finds an assignment at
 `Lambda = 4` - 65 536 type ids in 11.5 ms. That is an exactly minimal perfect
 hash at twice `hdmin`'s bucket size and half its directory.
 
-### 14.4 A per-bucket shift needs a per-bucket base, and then it partitions
+### 13.4 A per-bucket shift needs a per-bucket base, and then it partitions
 
 `{m2, s2}` per bucket, rather than `m2` alone, only means something if each
 bucket has a *private* sub-table - a per-bucket `s2` against a shared table
@@ -962,7 +1040,7 @@ The directory grows too, from 4 bytes to 8 for the base and the shift, and the
 dispatch path gains an unpack and an add. There is no configuration in which
 partitioning wins.
 
-### 14.5 Evening the buckets does not pay
+### 13.5 Evening the buckets does not pay
 
 `M1Candidates` first-level multipliers are scored by the sum of the squared
 bucket sizes and the most even is kept. The metric does respond: over 64
@@ -986,9 +1064,9 @@ remaining bucket faces an almost full table - and evening the sizes does not
 change how full the table is. Prototype D reaches the same conclusion from the
 other side: it never looks at `m1` at all and places just as fast.
 
-### 14.6 Assessment
+### 13.6 Assessment
 
-G1 passes - 180/180, now eight variants across two check modes. G2 fails,
+G1 passes - 180/180, now nine variants across two check modes. G2 fails,
 though by less than prototype D on GCC. G3 passes on the same terms as D,
 with the caveat that the sawtooth decides which of the two is smaller. G4
 passes with no restriction.
@@ -999,7 +1077,7 @@ straddle: **the shared interleaved table is what makes either work**, and the
 reduction that lets its size be arbitrary is worth its cycle or two precisely
 because it removes the sawtooth. Neither reaches `fast_perfect_hash`.
 
-## 15. A third compiler: MSVC
+## 14. A third compiler: MSVC
 
 Everything above is GCC 13.3 and clang 22 on Linux. The whole harness was then
 built and run with **MSVC 19.51 (Visual Studio 18 Build Tools)**, x64, Ninja,
@@ -1008,10 +1086,10 @@ none of them touched a measurement: `pext_index` guarded its BMI2 requirement
 on `__BMI2__`, which MSVC does not define, and used `__builtin_popcountll`;
 `bench_dispatch` used a GCC `asm` barrier to keep a loop's result alive.
 
-**It all works.** 180/180 tests pass - eight variants x two check modes x ten
+**It all works.** 180/180 tests pass - nine variants x two check modes x ten
 tests - with no warnings from any of the 417 targets.
 
-### 15.1 The tables are identical, and the incumbent's is not
+### 14.1 The tables are identical, and the incumbent's is not
 
 Slots allocated for the same measured address sets:
 
@@ -1041,9 +1119,9 @@ for `hdmin` at 1000 type ids against 104 ms for `fast_perfect_hash` on
 `fast_perfect_hash` fail on exactly the samples they fail on under GCC -
 `too_sparse` for the first, the multiplier search giving up for the second.
 
-### 15.2 Codegen: the sequence is the designed one, plus a call
+### 14.2 Codegen: the sequence is the designed one, plus a call
 
-MSVC generates what §12.2 predicts, `hd` inside the throughput loop:
+MSVC generates what §11.2 predicts, `hd` inside the throughput loop:
 
 ```asm
 call        <dynamic type>                 ; not inlined
@@ -1071,7 +1149,7 @@ inline fetching the type id**, where GCC and clang emit `mov rax,[rdi]` +
 the map a smaller share of the call, and it is why the differences between the
 prototypes are compressed below.
 
-### 15.3 Dispatch, within the MSVC build
+### 14.3 Dispatch, within the MSVC build
 
 Same protocol as §6, ns per call, 64 registered classes:
 
@@ -1084,7 +1162,7 @@ Same protocol as §6, ns per call, 64 registered classes:
 | throughput | 24 | 2.00+-0.01 | **1.99**+-0.01 | 2.22+-0.03 | 2.25+-0.07 | 2.04+-0.05 | 2.00+-0.02 |
 | throughput | 64 | 2.00+-0.03 | 2.01+-0.01 | 2.21+-0.03 | 2.24+-0.04 | 2.04+-0.03 | **1.99**+-0.05 |
 
-**Do not read these against §6, §11.3, §12.5 or §14.2.** They are a different
+**Do not read these against §6, §10.3, §11.5 or §13.2.** They are a different
 operating system, a different allocator laying out the 4096 objects, and a
 dispatch that starts with a call the other two inline; the absolute numbers
 are not comparable and the ratio between platforms means nothing. What is
@@ -1101,13 +1179,13 @@ comparable is the column-to-column difference *within this table*:
 MSVC agrees with the other two compilers on the sign of the one result that
 matters and on nothing else. The minimal perfect hashes cost measurably more
 on throughput, and the effect is again larger on throughput than on latency -
-the signature of instruction count rather than dependency depth, as §12.5
+the signature of instruction count rather than dependency depth, as §11.5
 found. Everything else is inside the noise: the single-load prototypes buy
 nothing here, where GCC and clang both showed them a few tenths of a
 nanosecond ahead. With an un-inlined type id fetch in front of every dispatch,
 there is less left for them to save.
 
-### 15.4 One caveat the ABI does not cover
+### 14.4 One caveat the ABI does not cover
 
 §2 derives the 16-byte separation of two `type_info` objects from the Itanium
 ABI, and prototypes A and B rest on it. **MSVC is not that ABI**, so the proof
@@ -1118,16 +1196,16 @@ under MSVC as it does under GCC. That is one program's classes, not a
 guarantee. A flat index shipped for Windows would need its own argument, and
 `too_sparse` remains the only thing standing between it and a bad allocation.
 
-## 16. Reading MSVC's type id inline
+## 15. Reading MSVC's type id inline
 
-§15.2 left a loose end: MSVC does not inline fetching an object's type id, so
+§14.2 left a loose end: MSVC does not inline fetching an object's type id, so
 every dispatch begins with a call to `__RTtypeid` where GCC and clang emit two
 loads. That is undocumented territory, but the layout is not secret - the
 v-table is preceded by a pointer to a *complete object locator*, and that is
 what `__RTtypeid` itself reads. `research/type_id_index/msvc_direct_rtti.cpp`
 tries it. MSVC x64 only; it is not part of the CMake harness.
 
-### 16.1 It works, and it is six instructions
+### 15.1 It works, and it is six instructions
 
 On x64 the locator's fields are image-relative, so the image base has to be
 recovered from the locator's own address first:
@@ -1157,7 +1235,7 @@ two arithmetic instructions. The `signature` field is 1 and `self` exists only
 on x64; on x86 the locator has no `self` and the other fields are already
 pointers, so this spelling is 64-bit only.
 
-### 16.2 Where it is wrong, and it is wrong silently
+### 15.2 Where it is wrong, and it is wrong silently
 
 Over eleven shapes:
 
@@ -1186,7 +1264,7 @@ registrar could refuse the classes this cannot handle; a `rtti` policy on its
 own cannot. Under `runtime_checks` the honest form is to compute both and
 compare, which costs nothing in a release build.
 
-### 16.3 It is worth more than any map in this note
+### 15.3 It is worth more than any map in this note
 
 Measured in the shape a dispatch uses it - fetch the type id, multiply-shift
 it, index a table - 4096 objects over 64 classes, median of 15 runs, three
@@ -1198,12 +1276,12 @@ repeats:
 | inline read | **0.60, 0.65, 0.67** |
 
 About **half a nanosecond per dispatch**, and that number deserves to be put
-next to §15.3's. Every difference between the six maps on MSVC was 0.02 to
+next to §14.3's. Every difference between the six maps on MSVC was 0.02 to
 0.25 ns, and the two minimal perfect hashes - the clearest effect in the whole
 table - cost 0.21 to 0.25 ns. Inlining the type id fetch is worth twice the
 largest of them, and it is worth it to *every* configuration at once.
 
-That reframes §15.3 rather than adding to it. The prototypes look compressed
+That reframes §14.3 rather than adding to it. The prototypes look compressed
 on MSVC because they are competing for a share of a call that spends a fixed
 half-nanosecond before any of them is reached. On the platform where the map
 matters least, the thing in front of it matters most - and it is the one part
@@ -1218,9 +1296,51 @@ It is also the only result in this note that suggests a change worth making to
 the library rather than to a policy: `std_rtti::dynamic_type` could read the
 locator directly on MSVC x64, for classes the registrar can prove have no
 virtual base, and fall back to `typeid` otherwise. That is a bigger and more
-delicate change than any of §§11-14, and unlike them it is not a research
+delicate change than any of §§10-13, and unlike them it is not a research
 question - it is a portability question about an undocumented layout that the
 CRT relies on but the ABI does not promise.
+
+## What to do with this
+
+Nothing here replaces `fast_perfect_hash` as the general v-table lookup. Four
+things survive the exercise, in the order they are worth doing:
+
+1. **Open an issue for `fast_perfect_hash`'s search.** It is the one defect this
+   note found in shipped code. 97 ms for 1000 classes on measured addresses
+   (§7), seconds at 10^4-10^5, and on both 4000-class samples it gives up after
+   500 000 attempts and calls `abort()`. The cost is structural - up to 5 passes
+   x 100 000 attempts, each refilling a `2^M` bucket array and re-inserting
+   every id (`fast_perfect_hash.hpp:213-277`) - and
+   `test/test_slot_allocator.cpp:327-337` already notes it in passing. A second
+   defect belongs in the same issue: the table size is a function of which
+   toolchain built the program, because the multiplier search is randomized
+   (§14.1), and nothing announces it.
+
+2. **D is the candidate for that failure path, and for
+   [#56](https://github.com/boostorg/openmethod/issues/56).** It succeeds on
+   every input measured here, in 0.16-0.32 ms, in 37 KB, with no
+   instruction-set requirement and no dependence on the Itanium ABI (§11.6).
+   The price is a permanently slower dispatch - +1.3 to +2.5 ns - for the
+   programs that select it, which is a trade a program with 4000 classes across
+   four modules takes over aborting. C is the alternative and the weaker one: it
+   needs BMI2, and its table is larger on every sample (§10.5).
+
+3. **Read the type id inline on MSVC x64** (§15). This is the largest per-call
+   effect measured anywhere in this note - about half a nanosecond, twice the
+   biggest gap between any two maps on that platform - and it is the only result
+   that suggests changing the library rather than a policy. It is also the most
+   delicate: the read is silently wrong for a class whose first word is a
+   virtual base table pointer, and no C++17 trait on MSVC detects that. The
+   probe and its own note are on `feature/msvc-direct-rtti`.
+
+4. **The injectivity theorem is reusable.** Any future scheme keyed on
+   `std::type_info` addresses can rely on a guaranteed 16-byte separation under
+   the Itanium ABI (§2) - though not under MSVC, where §14.4 has only a
+   measurement and not a proof.
+
+The harness itself is worth keeping as it stands: it re-runs nine registry
+configurations against ten of the library's own tests, which is how each
+prototype was shown to dispatch correctly and not merely quickly.
 
 ## Reproducing
 
@@ -1246,20 +1366,36 @@ cd ~/dev/typeinfo-samples
 python3 analyze-type-ids.py --export-type-ids exported   # -> type-ids.csv, type-ids.md
 # exported/ holds the observed placement plus one file per model in
 # --placement; the `-pie-split` ones are the exe + dlopen case of §5, and are
-# what the §12 tables measure.
+# what the §11 tables measure.
 
 # prototypes and measurements
 cmake -B build-research -DBOOST_SRC_DIR=/path/to/boost \
       -DBOOST_OPENMETHOD_BUILD_TESTS=ON -DBOOST_OPENMETHOD_BUILD_RESEARCH=ON \
       -DCMAKE_BUILD_TYPE=Release
-capped -m 24G -- cmake --build build-research --target research-all -j4  # see 10
+capped -m 24G -- cmake --build build-research --target research-all -j4  # see the appendix
 ctest --test-dir build-research -R '^research-'          # correctness
 cmake --build build-research --target research-disasm    # codegen
 build-research/research/type_id_index/research-{fph,index,index16,direct,pext,hd,hdmin,twolevel}-bench_dispatch
 build-research/research/type_id_index/research-{fph,index,pext,hd,hdmin,twolevel,twolevel1}-bench_initialize
-cd ~/dev/typeinfo-samples && python3 analyze-bits.py     # -> bits.md (§11)
-python3 analyze-two-step.py                              # -> two-step.md (§13)
+cd ~/dev/typeinfo-samples && python3 analyze-bits.py     # -> bits.md (§10)
+python3 analyze-two-step.py                              # -> two-step.md (§12)
 ```
 
 The harness is off by default (`BOOST_OPENMETHOD_BUILD_RESEARCH`), has no
 Jamfile, and is not part of the library's API.
+
+## Appendix: building the harness
+
+`bench_dispatch.cpp` registers a forest of `node<I> : node<(I-1)/2>` classes,
+one overrider each. The compile cost is roughly quadratic in the class count -
+`use_classes` relates every pair - and at 512 classes one translation unit
+reached **23.5 GB resident and 2m37s** on GCC 13.3. Built `-j12`, that is enough
+to exhaust the machine and fire the *global* OOM killer, which then picks off
+whatever is largest, editor and shell included. At 64 classes the same TU takes
+0.7 GB and 5 s, which is why the benchmark registers 64.
+
+Build it under a memory cap regardless:
+
+```bash
+capped -m 24G -- cmake --build build-research --target research-all -j4
+```
