@@ -1,0 +1,12 @@
+{
+  "name": "typeinfo-samples",
+  "version": "1.0.0",
+  "dependencies": [
+    "boost-filesystem",
+    "boost-system",
+    "boost-program-options",
+    "boost-json",
+    "boost-core",
+    "boost-dll"
+  ]
+}

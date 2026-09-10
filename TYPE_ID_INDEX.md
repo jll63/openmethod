@@ -1,10 +1,11 @@
 # Mapping a `type_info*` to an index by subtraction and division
 
 Research note for [boostorg/openmethod#57](https://github.com/boostorg/openmethod/issues/57).
-The prototypes and the harness are in `research/type_id_index/`; the sample
-generator and the address analysis are in a separate repository,
-`typeinfo-samples` (`make-libs.py`, `make-samples.sh`, `collect-samples.sh`,
-`analyze-type-ids.py`).
+Everything it rests on is in `research/type_id_index/`: the prototypes and the
+benchmark harness at the top level, the sample generator and address analysis
+under `samples/`, and in `data/` the 56 address sets every measured figure below
+is computed from. Those are committed because they cannot be regenerated - the
+addresses come from `dlopen` under ASLR (see `data/README.md`).
 
 ## The five schemes
 
@@ -189,8 +190,8 @@ deliberately:
   its records back to back - **100 % occupancy**, an artefact. The generator
   emits a header plus one TU per `--classes-per-tu` classes.
 
-The pre-existing samples in `typeinfo-samples` had *both* problems plus no
-inheritance at all, so their exact 16-byte stride was true by construction.
+The samples this study inherited had *both* problems plus no inheritance at
+all, so their exact 16-byte stride was true by construction.
 They must not be cited as evidence.
 
 Runtime addresses come from `build/collect-type-infos` unchanged (it `dlopen`s
@@ -1428,15 +1429,12 @@ dumpbin /disasm research-hd-bench_dispatch.exe
 `cl.exe` cannot read `\\wsl.localhost` paths, so the checkout and the sample
 files have to live on a Windows drive.
 
-```bash
-# data (separate repo)
-cd ~/dev/typeinfo-samples
-./make-samples.sh && ./collect-samples.sh
-python3 analyze-type-ids.py --export-type-ids exported   # -> type-ids.csv, type-ids.md
-# exported/ holds the observed placement plus one file per model in
-# --placement; the `-pie-split` ones are the exe + dlopen case of §5, and are
-# what the §11 tables measure.
+The measurements below read the committed address sets in
+`research/type_id_index/data/`, so they reproduce as they stand. Generating
+*fresh* samples is a separate step, needs compiled Boost libraries, and will not
+reproduce these figures - see `research/type_id_index/samples/README.md`.
 
+```bash
 # prototypes and measurements
 cmake -B build-research -DBOOST_SRC_DIR=/path/to/boost \
       -DBOOST_OPENMETHOD_BUILD_TESTS=ON -DBOOST_OPENMETHOD_BUILD_RESEARCH=ON \
@@ -1452,10 +1450,15 @@ build-research/research/type_id_index/research-{fph,index,pext,hd,hdmin,twolevel
 for v in fph pext hd hdmin; do
   for cfg in flat tree si-heavy mi-heavy; do
     build-research/research/type_id_index/research-$v-bench_initialize \
-      ~/dev/typeinfo-samples/exported/$cfg-0000000{0,1,2,3}-1000.txt
+      research/type_id_index/data/$cfg-0000000{0,1,2,3}-1000.txt
   done
 done
-cd ~/dev/typeinfo-samples && python3 analyze-bits.py     # -> bits.md (§10)
+
+# the table-size analyses, from a fresh collection (see samples/README.md)
+cd research/type_id_index/samples
+./make-samples.sh && ./collect-samples.sh
+python3 analyze-type-ids.py --export-type-ids ../data    # -> type-ids.csv, type-ids.md
+python3 analyze-bits.py                                  # -> bits.md (§10)
 python3 analyze-two-step.py                              # -> two-step.md (§12)
 ```
 

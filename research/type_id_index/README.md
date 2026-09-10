@@ -45,6 +45,8 @@ three. See TYPE_ID_INDEX.md §11.6.
 | `msvc_direct_rtti.cpp` | MSVC x64 only, outside the CMake harness: can `&typeid(obj)` be read inline from the complete object locator, and what is it worth (§15) |
 | `bench_dispatch.cpp` | dispatch through a plain reference - the only path that uses the map |
 | `bench_initialize.cpp` | policy `initialize` against a stand-in `InitializeContext` |
+| `samples/` | the sample generator and the address analysis: a standalone CMake project, not reached by `BOOST_OPENMETHOD_BUILD_RESEARCH`. See its own README |
+| `data/` | the 56 archived address sets every measured figure rests on, committed because ASLR makes them unreproducible |
 
 Built and run on GCC 13.3, clang 22 and MSVC 19.51; see `TYPE_ID_INDEX.md`
 §14 for the MSVC recipe and what it changes.
@@ -59,10 +61,11 @@ cmake --build build-research --target research-disasm
 ```
 
 Build it under a memory cap: `bench_dispatch.cpp`'s compile cost is roughly
-quadratic in the registered class count, and an earlier 512-class version
-reached 23.5 GB resident per translation unit - enough, at `-j12`, to fire the
-global OOM killer. It registers 64 classes now (0.7 GB, 5 s). See
-`TYPE_ID_INDEX.md`, *Appendix: building the harness*.
+quadratic in the registered class count, and at 512 classes one translation unit
+reaches 23.5 GB resident - enough, at `-j12`, to fire the global OOM killer. It
+registers 64 classes (0.7 GB, 5 s). See `TYPE_ID_INDEX.md`, *Appendix: building
+the harness*.
 
-The sample generator and the address analysis live in a separate repository,
-`typeinfo-samples`.
+Hand a benchmark the files in `data/` to measure a particular address
+distribution; with no arguments both benchmarks run their synthetic sweep
+instead.

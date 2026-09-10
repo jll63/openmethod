@@ -41,3 +41,15 @@ notes.txt
 
 # Flattened headers for Compiler Explorer (dev/flatten.py).
 flat/
+
+# Sample generator outputs (research/type_id_index/samples/). The generated
+# libraries and the collected address JSON are large and machine-specific; the
+# subset the note cites is committed under research/type_id_index/data/.
+research/type_id_index/samples/samples/
+research/type_id_index/samples/generated_libs/
+research/type_id_index/samples/exported/
+research/type_id_index/samples/bits.md
+research/type_id_index/samples/two-step.md
+research/type_id_index/samples/type-ids.md
+research/type_id_index/samples/type-ids.csv
+__pycache__/
