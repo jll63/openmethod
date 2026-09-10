@@ -185,7 +185,7 @@ auto hash_slots() -> std::size_t {
     }
 }
 
-// Bytes a policy holds beyond the v-table table itself. Only chd_index has
+// Bytes a policy holds beyond the v-table table itself. Only hd_index has
 // any: its pilot array.
 template<class, class = void>
 struct has_aux_bytes : std::false_type {};

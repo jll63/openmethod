@@ -10,7 +10,7 @@ message(STATUS "Boost.OpenMethod: building the type_id-index research harness")
 
 add_custom_target(research-all)
 
-set(BOOST_OPENMETHOD_RESEARCH_VARIANTS fph index index16 direct pext chd chdmin twolevel twolevel1)
+set(BOOST_OPENMETHOD_RESEARCH_VARIANTS fph index index16 direct pext hd hdmin twolevel twolevel1)
 
 # The pext variant uses BMI2's parallel bit extract. Compiled in only for that
 # variant, so the others measure what a stock build would.

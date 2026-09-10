@@ -22,9 +22,9 @@
 //   direct   fast_perfect_hash *and* vptr_vector replaced by
 //            vptr_direct_vector
 //   pext     fast_perfect_hash replaced by pext_index (needs -mbmi2)
-//   chd      fast_perfect_hash replaced by chd_index - a near-minimal
+//   hd       fast_perfect_hash replaced by hd_index - a near-minimal
 //            perfect hash, ~1.05 slots per type id
-//   chdmin   ... by chd_index<2, 100>, an exactly minimal one
+//   hdmin    ... by hd_index<2, 100>, an exactly minimal one
 //   twolevel ... by two_level_index - h2(x) = (m2[h1(x)] * h) >> s2, a
 //            per-bucket multiplier into a power-of-two shared table
 //   twolevel1 ... the same with the first-level multiplier taken as it comes,
@@ -40,8 +40,8 @@
 #define BOOST_OPENMETHOD_RESEARCH_INDEX16 2
 #define BOOST_OPENMETHOD_RESEARCH_DIRECT 3
 #define BOOST_OPENMETHOD_RESEARCH_PEXT 4
-#define BOOST_OPENMETHOD_RESEARCH_CHD 5
-#define BOOST_OPENMETHOD_RESEARCH_CHDMIN 6
+#define BOOST_OPENMETHOD_RESEARCH_HD 5
+#define BOOST_OPENMETHOD_RESEARCH_HDMIN 6
 #define BOOST_OPENMETHOD_RESEARCH_TWOLEVEL 7
 #define BOOST_OPENMETHOD_RESEARCH_TWOLEVEL1 8
 
@@ -61,9 +61,9 @@ struct research_registry;
 #include "pext_index.hpp"
 #endif
 
-#if RESEARCH_POLICY == BOOST_OPENMETHOD_RESEARCH_CHD ||                        \
-    RESEARCH_POLICY == BOOST_OPENMETHOD_RESEARCH_CHDMIN
-#include "chd_index.hpp"
+#if RESEARCH_POLICY == BOOST_OPENMETHOD_RESEARCH_HD ||                         \
+    RESEARCH_POLICY == BOOST_OPENMETHOD_RESEARCH_HDMIN
+#include "hd_index.hpp"
 #endif
 
 #if RESEARCH_POLICY == BOOST_OPENMETHOD_RESEARCH_TWOLEVEL ||                   \
@@ -121,22 +121,22 @@ using selected_registry = registry<
     policies::default_error_handler,
     policies::stderr_output BOOST_OPENMETHOD_RESEARCH_CHECKS>;
 
-#elif RESEARCH_POLICY == BOOST_OPENMETHOD_RESEARCH_CHD
+#elif RESEARCH_POLICY == BOOST_OPENMETHOD_RESEARCH_HD
 
-#define RESEARCH_POLICY_NAME "chd"
+#define RESEARCH_POLICY_NAME "hd"
 using selected_registry = registry<
-    policies::std_rtti, chd_index<>, policies::vptr_vector,
+    policies::std_rtti, hd_index<>, policies::vptr_vector,
     policies::default_error_handler,
     policies::stderr_output BOOST_OPENMETHOD_RESEARCH_CHECKS>;
 
-#elif RESEARCH_POLICY == BOOST_OPENMETHOD_RESEARCH_CHDMIN
+#elif RESEARCH_POLICY == BOOST_OPENMETHOD_RESEARCH_HDMIN
 
 // Exactly one slot per type id. Halving Lambda is what makes a full table
 // affordable, and it doubles the pilot array, which is why this is the more
 // expensive of the two in bytes despite wasting no slot.
-#define RESEARCH_POLICY_NAME "chdmin"
+#define RESEARCH_POLICY_NAME "hdmin"
 using selected_registry = registry<
-    policies::std_rtti, chd_index<2, 100>, policies::vptr_vector,
+    policies::std_rtti, hd_index<2, 100>, policies::vptr_vector,
     policies::default_error_handler,
     policies::stderr_output BOOST_OPENMETHOD_RESEARCH_CHECKS>;
 
@@ -159,7 +159,7 @@ using selected_registry = registry<
 
 #else
 #error "RESEARCH_POLICY must be one of fph, index, index16, direct, pext, "    \
-    "chd, chdmin, twolevel, twolevel1"
+    "hd, hdmin, twolevel, twolevel1"
 #endif
 
 } // namespace boost::openmethod::research

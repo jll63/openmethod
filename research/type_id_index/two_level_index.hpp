@@ -44,9 +44,9 @@ namespace boost::openmethod::research {
 //! mixed `h` instead costs nothing: `h` is ready three cycles in, long before
 //! `m2` arrives from the directory.
 //!
-//! This is the same displacement idea as @ref chd_index, and the two differ
+//! This is the same displacement idea as @ref hd_index, and the two differ
 //! in exactly one place: what turns the displaced key into an index. This one
-//! shifts, so the table must have a power-of-two number of slots; `chd_index`
+//! shifts, so the table must have a power-of-two number of slots; `hd_index`
 //! reduces with the top half of a product, so its table can be any size. The
 //! shift is a cycle or three cheaper on the dispatch path and the table is
 //! anything from 1.0 to 2.0 times the type id count instead of a flat 1.05.

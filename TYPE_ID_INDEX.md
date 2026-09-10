@@ -553,9 +553,16 @@ pilots is what takes CHD to ~2 bits per key, but decoding a compressed integer
 sequence on the dispatch path would cost far more than the bytes it saves. A
 pilot is stored raw, so reading one is a single indexed load.
 
+**Which is why the policy is `hd_index` and the variants are `hd` and `hdmin`,
+not `chd`.** The published algorithm is *compress, hash and displace*, and its C
+is the step this drops; carrying the letter would promise the ~2 bits per key
+that the compression buys and this does not, against the 9.45 bytes §12.3
+measures - a factor of 38. The construction is still CHD's, and it is cited as
+such above; only the two steps that are implemented are named.
+
 ### 12.1 The formula, and one that does not work
 
-`research::chd_index<Lambda, LoadPercent>`, a `type_hash` policy:
+`research::hd_index<Lambda, LoadPercent>`, a `type_hash` policy:
 
 ```cpp
 h     = x * seed;                       // one multiply
@@ -584,10 +591,10 @@ Two configurations are built, differing only in their template arguments:
 
 | variant | Lambda | LoadPercent | slots | pilots | total |
 |---|---|---|---|---|---|
-| `chd` | 4 | 95 | 1.053N | N/4 x 4 B | **9.45 bytes per type id** |
-| `chdmin` | 2 | 100 | N, exactly | N/2 x 4 B | 10.05 bytes per type id |
+| `hd` | 4 | 95 | 1.053N | N/4 x 4 B | **9.45 bytes per type id** |
+| `hdmin` | 2 | 100 | N, exactly | N/2 x 4 B | 10.05 bytes per type id |
 
-`chdmin` is the exactly minimal one. It costs *more* in total, which is the
+`hdmin` is the exactly minimal one. It costs *more* in total, which is the
 useful thing to know: reaching a full table needs the buckets halved, and that
 doubles the pilot array, which is dearer than the 5 % of slots it recovers.
 The pilots cannot be narrowed to 16 bits instead - a pilot multiplies the key,
@@ -617,7 +624,7 @@ Table plus pilots, on the samples of §4-5 and §11.1. `pext_index` is the
 column to compare against for the four-module rows, since `fast_perfect_hash`
 does not get that far.
 
-| sample | N | `fast_perfect_hash` | `pext_index` | `chd` | `chdmin` |
+| sample | N | `fast_perfect_hash` | `pext_index` | `hd` | `hdmin` |
 |---|---|---|---|---|---|
 | flat, 1 module | 1000 | 16 KB | 32 KB | **9 KB** | 10 KB |
 | tree, 1 module | 1000 | 32 KB | 30 KB | **9 KB** | 10 KB |
@@ -628,7 +635,7 @@ does not get that far.
 | si-heavy, exe + `dlopen`ed | 4000 | *aborts* | 2.0 MB | **37 KB** | 39 KB |
 | mi-heavy, exe + `dlopen`ed | 4000 | *aborts* | 2.0 MB | **37 KB** | 39 KB |
 
-The `chd` column is one number, 9.45 bytes per type id, repeated eight times.
+The `hd` column is one number, 9.45 bytes per type id, repeated eight times.
 Nothing in the address distribution reaches it - not the shape mix, not the
 module count, not `dlopen`. That is 1.7x to 14x below `fast_perfect_hash`
 where the incumbent works at all, and 12x to 110x below the `pext` cover where
@@ -639,7 +646,7 @@ stated in advance, before seeing an address.
 
 `type_hash::initialize` alone, same protocol as §7 and §11.4, in ms:
 
-| sample | N | `fast_perfect_hash` | `pext_index` | `chd` | `chdmin` |
+| sample | N | `fast_perfect_hash` | `pext_index` | `hd` | `hdmin` |
 |---|---|---|---|---|---|
 | flat, 1 module | 1000 | 0.199 | 1.3 | 0.068 | **0.029** |
 | tree, 1 module | 1000 | 20.2 | 1.4 | 0.058 | **0.031** |
@@ -653,9 +660,9 @@ stated in advance, before seeing an address.
 Three to 1700 times faster than `fast_perfect_hash`, 20 to 130 times faster
 than the cover search, and flat across the samples: the search never looks at
 where the ids are, only at how many. On the synthetic sweep, 65 536 ids take
-3.1 ms (`chdmin`) to 8.5 ms (`chd`), and the stride - which moves
-`fast_perfect_hash` from 0.5 ms to 44 s - moves `chd` by less than a factor of
-two. `chdmin` is the faster of the two because its buckets hold two keys
+3.1 ms (`hdmin`) to 8.5 ms (`hd`), and the stride - which moves
+`fast_perfect_hash` from 0.5 ms to 44 s - moves `hd` by less than a factor of
+two. `hdmin` is the faster of the two because its buckets hold two keys
 rather than four, and a small bucket is far easier to place late.
 
 ### 12.5 Dispatch: this is where it is paid for
@@ -668,7 +675,7 @@ between sessions and only figures taken together are comparable.
 
 GCC 13.3:
 
-| mode | classes | fph | pext | chd | chdmin | twolevel | direct |
+| mode | classes | fph | pext | hd | hdmin | twolevel | direct |
 |---|---|---|---|---|---|---|---|
 | latency | 8 | 9.53+-0.04 | 9.37+-0.32 | 10.82+-0.31 | 10.91+-0.41 | 9.93+-0.38 | **9.23**+-0.31 |
 | latency | 24 | 9.87+-0.12 | 9.59+-0.33 | 11.52+-0.34 | 11.33+-0.48 | 10.61+-0.38 | **9.52**+-0.31 |
@@ -679,7 +686,7 @@ GCC 13.3:
 
 clang 22:
 
-| mode | classes | fph | pext | chd | chdmin | twolevel | direct |
+| mode | classes | fph | pext | hd | hdmin | twolevel | direct |
 |---|---|---|---|---|---|---|---|
 | latency | 8 | 9.03+-0.23 | 9.55+-0.24 | 10.64+-0.28 | 10.53+-0.28 | 10.50+-0.13 | **8.84**+-0.10 |
 | latency | 24 | 9.49+-0.19 | 10.02+-0.24 | 11.21+-0.34 | 11.22+-0.29 | 10.89+-0.31 | **9.20**+-0.06 |
@@ -696,7 +703,7 @@ chasing, in the wrong direction, and it is well outside the noise band.
 Throughput suffers more than latency, which is the signature of instruction
 count rather than dependency depth: the loop can overlap successive calls, so
 what binds is the three extra uops and the second load port access, not the
-chain. The two `chd` configurations are indistinguishable from each other, as
+chain. The two `hd` configurations are indistinguishable from each other, as
 they should be - they generate identical code and differ only in table size.
 
 ### 12.6 Assessment
@@ -783,7 +790,7 @@ prototype D.
 samples, at four modules and 4000 classes, under the `pie-split` placement -
 an executable plus three `dlopen`ed libraries, the case that defeats §1:
 
-| config | flat index | **two-step** | at `d = 16` | `pext_index` | `chd` | directory, `K = 12` |
+| config | flat index | **two-step** | at `d = 16` | `pext_index` | `hd` | directory, `K = 12` |
 |---|---|---|---|---|---|---|
 | flat | 31.6 TB | 291 KB | 145 KB | - | 37 KB | 76 entries |
 | tree | 31.6 TB | 812 KB | 406 KB | - | 37 KB | 178 entries |
@@ -886,7 +893,7 @@ mov    rax, QWORD PTR [rdx+rax*8]      ; the v-table pointer
 Six instructions and two dependent loads, one step shorter than prototype D,
 which needs `imul` plus `mul` to reduce. Measured in §12.5's table:
 
-| | vs `chd` | vs `fast_perfect_hash` |
+| | vs `hd` | vs `fast_perfect_hash` |
 |---|---|---|
 | GCC, latency | **-0.9 to -1.1 ns** | +0.4 to +0.8 ns |
 | GCC, throughput | **-1.1 to -1.3 ns** | +0.9 to +1.1 ns |
@@ -911,7 +918,7 @@ The table is `2^ceil(log2 N)` slots, so between 1.0 and 2.0 per type id, plus
 a 32-bit multiplier per bucket. On the measured samples, `si-heavy` at four
 sizes:
 
-| N | slots | bytes per type id, `twolevel` | bytes per type id, `chd` |
+| N | slots | bytes per type id, `twolevel` | bytes per type id, `hd` |
 |---|---|---|---|
 | 1000 | 1024 | **9.22** | 9.45 |
 | 2000 | 2048 | **9.22** | 9.45 |
@@ -927,7 +934,7 @@ one controls.
 One thing the power-of-two table does buy: when `N` *is* a power of two the
 load factor is exactly 1, and the search still finds an assignment at
 `Lambda = 4` - 65 536 type ids in 11.5 ms. That is an exactly minimal perfect
-hash at twice `chdmin`'s bucket size and half its directory.
+hash at twice `hdmin`'s bucket size and half its directory.
 
 ### 14.4 A per-bucket shift needs a per-bucket base, and then it partitions
 
@@ -1008,7 +1015,7 @@ tests - with no warnings from any of the 417 targets.
 
 Slots allocated for the same measured address sets:
 
-| sample | `pext` | `chd` | `chdmin` | `twolevel` | `fast_perfect_hash` |
+| sample | `pext` | `hd` | `hdmin` | `twolevel` | `fast_perfect_hash` |
 |---|---|---|---|---|---|
 | flat, 1000 | 4096 | 1053 | 1000 | 1024 | **2048** vs 2047 |
 | tree, 1000 | 3823 | 1053 | 1000 | 1024 | 4092 |
@@ -1029,14 +1036,14 @@ few kilobytes larger or smaller depending on which compiler built it, and
 nothing announces the difference.
 
 `initialize` costs the same order as on GCC and keeps the same shape: 0.03 ms
-for `chdmin` at 1000 type ids against 104 ms for `fast_perfect_hash` on
+for `hdmin` at 1000 type ids against 104 ms for `fast_perfect_hash` on
 `si-heavy`, which is the worst case there too. Both `index` and
 `fast_perfect_hash` fail on exactly the samples they fail on under GCC -
 `too_sparse` for the first, the multiplier search giving up for the second.
 
 ### 15.2 Codegen: the sequence is the designed one, plus a call
 
-MSVC generates what §12.2 predicts, `chd` inside the throughput loop:
+MSVC generates what §12.2 predicts, `hd` inside the throughput loop:
 
 ```asm
 call        <dynamic type>                 ; not inlined
@@ -1068,7 +1075,7 @@ prototypes are compressed below.
 
 Same protocol as §6, ns per call, 64 registered classes:
 
-| mode | classes | fph | pext | chd | chdmin | twolevel | direct |
+| mode | classes | fph | pext | hd | hdmin | twolevel | direct |
 |---|---|---|---|---|---|---|---|
 | latency | 8 | 4.47+-0.02 | **4.47**+-0.04 | 4.48+-0.02 | 4.48+-0.01 | 4.51+-0.03 | 4.48+-0.02 |
 | latency | 24 | 4.54+-0.04 | 4.56+-0.03 | 4.55+-0.02 | **4.53**+-0.01 | 4.56+-0.01 | 4.54+-0.03 |
@@ -1088,8 +1095,8 @@ comparable is the column-to-column difference *within this table*:
 | `pext` | -0.00 to +0.02 | -0.02 to +0.01 |
 | `direct` | +0.00 to +0.04 | -0.00 to +0.00 |
 | `twolevel` | +0.02 to +0.03 | +0.03 to +0.05 |
-| `chd` | -0.01 to +0.01 | **+0.21 to +0.22** |
-| `chdmin` | -0.01 to +0.01 | **+0.24 to +0.25** |
+| `hd` | -0.01 to +0.01 | **+0.21 to +0.22** |
+| `hdmin` | -0.01 to +0.01 | **+0.24 to +0.25** |
 
 MSVC agrees with the other two compilers on the sign of the one result that
 matters and on nothing else. The minimal perfect hashes cost measurably more
@@ -1226,7 +1233,7 @@ cmake -G Ninja -B build-msvc -DCMAKE_BUILD_TYPE=Release ^
   -DBOOST_OPENMETHOD_BUILD_RESEARCH=ON
 cmake --build build-msvc --target research-all -j 12
 ctest --test-dir build-msvc -R "^research-" -j 12
-dumpbin /disasm research-chd-bench_dispatch.exe
+dumpbin /disasm research-hd-bench_dispatch.exe
 ```
 
 `cl.exe` cannot read `\\wsl.localhost` paths, so the checkout and the sample
@@ -1248,8 +1255,8 @@ cmake -B build-research -DBOOST_SRC_DIR=/path/to/boost \
 capped -m 24G -- cmake --build build-research --target research-all -j4  # see 10
 ctest --test-dir build-research -R '^research-'          # correctness
 cmake --build build-research --target research-disasm    # codegen
-build-research/research/type_id_index/research-{fph,index,index16,direct,pext,chd,chdmin,twolevel}-bench_dispatch
-build-research/research/type_id_index/research-{fph,index,pext,chd,chdmin,twolevel,twolevel1}-bench_initialize
+build-research/research/type_id_index/research-{fph,index,index16,direct,pext,hd,hdmin,twolevel}-bench_dispatch
+build-research/research/type_id_index/research-{fph,index,pext,hd,hdmin,twolevel,twolevel1}-bench_initialize
 cd ~/dev/typeinfo-samples && python3 analyze-bits.py     # -> bits.md (§11)
 python3 analyze-two-step.py                              # -> two-step.md (§13)
 ```

@@ -33,7 +33,7 @@ to put on that failure path, of which prototype D is the stronger.
 | `direct_type_id_index.hpp` | prototype A: a `type_hash` policy, `H(x) = (x - base) / Divisor` |
 | `vptr_direct_vector.hpp` | prototype B: a `vptr` policy that folds the base into the table's address, for the one-instruction lookup |
 | `pext_index.hpp` | prototype C: a `type_hash` policy indexing by `pext(x, mask)` over a minimal cover of the type ids' bits; needs BMI2 |
-| `chd_index.hpp` | prototype D: a `type_hash` policy that is a minimal perfect hash, by hash and displace; one slot per type id |
+| `hd_index.hpp` | prototype D: a `type_hash` policy that is a minimal perfect hash, by hash and displace; one slot per type id |
 | `two_level_index.hpp` | prototype E: prototype D with the reduction replaced by a shift, `(m2[h1(x)] * h) >> s2`, into a power-of-two table |
 | `registry.hpp` | registry recipes, selected by `-DRESEARCH_POLICY=`; force-include it to re-run an existing test against a prototype |
 | `check_prototype.cpp` | properties of the prototypes, and of the ABI claim they rest on |

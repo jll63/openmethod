@@ -5,8 +5,8 @@
 
 // RESEARCH PROTOTYPE - not part of the library's API. See TYPE_ID_INDEX.md.
 
-#ifndef BOOST_OPENMETHOD_RESEARCH_CHD_INDEX_HPP
-#define BOOST_OPENMETHOD_RESEARCH_CHD_INDEX_HPP
+#ifndef BOOST_OPENMETHOD_RESEARCH_HD_INDEX_HPP
+#define BOOST_OPENMETHOD_RESEARCH_HD_INDEX_HPP
 
 #include <boost/openmethod/policies/fast_perfect_hash.hpp> // detail::uintptr
 #include <boost/openmethod/preamble.hpp>
@@ -76,6 +76,11 @@ namespace boost::openmethod::research {
 //! saves. A pilot is stored raw, as the 32-bit value the hash xors in, so
 //! reading it is a single indexed load.
 //!
+//! That is why this is `hd_index` and not `chd_index`: the published
+//! algorithm's C is its compression step, and without it the name would
+//! promise a footprint this does not have - ~2 bits per key against the
+//! 9.45 bytes measured. The harness variants are `hd` and `hdmin`.
+//!
 //! Unlike @ref pext_index this needs no instruction-set extension: a
 //! 64-bit multiply and a shift exist everywhere. It makes no assumption
 //! about the *layout* of the type ids either, and none about the Itanium
@@ -95,7 +100,7 @@ namespace boost::openmethod::research {
 template<
     std::size_t Lambda = 4, std::size_t LoadPercent = 95,
     std::size_t MaxSeeds = 16>
-struct chd_index : policies::type_hash {
+struct hd_index : policies::type_hash {
 
     //! No seed yielded a complete assignment.
     struct search_error : openmethod_error {
@@ -142,7 +147,7 @@ struct chd_index : policies::type_hash {
 
       private:
         static auto& st() {
-            return Registry::template state<chd_index>();
+            return Registry::template state<hd_index>();
         }
 
         static void check(std::size_t index, type_id type);
@@ -248,7 +253,7 @@ struct chd_index : policies::type_hash {
 
 template<std::size_t Lambda, std::size_t LoadPercent, std::size_t MaxSeeds>
 template<class Registry>
-auto chd_index<Lambda, LoadPercent, MaxSeeds>::fn<Registry>::build(
+auto hd_index<Lambda, LoadPercent, MaxSeeds>::fn<Registry>::build(
     const std::vector<std::uint64_t>& ids, std::uint64_t seed,
     std::size_t bucket_shift, std::uint64_t slots,
     std::vector<std::uint32_t>& pilots) -> bool {
@@ -351,7 +356,7 @@ auto chd_index<Lambda, LoadPercent, MaxSeeds>::fn<Registry>::build(
 template<std::size_t Lambda, std::size_t LoadPercent, std::size_t MaxSeeds>
 template<class Registry>
 template<class Context, class... Options>
-auto chd_index<Lambda, LoadPercent, MaxSeeds>::fn<Registry>::initialize(
+auto hd_index<Lambda, LoadPercent, MaxSeeds>::fn<Registry>::initialize(
     const Context& ctx, const std::tuple<Options...>& options) -> void {
     (void)options;
 
@@ -447,7 +452,7 @@ auto chd_index<Lambda, LoadPercent, MaxSeeds>::fn<Registry>::initialize(
 
 template<std::size_t Lambda, std::size_t LoadPercent, std::size_t MaxSeeds>
 template<class Registry>
-void chd_index<Lambda, LoadPercent, MaxSeeds>::fn<Registry>::check(
+void hd_index<Lambda, LoadPercent, MaxSeeds>::fn<Registry>::check(
     std::size_t index, type_id type) {
     if (index >= st().size || st().control[index] != type) {
         if constexpr (Registry::has_error_handler) {
@@ -462,7 +467,7 @@ void chd_index<Lambda, LoadPercent, MaxSeeds>::fn<Registry>::check(
 
 template<std::size_t Lambda, std::size_t LoadPercent, std::size_t MaxSeeds>
 template<class Registry, class Stream>
-auto chd_index<Lambda, LoadPercent, MaxSeeds>::search_error::write(
+auto hd_index<Lambda, LoadPercent, MaxSeeds>::search_error::write(
     Stream& os) const -> void {
     os << "could not place " << classes << " type ids after trying " << seeds
        << " multipliers\n";
