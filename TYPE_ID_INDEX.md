@@ -177,8 +177,8 @@ built to vary the two things that drive the answer.
 `make-libs.py` generates libraries with a controlled mix of the four class
 shapes above (`--frac-root/-single/-virtual/-multi`) and a random number of
 virtual functions per class (`--methods-per-class`). Two properties of the
-generator turned out to matter more than the shape mix, and both were bugs in
-the original version:
+generator matter more than the shape mix, and both have to be modelled
+deliberately:
 
 - **Key functions.** With every method inline, a class's v-table and `type_info`
   are COMDAT sections named `.data.rel.ro._ZTV…` / `._ZTI…`; the linker's name
@@ -186,7 +186,7 @@ the original version:
   function, so the two land in ordinary `.data.rel.ro`.
 - **Translation units.** Within one TU the compiler emits all the `type_info`
   objects together and all the v-tables after them, so a single-TU library packs
-  its records back to back - **100 % occupancy**, an artefact. The generator now
+  its records back to back - **100 % occupancy**, an artefact. The generator
   emits a header plus one TU per `--classes-per-tu` classes.
 
 The pre-existing samples in `typeinfo-samples` had *both* problems plus no
@@ -253,9 +253,9 @@ window shrinks the span, and even then the density stays near 1 %.
 
 ## 5. Where it dies: dynamic loading, not shared libraries
 
-The distinction matters, and an earlier draft of this note got it wrong. It is
-*not* true that any program spanning an executable and a shared library has an
-unusable span. Two cases behave completely differently.
+The distinction matters, and the intuitive reading of it is wrong. It is *not*
+true that any program spanning an executable and a shared library has an
+unusable span: two cases behave completely differently.
 
 **Implicitly linked DSOs are fine.** The Itanium ABI requires `type_info`
 identity to be pointer identity across modules, and the linker delivers that
@@ -370,11 +370,11 @@ right order for removing a dependent `imul` and a shift. It is not a cache
 effect: the tables here are 1.0 KB (fph), 1.5 KB (index, direct) and 0.8 KB
 (index16).
 
-*Correction.* An earlier draft of this note reported no measurable difference.
-That measurement used a 512-class benchmark whose larger tables and heavier
-object mix buried the effect - and whose compilation reached 23.5 GB resident
-per translation unit, enough to fire the OOM killer. The benchmark now
-registers 64 classes and compiles in 0.7 GB; see the appendix.
+**The benchmark registers 64 classes deliberately: a larger one shows
+nothing.** At 512 classes the bigger tables and heavier object mix bury the
+effect entirely - no variant separates from any other - and the compilation
+reaches 23.5 GB resident per translation unit, enough to fire the OOM killer.
+At 64 classes the same translation unit takes 0.7 GB; see the appendix.
 
 ## 7. Initialize: the incumbent is the problem
 
@@ -405,18 +405,18 @@ Re-measured across all four, `type_hash::initialize` alone, min to max in ms:
 
 Two things follow. The single figures quoted in this section, §10.4 and §11.4
 are each one replicate, so treat them as order-of-magnitude and compare columns
-within a table rather than a column across tables. And **`mi-heavy` is the worst
-sample, not a tie with `si-heavy`**: both of those tables give it 96.9 ms, below
-every replicate measured here. The ordering the re-run establishes - `flat`
-under a millisecond, `tree` tens, `si-heavy` tens to a hundred, `mi-heavy` over
-a hundred - tracks the sparsity ordering of §4, which is the result the section
-is making; the corrected `mi-heavy` figures strengthen it.
+within a table rather than a column across tables - which is why those two
+tables cite this range for `mi-heavy` rather than a point. And **`mi-heavy` is
+the worst sample, not a tie with `si-heavy`**: the ordering here - `flat` under
+a millisecond, `tree` tens, `si-heavy` tens to a hundred, `mi-heavy` over a
+hundred - tracks the sparsity ordering of §4, which is the result this section
+is making.
 
-The prototypes' own columns vary by a few percent across replicates and by
-10-15 % against the figures in §10.4 and §11.4, which were taken in an earlier
-session. Their slot counts are identical to the last integer, in this re-run as
-in §14.1. The 4000-class samples were re-run too: `fast_perfect_hash` aborts on
-all four with the message quoted in §10.4, and `pext_index`, `hd` and `hdmin`
+The prototypes' own columns vary by a few percent across replicates, and by
+10-15 % against the figures in §10.4 and §11.4, which are a different session.
+Their slot counts are identical to the last integer, here and in §14.1. The
+4000-class samples were re-run too: `fast_perfect_hash` aborts on all four with
+the message quoted in §10.4, and `pext_index`, `hd` and `hdmin`
 reproduce §14.1's slot counts exactly - 57 343 and 524 218 under the observed
 placement, 260 970 and 261 865 under `pie-split`, against 4211 and 4000.
 
@@ -456,12 +456,12 @@ already notes this in passing; these are numbers for it.
   `fast_perfect_hash`, at the cost of two dependent loads. Cheaper than the flat
   table by two orders of magnitude, still 5x-26x worse than the incumbent and
   slower to boot. Not promising.
-- **R4 - per-module base.** Rejected here on inspection, for the wrong reason -
-  recovering the module needs no range search, only a mult-shift over the high
-  bits. Measured properly in §12, where it removes the multi-module span
-  entirely for a directory of under 2 KB, and is still dominated on memory by
-  §10 and §11, at a dispatch sequence no shorter than either, because it
-  leaves the within-module dilution of §4 untouched.
+- **R4 - per-module base.** Recovering the module needs no range search, only a
+  mult-shift over the high bits, so this is cheaper than it looks. Measured in
+  §12, where it removes the multi-module span entirely for a directory of under
+  2 KB, and is still dominated on memory by §10 and §11, at a dispatch sequence
+  no shorter than either, because it leaves the within-module dilution of §4
+  untouched.
 
 ## 9. Go/no-go
 
@@ -476,10 +476,10 @@ the same four, so the wording is deliberately scheme-neutral:
 | G3 | table <= 8x `fast_perfect_hash` on realistic subsets | **fail** - 5x-149x in one module, 231x in four |
 | G4 | multi-module case diagnosed, with a checkable rule | **pass** - `too_sparse`, and the rule is precise: no `dlopen`ed module may register classes |
 
-**Do not promote A or B to a policy** - but the reason is now G3 alone, and
-it is narrower than it first looked. The speed argument holds, and the
-multi-module objection turns out to apply only to `dlopen`, not to shared
-libraries in general. What remains is that the table costs 5x-149x what
+**Do not promote A or B to a policy.** The reason is G3 alone, and it is a
+narrow one: the speed argument holds, and the multi-module objection applies
+only to `dlopen`, not to shared libraries in general. What remains is that the
+table costs 5x-149x what
 `fast_perfect_hash` needs even in the single-module best case, to buy a few
 percent on the one dispatch path that uses the map. The page-directory variant
 that would survive the `dlopen` case is worse than the incumbent on both memory
@@ -689,9 +689,9 @@ index = mulhi64(h * pilot, slots);      // displace, then reduce
 reduction - the top half of a 64x64 product - which lands on `[0, slots)` for
 any `slots`, with no division.
 
-The displacement has to be **multiplicative**, and the first attempt got this
-wrong in a way worth recording, because it fails structurally rather than
-statistically. Adding a pilot, or exclusive-oring one in, leaves two keys in
+The displacement has to be **multiplicative**, and the additive form fails in a
+way worth recording, because it fails structurally rather than statistically.
+Adding a pilot, or exclusive-oring one in, leaves two keys in
 the same relation to each other in their high bits, and the reduction reads
 exactly those high bits: two ids that agree there collide under *every* pilot,
 and no seed rescues the bucket. There are about `Lambda / 2` such pairs in a
@@ -896,10 +896,10 @@ the same addresses as §4-5 and §10-11; the dispatch sequence is read off the
 formula rather than off a compiler, and there are no timings. The memory
 result is decisive on its own, and nothing in the scheme can move it.
 
-R4 in §8 was dismissed on inspection, for the wrong reason - that recovering
-the module from a pointer needs a range search. It does not. Hash the *high*
-bits, which is a mult-shift like any other, and use the result to index a
-directory of per-module coefficients:
+Recovering the module from a pointer needs no range search, which is what makes
+R4 of §8 worth measuring rather than dismissing. Hash the *high* bits, which is
+a mult-shift like any other, and use the result to index a directory of
+per-module coefficients:
 
 ```cpp
 group = (x >> K) * M >> S;        // which module, in a few instructions
