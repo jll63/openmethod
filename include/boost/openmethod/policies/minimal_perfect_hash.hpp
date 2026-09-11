@@ -8,6 +8,8 @@
 
 #include <boost/openmethod/preamble.hpp>
 
+#include <boost/assert.hpp>
+
 #include <algorithm>
 #include <cstdint>
 #include <numeric>
@@ -61,6 +63,15 @@ namespace boost::openmethod::policies {
 //! unlike @ref minimal_cover_hash it is available on every target, and unlike
 //! a scheme keyed on address arithmetic it does not depend on
 //! @ref std_rtti.
+//!
+//! @note **A type id of zero is outside this policy's domain.** Zero is a fixed
+//! point of a multiply, so it lands in slot 0 for every seed and every pilot;
+//! it cannot be displaced, and the search fails whenever another bucket has
+//! taken that slot. Addresses are never zero, so @ref std_rtti and
+//! @ref static_rtti are unaffected; a custom @ref rtti policy that hands out
+//! small integers must not use zero as one of them. When the registry has
+//! @ref runtime_checks, @ref initialize asserts that none of the registered
+//! type ids is zero.
 //!
 //! `LoadPercent = 100` asks for an exactly minimal table. It is reachable, but
 //! not in bounded time at a large `Lambda`: the last buckets have to hit the
@@ -139,16 +150,6 @@ struct minimal_perfect_hash : type_hash {
 
         static void check(std::size_t index, type_id type);
 
-        // The key a type id hashes as. The `+ 1` keeps zero out of the
-        // domain: zero is a fixed point of the multiply, so a type id of 0
-        // would land in slot 0 for every seed and every pilot, and the search
-        // would fail whenever another bucket had taken that slot first. One
-        // increment on the dispatch path buys a policy that works for any type
-        // id, including the small integers a custom `rtti` policy may hand out.
-        static auto key(type_id type) -> std::uint64_t {
-            return std::uint64_t(reinterpret_cast<detail::uintptr>(type)) + 1;
-        }
-
         // The pilot tried at step `k`. Multiplying by an odd constant is a
         // bijection on 32 bits, so the sequence walks the whole range; the
         // low bit is set because an even pilot loses the key's high bits.
@@ -217,7 +218,8 @@ struct minimal_perfect_hash : type_hash {
         //! @return The index
         BOOST_FORCEINLINE
         static auto hash(type_id type) -> std::size_t {
-            auto h = key(type) * st().seed;
+            auto h = std::uint64_t(reinterpret_cast<detail::uintptr>(type)) *
+                st().seed;
             auto pilot = st().pilots[std::size_t(h >> st().bucket_shift)];
             auto index = place(h, pilot, st().size);
 
@@ -360,7 +362,8 @@ auto minimal_perfect_hash<Lambda, LoadPercent, MaxSeeds>::fn<Registry>::
     for (auto iter = ctx.classes_begin(); iter != ctx.classes_end(); ++iter) {
         for (auto type_iter = iter->type_id_begin();
              type_iter != iter->type_id_end(); ++type_iter) {
-            ids.push_back(key(*type_iter));
+            ids.push_back(
+                std::uint64_t(reinterpret_cast<detail::uintptr>(*type_iter)));
         }
     }
 
@@ -368,6 +371,15 @@ auto minimal_perfect_hash<Lambda, LoadPercent, MaxSeeds>::fn<Registry>::
     // the table is over *distinct* ids.
     std::sort(ids.begin(), ids.end());
     ids.erase(std::unique(ids.begin(), ids.end()), ids.end());
+
+    // Zero is a fixed point of the multiply: it lands in slot 0 for every seed and every pilot,
+    // so it cannot be displaced and the search fails spuriously whenever
+    // another bucket has taken that slot. A type id of zero is therefore
+    // outside this policy's domain - see the class documentation. `ids` is
+    // sorted, so one comparison settles it.
+    if constexpr (Registry::has_runtime_checks) {
+        BOOST_ASSERT(ids.empty() || ids.front() != 0);
+    }
 
     auto n = ids.size();
 
@@ -438,10 +450,8 @@ auto minimal_perfect_hash<Lambda, LoadPercent, MaxSeeds>::fn<Registry>::
         for (auto id : ids) {
             auto h = id * st().seed;
             auto pilot = st().pilots[std::size_t(h >> bucket_shift)];
-            // `ids` holds keys, so undo the offset to recover the type id
-            // `check` will compare against.
             st().control[place(h, pilot, slots)] =
-                reinterpret_cast<type_id>(id - 1);
+                reinterpret_cast<type_id>(id);
         }
     }
 }

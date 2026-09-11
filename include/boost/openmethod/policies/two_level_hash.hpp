@@ -8,6 +8,8 @@
 
 #include <boost/openmethod/preamble.hpp>
 
+#include <boost/assert.hpp>
+
 #include <algorithm>
 #include <cstdint>
 #include <tuple>
@@ -56,6 +58,14 @@ namespace boost::openmethod::policies {
 //!
 //! Like @ref minimal_perfect_hash this needs no instruction-set extension and
 //! makes no assumption about the layout of the type ids.
+//!
+//! @note **A type id of zero is outside this policy's domain**, for the same
+//! reason as in @ref minimal_perfect_hash: zero is a fixed point of both
+//! multiplies, so it lands in slot 0 whatever `m1` and the per-bucket
+//! multiplier are, and the search fails whenever another bucket has taken that
+//! slot. Addresses are never zero; a custom @ref rtti policy handing out small
+//! integers must not use zero. When the registry has @ref runtime_checks,
+//! @ref initialize asserts that none of the registered type ids is zero.
 //!
 //! @tparam Lambda Average bucket size.
 //! @tparam MaxDoublings How far the table may grow past the smallest power of
@@ -124,14 +134,6 @@ struct two_level_hash : type_hash {
 
         static void check(std::size_t index, type_id type);
 
-        // The key a type id hashes as. The `+ 1` keeps zero out of the
-        // domain: zero is a fixed point of both multiplies, so a type id of 0
-        // would land in slot 0 whatever `m1` and `m2` are, and the search would
-        // fail whenever another bucket had taken that slot first.
-        static auto key(type_id type) -> std::uint64_t {
-            return std::uint64_t(reinterpret_cast<detail::uintptr>(type)) + 1;
-        }
-
         // The second-level multiplier tried at step `k`. Odd, because an even
         // multiplier throws away the key's top bits.
         static auto m2_at(std::uint32_t k) -> std::uint32_t {
@@ -177,7 +179,8 @@ struct two_level_hash : type_hash {
         //! @return The index
         BOOST_FORCEINLINE
         static auto hash(type_id type) -> std::size_t {
-            auto h = key(type) * st().m1;
+            auto h = std::uint64_t(reinterpret_cast<detail::uintptr>(type)) *
+                st().m1;
             auto bucket = std::size_t(h >> st().s1);
             auto index =
                 std::size_t((std::uint64_t(st().m2[bucket]) * h) >> st().s2);
@@ -315,7 +318,8 @@ auto two_level_hash<Lambda, MaxDoublings>::fn<Registry>::initialize(
     for (auto iter = ctx.classes_begin(); iter != ctx.classes_end(); ++iter) {
         for (auto type_iter = iter->type_id_begin();
              type_iter != iter->type_id_end(); ++type_iter) {
-            ids.push_back(key(*type_iter));
+            ids.push_back(
+                std::uint64_t(reinterpret_cast<detail::uintptr>(*type_iter)));
         }
     }
 
@@ -323,6 +327,15 @@ auto two_level_hash<Lambda, MaxDoublings>::fn<Registry>::initialize(
     // the table is over *distinct* ids.
     std::sort(ids.begin(), ids.end());
     ids.erase(std::unique(ids.begin(), ids.end()), ids.end());
+
+    // Zero is a fixed point of the multiply: it lands in slot 0 whatever `m1` and the per-bucket multiplier are,
+    // so it cannot be displaced and the search fails spuriously whenever
+    // another bucket has taken that slot. A type id of zero is therefore
+    // outside this policy's domain - see the class documentation. `ids` is
+    // sorted, so one comparison settles it.
+    if constexpr (Registry::has_runtime_checks) {
+        BOOST_ASSERT(ids.empty() || ids.front() != 0);
+    }
 
     auto n = ids.size();
 
@@ -402,9 +415,7 @@ auto two_level_hash<Lambda, MaxDoublings>::fn<Registry>::initialize(
             auto bucket = std::size_t(h >> st().s1);
             auto index =
                 std::size_t((std::uint64_t(st().m2[bucket]) * h) >> st().s2);
-            // `ids` holds keys, so undo the offset to recover the type id
-            // `check` will compare against.
-            st().control[index] = reinterpret_cast<type_id>(id - 1);
+            st().control[index] = reinterpret_cast<type_id>(id);
         }
     }
 }
