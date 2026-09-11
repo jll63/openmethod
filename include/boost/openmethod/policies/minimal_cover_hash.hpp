@@ -17,24 +17,41 @@
 #include <variant>
 #include <vector>
 
+// Detect BMI2's parallel bit extract. GCC and clang define __BMI2__ when the
+// instruction is enabled, which takes -mbmi2 or a -march= that implies it. MSVC
+// gates nothing on a macro and emits the instruction from the intrinsic, so
+// there the test is only that the target is x86.
+//
+// The detection and the documented macro are separate so that the latter is one
+// unconditional #define, with its doc comment directly attached. A comment
+// separated from its #define by a preprocessor directive is not attached to it,
+// and MrDocs then produces no page - which would make every @ref to the macro
+// render as plain text.
+#if defined(__BMI2__) ||                                                       \
+    (defined(_MSC_VER) && (defined(_M_X64) || defined(_M_IX86)))
+#define BOOST_OPENMETHOD_DETAIL_HAS_PEXT 1
+#else
+#define BOOST_OPENMETHOD_DETAIL_HAS_PEXT 0
+#endif
+
 //! Whether @ref boost::openmethod::policies::minimal_cover_hash can be used on
 //! this target.
 //!
 //! 1 if the compiler can emit BMI2's parallel bit extract, `pext`, and 0
 //! otherwise. The header always compiles; what fails, with a diagnostic, is
-//! naming the policy in a registry when this is 0.
+//! naming the policy in a registry when this is 0. A program that offers the
+//! policy as an option guards the declaration with it:
 //!
-//! GCC and clang define `__BMI2__` when the instruction is enabled, which takes
-//! `-mbmi2` or a `-march=` that implies it. MSVC gates nothing on a macro and
-//! emits the instruction from the intrinsic, so there the test is only that the
-//! target is x86 - and it remains the program's business to run on a CPU that
-//! has the instruction.
-#if defined(__BMI2__) ||                                                       \
-    (defined(_MSC_VER) && (defined(_M_X64) || defined(_M_IX86)))
-#define BOOST_OPENMETHOD_HAS_PEXT 1
-#else
-#define BOOST_OPENMETHOD_HAS_PEXT 0
-#endif
+//! @code
+//! #if BOOST_OPENMETHOD_HAS_PEXT
+//! struct my_registry :
+//!     boost::openmethod::default_registry::with<
+//!         boost::openmethod::policies::minimal_cover_hash<>> {};
+//! #endif
+//! @endcode
+//!
+//! @see [Registries and Policies](xref:ROOT:registries_and_policies.adoc)
+#define BOOST_OPENMETHOD_HAS_PEXT BOOST_OPENMETHOD_DETAIL_HAS_PEXT
 
 #if BOOST_OPENMETHOD_HAS_PEXT
 #include <immintrin.h>
@@ -115,7 +132,7 @@ namespace policies {
 //! @warning **BMI2 is required, and that is not a portable requirement.** `pext`
 //! is absent on ARM and on x86 before Haswell and Excavator, and is microcoded
 //! on AMD Zen 1 and Zen 2 - around 18 cycles rather than 3 - where this policy
-//! will be slower than the default rather than faster. Because @ref hash is
+//! will be slower than the default rather than faster. Because `hash` is
 //! inlined into every dispatch, `-mbmi2` (or a `-march=` implying it) has to be
 //! set for **every** translation unit of the program, and of any module sharing
 //! the registry, not just one; a binary built with it executes an illegal

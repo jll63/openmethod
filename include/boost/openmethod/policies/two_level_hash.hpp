@@ -59,11 +59,10 @@ namespace boost::openmethod::policies {
 //! Like @ref minimal_perfect_hash this needs no instruction-set extension and
 //! makes no assumption about the layout of the type ids.
 //!
-//! @note **A type id of zero is outside this policy's domain**, for the same
-//! reason as in @ref minimal_perfect_hash: zero is a fixed point of both
-//! multiplies, so it lands in slot 0 whatever `m1` and the per-bucket
-//! multiplier are, and the search fails whenever another bucket has taken that
-//! slot. Addresses are never zero; a custom @ref rtti policy handing out small
+//! @note **A type id of zero is outside this policy's domain**, exactly as it is
+//! for @ref minimal_perfect_hash. Zero is a fixed point of both multiplies, so
+//! it lands in slot 0 whatever `m1` and the per-bucket multiplier are, and the
+//! search fails whenever another bucket has taken that slot. Addresses are never zero; a custom @ref rtti policy handing out small
 //! integers must not use zero. When the registry has @ref runtime_checks,
 //! @ref initialize asserts that none of the registered type ids is zero.
 //!
