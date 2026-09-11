@@ -105,6 +105,21 @@ foreach(test_cpp ${test_cpp_files})
         target_compile_options(${test_target} PRIVATE -Wa,-mbig-obj)
     endif()
 
+    # minimal_cover_hash dispatches with BMI2's pext, and because `hash` is
+    # inlined into every call the instruction has to be enabled for the whole
+    # translation unit. Only this test needs it, and only on x86: elsewhere
+    # BOOST_OPENMETHOD_HAS_PEXT is 0 and the test compiles to a stub that says
+    # so.
+    if (test MATCHES "minimal_cover_hash" AND
+        CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|AMD64|amd64|i[3-6]86)$")
+        if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" OR
+            CMAKE_CXX_COMPILER_FRONTEND_VARIANT MATCHES "MSVC")
+            target_compile_options(${test_target} PRIVATE /arch:AVX2)
+        else()
+            target_compile_options(${test_target} PRIVATE -mbmi2)
+        endif()
+    endif()
+
     file(READ ${test_cpp} test_cpp_contents)
     set(test_cpp_overrides_registry -1)
     foreach(marker "BOOST_OPENMETHOD_DEFAULT_REGISTRY" "test_capture_errors.hpp"
