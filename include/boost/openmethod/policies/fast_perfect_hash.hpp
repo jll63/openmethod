@@ -22,16 +22,8 @@ namespace boost::openmethod {
 
 namespace detail {
 
-#if defined(UINTPTR_MAX)
-using uintptr = std::uintptr_t;
-constexpr uintptr uintptr_max = UINTPTR_MAX;
-#else
-static_assert(
-    sizeof(std::size_t) == sizeof(void*),
-    "This implementation requires that size_t and void* have the same size.");
-using uintptr = std::size_t;
-constexpr uintptr uintptr_max = (std::numeric_limits<std::size_t>::max)();
-#endif
+// detail::uintptr and detail::uintptr_max are in preamble.hpp: every
+// `type_hash` policy needs them, not just this one.
 
 struct hash_fn {
     std::size_t mult;
