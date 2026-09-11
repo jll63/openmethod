@@ -85,7 +85,7 @@ auto context_over(const std::vector<bom::type_id>& ids) -> fake_context {
     return ctx;
 }
 
-auto as_type_id(std::uint64_t value) -> bom::type_id {
+auto as_type_id(std::uintptr_t value) -> bom::type_id {
     return reinterpret_cast<bom::type_id>(value);
 }
 
@@ -97,15 +97,34 @@ auto as_type_id(std::uint64_t value) -> bom::type_id {
 // they are spread over many times their own size. `multi_module` is a program
 // plus implicitly linked libraries. `dlopened` is the case this family of
 // policies exists for - a program plus modules the loader placed wherever it
-// liked, tens of terabytes apart.
+// liked, at opposite ends of the address space.
 //
+// The bases are derived from the pointer width rather than written as literals.
+// A type id is a pointer, and on a 32-bit target it is four bytes wide, so a
+// 64-bit literal would be silently truncated - and bases that differ only in
+// their high bits would collapse onto one another, leaving the generators
+// producing duplicates.
+constexpr auto address_bits = sizeof(std::uintptr_t) * 8;
+
+// `module` picks a distinct high-bit pattern; `spread` says how far apart the
+// modules sit - a smaller value puts them further apart. `spread` must leave
+// room for the largest pattern, so it is never less than 3 for four modules.
+auto base_of(std::size_t module, std::size_t spread) -> std::uintptr_t {
+    return (std::uintptr_t(1 + module) << (address_bits - spread)) + 0x1000;
+}
+
 // Each module gets a cursor that only ever moves forward, so the ids are
 // distinct by construction. They have to be: a policy deduplicates the ids it
-// is given, so a generator that repeats one would be testing the dedup rather
+// is given, so a generator that repeated one would be testing the dedup rather
 // than the hash, and would make an injectivity count come out short.
-auto ids_over(std::size_t n, const std::uint64_t* bases, std::size_t modules)
+auto ids_over(std::size_t n, std::size_t modules, std::size_t spread)
     -> std::vector<bom::type_id> {
-    std::vector<std::uint64_t> at(bases, bases + modules);
+    std::vector<std::uintptr_t> at;
+
+    for (std::size_t module = 0; module != modules; ++module) {
+        at.push_back(base_of(module, spread));
+    }
+
     std::vector<bom::type_id> ids;
     ids.reserve(n);
 
@@ -119,38 +138,28 @@ auto ids_over(std::size_t n, const std::uint64_t* bases, std::size_t modules)
 }
 
 auto ids_packed(std::size_t n) -> std::vector<bom::type_id> {
+    auto at = base_of(0, 8);
     std::vector<bom::type_id> ids;
     ids.reserve(n);
 
     for (std::size_t i = 0; i != n; ++i) {
-        ids.push_back(as_type_id(0x7f0000001000ull + i * 16));
+        ids.push_back(as_type_id(at));
+        at += 16;
     }
 
     return ids;
 }
 
 auto ids_diluted(std::size_t n) -> std::vector<bom::type_id> {
-    const std::uint64_t base = 0x7f0000001000ull;
-
-    return ids_over(n, &base, 1);
+    return ids_over(n, 1, 8);
 }
 
 auto ids_multi_module(std::size_t n) -> std::vector<bom::type_id> {
-    const std::uint64_t bases[] = {
-        0x7f1000001000ull, 0x7f2940001000ull, 0x7fa13c001000ull,
-        0x55d400001000ull};
-
-    return ids_over(n, bases, 4);
+    return ids_over(n, 4, 8);
 }
 
 auto ids_dlopened(std::size_t n) -> std::vector<bom::type_id> {
-    // An executable low in the address space and three mappings the loader put
-    // far above it: the span is tens of terabytes.
-    const std::uint64_t bases[] = {
-        0x000060bc53002000ull, 0x000075e940002000ull, 0x00007c9180002000ull,
-        0x00007ffe12002000ull};
-
-    return ids_over(n, bases, 4);
+    return ids_over(n, 4, 3);
 }
 
 // What every one of these policies promises: `hash` is injective over the type

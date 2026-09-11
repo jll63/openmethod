@@ -61,6 +61,20 @@ namespace boost::openmethod {
 
 namespace detail {
 
+// BOOST_OPENMETHOD_HAS_PEXT, made dependent on a template parameter.
+//
+// A static_assert whose condition does not depend on the enclosing template may
+// be diagnosed as soon as the template is *defined*, rather than when it is
+// instantiated - the standard calls such a template ill-formed, no diagnostic
+// required, and compilers differ on when they report it. GCC 11 and 12, and
+// Clang 13 through 15, report it immediately; GCC 13 and later, and Clang 18
+// and later, wait for the instantiation. Written the obvious way, the assertion
+// in minimal_cover_hash::fn would therefore make *including this header* an
+// error on those compilers whenever the instruction is unavailable - which is
+// the one thing the header promises not to do.
+template<class>
+inline constexpr bool has_pext = BOOST_OPENMETHOD_HAS_PEXT != 0;
+
 // Cold path only: the cover search counts mask bits, the dispatch path does
 // not. Plain C++ rather than an intrinsic, so it carries no instruction-set
 // requirement of its own - minimal_cover_hash already has one, and one is
@@ -186,7 +200,7 @@ struct minimal_cover_hash : type_hash {
     template<class Registry>
     class fn {
         static_assert(
-            BOOST_OPENMETHOD_HAS_PEXT,
+            detail::has_pext<Registry>,
             "minimal_cover_hash needs BMI2: compile every translation unit "
             "with -mbmi2 (or a -march= that implies it), or use "
             "minimal_perfect_hash, which is portable.");
