@@ -727,6 +727,8 @@ struct registry<Policies...>::compiler : detail::generic_compiler {
         std::vector<group_map>::const_iterator group, const bitvec& candidates,
         bool concrete);
     void write_global_data();
+    void commit_global_data(
+        std::vector<detail::word>& new_dispatch_data) noexcept;
     void print(const method_report& report) const;
     void print_slots();
     static void select_dominant_overriders(
@@ -1766,10 +1768,10 @@ void registry<Policies...>::compiler<Options...>::write_global_data() {
     // v-table pointer is staged in its class_, where the policies read it.
     // Only then are the shared locations patched - the method_infos' slots
     // and strides, the overriders' `next`, the class_infos' static_vptr - and
-    // the dispatch data swapped in; none of that can throw. If a policy
-    // throws, the registry still holds the previous dispatch state, complete
-    // and consistent, rather than pointers into a vector that unwinding has
-    // just freed.
+    // the dispatch data swapped in, by commit_global_data(), which is
+    // `noexcept`. If a policy throws, the registry still holds the previous
+    // dispatch state, complete and consistent, rather than pointers into a
+    // vector that unwinding has just freed.
 
     auto dispatch_data_size = std::accumulate(
         methods.begin(), methods.end(), std::size_t(0),
@@ -1880,12 +1882,26 @@ void registry<Policies...>::compiler<Options...>::write_global_data() {
 
     detail::registry_state_transaction<registry> transaction;
     detail::initialize_policies<registry>::fn(*this, options);
-    transaction.commit();
 
-    // Commit. Nothing from here on can throw.
-
+    // Last statement that can throw: the trace goes through the `output`
+    // policy, which is user-supplied. After the commit it would be the very
+    // bug this arrangement exists to prevent - the policies keeping the
+    // v-table pointers they just read from `new_dispatch_data`, which
+    // unwinding frees.
     ++tr << "Installing\n";
 
+    transaction.commit();
+    commit_global_data(new_dispatch_data);
+}
+
+// The commit point. Called once every step that can fail has succeeded, and
+// `noexcept` so that a throwing statement added here terminates loudly
+// instead of leaving the policies pointing into `new_dispatch_data`, which
+// the caller destroys on the way out.
+template<class... Policies>
+template<class... Options>
+void registry<Policies...>::compiler<Options...>::commit_global_data(
+    std::vector<detail::word>& new_dispatch_data) noexcept {
     for (auto& m : methods) {
         auto first_info = m.infos[0];
 
