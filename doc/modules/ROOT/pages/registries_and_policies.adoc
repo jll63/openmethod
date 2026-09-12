@@ -160,7 +160,10 @@ say - every policy gets its previous state back, and nothing else in the
 registry is modified: the v-table pointers, `next` pointers and dispatch
 tables from the previous call all stay in place. The registry is marked as not
 initialized, though, since that state no longer reflects the registrations,
-and cpp:initialize[] must be called again before calling a method.
+and cpp:initialize[] must be called again before calling a method. Only a
+registry with the cpp:runtime_checks[] policy diagnoses a call made in the
+meantime; without it, the call dispatches through the previous tables, which -
+after a `dlclose` - may point into unloaded code.
 
 A registry can also be created by copying an existing registry's policies,
 using the cpp:with[] and cpp:without[] nested templates. For example,
