@@ -426,7 +426,14 @@ struct generic_compiler {
             }
         };
 
-        using iterator_category = std::forward_iterator_tag;
+        // Input, not forward: `reference` is `class_view`, a prvalue made on
+        // the fly, so two iterators at the same position hand out views at
+        // different addresses. That fails the forward-iterator requirement
+        // that `reference` be a real reference - libstdc++ says so outright
+        // under _GLIBCXX_CONCEPT_CHECKS - and the multipass guarantee with it.
+        // Everything a policy needs (`++`, `!=`, `*`, `std::distance`) is an
+        // input-iterator operation.
+        using iterator_category = std::input_iterator_tag;
         using value_type = class_view;
         using difference_type = std::ptrdiff_t;
         using pointer = arrow_proxy;
@@ -977,7 +984,7 @@ void registry<Policies...>::compiler<Options...>::augment_classes() {
                 indent _(tr);
                 ++tr << type_name(cr.type) << ": "
                      << range{cr.first_base, cr.last_base}
-                     << ", type = " << cr.type << ", &vptr = " << &cr.vptr()
+                     << ", type = " << cr.type << ", &vptr = " << cr.static_vptr
                      << "\n";
             }
 

@@ -319,10 +319,6 @@ struct class_info : static_list<class_info>::static_link {
     type_id *first_base, *last_base;
     bool is_abstract{false};
 
-    auto vptr() const -> const vptr_type& {
-        return *static_vptr;
-    }
-
     auto type_id_begin() const {
         return &type;
     }
@@ -545,13 +541,14 @@ struct InitializeClass {
 struct InitializeContext {
     //! Beginning of a range of `InitializeClass` objects.
     //!
-    //! @return A forward iterator to the beginning of a range of @ref
-    //! InitializeClass objects.
+    //! @return An input iterator to the beginning of a range of @ref
+    //! InitializeClass objects. It is not a forward iterator: dereferencing it
+    //! yields a value, not a reference, so the range is single-pass.
     detail::unspecified classes_begin() const;
 
     //! End of a range of `InitializeClass` objects.
     //!
-    //! @return A forward iterator to the end of a range of @ref
+    //! @return An input iterator to the end of a range of @ref
     //! InitializeClass objects.
     detail::unspecified classes_end() const;
 };
