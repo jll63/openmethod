@@ -174,6 +174,21 @@ class registry_state_transaction {
         "the `state` of a policy that defines `initialize` must be copyable: "
         "initialize() saves it, and puts it back if a policy throws");
 
+    // The restore runs from the destructor, while an exception is in flight,
+    // and a destructor is noexcept by default: a move-assignment that threw
+    // there would call std::terminate, destroying the very error the
+    // transaction exists to let through. It is not a theoretical shape - a
+    // state holding a std::map with a stateful, non-always-equal allocator
+    // degrades to an element-wise move that allocates, and `vptr_map<MapFn>`
+    // lets a caller supply exactly that. Refuse it here, where the message can
+    // say why, rather than terminate at run time in the one configuration no
+    // test covers.
+    static_assert(
+        mp11::mp_all_of<saved_states, std::is_nothrow_move_assignable>::value,
+        "the `state` of a policy that defines `initialize` must be nothrow "
+        "move-assignable: initialize() puts it back from a destructor, while "
+        "an exception is in flight, where throwing would terminate");
+
     // Element-wise: `saved` holds a subset of the registry's tuple.
     template<class Tuple>
     struct each;
@@ -814,11 +829,22 @@ void registry<Policies...>::compiler<Options...>::install_global_tables() {
         abort();
     }
 
-    write_global_data();
-
+    // Report before installing, not after. Everything printed here is
+    // compiler-local - the report gathered during compile(), the slot
+    // assignment, the class lattices - so none of it needs the new tables to
+    // be in place; and all of it can throw, through the user-supplied `output`
+    // policy, or out of the containers print_slots() builds. Run after
+    // write_global_data() it would throw past the commit, leaving the new
+    // tables installed while initialize() never reaches
+    // `st.initialized = true` - a state the exception-safety contract does not
+    // describe, and one that makes the next call abort with `not_initialized`
+    // under runtime_checks. Before it, a throw is just another failure the
+    // transaction rolls back.
     print(report);
     print_slots();
     ++tr << "Finished\n";
+
+    write_global_data();
 }
 
 template<class... Policies>

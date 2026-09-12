@@ -371,3 +371,40 @@ BOOST_AUTO_TEST_CASE(a_throwing_trace_does_not_commit) {
     BOOST_TEST(st.initialized);
     BOOST_TEST(poke<Registry>::fn(dog) == "silence bark");
 }
+
+// Same again for the reporting. print(report) and print_slots() used to run
+// after write_global_data() had committed, so a throw out of either - through
+// the user's `output` policy, or out of the containers print_slots() builds -
+// left the new tables installed while initialize() never reached
+// `st.initialized = true`. That is a fourth outcome the exception-safety
+// contract does not describe, and it makes the next call abort with
+// `not_initialized` under runtime_checks even though the tables are fine.
+BOOST_AUTO_TEST_CASE(a_throwing_report_does_not_commit) {
+    using Registry = tracing_registry<__COUNTER__>;
+    using vptr_state = typename snapshot<Registry>::vptr_state;
+
+    BOOST_OPENMETHOD_REGISTER(use_classes<Animal, Dog, Cat, Registry>);
+    BOOST_OPENMETHOD_REGISTER(poke<Registry>::override<poke_animal<Registry>>);
+    BOOST_OPENMETHOD_REGISTER(poke<Registry>::override<poke_dog<Registry>>);
+
+    Dog dog;
+    auto& st = Registry::state();
+
+    initialize<Registry>();
+    BOOST_TEST(poke<Registry>::fn(dog) == "silence bark");
+
+    snapshot<Registry> before;
+
+    trapping_stream::trap = "Used slots";
+    BOOST_CHECK_THROW(initialize<Registry>(trace(true)), std::runtime_error);
+    BOOST_TEST(trapping_stream::trap == nullptr); // it did throw there
+
+    BOOST_TEST(!st.initialized);
+    BOOST_TEST(st.dispatch_data.data() == before.dispatch_data);
+    BOOST_TEST(Registry::template static_vptr<Dog> == before.dog_vptr);
+    BOOST_TEST((detail::get<vptr_state>(st.policies).vptrs == before.vptrs()));
+
+    initialize<Registry>();
+    BOOST_TEST(st.initialized);
+    BOOST_TEST(poke<Registry>::fn(dog) == "silence bark");
+}
