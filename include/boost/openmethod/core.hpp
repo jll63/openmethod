@@ -609,7 +609,15 @@ BOOST_OPENMETHOD_OPEN_NAMESPACE_DETAIL_UNLESS_MRDOCS
 //!
 //! @tparam Class A class type.
 //! @tparam Registry A registry.
-template<class Class, class Registry>
+//! @tparam Deferred Ignored. A constraint on a member template of
+//! `virtual_ptr` names it here so that the check depends on the member's own
+//! template parameter: a default template argument that does not is evaluated
+//! when `virtual_ptr<Class>` itself is instantiated, and `Class` may still be
+//! incomplete then - a `virtual_ptr<Node>` member inside `Node`. The same
+//! constraints test pointer convertibility first, in a defaulted parameter of
+//! its own, so that a candidate that fails it - the copy assignment of that
+//! member, which overload resolution tries here too - never gets this far.
+template<class Class, class Registry, class... Deferred>
 constexpr bool IsPolymorphic = Registry::rtti::template is_polymorphic<Class>;
 
 //! Test if argument is a smart pointer (exposition only)
@@ -971,10 +979,9 @@ class virtual_ptr {
     //! @li @ref missing_class
     template<
         class Other,
-        typename = std::enable_if_t<
-            BOOST_OPENMETHOD_UNLESS_MRDOCS(detail::)
-                IsPolymorphic<Class, Registry> &&
-            std::is_constructible_v<Class*, Other*>>>
+        typename = std::enable_if_t<std::is_constructible_v<Class*, Other*>>,
+        typename = std::enable_if_t<BOOST_OPENMETHOD_UNLESS_MRDOCS(detail::)
+                                        IsPolymorphic<Class, Registry, Other>>>
     virtual_ptr(Other* other) :
         vp(detail::box_vptr<use_indirect_vptrs>(
             detail::acquire_vptr<Registry>(*other))),
@@ -1042,10 +1049,9 @@ class virtual_ptr {
     //! @li @ref missing_class
     template<
         class Other,
-        typename = std::enable_if_t<
-            BOOST_OPENMETHOD_UNLESS_MRDOCS(detail::)
-                IsPolymorphic<Class, Registry> &&
-            std::is_assignable_v<Class*&, Other*>>>
+        typename = std::enable_if_t<std::is_assignable_v<Class*&, Other*>>,
+        typename = std::enable_if_t<BOOST_OPENMETHOD_UNLESS_MRDOCS(detail::)
+                                        IsPolymorphic<Class, Registry, Other>>>
     virtual_ptr& operator=(Other& other) {
         obj = &other;
         vp = detail::box_vptr<use_indirect_vptrs>(
@@ -1080,10 +1086,9 @@ class virtual_ptr {
     //! @li @ref missing_class
     template<
         class Other,
-        typename = std::enable_if_t<
-            BOOST_OPENMETHOD_UNLESS_MRDOCS(detail::)
-                IsPolymorphic<Class, Registry> &&
-            std::is_assignable_v<Class*&, Other*>>>
+        typename = std::enable_if_t<std::is_assignable_v<Class*&, Other*>>,
+        typename = std::enable_if_t<BOOST_OPENMETHOD_UNLESS_MRDOCS(detail::)
+                                        IsPolymorphic<Class, Registry, Other>>>
     virtual_ptr& operator=(Other* other) {
         obj = other;
         vp = detail::box_vptr<use_indirect_vptrs>(
