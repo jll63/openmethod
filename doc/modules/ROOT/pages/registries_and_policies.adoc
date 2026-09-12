@@ -158,7 +158,9 @@ cpp:initialize[] is transactional. If a policy's `initialize` throws -
 `fast_perfect_hash` failing to find hash factors under `throw_error_handler`,
 say - every policy gets its previous state back, and nothing else in the
 registry is modified: the v-table pointers, `next` pointers and dispatch
-tables from the previous call all stay in place. The registry is marked as not
+tables are left exactly as the call found them. That need not be a state the
+registry can dispatch through - after a cpp:finalize[] it is a torn-down one -
+only the state that was there before. The registry is marked as not
 initialized, though, since that state no longer reflects the registrations,
 and cpp:initialize[] must be called again before calling a method. Only a
 registry with the cpp:runtime_checks[] policy diagnoses a call made in the

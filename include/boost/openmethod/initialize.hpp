@@ -864,8 +864,11 @@ template<class... Policies>
 template<class... Options>
 void registry<Policies...>::compiler<Options...>::initialize() {
     // Clear the flag up front, and set it only once everything has succeeded.
-    // A run that throws leaves the previous dispatch state in place, complete
-    // and consistent (see write_global_data()) - but not marked initialized:
+    // A run that throws leaves the dispatch state exactly as the call found it
+    // (see write_global_data()) - which is not the same as a working one: if a
+    // finalize() came in between, what the call found was already torn down,
+    // the classes' static_vptrs still set and the dispatch data cleared.
+    // Either way it is not marked initialized:
     // those tables do not reflect the registrations that prompted the call,
     // and after a dlclose (the documented re-initialize flow) they may point
     // into unloaded code, so require_initialized() must keep refusing to
@@ -1851,8 +1854,8 @@ void registry<Policies...>::compiler<Options...>::write_global_data() {
     // Only then are the shared locations patched - the method_infos' slots
     // and strides, the overriders' `next`, the class_infos' static_vptr - and
     // the dispatch data swapped in, by commit_global_data(), which is
-    // `noexcept`. If a policy throws, the registry still holds the previous
-    // dispatch state, complete and consistent, rather than pointers into a
+    // `noexcept`. If a policy throws, the registry still holds the dispatch
+    // state it had on entry - whatever that was - rather than pointers into a
     // vector that unwinding has just freed.
 
     auto dispatch_data_size = std::accumulate(

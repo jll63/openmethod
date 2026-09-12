@@ -408,3 +408,54 @@ BOOST_AUTO_TEST_CASE(a_throwing_report_does_not_commit) {
     BOOST_TEST(st.initialized);
     BOOST_TEST(poke<Registry>::fn(dog) == "silence bark");
 }
+
+// "The state the call found" is meant literally: it is not necessarily a state
+// the registry can dispatch through. finalize() clears the dispatch data and
+// every policy's state but leaves the classes' static_vptrs set - documented
+// on static_vptr, which remains valid only until the next initialize() *or
+// finalize()*. A failed initialize() after that restores exactly that
+// half-torn-down state, which is why the guarantee is worded as preservation
+// and not as consistency.
+BOOST_AUTO_TEST_CASE_TEMPLATE(
+    failed_initialize_after_finalize_restores_what_it_found, Registry,
+    registries<__COUNTER__>) {
+    using explosive = typename explosive_policy::template fn<
+        typename Registry::registry_type>;
+    using vptr_state = typename snapshot<Registry>::vptr_state;
+
+    BOOST_OPENMETHOD_REGISTER(use_classes<Animal, Dog, Cat, Registry>);
+    BOOST_OPENMETHOD_REGISTER(
+        typename poke<Registry>::template override<poke_animal<Registry>>);
+    BOOST_OPENMETHOD_REGISTER(
+        typename poke<Registry>::template override<poke_dog<Registry>>);
+
+    Dog dog;
+    auto& st = Registry::state();
+
+    initialize<Registry>();
+    BOOST_TEST(poke<Registry>::fn(dog) == "silence bark");
+
+    finalize<Registry>();
+    BOOST_TEST(!st.initialized);
+    BOOST_TEST(st.dispatch_data.empty());
+    BOOST_TEST(detail::get<vptr_state>(st.policies).vptrs.empty());
+    // Not cleared by finalize, and so still set here.
+    auto dog_vptr_after_finalize = Registry::template static_vptr<Dog>;
+    BOOST_TEST(dog_vptr_after_finalize != nullptr);
+
+    explosive::armed = true;
+    BOOST_CHECK_THROW(initialize<Registry>(), std::runtime_error);
+    explosive::armed = false;
+
+    // Everything is put back the way the failed call found it - torn down, not
+    // consistent.
+    BOOST_TEST(!st.initialized);
+    BOOST_TEST(st.dispatch_data.empty());
+    BOOST_TEST(detail::get<vptr_state>(st.policies).vptrs.empty());
+    BOOST_TEST(Registry::template static_vptr<Dog> == dog_vptr_after_finalize);
+
+    // And a successful call still recovers from it.
+    initialize<Registry>();
+    BOOST_TEST(st.initialized);
+    BOOST_TEST(poke<Registry>::fn(dog) == "silence bark");
+}
