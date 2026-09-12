@@ -193,9 +193,13 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(
     decltype(entry_for<Registry, Tiger>()) tiger_entry;
 
     {
-        // Deliberately automatic, not the `static` that
-        // BOOST_OPENMETHOD_REGISTER emits: destroying it unregisters Tiger,
-        // the way unloading a library unregisters the classes it brought.
+        // A test-only spelling: a registrar is documented to be a static
+        // object (core.hpp, on `override`; macros.hpp, on
+        // BOOST_OPENMETHOD_REGISTER; shared_libraries.adoc). One is used here
+        // because a static never dies before the program does, and this test
+        // needs the registration to go away between the two initialize()
+        // calls - which is what unloading a library does to the classes it
+        // brought. Do not copy this into an example.
         //
         // The braces are load-bearing. A registrar links itself into the
         // registry's static_list, whose links carry no initializer
