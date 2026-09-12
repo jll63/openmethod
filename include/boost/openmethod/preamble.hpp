@@ -714,12 +714,12 @@ template<class Registry>
 struct VptrFn {
     //! Register the v-table pointers.
     //!
-    //! Called by @ref registry::initialize to let the policy store the v-table
-    //! pointer associated to each `type_id`.
+    //! Called by @ref boost::openmethod::initialize to let the policy store
+    //! the v-table pointer associated to each `type_id`.
     //!
     //! If this function, or another policy's `initialize`, throws, the
-    //! policy's `state` is restored to its previous value; see @ref
-    //! initialize.
+    //! policy's `state` is restored to its previous value; see
+    //! @ref boost::openmethod::initialize.
     //!
     //! @tparam Context A class that conforms to the @ref InitializeContext
     //! blueprint.
@@ -814,8 +814,8 @@ struct TypeHashFn {
     //! Initialize the hash table.
     //!
     //! If this function, or another policy's `initialize`, throws, the
-    //! policy's `state` is restored to its previous value; see @ref
-    //! initialize.
+    //! policy's `state` is restored to its previous value; see
+    //! @ref boost::openmethod::initialize.
     //!
     //! @tparam Context A class that conforms to the @ref InitializeContext
     //! blueprint.
@@ -889,8 +889,8 @@ struct OutputFn {
 //! Policy for writing diagnostics and trace.
 //!
 //! If an `output` policy is present, the default error handler uses it to write
-//! error messages to its output stream. @ref registry::initialize can also use
-//! it to write trace messages.
+//! error messages to its output stream. @ref boost::openmethod::initialize
+//! can also use it to write trace messages.
 //!
 //! @par Requirements
 //!
@@ -1307,9 +1307,9 @@ class registry : public detail::registry_base {
 
     //! A pointer to the virtual table for a registered class.
     //!
-    //! `static_vptr` is set by @ref registry::initialize to the address of the
-    //! class' virtual table. It remains valid until the next call to
-    //! `initialize` or `finalize`.
+    //! `static_vptr` is set by @ref boost::openmethod::initialize to the
+    //! address of the class' virtual table. It remains valid until the next
+    //! call to `initialize` or `finalize`.
     //!
     //! @tparam Class A registered class.
     template<class Class>

@@ -2410,7 +2410,7 @@ auto registry<Policies...>::finalize(Options... opts) -> void {
 //! Release resources held by registry.
 //!
 //! `finalize` may be called to release any resources allocated by
-//! @ref registry::initialize.
+//! @ref boost::openmethod::initialize.
 //!
 //! @note
 //! A translation unit that contains a call to `finalize` must include the
