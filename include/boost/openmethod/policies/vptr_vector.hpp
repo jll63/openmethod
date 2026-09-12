@@ -86,6 +86,10 @@ struct vptr_vector : vptr {
         //! function is called. Its result determines the size of the vector.
         //! The v-table pointers are copied into the vector.
         //!
+        //! The vector is rebuilt from scratch on every call, so a class that
+        //! was registered during a previous call, and is not registered any
+        //! more, does not keep its entry.
+        //!
         //! @tparam Context An @ref InitializeContext.
         //! @tparam Options... Zero or more option types.
         //! @param ctx A Context object.
@@ -113,7 +117,13 @@ struct vptr_vector : vptr {
                 ++size;
             }
 
-            st().vptrs.resize(size);
+            // Build a new vector and swap it in, rather than writing into the
+            // old one. Resizing keeps the elements that fit, so an index that
+            // belonged to a class that is no longer registered - one from a
+            // library that has since been unloaded, say - would keep pointing
+            // into the dispatch data the commit frees. Every slot the loop
+            // below does not write is null instead.
+            decltype(st().vptrs) new_vptrs(size);
 
             for (auto iter = ctx.classes_begin(); iter != ctx.classes_end();
                  ++iter) {
@@ -128,12 +138,14 @@ struct vptr_vector : vptr {
                     }
 
                     if constexpr (Registry::has_indirect_vptr) {
-                        st().vptrs[index] = iter->static_vptr();
+                        new_vptrs[index] = iter->static_vptr();
                     } else {
-                        st().vptrs[index] = iter->vptr();
+                        new_vptrs[index] = iter->vptr();
                     }
                 }
             }
+
+            st().vptrs.swap(new_vptrs);
         }
 
         //! Returns a *reference* to a v-table pointer for an object.
