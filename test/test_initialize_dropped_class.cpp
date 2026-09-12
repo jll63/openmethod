@@ -198,12 +198,16 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(
         // the way unloading a library unregisters the classes it brought.
         //
         // The braces are load-bearing. A registrar links itself into the
-        // registry's static_list, whose `static_link() = default` leaves the
-        // links uninitialised (detail/static_list.hpp:25-34); every registrar
-        // the macros emit lives in static storage, where they are zeroed for
-        // free - hence the `coverity[uninit] - zero-initialized static
-        // storage` note on the push_back in core.hpp. An automatic one has to
-        // be value-initialised, or push_back asserts on the garbage.
+        // registry's static_list, whose links carry no initializer
+        // (`static_link() = default`, detail/static_list.hpp:25-34) - on
+        // purpose: registrars live in static storage, which is zeroed before
+        // any dynamic initialization, so a registrar can link itself in
+        // whatever order the translation units' constructors run, and the list
+        // head cannot be constructed after it and wipe the registrations.
+        // That is what the `coverity[uninit] - zero-initialized static
+        // storage` note on the push_back in core.hpp is recording. An
+        // automatic registrar gets none of that, so it has to be
+        // value-initialised, or push_back asserts on the garbage.
         use_classes<Animal, Tiger, Registry> tiger_classes{};
 
         initialize<Registry>();
