@@ -545,13 +545,14 @@ struct InitializeClass {
 struct InitializeContext {
     //! Beginning of a range of `InitializeClass` objects.
     //!
-    //! @return A forward iterator to the beginning of a range of @ref
-    //! InitializeClass objects.
+    //! @return An input iterator to the beginning of a range of @ref
+    //! InitializeClass objects. It is not a forward iterator: dereferencing it
+    //! yields a value, not a reference, so the range is single-pass.
     detail::unspecified classes_begin() const;
 
     //! End of a range of `InitializeClass` objects.
     //!
-    //! @return A forward iterator to the end of a range of @ref
+    //! @return An input iterator to the end of a range of @ref
     //! InitializeClass objects.
     detail::unspecified classes_end() const;
 };
