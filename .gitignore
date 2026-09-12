@@ -41,3 +41,11 @@ notes.txt
 
 # Flattened headers for Compiler Explorer (dev/flatten.py).
 flat/
+
+# b2 output. One directory per project that has targets, so `bin/` turns up at
+# the root and under test/, test/dynamic_loading/ and each
+# test/implicit_shared_libraries/ variant. Only `build/` was ignored, which
+# covers CMake but not this, leaving the object trees permanently
+# untracked-but-addable - `git add test` would commit tens of thousands of
+# lines of objects.
+bin/
