@@ -319,10 +319,6 @@ struct class_info : static_list<class_info>::static_link {
     type_id *first_base, *last_base;
     bool is_abstract{false};
 
-    auto vptr() const -> const vptr_type& {
-        return *static_vptr;
-    }
-
     auto type_id_begin() const {
         return &type;
     }

@@ -897,7 +897,7 @@ void registry<Policies...>::compiler<Options...>::augment_classes() {
                 indent _(tr);
                 ++tr << type_name(cr.type) << ": "
                      << range{cr.first_base, cr.last_base}
-                     << ", type = " << cr.type << ", &vptr = " << &cr.vptr()
+                     << ", type = " << cr.type << ", &vptr = " << cr.static_vptr
                      << "\n";
             }
 
