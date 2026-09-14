@@ -20,15 +20,20 @@
 // Detect BMI2's parallel bit extract. GCC and clang define __BMI2__ when the
 // instruction is enabled, which takes -mbmi2 or a -march= that implies it. MSVC
 // gates nothing on a macro and emits the instruction from the intrinsic, so
-// there the test is only that the target is x86.
+// there the test is the target alone.
+//
+// Either way the target must be x86-*64*. `_pext_u64` extracts from a 64-bit
+// value and exists only in 64-bit mode: on 32-bit x86 there is `_pext_u32` and
+// nothing wider, so a guard that accepted `_M_IX86` - or `__BMI2__` on an
+// `-m32` build - would let the header reach an intrinsic that is not declared.
 //
 // The detection and the documented macro are separate so that the latter is one
 // unconditional #define, with its doc comment directly attached. A comment
 // separated from its #define by a preprocessor directive is not attached to it,
 // and MrDocs then produces no page - which would make every @ref to the macro
 // render as plain text.
-#if defined(__BMI2__) ||                                                       \
-    (defined(_MSC_VER) && (defined(_M_X64) || defined(_M_IX86)))
+#if (defined(__BMI2__) && defined(__x86_64__)) ||                              \
+    (defined(_MSC_VER) && defined(_M_X64))
 #define BOOST_OPENMETHOD_DETAIL_HAS_PEXT 1
 #else
 #define BOOST_OPENMETHOD_DETAIL_HAS_PEXT 0
@@ -144,7 +149,8 @@ namespace policies {
 //! `dlopen`{empty}s modules pays one extra bit rather than an unusable table.
 //!
 //! @warning **BMI2 is required, and that is not a portable requirement.** `pext`
-//! is absent on ARM and on x86 before Haswell and Excavator, and is microcoded
+//! requires a 64-bit x86 target - it is absent on ARM and on 32-bit x86
+//! altogether, absent on x86-64 before Haswell and Excavator, and is microcoded
 //! on AMD Zen 1 and Zen 2 - around 18 cycles rather than 3 - where this policy
 //! will be slower than the default rather than faster. Because `hash` is
 //! inlined into every dispatch, `-mbmi2` (or a `-march=` implying it) has to be
