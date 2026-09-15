@@ -50,6 +50,84 @@ declaration must use the same class-key as the definition. Qualify the name if
 it could also be found in namespace `boost::openmethod` - `registry` in
 particular.
 
+### Registry affinity
+
+`BOOST_OPENMETHOD_DEFAULT_REGISTRY` is a whole-program answer: one registry, for
+every class. A class can instead name its own, by declaring a
+cpp:boost_openmethod_registry[] function that takes a pointer to it and returns
+the registry. The function is never called - only its return type is used - so
+it needs no definition:
+
+[source,c++]
+----
+include::example$adl_registry.cpp[tag=affinity]
+----
+
+The class then _declares_ an affinity for that registry, and everything that
+mentions the class finds it. A method declared without a registry argument takes the
+affinity of its virtual parameters:
+
+[source,c++]
+----
+include::example$adl_registry.cpp[tag=methods]
+----
+
+...and so does cpp:virtual_ptr[], along with the smart pointer aliases and the
+`make_*_virtual` factories:
+
+[source,c++]
+----
+include::example$adl_registry.cpp[tag=virtual_ptr]
+----
+
+An affinity is inherited: declaring it for the root of a hierarchy covers every
+class derived from it, because the derived-to-base pointer conversion makes the
+root's declaration viable. A declaration for a derived class is a better match,
+and wins.
+
+Every class has a registry affinity; a class that declares none has the
+_default_ affinity, `BOOST_OPENMETHOD_DEFAULT_REGISTRY`. A _declared_ affinity
+wins over a default one, so a method may mix a class that declares one with a
+class that does not, and lands in the declared registry. Two virtual parameters
+with *different* declared affinities are an error, as is a registry named on the
+method that contradicts one of its parameters, whatever its shape. A
+`virtual_ptr` parameter contributes the affinity of its class, not the registry
+it spells; the two must agree.
+
+A class can also declare its affinity with a member typedef:
+
+[source,c++]
+----
+include::example$adl_registry.cpp[tag=typedef]
+----
+
+The typedef takes precedence over the function, and is inherited like any
+member - a derived class's typedef hides the base's. It is the spelling for a
+class that mentions `virtual_ptr` of itself in its own body, where the class is
+still incomplete: the typedef is visible from the point it is declared. Such a
+class has already decided to be openmethod-aware; the typedef intrudes no
+further.
+
+Either way, the declaration must precede the first `virtual_ptr` of the class,
+or method taking it as a virtual parameter, that does not name a registry. The
+answer is remembered for the rest of the translation unit, and a class
+mentioned before it is complete - as a member of itself, or through a forward
+declaration - is asked before a declaration further down can be seen.
+
+Declaring none is fine, and is the common case: a linked structure needs no
+affinity, and `virtual_ptr<Node> next;` inside `Node` gets the default
+registry, as it always has. Declaring one too late is an error - not at the
+mention, where nothing is wrong yet, but where the class is complete and its
+affinity matters: a virtual parameter of a method, or a class registration.
+
+WARNING: A declared affinity does not reach
+xref:reference:BOOST_OPENMETHOD_CLASSES.adoc[BOOST_OPENMETHOD_CLASSES], which
+still registers into `BOOST_OPENMETHOD_DEFAULT_REGISTRY` unless a registry is
+listed last. Registering a class that declares an affinity, without naming its registry,
+puts the class in one registry and its methods in another - and that shows up as
+a `missing_class` error at run time, not as a compile error. List the registry:
+`BOOST_OPENMETHOD_CLASSES(Animal, Dog, zoo_registry)`.
+
 A registry has a collection of _policies_. Each policy belongs to a policy
 category. A registry may contain at most one policy of each category. Policies
 control how type information is obtained, how vptrs are acquired, how errors are

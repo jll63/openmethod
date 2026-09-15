@@ -129,11 +129,108 @@ namespace boost::openmethod {
 #endif
 
 namespace detail {
+
 using sfinae = void;
-}
+
+using macro_default_registry = BOOST_OPENMETHOD_DEFAULT_REGISTRY;
+
+template<typename...>
+constexpr bool false_t = false; // workaround before CWG2518/P2593R1
+
+} // namespace detail
+
+namespace detail {
+
+// What the catch-all below returns: the absence of a declaration. Not a
+// registry, so that an affinity declared for the default registry itself is
+// still a *declared* one, and constrains a method like any other.
+struct default_affinity {};
+
+template<typename T>
+struct registry_affinity_aux;
+
+} // namespace detail
+
+//! Return the registry a class belongs to (ADL customization point).
+//!
+//! This declaration is a catch-all that matches any argument list. It returns a
+//! placeholder that denotes the absence of customization, which @ref
+//! registry_affinity reads as @ref BOOST_OPENMETHOD_DEFAULT_REGISTRY. If an
+//! overload beats it for a given class, that class *declares* an affinity for
+//! the overload's return type, and that registry becomes the default for every
+//! construct that mentions the class: @ref virtual_ptr and the smart pointer
+//! aliases, and the methods that take it as a virtual parameter.
+//!
+//! An affinity declared for a class extends to its derived classes, because
+//! the derived-to-base pointer conversion makes the base's overload viable. An
+//! overload on the derived class itself is a better match, and wins.
+//!
+//! A class can also declare its affinity with a member typedef, `using
+//! boost_openmethod_registry = Registry;`. It is looked up first, and it is
+//! inherited like any member - a derived class's typedef hides the base's.
+//! Being visible from the point it is declared, it is the spelling for a class
+//! that mentions `virtual_ptr` of itself in its own body - which a class that
+//! declares no affinity may do freely.
+//!
+//! @par Requirements
+//!
+//! The library uses argument-dependent lookup to find an overload that
+//! satisfies the following requirements:
+//!
+//! @li The single parameter is a pointer to the class. Its role is to carry the
+//! class to the overload. It must not be dereferenced - the function is never
+//! called, only its return type is used.
+//!
+//! @li The return type is a @ref registry, possibly cv-qualified.
+//!
+//! The declaration must precede the first construct that mentions the class
+//! without naming a registry: a `virtual_ptr` of it, or a method that takes it
+//! as a virtual parameter. The answer is remembered for the rest of the
+//! translation unit, and a class mentioned before it is complete - as a member
+//! of itself, or through a forward declaration - is asked before a declaration
+//! further down can be seen. Declaring none is fine, and is the common case;
+//! declaring one too late is an error, reported where the class is complete
+//! and its affinity matters: a virtual parameter of a method, or a class
+//! registration.
+//!
+//! @par Example
+//!
+//! include:../examples/adl_registry.cpp#affinity
+//!
+//! @see @ref registry_affinity
+//! @see [Registries and Policies](xref:ROOT:registries_and_policies.adoc)
+auto boost_openmethod_registry(...) -> detail::default_affinity;
+
+//! The registry a class has an affinity for.
+//!
+//! Every class has a registry affinity. A class *declares* one with a member
+//! typedef named `boost_openmethod_registry`, or with a @ref
+//! boost_openmethod_registry overload - the typedef takes precedence; one that
+//! declares none has the *default* affinity, @ref
+//! BOOST_OPENMETHOD_DEFAULT_REGISTRY.
+//!
+//! Evaluates to the return type of the overload found for `T` by
+//! argument-dependent lookup, minus cv-qualifiers. `T` itself is first stripped
+//! of cv-qualifiers, references and pointers, and a smart pointer - a type
+//! that @ref virtual_traits is specialized for - is unwrapped, so `Class`,
+//! `const Class&`, `Class*` and `std::shared_ptr<Class>` all yield the same
+//! registry.
+//!
+//! The declaration must precede the first mention of the class: see @ref
+//! boost_openmethod_registry.
+//!
+//! A declared affinity wins over a default one. That is what lets a method mix
+//! a class that declares an affinity with one that does not: the latter yields.
+//!
+//! @tparam T A class, or a reference, pointer or smart pointer to one.
+//!
+//! @see @ref boost_openmethod_registry
+//! @see [Registries and Policies](xref:ROOT:registries_and_policies.adoc)
+template<typename T>
+using registry_affinity = typename detail::registry_affinity_aux<T>::type;
 
 template<
-    class Class, class Registry = BOOST_OPENMETHOD_DEFAULT_REGISTRY,
+    class Class, class Registry = registry_affinity<Class>,
     typename = detail::sfinae>
 class virtual_ptr;
 
@@ -141,8 +238,6 @@ class virtual_ptr;
 // Helpers
 
 namespace detail {
-
-using macro_default_registry = BOOST_OPENMETHOD_DEFAULT_REGISTRY;
 
 template<typename...>
 struct extract_registry;
@@ -268,6 +363,137 @@ using virtual_type = typename virtual_type_aux<T, Registry>::type;
 template<typename MethodArgList>
 using virtual_types = boost::mp11::mp_transform<
     remove_virtual_, boost::mp11::mp_filter<detail::is_virtual, MethodArgList>>;
+
+// -----------------------------------------------------------------------------
+// registry affinity
+
+// Every question below is tagged, because the answer to an untagged one would
+// be memoized: a class template specialization is instantiated once per class
+// and then remembered. `asked` is the question whose answer builds types - the
+// registry of a `virtual_ptr`, of a method. `rechecked` is the same question,
+// put again by `check_affinity` at a point where the class is complete, to
+// catch a declaration that came too late to have been seen the first time.
+struct asked;
+struct rechecked;
+
+// The member typedef, looked up first. Ordinary member lookup: inherited, a
+// derived class's hides the base's, and two bases that disagree are ambiguous
+// - a substitution failure here, which the ADL path then reports. Inside the
+// class's own body it is visible as soon as it is declared, which is what lets
+// a class mention `virtual_ptr` of itself.
+template<class Class, class Question, typename = void>
+struct member_affinity {
+    using type = default_affinity;
+};
+
+template<class Class, class Question>
+struct member_affinity<
+    Class, Question, std::void_t<typename Class::boost_openmethod_registry>> {
+    using type = std::remove_cv_t<typename Class::boost_openmethod_registry>;
+};
+
+// The catch-all is viable for every class, so the primary template is reached
+// only when the call to `boost_openmethod_registry` is ill-formed rather than
+// unmatched. Three ways to get there, all of them a base class whose overload
+// cannot be used: two base classes with different affinities (ambiguous
+// overload), a private base (inaccessible conversion), and a repeated
+// non-virtual base (ambiguous conversion). Declaring the overload for the
+// class itself resolves all three.
+template<class Class, class Question, typename = void>
+struct adl_affinity {
+    // Only the question that builds types reports this. The recheck asks the
+    // same thing about the same class, and would say it twice.
+    static_assert(
+        !std::is_same_v<Question, asked>,
+        "cannot tell which registry this class belongs to: "
+        "boost_openmethod_registry is ambiguous or inaccessible for it - "
+        "declare one for the class itself");
+    using type = default_affinity;
+};
+
+template<class Class, class Question>
+struct adl_affinity<
+    Class, Question,
+    std::void_t<decltype(boost_openmethod_registry(std::declval<Class*>()))>> {
+    using type = std::remove_cv_t<decltype(boost_openmethod_registry(
+        std::declval<Class*>()))>;
+};
+
+// What the class says: a registry, or `default_affinity` when it says nothing.
+template<class Class, class Question>
+struct declared_affinity_aux {
+    // conditional_t picks the struct, so the ADL path is not instantiated
+    // when the typedef answers: its ambiguity diagnosis would fire for a class
+    // whose typedef settles what two base classes dispute.
+    using type = typename std::conditional_t<
+        std::is_same_v<
+            typename member_affinity<Class, Question>::type, default_affinity>,
+        adl_affinity<Class, Question>, member_affinity<Class, Question>>::type;
+};
+
+template<class Class>
+using declared_affinity = typename declared_affinity_aux<Class, asked>::type;
+
+// The type whose namespace and base classes are consulted: the class a smart
+// pointer points to, as `virtual_traits` sees it, or `T` itself. No
+// `virtual_type` depends on the registry, so any registry serves to ask.
+template<typename T, typename = void>
+struct registry_anchor {
+    using type = T;
+};
+
+template<typename T>
+struct registry_anchor<
+    T,
+    std::enable_if_t<
+        !std::is_void_v<virtual_type<T, macro_default_registry>>>> {
+    using type = virtual_type<T, macro_default_registry>;
+};
+
+template<typename T>
+using unadorned = std::remove_cv_t<
+    std::remove_pointer_t<std::remove_cv_t<std::remove_reference_t<T>>>>;
+
+// `declared` is what the class says - and is what constrains a method. `type`
+// is the query's answer, always a registry.
+template<typename T>
+struct registry_affinity_aux {
+    using anchor = unadorned<typename registry_anchor<unadorned<T>>::type>;
+    using declared = declared_affinity<anchor>;
+
+    static_assert(
+        std::is_same_v<declared, default_affinity> || is_registry<declared>,
+        "boost_openmethod_registry must return a registry");
+
+    using type = std::conditional_t<
+        std::is_same_v<declared, default_affinity>, macro_default_registry,
+        declared>;
+};
+
+// The answer above is remembered for the rest of the translation unit, and a
+// class mentioned before it is complete - a `virtual_ptr` of it in a friend
+// declaration, or as a member of the class itself - is asked before a
+// declaration further down can be seen. Answering "none" then is right for a
+// class that declares none, and that is the common case: a plain linked
+// structure, `virtual_ptr<Node> next;`, needs no affinity and gets the default
+// registry. It is wrong for one that declares later, and silently so.
+//
+// So ask again wherever the class must be complete anyway - a virtual
+// parameter of a method, a class registration - and refuse an answer that has
+// changed. That is where a wrong registry would do its damage, and by then a
+// declaration in the class, or inherited from a base, is in place.
+template<class Class>
+struct check_affinity {
+    static_assert(
+        std::is_same_v<
+            typename declared_affinity_aux<Class, rechecked>::type,
+            declared_affinity<Class>>,
+        "this class declared its registry affinity after it was first "
+        "mentioned - a virtual_ptr of it, or a method over it, was formed "
+        "before the declaration and kept the wrong registry: move the "
+        "declaration above the first mention");
+    static constexpr bool value = true;
+};
 
 } // namespace detail
 
@@ -429,6 +655,11 @@ struct use_class_aux<Registry, mp11::mp_list<Class, Bases...>> :
     std::conditional_t<
         Registry::has_deferred_static_rtti, detail::deferred_class_info,
         detail::class_info> {
+    // A registration is a checkpoint: the class is complete here, so ask its
+    // affinity again and refuse one declared after the class was first
+    // mentioned.
+    static_assert(check_affinity<Class>::value);
+
     static type_id bases[sizeof...(Bases)];
     use_class_aux() {
         this->first_base = bases;
@@ -826,7 +1057,7 @@ inline auto final_virtual_ptr(Arg&& obj) {
 // doesn't like it.
 template<class Arg>
 inline auto final_virtual_ptr(Arg&& obj) {
-    return final_virtual_ptr<BOOST_OPENMETHOD_DEFAULT_REGISTRY, Arg>(
+    return final_virtual_ptr<registry_affinity<Arg>, Arg>(
         std::forward<Arg>(obj));
 }
 //! Wide pointer combining pointers to an object and its v-table
@@ -1716,8 +1947,7 @@ class virtual_ptr<
 //! @param obj A lvalue reference to an object.
 //! @return A `virtual_ptr<Class>`.
 template<class Class>
-virtual_ptr(Class& obj)
-    -> virtual_ptr<Class, BOOST_OPENMETHOD_DEFAULT_REGISTRY>;
+virtual_ptr(Class& obj) -> virtual_ptr<Class, registry_affinity<Class>>;
 
 //! Construct a `virtual_ptr` from a xvalue reference.
 //!
@@ -1725,8 +1955,7 @@ virtual_ptr(Class& obj)
 //! @param obj A xvalue reference to an object.
 //! @return A `virtual_ptr<Class>`.
 template<class Class>
-virtual_ptr(Class&& obj)
-    -> virtual_ptr<Class, BOOST_OPENMETHOD_DEFAULT_REGISTRY>;
+virtual_ptr(Class&& obj) -> virtual_ptr<Class, registry_affinity<Class>>;
 
 // Alas this is not allowed:
 // template<class Registry, class Class>
@@ -1951,9 +2180,6 @@ template<class Class, class Registry>
 struct parameter_traits<const virtual_ptr<Class, Registry, void>&, Registry> :
     virtual_traits<const virtual_ptr<Class, Registry, void>&, Registry> {};
 
-template<typename...>
-constexpr bool false_t = false; // workaround before CWG2518/P2593R1
-
 template<typename T, class Registry, typename = void>
 struct validate_method_parameter : std::true_type {};
 
@@ -1973,15 +2199,61 @@ struct validate_method_parameter<
         validate_method_parameter::value,
         "virtual_<> parameter is not a polymorphic class and no "
         "boost_openmethod_vptr is applicable");
+
+    // The class is complete here (is_polymorphic needs it), so this is one of
+    // the checkpoints where its affinity is asked again.
+    static_assert(check_affinity<virtual_type<T, Registry>>::value);
+
+    // And a method that names a registry may not contradict it.
+    static_assert(
+        std::is_same_v<
+            typename registry_affinity_aux<T>::declared, default_affinity> ||
+            std::is_same_v<
+                typename registry_affinity_aux<T>::declared, Registry>,
+        "registry mismatch: the class declares an affinity for another "
+        "registry");
 };
 
+// A `virtual_ptr` parameter, in any of its three shapes, must name the
+// method's registry. The scan that picks a registry for a method that names
+// none takes the class's affinity, so this is where a registry spelled on the
+// parameter is held to agree with the class.
 template<class Class, class Registry>
 struct validate_method_parameter<virtual_ptr<Class, Registry>, Registry, void> :
-    std::true_type {};
+    std::true_type {
+    static_assert(check_affinity<Class>::value);
+};
 
 template<class Class, class Registry, class MethodRegistry>
 struct validate_method_parameter<
     virtual_ptr<Class, Registry>, MethodRegistry, void> : std::false_type {
+    static_assert(
+        false_t<Class, Registry, MethodRegistry>, "registry mismatch");
+};
+
+template<class Class, class Registry>
+struct validate_method_parameter<
+    virtual_ptr<Class, Registry>&, Registry, void> : std::true_type {
+    static_assert(check_affinity<Class>::value);
+};
+
+template<class Class, class Registry, class MethodRegistry>
+struct validate_method_parameter<
+    virtual_ptr<Class, Registry>&, MethodRegistry, void> : std::false_type {
+    static_assert(
+        false_t<Class, Registry, MethodRegistry>, "registry mismatch");
+};
+
+template<class Class, class Registry>
+struct validate_method_parameter<
+    const virtual_ptr<Class, Registry>&, Registry, void> : std::true_type {
+    static_assert(check_affinity<Class>::value);
+};
+
+template<class Class, class Registry, class MethodRegistry>
+struct validate_method_parameter<
+    const virtual_ptr<Class, Registry>&, MethodRegistry, void> :
+    std::false_type {
     static_assert(
         false_t<Class, Registry, MethodRegistry>, "registry mismatch");
 };
@@ -2063,14 +2335,84 @@ struct validate_method_parameter<
 //!    selected is not specified, but it is the same across calls with the
 //!    same arguments types.
 //!
+namespace detail {
+
+// Every class has an affinity, but only a *declared* one constrains a method.
+// A class that never declared `boost_openmethod_registry` has the default
+// affinity, and yields to a parameter that declares one - which is what lets a
+// method mix the two. A `virtual_ptr` parameter contributes its class's
+// affinity, not the registry it names: the class decides, and a registry
+// spelled on the parameter has to agree with it (validate_method_parameter).
+template<typename Parameter>
+struct param_affinity {
+    using type = default_affinity;
+};
+
+template<typename T>
+struct param_affinity<virtual_<T>> {
+    using type = typename registry_affinity_aux<T>::declared;
+};
+
+template<class Class, class Registry>
+struct param_affinity<virtual_ptr<Class, Registry, void>> {
+    using type = typename registry_affinity_aux<Class>::declared;
+};
+
+template<class Class, class Registry>
+struct param_affinity<virtual_ptr<Class, Registry, void>&> {
+    using type = typename registry_affinity_aux<Class>::declared;
+};
+
+template<class Class, class Registry>
+struct param_affinity<const virtual_ptr<Class, Registry, void>&> {
+    using type = typename registry_affinity_aux<Class>::declared;
+};
+
+// The first affinity in the parameter list wins; every other one must agree.
+template<typename...>
+struct agreed_affinity {
+    using type = default_affinity;
+};
+
+template<typename Affinity, typename... More>
+struct agreed_affinity<Affinity, More...> {
+    using rest = typename agreed_affinity<More...>::type;
+    static_assert(
+        std::is_same_v<Affinity, default_affinity> ||
+            std::is_same_v<rest, default_affinity> ||
+            std::is_same_v<Affinity, rest>,
+        "virtual parameters have conflicting registry affinities");
+    using type = std::conditional_t<
+        std::is_same_v<Affinity, default_affinity>, rest, Affinity>;
+};
+
+// The registry a method takes when its declaration does not name one.
+template<typename Fn>
+struct method_registry_aux {
+    using type = macro_default_registry;
+};
+
+template<typename ReturnType, typename... Parameters>
+struct method_registry_aux<ReturnType(Parameters...)> {
+    using found = typename agreed_affinity<
+        typename param_affinity<Parameters>::type...>::type;
+    using type = std::conditional_t<
+        std::is_same_v<found, default_affinity>, macro_default_registry, found>;
+};
+
+template<typename Fn>
+using method_registry = typename method_registry_aux<Fn>::type;
+
+} // namespace detail
+
 //! @tparam Id A type
 //! @tparam Fn A function type
-//! @tparam Registry The registry in which the method is defined
+//! @tparam Registry The registry in which the method is defined. Defaults to
+//! the registry that `Fn`\'s virtual parameters have an affinity for, and to
+//! @ref BOOST_OPENMETHOD_DEFAULT_REGISTRY if none of them has one.
 //!
 //! @see [Core API](xref:ROOT:core_api.adoc)
-template<
-    typename Id, typename Fn,
-    class Registry = BOOST_OPENMETHOD_DEFAULT_REGISTRY>
+template<typename Id, typename Fn, class Registry = detail::method_registry<Fn>>
 class method;
 
 //! Method with a specific id, signature and return type
