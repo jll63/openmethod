@@ -107,11 +107,10 @@ foreach(test_cpp ${test_cpp_files})
 
     # minimal_cover_hash dispatches with BMI2's pext, and because `hash` is
     # inlined into every call the instruction has to be enabled for the whole
-    # translation unit. Only this test needs it, and only on x86-64 - the
-    # 64-bit pext intrinsic does not exist in 32-bit mode: elsewhere
-    # BOOST_OPENMETHOD_HAS_PEXT is 0 and the test compiles to a stub that says
-    # so.
-    if (test MATCHES "minimal_cover_hash" AND
+    # translation unit. Only the tests that name the policy need it, and only on
+    # x86-64 - the 64-bit pext intrinsic does not exist in 32-bit mode:
+    # elsewhere BOOST_OPENMETHOD_HAS_PEXT is 0 and the policy drops out of both.
+    if (test MATCHES "minimal_cover_hash|hash_policies" AND
         CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|AMD64|amd64)$")
         if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" OR
             CMAKE_CXX_COMPILER_FRONTEND_VARIANT MATCHES "MSVC")

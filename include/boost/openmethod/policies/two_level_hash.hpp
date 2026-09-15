@@ -18,6 +18,15 @@
 #include <variant>
 #include <vector>
 
+#ifdef _MSC_VER
+#pragma warning(push)
+// 4702: unreachable code. The `abort()` after a call to the error handler is
+// there for a handler that returns - the default one prints and returns - but a
+// handler that is [[noreturn]], like throw_error_handler, makes it dead code,
+// and MSVC diagnoses that. Same reason as in preamble.hpp and core.hpp.
+#pragma warning(disable : 4702)
+#endif
+
 namespace boost::openmethod::policies {
 
 //! Map type ids to an index with two multiply-shifts.
@@ -444,5 +453,9 @@ auto two_level_hash<Lambda, MaxDoublings>::search_error::write(Stream& os) const
 }
 
 } // namespace boost::openmethod::policies
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
 #endif

@@ -18,9 +18,17 @@
 #include <vector>
 
 // Detect BMI2's parallel bit extract. GCC and clang define __BMI2__ when the
-// instruction is enabled, which takes -mbmi2 or a -march= that implies it. MSVC
-// gates nothing on a macro and emits the instruction from the intrinsic, so
-// there the test is the target alone.
+// instruction is enabled, which takes -mbmi2 or a -march= that implies it, and
+// reject the intrinsic without it. MSVC gates nothing on a macro and emits the
+// instruction from the intrinsic, so there the test is the target alone.
+//
+// clang-cl answers to both descriptions, and must be read as clang: it defines
+// _MSC_VER and _M_X64, but `_pext_u64` is still the always_inline function that
+// needs the `bmi2` target feature. Taking it for MSVC would turn this macro on
+// for a compiler that then refuses the intrinsic - "always_inline function
+// '_pext_u64' requires target feature 'bmi2'" - which is the error this macro
+// exists to keep users away from. Hence the !defined(__clang__): clang-cl falls
+// to the first arm, where it belongs, and it defines __x86_64__ as well.
 //
 // Either way the target must be x86-*64*. `_pext_u64` extracts from a 64-bit
 // value and exists only in 64-bit mode: on 32-bit x86 there is `_pext_u32` and
@@ -33,7 +41,7 @@
 // and MrDocs then produces no page - which would make every @ref to the macro
 // render as plain text.
 #if (defined(__BMI2__) && defined(__x86_64__)) ||                              \
-    (defined(_MSC_VER) && defined(_M_X64))
+    (defined(_MSC_VER) && !defined(__clang__) && defined(_M_X64))
 #define BOOST_OPENMETHOD_DETAIL_HAS_PEXT 1
 #else
 #define BOOST_OPENMETHOD_DETAIL_HAS_PEXT 0
@@ -60,6 +68,15 @@
 
 #if BOOST_OPENMETHOD_HAS_PEXT
 #include <immintrin.h>
+#endif
+
+#ifdef _MSC_VER
+#pragma warning(push)
+// 4702: unreachable code. The `abort()` after a call to the error handler is
+// there for a handler that returns - the default one prints and returns - but a
+// handler that is [[noreturn]], like throw_error_handler, makes it dead code,
+// and MSVC diagnoses that. Same reason as in preamble.hpp and core.hpp.
+#pragma warning(disable : 4702)
 #endif
 
 namespace boost::openmethod {
@@ -156,9 +173,12 @@ namespace policies {
 //! inlined into every dispatch, `-mbmi2` (or a `-march=` implying it) has to be
 //! set for **every** translation unit of the program, and of any module sharing
 //! the registry, not just one; a binary built with it executes an illegal
-//! instruction on the first dispatch on a CPU that lacks `pext`. Naming this
-//! policy in a registry where @ref BOOST_OPENMETHOD_HAS_PEXT is 0 is a compile
-//! error. @ref minimal_perfect_hash is the portable alternative, at a cost of a
+//! instruction on the first dispatch on a CPU that lacks `pext`. MSVC is the
+//! exception: it emits the instruction from the intrinsic on any 64-bit target,
+//! and takes no flag; clang-cl is not MSVC here, and wants `-mbmi2` or
+//! `/arch:AVX2`. Naming this policy in a registry where
+//! @ref BOOST_OPENMETHOD_HAS_PEXT is 0 is a compile error.
+//! @ref minimal_perfect_hash is the portable alternative, at a cost of a
 //! nanosecond or two per call.
 //!
 //! After "Perfect Hashing in an Imperfect World", Joaquin M. Lopez Munoz.
@@ -503,5 +523,9 @@ auto minimal_cover_hash<MaxBits>::too_many_bits::write(Stream& os) const
 
 } // namespace policies
 } // namespace boost::openmethod
+
+#ifdef _MSC_VER
+#pragma warning(pop)
+#endif
 
 #endif
