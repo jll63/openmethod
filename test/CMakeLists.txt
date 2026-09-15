@@ -110,8 +110,12 @@ foreach(test_cpp ${test_cpp_files})
     # translation unit. Only the tests that name the policy need it, and only on
     # x86-64 - the 64-bit pext intrinsic does not exist in 32-bit mode:
     # elsewhere BOOST_OPENMETHOD_HAS_PEXT is 0 and the policy drops out of both.
+    set(test_needs_bmi2 FALSE)
+
     if (test MATCHES "minimal_cover_hash|hash_policies" AND
         CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|AMD64|amd64)$")
+        set(test_needs_bmi2 TRUE)
+
         if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" OR
             CMAKE_CXX_COMPILER_FRONTEND_VARIANT MATCHES "MSVC")
             target_compile_options(${test_target} PRIVATE /arch:AVX2)
@@ -130,7 +134,11 @@ foreach(test_cpp ${test_cpp_files})
         endif()
     endforeach()
 
-    if (test_cpp_overrides_registry EQUAL -1)
+    # The BMI2 sources are left out too, for a different reason: the shared PCH
+    # is compiled without the flag, and GCC then warns (-Winvalid-pch) that it
+    # was "created and used with differing settings of '-mbmi2'" for every file
+    # that reuses it with the flag on.
+    if (test_cpp_overrides_registry EQUAL -1 AND NOT test_needs_bmi2)
         if (NOT boost_openmethod_pch_owner)
             target_precompile_headers(${test_target} PRIVATE ${BOOST_OPENMETHOD_TEST_PCH_HEADERS})
             set(boost_openmethod_pch_owner ${test_target})
