@@ -499,9 +499,32 @@ on (`detail::method_registry`, driven by `detail::param_affinity` / `agreed_affi
 
 Every class has an affinity; one that declares none has the *default* affinity. Only a *declared*
 affinity constrains a method, so a method may mix a class that declares one with a class that does
-not - the latter yields. `detail::declared_affinity` maps the default registry to
-`detail::default_affinity` to express that; `registry_affinity` itself is a query and always
-answers.
+not - the latter yields. The catch-all `boost_openmethod_registry(...)` returns the sentinel
+`detail::default_affinity`, not a registry, so an affinity declared for the default registry
+itself still counts as declared; `detail::registry_affinity_aux<T>::declared` is the raw answer
+(sentinel or registry) and `registry_affinity<T>` the query, which always answers a registry. A
+`virtual_ptr` parameter contributes its *class's* affinity, never the registry it spells; a
+spelled registry must agree with the class (`validate_method_parameter`, all three shapes).
+
+Two spellings, looked up in this order: a member typedef `boost_openmethod_registry`
+(`detail::member_registry_aux` - ordinary member lookup, so inherited, hidden by a derived class's
+own, ambiguous between two bases) and the ADL overload. `inplace_vptr_base` provides the typedef.
+
+**The answer is memoized, so every question carries a `Question` tag.** A class mentioned before
+it is complete - `virtual_ptr<Node>` as a member of `Node`, or through a forward declaration - is
+asked before a declaration further down its body can be seen, and an untagged class template
+specialization would remember that answer for the whole TU. Refusing to answer is not an option:
+`virtual_ptr<Node> next;` in a plain linked structure declares no affinity and must keep working
+(`test_virtual_ptr_self_referential.cpp`, on develop since #109). So `declared_affinity_aux<Class,
+asked>` is the answer that builds types, and `check_affinity<Class>` puts the same question again
+under the `rechecked` tag at the points where the class must be complete anyway - a virtual
+parameter in `validate_method_parameter`, a registration in `use_class_aux` - and refuses an
+answer that has changed. That is where a wrong registry would do its damage. The ambiguous-bases
+diagnosis in `adl_affinity` is guarded on the tag, or the recheck would repeat it.
+
+Anchoring goes through `virtual_traits` (`detail::virtual_type<T, macro_default_registry>`), never
+a bare `element_type` probe: a polymorphic class may define `element_type` and must keep its own
+affinity.
 
 Two things deliberately do **not** participate, and both are documented as such:
 

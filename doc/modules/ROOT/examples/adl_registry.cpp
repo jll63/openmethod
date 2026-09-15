@@ -58,6 +58,21 @@ static_assert(
     std::is_same_v<virtual_ptr<zoo::Dog>, virtual_ptr<zoo::Dog, zoo_registry>>);
 // end::virtual_ptr[]
 
+// tag::typedef[]
+namespace zoo {
+
+struct Cage {
+    using boost_openmethod_registry = zoo_registry;
+
+    virtual ~Cage() = default;
+    virtual_ptr<Cage> next;
+};
+
+} // namespace zoo
+// end::typedef[]
+
+static_assert(std::is_same_v<registry_affinity<zoo::Cage>, zoo_registry>);
+
 BOOST_AUTO_TEST_CASE(adl_registry) {
     // tag::call[]
     initialize<zoo_registry>();

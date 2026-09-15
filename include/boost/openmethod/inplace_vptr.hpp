@@ -99,6 +99,13 @@ class inplace_vptr_base_tag {};
 //! @see [Virtual Pointer Alternatives](xref:ROOT:virtual_ptr_alt.adoc)
 template<class Class, class Registry = BOOST_OPENMETHOD_DEFAULT_REGISTRY>
 class inplace_vptr_base : protected detail::inplace_vptr_base_tag {
+  public:
+    //! The registry `Class` has an affinity for, i.e. `Registry`. Read back by
+    //! @ref registry_affinity, and inherited by the classes derived from
+    //! `Class` - inside their own bodies too.
+    using boost_openmethod_registry = Registry;
+
+  private:
     template<class To, class Other>
     friend void detail::boost_openmethod_update_vptr(Other*);
     friend auto boost_openmethod_registry(Class*) -> Registry;

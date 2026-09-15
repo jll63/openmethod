@@ -90,13 +90,35 @@ _default_ affinity, `BOOST_OPENMETHOD_DEFAULT_REGISTRY`. A _declared_ affinity
 wins over a default one, so a method may mix a class that declares one with a
 class that does not, and lands in the declared registry. Two virtual parameters
 with *different* declared affinities are an error, as is a registry named on the
-method that contradicts one of its parameters.
+method that contradicts one of its parameters, whatever its shape. A
+`virtual_ptr` parameter contributes the affinity of its class, not the registry
+it spells; the two must agree.
 
-A hidden friend, as above, is the spelling to prefer. The declaration must
-precede every use of the class in a method, a `virtual_ptr` or a class
-registration - declaring it later makes the program ill-formed with no
-diagnostic required, and compilers disagree silently about which registry the
-earlier use got. Being part of the class, a hidden friend cannot be late.
+A class can also declare its affinity with a member typedef:
+
+[source,c++]
+----
+include::example$adl_registry.cpp[tag=typedef]
+----
+
+The typedef takes precedence over the function, and is inherited like any
+member - a derived class's typedef hides the base's. It is the spelling for a
+class that mentions `virtual_ptr` of itself in its own body, where the class is
+still incomplete: the typedef is visible from the point it is declared. Such a
+class has already decided to be openmethod-aware; the typedef intrudes no
+further.
+
+Either way, the declaration must precede the first `virtual_ptr` of the class,
+or method taking it as a virtual parameter, that does not name a registry. The
+answer is remembered for the rest of the translation unit, and a class
+mentioned before it is complete - as a member of itself, or through a forward
+declaration - is asked before a declaration further down can be seen.
+
+Declaring none is fine, and is the common case: a linked structure needs no
+affinity, and `virtual_ptr<Node> next;` inside `Node` gets the default
+registry, as it always has. Declaring one too late is an error - not at the
+mention, where nothing is wrong yet, but where the class is complete and its
+affinity matters: a virtual parameter of a method, or a class registration.
 
 WARNING: A declared affinity does not reach
 xref:reference:BOOST_OPENMETHOD_CLASSES.adoc[BOOST_OPENMETHOD_CLASSES], which

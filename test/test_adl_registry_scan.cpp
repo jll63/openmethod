@@ -75,6 +75,28 @@ static_assert(
 static_assert(std::is_same_v<
               scan<void(int, virtual_<const Animal&>, char*)>, zoo_registry>);
 
+// A registry spelled on a `virtual_ptr` parameter is not the class's affinity:
+// Widget declares none, so the method lands in the default registry - where
+// the parameter then contradicts it, see
+// compile_fail_adl_registry_parameter_registry.cpp.
+static_assert(
+    std::is_same_v<
+        scan<void(virtual_ptr<Widget, other_registry>)>, default_registry>);
+
+// An affinity declared for the default registry itself is declared all the
+// same: it constrains, see compile_fail_adl_registry_pinned_default.cpp.
+struct Pinned {
+    virtual ~Pinned() = default;
+    friend auto boost_openmethod_registry(Pinned*) -> default_registry;
+};
+
+static_assert(
+    std::is_same_v<
+        detail::registry_affinity_aux<Pinned>::declared, default_registry>);
+static_assert(std::is_same_v<
+              detail::registry_affinity_aux<Widget>::declared,
+              detail::default_affinity>);
+
 // A registry named on the declaration wins, and the parameters are not
 // consulted at all - the form that predates this feature.
 BOOST_OPENMETHOD(ping, (virtual_<const Widget&>), std::string, other_registry);

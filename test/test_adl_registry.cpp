@@ -43,6 +43,66 @@ static_assert(std::is_same_v<registry_affinity<Animal>, zoo_registry>);
 static_assert(std::is_same_v<registry_affinity<Dog>, zoo_registry>);
 static_assert(std::is_same_v<registry_affinity<Widget>, default_registry>);
 
+// A polymorphic class that happens to define `element_type` is not a smart
+// pointer, and keeps its own affinity.
+struct Matrix {
+    using element_type = double;
+    virtual ~Matrix() = default;
+    friend auto boost_openmethod_registry(Matrix*) -> zoo_registry;
+};
+
+static_assert(std::is_same_v<registry_affinity<Matrix>, zoo_registry>);
+
+// cv-qualifiers on the return type are stripped.
+struct Rock {
+    virtual ~Rock() = default;
+    friend auto boost_openmethod_registry(Rock*) -> const zoo_registry;
+};
+
+static_assert(std::is_same_v<registry_affinity<Rock>, zoo_registry>);
+
+struct kennel_registry : default_registry {};
+
+// A member typedef declares an affinity too. It is visible from the point it
+// is declared, so a class can mention `virtual_ptr` of itself in its own body,
+// where it is still incomplete.
+struct Node {
+    using boost_openmethod_registry = zoo_registry;
+    virtual ~Node() = default;
+    virtual_ptr<Node> next;
+};
+
+static_assert(std::is_same_v<registry_affinity<Node>, zoo_registry>);
+static_assert(
+    std::is_same_v<decltype(Node::next), virtual_ptr<Node, zoo_registry>>);
+
+// Inherited like any member, and a derived class's hides the base's.
+struct Leaf : Node {};
+struct Twig : Node {
+    using boost_openmethod_registry = kennel_registry;
+};
+
+static_assert(std::is_same_v<registry_affinity<Leaf>, zoo_registry>);
+static_assert(std::is_same_v<registry_affinity<Twig>, kennel_registry>);
+
+// The typedef takes precedence over an overload - here the one Animal's
+// namespace declares, and Kennel inherits.
+struct Kennel : Animal {
+    using boost_openmethod_registry = kennel_registry;
+};
+
+static_assert(std::is_same_v<registry_affinity<Kennel>, kennel_registry>);
+
+// A hidden friend that precedes the member is found too: the class is being
+// defined, and lookup sees what has been declared so far.
+struct Chain {
+    virtual ~Chain() = default;
+    friend auto boost_openmethod_registry(Chain*) -> zoo_registry;
+    virtual_ptr<Chain> next;
+};
+
+static_assert(std::is_same_v<registry_affinity<Chain>, zoo_registry>);
+
 // `virtual_ptr` picks it up, so `virtual_ptr<Dog>` is not a `virtual_ptr` in
 // the default registry.
 static_assert(std::is_same_v<virtual_ptr<Dog>, virtual_ptr<Dog, zoo_registry>>);
