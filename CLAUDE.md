@@ -528,9 +528,12 @@ affinity.
 
 Two things deliberately do **not** participate, and both are documented as such:
 
-- `use_classes` / `BOOST_OPENMETHOD_CLASSES` still register into
-  `BOOST_OPENMETHOD_DEFAULT_REGISTRY` unless a registry is listed last. Registering a class that
-  has an affinity without naming its registry is a run-time `missing_class`, not a compile error.
+- `use_classes` / `BOOST_OPENMETHOD_CLASSES` follow the affinities, and are stricter than a
+  method: a registry listed last wins (a class declaring another is an error, one declaring none
+  goes along), and without one the classes must be unanimous - all declaring the same registry, or
+  none declaring one. Mixing a declaring class with a non-declaring one is an error, where the
+  same mixture among a method's parameters is fine, because a `virtual_` parameter can adopt and a
+  class in a list cannot. The C++26 `register_classes` still defaults to the macro.
 - The `any` and `type_erasure` interop headers are untouched. `virtual_any<A, R>&` contributes no
   affinity, so a method over one behaves exactly as before.
 
