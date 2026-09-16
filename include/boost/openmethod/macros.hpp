@@ -22,6 +22,24 @@ struct enable_forwarder<
     using type = ReturnType;
 };
 
+// The same question with the registries taken out of it: every `virtual_ptr`
+// parameter is rewritten into the method's own registry before the call is
+// tried. An overrider that matches this way, and not `enable_forwarder`,
+// differs from the method in nothing but a registry - which is what the guide
+// declared alongside the real one in BOOST_OPENMETHOD reports, through
+// `explain_overrider_mismatch`. It never finds a method to call.
+template<typename, class Method, typename ReturnType, typename... Parameters>
+struct enable_guide_ignoring_registry;
+
+template<class Method, typename ReturnType, typename... Parameters>
+struct enable_guide_ignoring_registry<
+    std::void_t<decltype(Method::fn(
+        std::declval<typename rebind_parameter_registry<
+            typename method_parts<Method>::registry, Parameters>::type>()...))>,
+    Method, ReturnType, Parameters...> {
+    using type = ReturnType;
+};
+
 template<class...>
 struct va_args;
 
@@ -110,6 +128,11 @@ inline constexpr bool method_not_found = false;
     BOOST_OPENMETHOD_OVERRIDERS(ID)<__VA_ARGS__ PARAMETERS>
 
 #define BOOST_OPENMETHOD_GUIDE(ID) BOOST_PP_CAT(BOOST_OPENMETHOD_ID(ID), _guide)
+
+// The guide consulted only when BOOST_OPENMETHOD_GUIDE finds nothing, to tell
+// a wrong registry from a genuinely missing method.
+#define BOOST_OPENMETHOD_DETAIL_GUIDE_ANY_REGISTRY(ID)                         \
+    BOOST_PP_CAT(BOOST_OPENMETHOD_ID(ID), _guide_any_registry)
 
 //! Expand to a core `method` specialization.
 //!
@@ -238,6 +261,13 @@ inline constexpr bool method_not_found = false;
         ForwarderParameters...>::type                                          \
         BOOST_OPENMETHOD_GUIDE(ID)(ForwarderParameters && ... args);           \
     template<typename... ForwarderParameters>                                  \
+    typename ::boost::openmethod::detail::enable_guide_ignoring_registry<      \
+        void, BOOST_OPENMETHOD_TYPE(ID, PARAMETERS, __VA_ARGS__),              \
+        typename BOOST_OPENMETHOD_TYPE(ID, PARAMETERS, __VA_ARGS__),           \
+        ForwarderParameters...>::type                                          \
+        BOOST_OPENMETHOD_DETAIL_GUIDE_ANY_REGISTRY(ID)(                        \
+            ForwarderParameters && ... args);                                  \
+    template<typename... ForwarderParameters>                                  \
     inline auto ID(ForwarderParameters&&... args) ->                           \
         typename ::boost::openmethod::detail::enable_forwarder<                \
             void, BOOST_OPENMETHOD_TYPE(ID, PARAMETERS, __VA_ARGS__),          \
@@ -251,12 +281,24 @@ inline constexpr bool method_not_found = false;
 
 #define BOOST_OPENMETHOD_DETAIL_LOCATE_METHOD(ID, PARAMETERS)                  \
     template<typename T, typename = void>                                      \
-    struct boost_openmethod_detail_locate_method_aux {                         \
+    struct boost_openmethod_detail_explain_method_aux {                        \
         static_assert(                                                         \
             ::boost::openmethod::detail::method_not_found<T>,                  \
             "BOOST_OPENMETHOD_OVERRIDE: cannot find '" #ID                     \
             "' method that accepts the same arguments as the overrider");      \
     };                                                                         \
+    template<typename... A>                                                    \
+    struct boost_openmethod_detail_explain_method_aux<                         \
+        void(A...),                                                            \
+        std::void_t<decltype(BOOST_OPENMETHOD_DETAIL_GUIDE_ANY_REGISTRY(ID)(   \
+            std::declval<A>()...))>> :                                         \
+        ::boost::openmethod::detail::explain_overrider_mismatch<               \
+            decltype(BOOST_OPENMETHOD_DETAIL_GUIDE_ANY_REGISTRY(ID)(           \
+                std::declval<A>()...)),                                        \
+            A...> {};                                                          \
+    template<typename T, typename = void>                                      \
+    struct boost_openmethod_detail_locate_method_aux :                         \
+        boost_openmethod_detail_explain_method_aux<T> {};                      \
     template<typename... A>                                                    \
     struct boost_openmethod_detail_locate_method_aux<                          \
         void(A...),                                                            \

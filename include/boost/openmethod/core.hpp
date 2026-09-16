@@ -3038,6 +3038,72 @@ struct validate_overrider_parameter<
         "of corresponding overrider parameter");
 };
 
+// The pieces of a `method` specialization, for the two templates below. The
+// method type is what a guide function returns, so this is how the macro layer
+// takes it apart.
+template<class Method>
+struct method_parts;
+
+template<typename Id, typename ReturnType, typename... Parameters, class Reg>
+struct method_parts<method<Id, ReturnType(Parameters...), Reg>> {
+    using registry = Reg;
+};
+
+// Rewrite a `virtual_ptr` parameter into `Registry`, whatever registry it
+// names, and leave every other parameter alone. Used to ask whether an
+// overrider would match a method if only the registries agreed - see
+// `enable_guide_ignoring_registry` in macros.hpp.
+template<class Registry, typename Parameter>
+struct rebind_parameter_registry {
+    using type = Parameter;
+};
+
+template<class Registry, class Class, class Other>
+struct rebind_parameter_registry<Registry, virtual_ptr<Class, Other>> {
+    using type = virtual_ptr<Class, Registry>;
+};
+
+template<class Registry, class Class, class Other>
+struct rebind_parameter_registry<Registry, virtual_ptr<Class, Other>&> {
+    using type = virtual_ptr<Class, Registry>&;
+};
+
+template<class Registry, class Class, class Other>
+struct rebind_parameter_registry<Registry, const virtual_ptr<Class, Other>&> {
+    using type = const virtual_ptr<Class, Registry>&;
+};
+
+template<class Registry, class Class, class Other>
+struct rebind_parameter_registry<Registry, virtual_ptr<Class, Other>&&> {
+    using type = virtual_ptr<Class, Registry>&&;
+};
+
+// Say why an overrider did not match a method it otherwise fits. Reached from
+// the failure branch of BOOST_OPENMETHOD_DETAIL_LOCATE_METHOD, once the
+// relaxed guide has found the method the overrider was aiming at. Pairing the
+// parameters instantiates `validate_overrider_parameter`, exactly as calling
+// the overrider through its thunk would - so the diagnosis, "registry
+// mismatch" with both registries in the instantiation trace, is the one the
+// user would have got had the guide not failed first.
+template<class Method, typename... OverriderParameters>
+struct explain_overrider_mismatch;
+
+template<
+    typename Id, typename ReturnType, typename... Parameters, class Reg,
+    typename... OverriderParameters>
+struct explain_overrider_mismatch<
+    method<Id, ReturnType(Parameters...), Reg>, OverriderParameters...> {
+    // Instantiating these is the point: each fires its own diagnosis, and the
+    // one this exists for is `validate_overrider_parameter`'s "registry
+    // mismatch", which names both registries. The value is incidental - those
+    // specializations report through `static_assert` and still inherit
+    // `true_type` - so the fold is a backstop, not the check.
+    static_assert(
+        (validate_overrider_parameter<Parameters, OverriderParameters>::value &&
+         ...),
+        "BOOST_OPENMETHOD_OVERRIDE: the overrider does not match the method");
+};
+
 } // namespace detail
 
 template<
