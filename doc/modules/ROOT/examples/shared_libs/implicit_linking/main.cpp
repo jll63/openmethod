@@ -16,6 +16,7 @@ using namespace boost::openmethod::aliases;
 struct Tiger : Carnivore {};
 
 BOOST_OPENMETHOD_CLASSES(Tiger, Carnivore);
+BOOST_OPENMETHOD_CLASSES(Animal, Herbivore, Cow, Carnivore, Wolf);
 
 BOOST_OPENMETHOD_OVERRIDE(
     meet, (virtual_ptr<Herbivore> a, virtual_ptr<Carnivore> b), std::string) {
