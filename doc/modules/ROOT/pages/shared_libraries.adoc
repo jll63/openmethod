@@ -119,7 +119,8 @@ include::{shared}/implicit_linking/extensions.cpp[tag=content]
 ----
 
 The program extends it. It adds a class the library has never heard of, two
-overriders that specialise `meet`, and imports the state through the header:
+overriders that specialise `meet`, and imports the state through the header. It
+also registers the library's classes a second time - see below:
 
 [source,c++]
 ----
@@ -130,6 +131,18 @@ Note what `next` does here: the program's `Herbivore, Carnivore` overrider calls
 the library's `Animal, Animal` overrider, so control crosses the module boundary
 in the middle of a single dispatch, and `cow meets wolf` prints
 `do not greet, run`.
+
+The program registers `Animal`, `Herbivore`, `Cow`, `Carnivore` and `Wolf`,
+although the library has registered them already. That is the rule
+cpp:use_classes[] states: a class must be registered in as many translation
+units as it has type ids. On ELF and Mach-O it has one - the dynamic linker
+merges the `type_info` objects, and the second registration is redundant but
+harmless. Windows keeps one `type_info` per module, so the program's `Wolf` and
+the library's `Wolf` are two different type ids, and the program creates its
+`Wolf` with `new`. Without the second registration the program's id is unknown
+to the registry, and the first dispatch on it fails with `unknown class Wolf`.
+Registering in both modules is what makes the example portable, and costs
+nothing where it is not needed.
 
 ## Dynamic Linking
 
