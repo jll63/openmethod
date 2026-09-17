@@ -15,8 +15,8 @@ xref:reference:BOOST_OPENMETHOD_DEFAULT_REGISTRY.adoc[BOOST_OPENMETHOD_DEFAULT_R
 _before_ including `<boost/openmethod/core.hpp>` (or any header that includes
 it, like `<boost/openmethod.hpp>`). The value of the symbol is used as a default
 template parameter for `use_classes`, and for `method` and `virtual_ptr` where
-the classes involved declare no affinity of their own - see <<Registry
-affinity>> below. Once it has been included, changing
+the classes involved declare no affinity of their own - see
+<<registry_affinity>> below. Once it has been included, changing
 `BOOST_OPENMETHOD_DEFAULT_REGISTRY` has no effect.
 
 For a registry the library provides, that is the whole recipe:
@@ -51,6 +51,7 @@ declaration must use the same class-key as the definition. Qualify the name if
 it could also be found in namespace `boost::openmethod` - `registry` in
 particular.
 
+[#registry_affinity]
 ### Registry affinity
 
 `BOOST_OPENMETHOD_DEFAULT_REGISTRY` is a whole-program answer: one registry, for
