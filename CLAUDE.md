@@ -553,11 +553,16 @@ default). Mixing a declaring class with a non-declaring one is an error, where t
 among a method's parameters is fine. `detail::class_list_registry` decides; `unanimous_registry`
 is the strict fold, deliberately *not* `agreed_registry`.
 
-One thing deliberately does **not** participate, and is documented as such: the `any` and
-`type_erasure` interop headers are untouched, and `virtual_any<A, R>&` contributes no affinity, so
-a method over one behaves exactly as before. The C++26 `register_classes` also still defaults to
-the macro - its groups may name a namespace, whose classes are only known during the scan that the
-choice of registry feeds.
+Two things deliberately do **not** participate, and both are documented as such:
+
+- The `any` and `type_erasure` interop headers declare no affinity. `virtual_any<A, R>&`
+  contributes none, so a method over one behaves exactly as before. They are not untouched,
+  though: #116 gave their `validate_method_parameter` specializations the registry parameter
+  `virtual_` gained in #113, so a parameter may still *spell* a registry
+  (`virtual_<const std::any&, R>`) - a different thing from declaring an affinity, and the
+  reason a specialization there must never go back to the bare `virtual_<T>` spelling.
+- The C++26 `register_classes` still defaults to the macro - its groups may name a namespace,
+  whose classes are only known during the scan that the choice of registry feeds.
 
 **A test that selects a registry through an affinity needs no PCH marker.** The scan below exists
 because `BOOST_OPENMETHOD_DEFAULT_REGISTRY` must be defined before `core.hpp` is parsed, and a
@@ -567,9 +572,9 @@ headers, so those tests can share the PCH - do not add a fourth marker for them.
 `test/CMakeLists.txt` withholds the shared PCH from any `test_*.cpp` that overrides the
 registry - a force-included PCH would still precede the `#define`. It detects them by scanning
 for the token `BOOST_OPENMETHOD_DEFAULT_REGISTRY` **or** for an include of a header that
-carries the override on the file's behalf (`test_capture_errors.hpp`). Add another such header
-and the scan has to learn about it: miss one and the file still compiles, binds to
-`default_registry`, and fails at run time.
+carries the override on the file's behalf (`test_capture_errors.hpp` and
+`test_checked_registry.hpp`). Add another such header and the scan has to learn about it: miss
+one and the file still compiles, binds to `default_registry`, and fails at run time.
 
 ### Flattened headers for Compiler Explorer
 
