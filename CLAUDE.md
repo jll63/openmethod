@@ -673,6 +673,30 @@ For examples:
 4. For changes affecting examples: enable `BOOST_OPENMETHOD_BUILD_EXAMPLES`
 5. Submit PRs against the `develop` branch
 
+### Never commit build output, and ask before committing anything large
+
+Stage named paths. `git add <dir>` and `git add -A` are not used here: b2's object trees (`bin/`
+at the root and under `config/`, `test/`, `test/dynamic_loading/` and each
+`test/implicit_shared_libraries/` variant) and CMake's `build/` sit in the working tree, and one
+careless `git add test` commits them. **Ask before committing any build artefact, and before
+committing any file over 1MB**, whatever its kind.
+
+`.gitignore` is not a safety net. It has no effect on a path that is already tracked, and a branch
+cut before an ignore rule landed does not carry it - which is how #103 merged 415 files of b2
+output, 613 MiB expanded and 94 MiB in the pack on a repository of about 3 MB, days after #108
+added the `bin/` rule meant to prevent exactly that.
+
+On a Boost library the mistake is permanent, and rewriting `develop` is not a remedy:
+
+- The superproject pins `libs/openmethod` by SHA, and its bot bumps that pin within minutes of
+  every merge, so a rewrite orphans the commits `boostorg/boost` already points at -
+  `git submodule update` then fails at those commits for good.
+- The blobs stay reachable through `refs/pull/<n>/head`, which a maintainer cannot delete, and
+  forks share object storage. Removing them for real is a GitHub Support matter.
+
+So the only cheap fix is `git rm -r --cached` (#117), which cleans the tree and leaves the objects
+in the pack forever. Not committing them is the whole defence.
+
 ### Posting in public on the maintainer's behalf
 
 Anything published under the maintainer's account - a GitHub issue or comment, a PR body, a
