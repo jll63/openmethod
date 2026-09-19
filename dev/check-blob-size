@@ -1,0 +1,26 @@
+#!/bin/bash
+# Copyright (c) 2017-2026 Jean-Louis Leroy
+# Distributed under the Boost Software License, Version 1.0.
+# See accompanying file LICENSE_1_0.txt
+# or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+# Check a single blob's size against the project's oversized-file limit.
+# Shared by dev/git-hooks/pre-commit (every file staged for a commit) and the
+# "File size" CI job (every blob any commit in a pull request introduces), so
+# the limit and the message live in one place instead of two.
+#
+# Usage: dev/check-blob-size <oid> <path>
+# Exit 0 if the blob is within the limit (or <oid> isn't a blob at all - not
+# this script's problem), 1 with a message on stderr if it's over.
+
+limit=$((256 * 1024))   # 256 KiB
+
+oid="$1"
+path="$2"
+
+size=$(git cat-file -s "$oid") || exit 0
+if [ "$size" -gt "$limit" ]; then
+    printf 'oversized file: %s is %s bytes, over the %s byte limit (blob %s).\n' \
+        "$path" "$size" "$limit" "$oid" >&2
+    exit 1
+fi

@@ -1,0 +1,23 @@
+#!/bin/bash
+# Copyright (c) 2017-2026 Jean-Louis Leroy
+# Distributed under the Boost Software License, Version 1.0.
+# See accompanying file LICENSE_1_0.txt
+# or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+# Symlink dev/git-hooks/* into the hooks directory git will actually run -
+# .git/hooks in a plain clone, or the common git dir for a linked worktree, so
+# one run covers every worktree of this clone.
+#
+# Usage: dev/install-git-hooks
+
+set -euo pipefail
+
+root_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+hooks_src="$root_dir/dev/git-hooks"
+hooks_dst="$(cd "$root_dir" && git rev-parse --git-path hooks)"
+
+for hook in "$hooks_src"/*; do
+    name="$(basename "$hook")"
+    ln -sf "$hook" "$hooks_dst/$name"
+    echo "installed $hooks_dst/$name -> $hook"
+done
