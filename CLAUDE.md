@@ -553,11 +553,16 @@ default). Mixing a declaring class with a non-declaring one is an error, where t
 among a method's parameters is fine. `detail::class_list_registry` decides; `unanimous_registry`
 is the strict fold, deliberately *not* `agreed_registry`.
 
-One thing deliberately does **not** participate, and is documented as such: the `any` and
-`type_erasure` interop headers are untouched, and `virtual_any<A, R>&` contributes no affinity, so
-a method over one behaves exactly as before. The C++26 `register_classes` also still defaults to
-the macro - its groups may name a namespace, whose classes are only known during the scan that the
-choice of registry feeds.
+Two things deliberately do **not** participate, and both are documented as such:
+
+- The `any` and `type_erasure` interop headers declare no affinity. `virtual_any<A, R>&`
+  contributes none, so a method over one behaves exactly as before. They are not untouched,
+  though: #116 gave their `validate_method_parameter` specializations the registry parameter
+  `virtual_` gained in #113, so a parameter may still *spell* a registry
+  (`virtual_<const std::any&, R>`) - a different thing from declaring an affinity, and the
+  reason a specialization there must never go back to the bare `virtual_<T>` spelling.
+- The C++26 `register_classes` still defaults to the macro - its groups may name a namespace,
+  whose classes are only known during the scan that the choice of registry feeds.
 
 **A test that selects a registry through an affinity needs no PCH marker.** The scan below exists
 because `BOOST_OPENMETHOD_DEFAULT_REGISTRY` must be defined before `core.hpp` is parsed, and a
@@ -567,9 +572,9 @@ headers, so those tests can share the PCH - do not add a fourth marker for them.
 `test/CMakeLists.txt` withholds the shared PCH from any `test_*.cpp` that overrides the
 registry - a force-included PCH would still precede the `#define`. It detects them by scanning
 for the token `BOOST_OPENMETHOD_DEFAULT_REGISTRY` **or** for an include of a header that
-carries the override on the file's behalf (`test_capture_errors.hpp`). Add another such header
-and the scan has to learn about it: miss one and the file still compiles, binds to
-`default_registry`, and fails at run time.
+carries the override on the file's behalf (`test_capture_errors.hpp` and
+`test_checked_registry.hpp`). Add another such header and the scan has to learn about it: miss
+one and the file still compiles, binds to `default_registry`, and fails at run time.
 
 ### Flattened headers for Compiler Explorer
 
@@ -667,6 +672,30 @@ For examples:
 3. Run tests: `cd build && ctest`
 4. For changes affecting examples: enable `BOOST_OPENMETHOD_BUILD_EXAMPLES`
 5. Submit PRs against the `develop` branch
+
+### Never commit build output, and ask before committing anything large
+
+Stage named paths. `git add <dir>` and `git add -A` are not used here: b2's object trees (`bin/`
+at the root and under `config/`, `test/`, `test/dynamic_loading/` and each
+`test/implicit_shared_libraries/` variant) and CMake's `build/` sit in the working tree, and one
+careless `git add test` commits them. **Ask before committing any build artefact, and before
+committing any file over 1MB**, whatever its kind.
+
+`.gitignore` is not a safety net. It has no effect on a path that is already tracked, and a branch
+cut before an ignore rule landed does not carry it - which is how #103 merged 415 files of b2
+output, 613 MiB expanded and 94 MiB in the pack on a repository of about 3 MB, days after #108
+added the `bin/` rule meant to prevent exactly that.
+
+On a Boost library the mistake is permanent, and rewriting `develop` is not a remedy:
+
+- The superproject pins `libs/openmethod` by SHA, and its bot bumps that pin within minutes of
+  every merge, so a rewrite orphans the commits `boostorg/boost` already points at -
+  `git submodule update` then fails at those commits for good.
+- The blobs stay reachable through `refs/pull/<n>/head`, which a maintainer cannot delete, and
+  forks share object storage. Removing them for real is a GitHub Support matter.
+
+So the only cheap fix is `git rm -r --cached` (#117), which cleans the tree and leaves the objects
+in the pack forever. Not committing them is the whole defence.
 
 ### Posting in public on the maintainer's behalf
 
