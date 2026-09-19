@@ -102,6 +102,41 @@ jobs:
           cmake --build ../build --target tests -j $(nproc)
           ctest --test-dir ../build -j $(nproc) --output-on-failure
 
+  file-size:
+    name: File size
+    # Only meaningful for a pull request: github.event.pull_request is unset
+    # on a push, and a push's commits are only ever ones already checked here
+    # as part of the PR that introduced them.
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Clone Boost.OpenMethod
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      # Every blob any commit in the PR introduces, not just the files that
+      # differ in the final base...head diff - a commit that adds an
+      # oversized file and a later commit in the same PR that shrinks or
+      # removes it still leaves that blob in history forever once merged.
+      # Same limit and message as the local dev/git-hooks/pre-commit hook
+      # (dev/check-blob-size), so a contributor who skipped installing it
+      # still can't land an oversized file.
+      - name: Check for oversized blobs
+        run: |
+          status=0
+
+          git rev-list "${{ github.event.pull_request.base.sha }}..${{ github.event.pull_request.head.sha }}" |
+          while read -r c; do
+              git diff-tree -r --no-commit-id --diff-filter=ACMR "$c"
+          done | awk '{print $4, $NF}' | sort -u > /tmp/blobs.txt
+
+          while read -r oid path; do
+              dev/check-blob-size "$oid" "$path" || status=1
+          done < /tmp/blobs.txt
+
+          exit "$status"
+
   flat-headers:
     name: Flat headers
     runs-on: ubuntu-24.04
