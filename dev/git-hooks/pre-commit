@@ -1,0 +1,38 @@
+#!/bin/bash
+# Copyright (c) 2017-2026 Jean-Louis Leroy
+# Distributed under the Boost Software License, Version 1.0.
+# See accompanying file LICENSE_1_0.txt
+# or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+# Reject a commit that stages an oversized file. Bypass with `git commit
+# --no-verify` when a large file really is project content.
+#
+# Not installed automatically - run dev/install-git-hooks once per clone (or
+# per worktree that doesn't share this one's .git/hooks; linked worktrees do).
+#
+# Sizes come from the index (`git cat-file -s :path`), not the working tree, so
+# this is right for `git add -p`, for `git commit <paths>` (git hands the hook
+# a temporary index), and on a repo with no commits yet. --diff-filter=ACMR
+# skips deletions, which have no index entry to size.
+#
+# bash, not sh: `read -d` is a bashism, and dash is /bin/sh here. The redirect
+# from a process substitution keeps the loop out of a subshell, so `status`
+# survives it and every offender gets reported, not just the first.
+
+limit=$((256 * 1024))   # 256 KiB
+status=0
+
+while IFS= read -r -d '' f; do
+    size=$(git cat-file -s ":$f") || continue
+    if [ "$size" -gt "$limit" ]; then
+        printf 'pre-commit: %s is %s bytes, over the %s byte limit.\n' \
+            "$f" "$size" "$limit" >&2
+        status=1
+    fi
+done < <(git diff --cached --name-only --diff-filter=ACMR -z)
+
+if [ "$status" -ne 0 ]; then
+    echo "pre-commit: unstage it, or commit with --no-verify." >&2
+fi
+
+exit "$status"

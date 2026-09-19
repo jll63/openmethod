@@ -49,3 +49,8 @@ flat/
 # untracked-but-addable - `git add test` would commit tens of thousands of
 # lines of objects.
 bin/
+
+# CTest output. `ctest` writes Testing/Temporary/{LastTest.log,CTestCostData.txt}
+# relative to the directory it runs in, so this turns up at the root whenever
+# ctest is run from there rather than from build/.
+Testing/
