@@ -3,7 +3,8 @@
 [#members]
 
 A method may itself be a `static` member function of a class, declared with
-`BOOST_OPENMETHOD_MEM` instead of `BOOST_OPENMETHOD`:
+xref:reference:BOOST_OPENMETHOD_MEM.adoc[BOOST_OPENMETHOD_MEM] instead of
+xref:reference:BOOST_OPENMETHOD.adoc[BOOST_OPENMETHOD]:
 
 [source,c++]
 ----
@@ -18,7 +19,8 @@ scope.
 
 An overrider, too, may be a `static` member function - of any class, not
 necessarily the one the method belongs to - added with
-`BOOST_OPENMETHOD_OVERRIDE_MEM` instead of `BOOST_OPENMETHOD_OVERRIDE`:
+xref:reference:BOOST_OPENMETHOD_OVERRIDE_MEM.adoc[BOOST_OPENMETHOD_OVERRIDE_MEM]
+instead of xref:reference:BOOST_OPENMETHOD_OVERRIDE.adoc[BOOST_OPENMETHOD_OVERRIDE]:
 
 [source,c++]
 ----
@@ -26,7 +28,8 @@ include::{example}/8/main.cpp[tag=zookeeper]
 ----
 
 `ID` names the method being overridden - here `Zoo::poke` - and may equally
-name a free method declared with `BOOST_OPENMETHOD`.
+name a free method declared with
+xref:reference:BOOST_OPENMETHOD.adoc[BOOST_OPENMETHOD].
 
 Since a member overrider's class need not be the method's own, this is what
 lets an overrider reach a class's private state with no `friend` declaration
@@ -47,9 +50,10 @@ include::{example}/8/main.cpp[tag=payroll]
 so they call it as an ordinary same-class private call - no `friend` in
 sight. `next`/`has_next` are not available by name inside a `_MEM` overrider's
 body the way they are in a free one's; the second overrider reaches the first
-through the core API instead, via `BOOST_OPENMETHOD_OVERRIDER_MEM`, naming
-*itself* (its own `(Class, ID, PARAMETERS, RETURN)`), not the overrider it
-calls.
+through the core API instead, via
+xref:reference:BOOST_OPENMETHOD_OVERRIDER_MEM.adoc[BOOST_OPENMETHOD_OVERRIDER_MEM],
+naming *itself* (its own `(Class, ID, PARAMETERS, RETURN)`), not the overrider
+it calls.
 
 This does not apply when the class the overrider needs access to is not one
 the caller controls - a third-party type with no room to add a member. The
@@ -74,12 +78,12 @@ we pass the payroll object to the `pay` method:
 include::{example}/5/main.cpp[tag=pay]
 ----
 
-`BOOST_OPENMETHOD` declares an overrider container for `pay` in the current
-namespace, even though it does not define any overrider by itself. We can thus
-name the individual address containers in `friend` declarations. But note that
-at this point, the containers have not been specialized yet! In particular, the
-`fn` member function does not exist yet. Instead, we declare friendship to the
-container itself:
+xref:reference:BOOST_OPENMETHOD.adoc[BOOST_OPENMETHOD] declares an overrider
+container for `pay` in the current namespace, even though it does not define
+any overrider by itself. We can thus name the individual address containers
+in `friend` declarations. But note that at this point, the containers have
+not been specialized yet! In particular, the `fn` member function does not
+exist yet. Instead, we declare friendship to the container itself:
 
 [source,c++]
 ----
