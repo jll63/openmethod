@@ -553,14 +553,24 @@ default). Mixing a declaring class with a non-declaring one is an error, where t
 among a method's parameters is fine. `detail::class_list_registry` decides; `unanimous_registry`
 is the strict fold, deliberately *not* `agreed_registry`.
 
-Two things deliberately do **not** participate, and both are documented as such:
+Two things declare no affinity - but declaring none is not the same as contributing none, and the
+interop shapes differ from one another. What each does, with the method on another registry:
 
-- The `any` and `type_erasure` interop headers declare no affinity. `virtual_any<A, R>&`
-  contributes none, so a method over one behaves exactly as before. They are not untouched,
-  though: #116 gave their `validate_method_parameter` specializations the registry parameter
-  `virtual_` gained in #113, so a parameter may still *spell* a registry
-  (`virtual_<const std::any&, R>`) - a different thing from declaring an affinity, and the
-  reason a specialization there must never go back to the bare `virtual_<T>` spelling.
+| parameter spelling `R` | decides an unannotated method's registry | checked against a method naming another |
+|---|---|---|
+| `virtual_<Animal&, R>` (ordinary carrier) | yes | yes - `core.hpp`, "the parameter belongs to another registry" |
+| `virtual_<const std::any&, R>` (interop) | yes | **no - nothing checks it** (#123) |
+| `virtual_any<A, R>&` | no, abstains | yes - `virtual_any.hpp`, "registry mismatch" |
+
+- `interop/std_any.hpp`, `interop/boost_any.hpp`, `interop/boost_type_erasure.hpp` and
+  `interop/virtual_any.hpp` declare no affinity for any class, so a class reached through them
+  keeps whatever affinity it declares itself. A parameter may still *spell* a registry - a
+  different thing from declaring an affinity, and the reason #116 gave the
+  `validate_method_parameter` specializations the registry parameter `virtual_` gained in #113.
+  A specialization there must never go back to the bare `virtual_<T>` spelling. Those
+  specializations accept any `ParamRegistry` without ever comparing it, which is the middle row
+  above and a bug rather than a decision (#123); `virtual_any`'s are a different shape
+  (`virtual_any<Any, Registry>&`) and do compare. None of this is covered in `doc/`.
 - The C++26 `register_classes` still defaults to the macro - its groups may name a namespace,
   whose classes are only known during the scan that the choice of registry feeds.
 
