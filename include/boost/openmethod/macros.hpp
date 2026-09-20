@@ -528,7 +528,7 @@ inline constexpr bool method_not_found = false;
 //! @see [Methods and Overriders](xref:ROOT:basics.adoc)
 //! @see [Header and Implementation Files](xref:ROOT:headers.adoc)
 //! @see [Namespaces](xref:ROOT:namespaces.adoc)
-//! @see [Members and Friends](xref:ROOT:friends.adoc)
+//! @see [Members and Friends](xref:ROOT:privacy.adoc)
 #define BOOST_OPENMETHOD_OVERRIDE(ID, PARAMETERS, ...)                         \
     BOOST_OPENMETHOD_DECLARE_OVERRIDER(ID, PARAMETERS, __VA_ARGS__)            \
     BOOST_OPENMETHOD_DEFINE_OVERRIDER(ID, PARAMETERS, __VA_ARGS__)
@@ -643,7 +643,7 @@ inline constexpr bool method_not_found = false;
 //! @param PARAMETERS The method's parameter list, in parentheses.
 //! @param ... The method's return type, optionally followed by the registry.
 //!
-//! @see [Members and Friends](xref:ROOT:friends.adoc)
+//! @see [Members and Friends](xref:ROOT:privacy.adoc)
 #define BOOST_OPENMETHOD_MEM(ID, PARAMETERS, ...)                              \
     BOOST_OPENMETHOD_DETAIL_MEM(                                               \
         BOOST_OPENMETHOD_GENSYM, BOOST_OPENMETHOD_GENSYM, ID, PARAMETERS,      \
@@ -665,7 +665,7 @@ inline constexpr bool method_not_found = false;
 //! @param PARAMETERS The method's parameter list, in parentheses.
 //! @param ... The method's return type.
 //!
-//! @see [Members and Friends](xref:ROOT:friends.adoc)
+//! @see [Members and Friends](xref:ROOT:privacy.adoc)
 #define BOOST_OPENMETHOD_TYPE_MEM(ID, PARAMETERS, ...)                         \
     decltype(BOOST_OPENMETHOD_ID(ID)(                                          \
         static_cast<::boost::openmethod::detail::va_args<                      \
@@ -741,7 +741,7 @@ inline constexpr bool method_not_found = false;
 //! @param PARAMETERS The overrider's parameter list, in parentheses.
 //! @param ... The overrider's return type.
 //!
-//! @see [Members and Friends](xref:ROOT:friends.adoc)
+//! @see [Members and Friends](xref:ROOT:privacy.adoc)
 #define BOOST_OPENMETHOD_OVERRIDE_MEM(ID, PARAMETERS, ...)                     \
     BOOST_OPENMETHOD_DETAIL_OVERRIDE_MEM(                                      \
         BOOST_OPENMETHOD_GENSYM, inline_override, ID, PARAMETERS, __VA_ARGS__)
@@ -757,7 +757,7 @@ inline constexpr bool method_not_found = false;
 //! @param PARAMETERS The overrider's parameter list, in parentheses.
 //! @param ... The overrider's return type.
 //!
-//! @see [Members and Friends](xref:ROOT:friends.adoc)
+//! @see [Members and Friends](xref:ROOT:privacy.adoc)
 #define BOOST_OPENMETHOD_DECLARE_OVERRIDER_MEM(ID, PARAMETERS, ...)            \
     BOOST_OPENMETHOD_DETAIL_OVERRIDE_MEM(                                      \
         BOOST_OPENMETHOD_GENSYM, override, ID, PARAMETERS, __VA_ARGS__)
@@ -773,7 +773,7 @@ inline constexpr bool method_not_found = false;
 //! @param PARAMETERS The overrider's parameter list, in parentheses.
 //! @param ... The overrider's return type.
 //!
-//! @see [Members and Friends](xref:ROOT:friends.adoc)
+//! @see [Members and Friends](xref:ROOT:privacy.adoc)
 #define BOOST_OPENMETHOD_DEFINE_OVERRIDER_MEM(CLASS, ID, PARAMETERS, ...)      \
     auto CLASS::boost_openmethod_overrider_body PARAMETERS                     \
         ->boost::mp11::mp_back<boost::mp11::mp_list<__VA_ARGS__>>
@@ -808,7 +808,7 @@ inline constexpr bool method_not_found = false;
 //! @param PARAMETERS The overrider's parameter list, in parentheses.
 //! @param ... The overrider's return type.
 //!
-//! @see [Members and Friends](xref:ROOT:friends.adoc)
+//! @see [Members and Friends](xref:ROOT:privacy.adoc)
 #define BOOST_OPENMETHOD_OVERRIDER_MEM(CLASS, ID, PARAMETERS, ...)             \
     decltype(CLASS::boost_openmethod_overrider_key(                            \
         static_cast<__VA_ARGS__(*) PARAMETERS>(nullptr)))
