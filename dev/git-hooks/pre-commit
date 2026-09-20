@@ -21,17 +21,44 @@
 #
 # bash, not sh: `read -d` is a bashism, and dash is /bin/sh here. The redirect
 # from a process substitution keeps the loop out of a subshell, so `status`
-# survives it and every offender gets reported, not just the first. Git runs
-# hooks with the working tree's top level as the current directory, so the
-# plain relative path below reaches the right worktree's own copy of the
-# script even when .git/hooks/pre-commit is a symlink shared from another one
-# (dev/install-git-hooks points it at the worktree it was run from).
+# survives it and every offender gets reported, not just the first.
+
+# Prefer this worktree's own copy of the checker: git runs hooks with the
+# working tree's top level as the current directory, so a plain relative path
+# reaches it even when .git/hooks/pre-commit is a symlink shared from another
+# worktree (dev/install-git-hooks points it at the worktree it was run from).
+#
+# A worktree on a branch older than the script has no copy, though, and an
+# unresolved command exits 127 - which would reject every commit there with a
+# message about an oversized file that does not exist. So fall back to the copy
+# beside the hook itself, reached through the symlink git invoked us by. Plain
+# `readlink`, not `readlink -f`: the installer writes an absolute target, and
+# -f is GNU-only. If even that is gone the check cannot run, and refusing every
+# commit is the worse failure - say so and let the commit through.
+checker=dev/check-blob-size
+
+if [ ! -x "$checker" ]; then
+    hook=$0
+    [ -L "$hook" ] && hook=$(readlink "$hook")
+    case $hook in
+        /*) ;;
+        *) hook=$(dirname "$0")/$hook ;;
+    esac
+    beside_hook=$(dirname "$hook")/../check-blob-size
+
+    if [ -x "$beside_hook" ]; then
+        checker=$beside_hook
+    else
+        echo "pre-commit: check-blob-size not found, size check SKIPPED." >&2
+        exit 0
+    fi
+fi
 
 status=0
 
 while IFS= read -r -d '' f; do
     oid=$(git rev-parse ":$f") || continue
-    dev/check-blob-size "$oid" "$f" || status=1
+    "$checker" "$oid" "$f" || status=1
 done < <(git diff --cached --name-only --diff-filter=ACMR -z)
 
 if [ "$status" -ne 0 ]; then
