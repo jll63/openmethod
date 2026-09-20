@@ -272,7 +272,8 @@ struct extract_registry<Type> {
 
 template<typename Type1, typename Type2, typename... MoreTypes>
 struct extract_registry<Type1, Type2, MoreTypes...> {
-    static_assert(!is_registry<Type1>, "policy must be the last in the list");
+    static_assert(
+        !is_registry<Type1>, "a registry must be the last element of the list");
     using registry = typename extract_registry<Type2, MoreTypes...>::registry;
     using others = mp11::mp_push_front<
         typename extract_registry<Type2, MoreTypes...>::others, Type1>;
