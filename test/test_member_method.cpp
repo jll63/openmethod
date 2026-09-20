@@ -106,10 +106,14 @@ struct Salesman : Employee {
 
 BOOST_OPENMETHOD_TEST_CLASSES(Employee, Salesman);
 
-BOOST_OPENMETHOD(
-    pay, (Employee & payroll, virtual_ptr<const Employee>), double);
+// Only a reference to it appears in the method's parameter list, so the
+// forward declaration is enough - Payroll is not an Employee, and is not
+// dispatched on.
+class Payroll;
 
-class Payroll : public Employee {
+BOOST_OPENMETHOD(pay, (Payroll & payroll, virtual_ptr<const Employee>), double);
+
+class Payroll {
   public:
     double balance() const {
         return balance_;
@@ -124,24 +128,24 @@ class Payroll : public Employee {
     }
 
     BOOST_OPENMETHOD_OVERRIDE_MEM(
-        pay, (Employee & payroll, virtual_ptr<const Employee>), double) {
-        static_cast<Payroll&>(payroll).update_balance(-5000.0);
+        pay, (Payroll & payroll, virtual_ptr<const Employee>), double) {
+        payroll.update_balance(-5000.0);
         return 5000.0;
     }
 
     BOOST_OPENMETHOD_DECLARE_OVERRIDER_MEM(
-        pay, (Employee & payroll, virtual_ptr<const Salesman> emp), double);
+        pay, (Payroll & payroll, virtual_ptr<const Salesman> emp), double);
 };
 
 BOOST_OPENMETHOD_DEFINE_OVERRIDER_MEM(
-    Payroll, pay, (Employee & payroll, virtual_ptr<const Salesman> emp),
+    Payroll, pay, (Payroll & payroll, virtual_ptr<const Salesman> emp),
     double) {
     // Self-referencing key: names *this* overrider, not the one it calls.
     using self_key = BOOST_OPENMETHOD_OVERRIDER_MEM(
-        Payroll, pay, (Employee&, virtual_ptr<const Salesman>), double);
+        Payroll, pay, (Payroll&, virtual_ptr<const Salesman>), double);
     double base = self_key::method_type::next<self_key::fn>(payroll, emp);
     double commission = emp->sales * 0.05;
-    static_cast<Payroll&>(payroll).update_balance(-commission);
+    payroll.update_balance(-commission);
     return base + commission;
 }
 

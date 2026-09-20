@@ -37,6 +37,8 @@ class ZooKeeper {
 };
 // end::zookeeper[]
 
+class Payroll;
+
 struct Employee {
     virtual ~Employee() = default;
 };
@@ -47,12 +49,12 @@ struct Salesman : Employee {
 
 // tag::pay[]
 BOOST_OPENMETHOD(
-    pay, (Employee & payroll, boost::openmethod::virtual_ptr<const Employee>),
+    pay, (Payroll & payroll, boost::openmethod::virtual_ptr<const Employee>),
     double);
 // end::pay[]
 
 // tag::payroll[]
-class Payroll : public Employee {
+class Payroll {
   public:
     double balance() const {
         return balance_;
@@ -68,25 +70,23 @@ class Payroll : public Employee {
 
     BOOST_OPENMETHOD_OVERRIDE_MEM(
         pay,
-        (Employee & payroll, boost::openmethod::virtual_ptr<const Employee>),
+        (Payroll & payroll, boost::openmethod::virtual_ptr<const Employee>),
         double) {
         double amount = 5000.0;
-        static_cast<Payroll&>(payroll).update_balance(-amount);
+        payroll.update_balance(-amount);
         return amount;
     }
 
     BOOST_OPENMETHOD_OVERRIDE_MEM(
         pay,
-        (Employee & payroll,
-         boost::openmethod::virtual_ptr<const Salesman> emp),
+        (Payroll & payroll, boost::openmethod::virtual_ptr<const Salesman> emp),
         double) {
         using self = BOOST_OPENMETHOD_OVERRIDER_MEM(
             Payroll, pay,
-            (Employee&, boost::openmethod::virtual_ptr<const Salesman>),
-            double);
+            (Payroll&, boost::openmethod::virtual_ptr<const Salesman>), double);
         double base = self::method_type::next<self::fn>(payroll, emp);
         double commission = emp->sales * 0.05;
-        static_cast<Payroll&>(payroll).update_balance(-commission);
+        payroll.update_balance(-commission);
         return base + commission;
     }
 };
