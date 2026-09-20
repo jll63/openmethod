@@ -725,6 +725,20 @@ inline constexpr bool method_not_found = false;
 // defining KEY's own member out-of-line while still inside the enclosing
 // class - illegal for a nested class. The overrider is therefore an ordinary
 // member of the enclosing class, not of KEY.
+// The trampoline is reached only through `fn`, the function pointer formed from
+// its address on the next line, so at an explicit `fn(args)` call it cannot be
+// inlined. BOOST_FORCEINLINE still pays on gcc and clang, where it removes the
+// extra call in an unoptimized build. On MSVC it pays nothing - __forceinline is
+// ignored under /Od - and costs a hard error everywhere else: /O2 emits C4714,
+// "marked as __forceinline not inlined", which taking the address guarantees, and
+// the suite builds with /W4 /WX. Guarded on BOOST_MSVC, not _MSC_VER, so clang-cl
+// (which does not implement C4714) keeps the attribute.
+#ifdef BOOST_MSVC
+#define BOOST_OPENMETHOD_DETAIL_TRAMPOLINE_INLINE
+#else
+#define BOOST_OPENMETHOD_DETAIL_TRAMPOLINE_INLINE BOOST_FORCEINLINE
+#endif
+
 #define BOOST_OPENMETHOD_DETAIL_OVERRIDE_MEM(                                  \
     KEY, REGISTRAR, ID, PARAMETERS, ...)                                       \
     BOOST_OPENMETHOD_DETAIL_OVERRIDE_MEM_AUX(                                  \
@@ -739,8 +753,8 @@ inline constexpr bool method_not_found = false;
         using method_type =                                                    \
             boost_openmethod_detail_locate_method_aux<void PARAMETERS>::type;  \
         template<typename... ForwarderParameters>                              \
-        static BOOST_FORCEINLINE auto trampoline(ForwarderParameters... args)  \
-            -> __VA_ARGS__ {                                                   \
+        static BOOST_OPENMETHOD_DETAIL_TRAMPOLINE_INLINE auto trampoline(      \
+            ForwarderParameters... args) -> __VA_ARGS__ {                      \
             return boost_openmethod_overrider_body(                            \
                 static_cast<ForwarderParameters&&>(args)...);                  \
         }                                                                      \
