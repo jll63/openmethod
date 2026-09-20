@@ -27,8 +27,8 @@ instead of xref:reference:BOOST_OPENMETHOD_OVERRIDE.adoc[BOOST_OPENMETHOD_OVERRI
 include::{example}/8/main.cpp[tag=zookeeper]
 ----
 
-`ID` names the method being overridden - here `Zoo::poke` - and may equally
-name a free method declared with
+The first argument names the method being overridden - here `Zoo::poke` - and
+may equally name a free method declared with
 xref:reference:BOOST_OPENMETHOD.adoc[BOOST_OPENMETHOD].
 
 Since a member overrider's class need not be the method's own, this is what
@@ -52,8 +52,8 @@ sight. `next`/`has_next` are not available by name inside a `_MEM` overrider's
 body the way they are in a free one's; the second overrider reaches the first
 through the core API instead, via
 xref:reference:BOOST_OPENMETHOD_OVERRIDER_MEM.adoc[BOOST_OPENMETHOD_OVERRIDER_MEM],
-naming *itself* (its own `(Class, ID, PARAMETERS, RETURN)`), not the overrider
-it calls.
+passing it the class, method name, parameter list and return type of the
+overrider doing the call - naming *itself*, not the overrider it calls.
 
 This does not apply when the class the overrider needs access to is not one
 the caller controls - a third-party type with no room to add a member. The
