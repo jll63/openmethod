@@ -497,7 +497,9 @@ looked up in this order: a member typedef `boost_openmethod_registry`
 (`detail::member_affinity` - ordinary member lookup, so inherited, hidden by a derived class's
 own, ambiguous between two bases that disagree) and an ADL overload
 `auto boost_openmethod_registry(Class*) -> Registry;`, preferably a hidden friend.
-`inplace_vptr_base` provides the typedef. The class then *declares* an affinity for that registry,
+`inplace_vptr_base` provides both - the typedef and the hidden friend, the latter being
+what answers the two-bases-that-disagree case the typedef alone cannot; neither is a redundant
+second spelling of the other. The class then *declares* an affinity for that registry,
 inherited by its derived classes, and `registry_affinity<T>` reads it back. `virtual_ptr` and the
 smart pointer aliases default to it.
 
