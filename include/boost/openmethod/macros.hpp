@@ -64,6 +64,38 @@ struct va_args<ReturnType, Registry> {
     using method_type = method<Id, Fn, Registry>;
 };
 
+// The return type alone, for the macros that must not be given a registry:
+// the ones that *name* an existing member method, and the ones that declare
+// an overrider. A member method's registry is fixed by the declaration that
+// created it, and an overrider takes the registry of the method it overrides,
+// so a trailing registry there is always a mistake. Worth catching rather
+// than tolerating: pasted raw into a function pointer type, as these macros
+// once did, it produced a parse error on the user's own line with nothing to
+// suggest the cause. A return type containing commas still arrives as several
+// macro arguments but reassembles into one template argument, which is what
+// tells the two cases apart. `return_type` is still published in the failing
+// case, so one mistake yields one diagnostic instead of a cascade.
+template<class ReturnType>
+struct va_args_return_type {
+    using return_type = ReturnType;
+};
+
+template<class...>
+struct va_args_no_registry;
+
+template<class ReturnType>
+struct va_args_no_registry<ReturnType> : va_args_return_type<ReturnType> {};
+
+template<class ReturnType, class... More>
+struct va_args_no_registry<ReturnType, More...> :
+    va_args_return_type<ReturnType> {
+    static_assert(
+        false_t<More...>,
+        "unexpected argument after the return type: a member method's "
+        "registry is fixed by its declaration, and an overrider takes the "
+        "registry of the method it overrides");
+};
+
 template<typename...>
 inline constexpr bool method_not_found = false;
 
@@ -663,12 +695,13 @@ inline constexpr bool method_not_found = false;
 //!
 //! @param ID The method's name, qualified with its class, e.g. `Zoo::poke`.
 //! @param PARAMETERS The method's parameter list, in parentheses.
-//! @param ... The method's return type.
+//! @param ... The method's return type. No registry may follow it: a member
+//! method's registry is fixed by the declaration that created it.
 //!
 //! @see [Members and Friends](xref:ROOT:privacy.adoc)
 #define BOOST_OPENMETHOD_TYPE_MEM(ID, PARAMETERS, ...)                         \
     decltype(BOOST_OPENMETHOD_ID(ID)(                                          \
-        static_cast<::boost::openmethod::detail::va_args<                      \
+        static_cast<::boost::openmethod::detail::va_args_no_registry<          \
             __VA_ARGS__>::return_type(*) PARAMETERS>(nullptr)))
 
 // The overrider's body cannot be named after ID: ID may be qualified (e.g.
@@ -693,6 +726,13 @@ inline constexpr bool method_not_found = false;
 // class - illegal for a nested class. The overrider is therefore an ordinary
 // member of the enclosing class, not of KEY.
 #define BOOST_OPENMETHOD_DETAIL_OVERRIDE_MEM(                                  \
+    KEY, REGISTRAR, ID, PARAMETERS, ...)                                       \
+    BOOST_OPENMETHOD_DETAIL_OVERRIDE_MEM_AUX(                                  \
+        KEY, REGISTRAR, ID, PARAMETERS,                                        \
+        ::boost::openmethod::detail::va_args_no_registry<                      \
+            __VA_ARGS__>::return_type)
+
+#define BOOST_OPENMETHOD_DETAIL_OVERRIDE_MEM_AUX(                              \
     KEY, REGISTRAR, ID, PARAMETERS, ...)                                       \
     struct KEY {                                                               \
         BOOST_OPENMETHOD_DETAIL_LOCATE_METHOD(ID, PARAMETERS);                 \
@@ -739,7 +779,8 @@ inline constexpr bool method_not_found = false;
 //!
 //! @param ID The method's name.
 //! @param PARAMETERS The overrider's parameter list, in parentheses.
-//! @param ... The overrider's return type.
+//! @param ... The overrider's return type. No registry may follow it: an
+//! overrider takes the registry of the method it overrides.
 //!
 //! @see [Members and Friends](xref:ROOT:privacy.adoc)
 #define BOOST_OPENMETHOD_OVERRIDE_MEM(ID, PARAMETERS, ...)                     \
@@ -755,7 +796,8 @@ inline constexpr bool method_not_found = false;
 //!
 //! @param ID The method's name.
 //! @param PARAMETERS The overrider's parameter list, in parentheses.
-//! @param ... The overrider's return type.
+//! @param ... The overrider's return type. No registry may follow it: an
+//! overrider takes the registry of the method it overrides.
 //!
 //! @see [Members and Friends](xref:ROOT:privacy.adoc)
 #define BOOST_OPENMETHOD_DECLARE_OVERRIDER_MEM(ID, PARAMETERS, ...)            \
@@ -771,12 +813,13 @@ inline constexpr bool method_not_found = false;
 //! in.
 //! @param ID The method's name.
 //! @param PARAMETERS The overrider's parameter list, in parentheses.
-//! @param ... The overrider's return type.
+//! @param ... The overrider's return type. No registry may follow it: an
+//! overrider takes the registry of the method it overrides.
 //!
 //! @see [Members and Friends](xref:ROOT:privacy.adoc)
 #define BOOST_OPENMETHOD_DEFINE_OVERRIDER_MEM(CLASS, ID, PARAMETERS, ...)      \
-    auto CLASS::boost_openmethod_overrider_body PARAMETERS                     \
-        ->boost::mp11::mp_back<boost::mp11::mp_list<__VA_ARGS__>>
+    auto CLASS::boost_openmethod_overrider_body PARAMETERS->::boost::          \
+        openmethod::detail::va_args_no_registry<__VA_ARGS__>::return_type
 
 //! Find a member overrider.
 //!
@@ -806,12 +849,14 @@ inline constexpr bool method_not_found = false;
 //! @param CLASS The class the overrider was added to.
 //! @param ID The method's name.
 //! @param PARAMETERS The overrider's parameter list, in parentheses.
-//! @param ... The overrider's return type.
+//! @param ... The overrider's return type. No registry may follow it: an
+//! overrider takes the registry of the method it overrides.
 //!
 //! @see [Members and Friends](xref:ROOT:privacy.adoc)
 #define BOOST_OPENMETHOD_OVERRIDER_MEM(CLASS, ID, PARAMETERS, ...)             \
     decltype(CLASS::boost_openmethod_overrider_key(                            \
-        static_cast<__VA_ARGS__(*) PARAMETERS>(nullptr)))
+        static_cast<::boost::openmethod::detail::va_args_no_registry<          \
+            __VA_ARGS__>::return_type(*) PARAMETERS>(nullptr)))
 
 //! Register classes.
 //!
