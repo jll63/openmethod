@@ -217,6 +217,26 @@ static_assert(std::is_same_v<weigh_method, weigh_cat::method_type>);
 
 } // namespace comma_return
 
+// A dependent return type: the macros must not require `typename` from the
+// caller. va_args_no_registry's return_type is a nested typedef, so the macro
+// supplies it - 459eb0e briefly did not, and this shape stopped compiling.
+namespace dependent_return {
+
+using namespace comma_return;
+
+template<class R>
+struct Probe {
+    using key = BOOST_OPENMETHOD_OVERRIDER_MEM(
+        Scale, Zoo::weigh, (virtual_ptr<Cat>), R);
+};
+
+static_assert(std::is_same_v<
+              Probe<std::pair<int, int>>::key,
+              BOOST_OPENMETHOD_OVERRIDER_MEM(
+                  Scale, Zoo::weigh, (virtual_ptr<Cat>), std::pair<int, int>)>);
+
+} // namespace dependent_return
+
 BOOST_AUTO_TEST_CASE(member_method_comma_return_type) {
     initialize();
 

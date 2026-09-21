@@ -701,7 +701,7 @@ inline constexpr bool method_not_found = false;
 //! @see [Members and Friends](xref:ROOT:privacy.adoc)
 #define BOOST_OPENMETHOD_TYPE_MEM(ID, PARAMETERS, ...)                         \
     decltype(BOOST_OPENMETHOD_ID(ID)(                                          \
-        static_cast<::boost::openmethod::detail::va_args_no_registry<          \
+        static_cast<typename ::boost::openmethod::detail::va_args_no_registry< \
             __VA_ARGS__>::return_type(*) PARAMETERS>(nullptr)))
 
 // The overrider's body cannot be named after ID: ID may be qualified (e.g.
@@ -743,7 +743,7 @@ inline constexpr bool method_not_found = false;
     KEY, REGISTRAR, ID, PARAMETERS, ...)                                       \
     BOOST_OPENMETHOD_DETAIL_OVERRIDE_MEM_AUX(                                  \
         KEY, REGISTRAR, ID, PARAMETERS,                                        \
-        ::boost::openmethod::detail::va_args_no_registry<                      \
+        typename ::boost::openmethod::detail::va_args_no_registry<             \
             __VA_ARGS__>::return_type)
 
 #define BOOST_OPENMETHOD_DETAIL_OVERRIDE_MEM_AUX(                              \
@@ -832,8 +832,9 @@ inline constexpr bool method_not_found = false;
 //!
 //! @see [Members and Friends](xref:ROOT:privacy.adoc)
 #define BOOST_OPENMETHOD_DEFINE_OVERRIDER_MEM(CLASS, ID, PARAMETERS, ...)      \
-    auto CLASS::boost_openmethod_overrider_body PARAMETERS->::boost::          \
-        openmethod::detail::va_args_no_registry<__VA_ARGS__>::return_type
+    auto CLASS::boost_openmethod_overrider_body PARAMETERS->                   \
+        typename ::boost::openmethod::detail::va_args_no_registry<             \
+            __VA_ARGS__>::return_type
 
 //! Find a member overrider.
 //!
@@ -869,7 +870,7 @@ inline constexpr bool method_not_found = false;
 //! @see [Members and Friends](xref:ROOT:privacy.adoc)
 #define BOOST_OPENMETHOD_OVERRIDER_MEM(CLASS, ID, PARAMETERS, ...)             \
     decltype(CLASS::boost_openmethod_overrider_key(                            \
-        static_cast<::boost::openmethod::detail::va_args_no_registry<          \
+        static_cast<typename ::boost::openmethod::detail::va_args_no_registry< \
             __VA_ARGS__>::return_type(*) PARAMETERS>(nullptr)))
 
 //! Register classes.
