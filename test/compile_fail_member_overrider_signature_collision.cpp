@@ -3,10 +3,15 @@
 // See accompanying file LICENSE_1_0.txt
 // or copy at http://www.boost.org/LICENSE_1_0.txt)
 
-// The two compilers disagree on the wording for this one: gcc says "cannot
-// be overloaded with", clang says "class member cannot be redeclared" - no
-// common substring, hence the `.*`.
-// expected-error: .*
+// Expected diagnostic, as a CMake regex (see CMakeLists.txt).
+// The three compilers word this differently - gcc "cannot be overloaded
+// with", clang "class member cannot be redeclared", MSVC C2556 "overloaded
+// function differs only by return type" - but all three name the accessor
+// whose overload set the collision happens in, so match that. A bare `.*`
+// would match anything, and since the test asserts only
+// PASS_REGULAR_EXPRESSION - CTest ignores the exit status once that is set -
+// it would pass even if the file compiled cleanly.
+// expected-error: boost_openmethod_overrider_key
 
 #include <boost/openmethod.hpp>
 
