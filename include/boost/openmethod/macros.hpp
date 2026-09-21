@@ -96,12 +96,33 @@ struct va_args_no_registry<ReturnType, More...> :
         "registry of the method it overrides");
 };
 
+// The registrar for a _MEM overrider, as a namespace-scope variable template
+// rather than a class member - the device inplace_vptr_base uses for
+// inplace_vptr_use_classes. Keyed on its own type, so it needs no invented
+// name, and being `inline` it is one entity program-wide: the same overrider,
+// seen from any number of translation units, registers exactly once, by
+// linkage rather than by the inline_ dedup at initialize() time.
+template<class Registrar>
+inline Registrar mem_registrar;
+
 template<typename...>
 inline constexpr bool method_not_found = false;
 
 } // namespace boost::openmethod::detail
 
 #define BOOST_OPENMETHOD_GENSYM BOOST_PP_CAT(openmethod_gensym_, __COUNTER__)
+
+// A name unique within a header, and - unlike BOOST_OPENMETHOD_GENSYM - the
+// SAME in every translation unit that includes it. The _MEM macros declare
+// class *members*, so a __COUNTER__-derived name gives a class in a header a
+// different member-specification per TU, which is an ODR violation no compiler
+// diagnoses and which makes a member method's type differ between TUs. __LINE__
+// is stable for a given header; two _MEM macros on one line collide loudly
+// ("member declared twice"), never silently. The free macros are unaffected:
+// their only gensym names a namespace-scope alias or an internal-linkage
+// variable, neither of which is part of a class's member-specification.
+#define BOOST_OPENMETHOD_DETAIL_LINESYM(PREFIX)                                \
+    BOOST_PP_CAT(BOOST_PP_CAT(openmethod_, PREFIX), __LINE__)
 
 //! Create a registrar object.
 //!
@@ -678,8 +699,8 @@ inline constexpr bool method_not_found = false;
 //! @see [Members and Friends](xref:ROOT:privacy.adoc)
 #define BOOST_OPENMETHOD_MEM(ID, PARAMETERS, ...)                              \
     BOOST_OPENMETHOD_DETAIL_MEM(                                               \
-        BOOST_OPENMETHOD_GENSYM, BOOST_OPENMETHOD_GENSYM, ID, PARAMETERS,      \
-        __VA_ARGS__)
+        BOOST_OPENMETHOD_DETAIL_LINESYM(tag_),                                 \
+        BOOST_OPENMETHOD_DETAIL_LINESYM(alias_), ID, PARAMETERS, __VA_ARGS__)
 
 //! Expand to a core `method` specialization, for a method declared with
 //! @ref BOOST_OPENMETHOD_MEM.
@@ -755,6 +776,8 @@ inline constexpr bool method_not_found = false;
         template<typename... ForwarderParameters>                              \
         static BOOST_OPENMETHOD_DETAIL_TRAMPOLINE_INLINE auto trampoline(      \
             ForwarderParameters... args) -> __VA_ARGS__ {                      \
+            (void)&::boost::openmethod::detail::mem_registrar<                 \
+                typename KEY::method_type::REGISTRAR<KEY::fn>>;                \
             return boost_openmethod_overrider_body(                            \
                 static_cast<ForwarderParameters&&>(args)...);                  \
         }                                                                      \
@@ -763,8 +786,6 @@ inline constexpr bool method_not_found = false;
     };                                                                         \
     static auto boost_openmethod_overrider_key(__VA_ARGS__(*) PARAMETERS)      \
         ->KEY;                                                                 \
-    static inline KEY::method_type::REGISTRAR<KEY::fn>                         \
-        BOOST_OPENMETHOD_GENSYM;                                               \
     static auto boost_openmethod_overrider_body PARAMETERS->__VA_ARGS__
 
 //! Add an overrider, as a static member function, to a method.
@@ -799,7 +820,8 @@ inline constexpr bool method_not_found = false;
 //! @see [Members and Friends](xref:ROOT:privacy.adoc)
 #define BOOST_OPENMETHOD_OVERRIDE_MEM(ID, PARAMETERS, ...)                     \
     BOOST_OPENMETHOD_DETAIL_OVERRIDE_MEM(                                      \
-        BOOST_OPENMETHOD_GENSYM, inline_override, ID, PARAMETERS, __VA_ARGS__)
+        BOOST_OPENMETHOD_DETAIL_LINESYM(key_), inline_override, ID,            \
+        PARAMETERS, __VA_ARGS__)
 
 //! Declare a member overrider, without defining it.
 //!
@@ -816,7 +838,8 @@ inline constexpr bool method_not_found = false;
 //! @see [Members and Friends](xref:ROOT:privacy.adoc)
 #define BOOST_OPENMETHOD_DECLARE_OVERRIDER_MEM(ID, PARAMETERS, ...)            \
     BOOST_OPENMETHOD_DETAIL_OVERRIDE_MEM(                                      \
-        BOOST_OPENMETHOD_GENSYM, override, ID, PARAMETERS, __VA_ARGS__)
+        BOOST_OPENMETHOD_DETAIL_LINESYM(key_), override, ID, PARAMETERS,       \
+        __VA_ARGS__)
 
 //! Define the body of a member overrider declared with
 //! @ref BOOST_OPENMETHOD_DECLARE_OVERRIDER_MEM.
