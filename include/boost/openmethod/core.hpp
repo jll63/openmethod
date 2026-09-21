@@ -1018,9 +1018,8 @@ decltype(auto) acquire_vptr(const ArgType& arg) {
 
     Registry::require_initialized();
 
-    if constexpr (has_vptr<
-                      virtual_traits<const ArgType&, Registry>,
-                      const ArgType&>) {
+    if constexpr (
+        has_vptr<virtual_traits<const ArgType&, Registry>, const ArgType&>) {
         return virtual_traits<const ArgType&, Registry>::vptr(arg);
     } else {
         return Registry::template policy<policies::vptr>::dynamic_vptr(arg);
@@ -2728,8 +2727,8 @@ class method<Id, ReturnType(Parameters...), Registry> :
 
     template<typename MethodArgList, typename ArgType, typename... MoreArgTypes>
     auto resolve_multi_first(
-        const ArgType& arg,
-        const MoreArgTypes&... more_args) const -> detail::word;
+        const ArgType& arg, const MoreArgTypes&... more_args) const
+        -> detail::word;
 
     template<
         std::size_t VirtualArg, typename MethodArgList, typename ArgType,
@@ -2875,8 +2874,9 @@ method<Id, ReturnType(Parameters...), Registry>::operator()(
     using namespace detail;
     auto pf = resolve(args...);
 
-    return pf(std::forward<typename StripVirtualDecorator<Parameters>::type>(
-        args)...);
+    return pf(
+        std::forward<typename StripVirtualDecorator<Parameters>::type>(
+            args)...);
 }
 
 template<
@@ -2915,9 +2915,9 @@ BOOST_FORCEINLINE auto method<Id, ReturnType(Parameters...), Registry>::vptr(
 
         if constexpr (detail::has_vptr_fn<decltype(obj), Registry>) {
             return boost_openmethod_vptr(obj, static_cast<Registry*>(nullptr));
-        } else if constexpr (detail::has_vptr<
-                                 virtual_traits<MethodArg, Registry>,
-                                 decltype(obj)>) {
+        } else if constexpr (
+            detail::has_vptr<
+                virtual_traits<MethodArg, Registry>, decltype(obj)>) {
             return virtual_traits<MethodArg, Registry>::vptr(obj);
         } else {
             return Registry::template policy<policies::vptr>::dynamic_vptr(obj);
@@ -2930,8 +2930,8 @@ template<
 template<typename MethodArgList, typename ArgType, typename... MoreArgTypes>
 BOOST_FORCEINLINE auto
 method<Id, ReturnType(Parameters...), Registry>::resolve_uni(
-    const ArgType& arg,
-    const MoreArgTypes&... more_args) const -> detail::word {
+    const ArgType& arg, const MoreArgTypes&... more_args) const
+    -> detail::word {
 
     using namespace detail;
     using namespace policies;
@@ -2950,8 +2950,8 @@ template<
 template<typename MethodArgList, typename ArgType, typename... MoreArgTypes>
 BOOST_FORCEINLINE auto
 method<Id, ReturnType(Parameters...), Registry>::resolve_multi_first(
-    const ArgType& arg,
-    const MoreArgTypes&... more_args) const -> detail::word {
+    const ArgType& arg, const MoreArgTypes&... more_args) const
+    -> detail::word {
 
     using namespace detail;
     using namespace boost::mp11;
@@ -3308,6 +3308,10 @@ void method<Id, ReturnType(Parameters...), Registry>::override_impl<
     this->return_type = Registry::rtti::template static_type<
         virtual_type<FnReturnType, Registry>>();
     this->type = Registry::rtti::template static_type<decltype(Function)>();
+    // The registrar's own type: it carries `Function` as a non-type template
+    // argument, so it names this overrider and no other.
+    this->identity = Registry::rtti::template static_type<
+        std::remove_reference_t<decltype(*this)>>();
     using Thunk = thunk<Function, decltype(Function)>;
     detail::
         init_type_ids<Registry, typename Thunk::OverriderVirtualParameters>::fn(
