@@ -91,7 +91,7 @@ BOOST_AUTO_TEST_CASE(member_method_call_and_overload) {
 
 // ----------------------------------------------------------------------------
 // Member overriders targeting a FREE method, with private access and no
-// friend - the motivating case, mirroring the friends.adoc Payroll example.
+// friend - the motivating case, mirroring the privacy.adoc Payroll example.
 // Also exercises the DECLARE/DEFINE split and next<>/has_next<> through the
 // core API from inside a _MEM body (self-referencing key).
 

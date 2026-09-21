@@ -1,3 +1,4 @@
+:page-aliases: friends.adoc
 :example: ../examples/rolex
 
 [#members]
