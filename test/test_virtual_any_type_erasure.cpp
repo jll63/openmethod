@@ -144,12 +144,12 @@ BOOST_OPENMETHOD(steal, (virtual_erased&&), std::string);
 // boost::type_erasure::any_cast has no rvalue overload; the trait moves
 // the result of a mutable-reference cast, because the `any` owns its
 // value.
-BOOST_OPENMETHOD_OVERRIDE(steal, (Dog && dog), std::string) {
+BOOST_OPENMETHOD_OVERRIDE(steal, (Dog&& dog), std::string) {
     Dog stolen(std::move(dog));
     return stolen.name + " the dog";
 }
 
-BOOST_OPENMETHOD_OVERRIDE(steal, (std::string && name), std::string) {
+BOOST_OPENMETHOD_OVERRIDE(steal, (std::string&& name), std::string) {
     std::string stolen(std::move(name));
     return stolen;
 }

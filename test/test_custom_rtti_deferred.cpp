@@ -129,8 +129,9 @@ struct custom_rtti : boost::openmethod::policies::deferred_static_rtti {
 
         template<class Stream>
         static void type_name(boost::openmethod::type_id type, Stream& stream) {
-            static const char* name[] = {"?",   "Animal", "Dog",
-                                         "Cat", "Bat",    "Owl"};
+            static const char* name[] = {
+                "?", "Animal", "Dog", "Cat", "Bat", "Owl"
+            };
             auto idx = reinterpret_cast<std::size_t>(type);
             stream << (idx >= 1 && idx <= 5 ? name[idx] : "?");
         }
@@ -160,11 +161,11 @@ BOOST_OPENMETHOD_TEST_CLASSES(Animal, Dog, Cat, Bat, Owl);
 
 BOOST_OPENMETHOD(poke, (virtual_<Animal&>, std::ostream&), void);
 
-BOOST_OPENMETHOD_OVERRIDE(poke, (Dog & dog, std::ostream& os), void) {
+BOOST_OPENMETHOD_OVERRIDE(poke, (Dog& dog, std::ostream& os), void) {
     os << dog.name << " barks.";
 }
 
-BOOST_OPENMETHOD_OVERRIDE(poke, (Cat & cat, std::ostream& os), void) {
+BOOST_OPENMETHOD_OVERRIDE(poke, (Cat& cat, std::ostream& os), void) {
     os << cat.name << " hisses.";
 }
 
@@ -179,11 +180,11 @@ BOOST_OPENMETHOD_OVERRIDE(meet, (Dog&, Dog&, std::ostream& os), void) {
 // `dynamic_cast_ref` rather than a static_cast - with type ids that are only
 // assigned during static construction.
 
-BOOST_OPENMETHOD_OVERRIDE(poke, (Bat & bat, std::ostream& os), void) {
+BOOST_OPENMETHOD_OVERRIDE(poke, (Bat& bat, std::ostream& os), void) {
     os << bat.name << " screeches.";
 }
 
-BOOST_OPENMETHOD_OVERRIDE(poke, (Owl & owl, std::ostream& os), void) {
+BOOST_OPENMETHOD_OVERRIDE(poke, (Owl& owl, std::ostream& os), void) {
     os << owl.name << " hoots.";
 }
 

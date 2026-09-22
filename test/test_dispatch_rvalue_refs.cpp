@@ -20,11 +20,11 @@ BOOST_OPENMETHOD_TEST_CLASSES(Animal, Dog, Cat);
 
 BOOST_OPENMETHOD(teleport, (virtual_<Animal&&>), std::unique_ptr<Animal>);
 
-BOOST_OPENMETHOD_OVERRIDE(teleport, (Cat && cat), std::unique_ptr<Animal>) {
+BOOST_OPENMETHOD_OVERRIDE(teleport, (Cat&& cat), std::unique_ptr<Animal>) {
     return std::make_unique<Cat>(std::move(cat));
 }
 
-BOOST_OPENMETHOD_OVERRIDE(teleport, (Dog && dog), std::unique_ptr<Animal>) {
+BOOST_OPENMETHOD_OVERRIDE(teleport, (Dog&& dog), std::unique_ptr<Animal>) {
     return std::make_unique<Dog>(std::move(dog));
 }
 

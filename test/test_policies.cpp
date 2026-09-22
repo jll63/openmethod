@@ -32,7 +32,7 @@ struct derived : base {
 };
 
 static_assert(std::is_same_v<
-              registry<derived>::policy<base>, derived::fn<registry<derived>>>);
+    registry<derived>::policy<base>, derived::fn<registry<derived>>>);
 
 static_assert(detail::is_registry<default_registry>);
 
@@ -59,9 +59,9 @@ struct bar2 : bar {};
 static_assert(std::is_same_v<registry<>::with<foo1>, registry<foo1>>);
 static_assert(std::is_same_v<registry<foo1>::with<foo2>, registry<foo2>>);
 static_assert(std::is_same_v<
-              registry<foo1, bar1>::with<foo2, bar2>, registry<foo2, bar2>>);
+    registry<foo1, bar1>::with<foo2, bar2>, registry<foo2, bar2>>);
 static_assert(std::is_same_v<
-              registry<foo1, bar1>::with<bar2, foo2>, registry<foo2, bar2>>);
+    registry<foo1, bar1>::with<bar2, foo2>, registry<foo2, bar2>>);
 static_assert(
     std::is_same_v<registry<foo1, bar1>::without<bar>, registry<foo1>>);
 
@@ -75,28 +75,27 @@ BOOST_AUTO_TEST_CASE(test_registry) {
 }
 
 static_assert(has_initialize<
-              vptr_vector::fn<registry1>, registry1::compiler<std::tuple<>>,
-              std::tuple<>>);
+    vptr_vector::fn<registry1>, registry1::compiler<std::tuple<>>,
+    std::tuple<>>);
 static_assert(!has_initialize<
-              std_rtti::fn<registry1>, registry1::compiler<std::tuple<>>,
-              std::tuple<>>);
+    std_rtti::fn<registry1>, registry1::compiler<std::tuple<>>, std::tuple<>>);
 static_assert(has_initialize<
-              fast_perfect_hash::fn<registry1>,
-              registry1::compiler<std::tuple<>>, std::tuple<>>);
+    fast_perfect_hash::fn<registry1>, registry1::compiler<std::tuple<>>,
+    std::tuple<>>);
 
 // The alternative `type_hash` policies conform to the same blueprint. Each is a
 // class template, so name a specialization; the defaults are what a user who
 // does not tune them gets.
 static_assert(has_initialize<
-              minimal_perfect_hash<>::fn<registry1>,
-              registry1::compiler<std::tuple<>>, std::tuple<>>);
+    minimal_perfect_hash<>::fn<registry1>, registry1::compiler<std::tuple<>>,
+    std::tuple<>>);
 static_assert(has_initialize<
-              two_level_hash<>::fn<registry1>,
-              registry1::compiler<std::tuple<>>, std::tuple<>>);
+    two_level_hash<>::fn<registry1>, registry1::compiler<std::tuple<>>,
+    std::tuple<>>);
 #if BOOST_OPENMETHOD_HAS_PEXT
 static_assert(has_initialize<
-              minimal_cover_hash<>::fn<registry1>,
-              registry1::compiler<std::tuple<>>, std::tuple<>>);
+    minimal_cover_hash<>::fn<registry1>, registry1::compiler<std::tuple<>>,
+    std::tuple<>>);
 #endif
 
 // All four are interchangeable: each derives from the `type_hash` category, so
@@ -107,9 +106,9 @@ static_assert(std::is_base_of_v<type_hash, minimal_perfect_hash<>>);
 static_assert(std::is_base_of_v<type_hash, two_level_hash<>>);
 static_assert(std::is_base_of_v<type_hash, minimal_cover_hash<>>);
 static_assert(std::is_same_v<
-              default_registry::with<minimal_perfect_hash<>>::policy<type_hash>,
-              minimal_perfect_hash<>::fn<
-                  default_registry::with<minimal_perfect_hash<>>>>);
+    default_registry::with<minimal_perfect_hash<>>::policy<type_hash>,
+    minimal_perfect_hash<>::fn<
+        default_registry::with<minimal_perfect_hash<>>>>);
 static_assert(
     mp11::mp_size<default_registry::policy_list>::value ==
     mp11::mp_size<

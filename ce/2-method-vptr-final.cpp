@@ -62,7 +62,8 @@ auto main() -> int {
     Cat felix{"Felix"}, sylvester{"Sylvester"};
     std::vector<virtual_ptr<Animal>> animals = {
         virtual_ptr<Dog>::final(hector), virtual_ptr<Cat>::final(felix),
-        virtual_ptr<Cat>::final(sylvester), virtual_ptr<Dog>::final(snoopy)};
+        virtual_ptr<Cat>::final(sylvester), virtual_ptr<Dog>::final(snoopy)
+    };
 
     meet_animals(animals, std::cout);
 }

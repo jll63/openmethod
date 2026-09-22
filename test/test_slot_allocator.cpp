@@ -1701,7 +1701,7 @@ BOOST_AUTO_TEST_CASE(test_finalize_clears_vptr_vector) {
 
     // The vptr policy provides a finalize() (portable across MSVC/non-MSVC).
     static_assert(detail::has_finalize<
-                  test_registry::policy<policies::vptr>, const std::tuple<>&>);
+        test_registry::policy<policies::vptr>, const std::tuple<>&>);
 
     finalize<test_registry>();
     BOOST_TEST(vptrs.empty()); // finalize cleared the vector

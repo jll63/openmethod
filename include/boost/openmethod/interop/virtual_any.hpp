@@ -506,7 +506,7 @@ template<class Class, class Registry>
 class virtual_ptr<
     Class, Registry,
     std::enable_if_t<BOOST_OPENMETHOD_UNLESS_MRDOCS(detail::)
-                         IsVirtualAny<std::remove_cv_t<Class>>>> {
+            IsVirtualAny<std::remove_cv_t<Class>>>> {
     static_assert(
         detail::false_t<Class>,
         "do not wrap a virtual_any in a virtual_ptr: it already carries the "

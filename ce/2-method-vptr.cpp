@@ -63,7 +63,8 @@ auto main() -> int {
     Dog hector{"Hector"}, snoopy{"Snoopy"};
     Cat felix{"Felix"}, sylvester{"Sylvester"};
     std::vector<virtual_ptr<Animal>> animals = {
-        hector, felix, sylvester, snoopy};
+        hector, felix, sylvester, snoopy
+    };
 
     meet_animals(animals, std::cout);
 }

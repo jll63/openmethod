@@ -31,7 +31,8 @@ BOOST_AUTO_TEST_CASE(no_initialization) {
             capture capture;
             BOOST_CHECK_THROW(
                 (shared_virtual_ptr<matrix>{
-                    std::make_shared<diagonal_matrix>()}),
+                    std::make_shared<diagonal_matrix>()
+                }),
                 not_initialized);
             BOOST_TEST(capture() == "not initialized\n");
         }

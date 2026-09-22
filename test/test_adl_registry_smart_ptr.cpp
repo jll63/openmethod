@@ -47,18 +47,16 @@ static_assert(
 static_assert(
     std::is_same_v<registry_affinity<boost::intrusive_ptr<Dog>>, zoo_registry>);
 static_assert(std::is_same_v<
-              registry_affinity<const std::shared_ptr<Dog>&>, zoo_registry>);
+    registry_affinity<const std::shared_ptr<Dog>&>, zoo_registry>);
 
 // so the alias and the type it stands for are the same type
 static_assert(std::is_same_v<
-              shared_virtual_ptr<Dog>,
-              virtual_ptr<std::shared_ptr<Dog>, zoo_registry>>);
+    shared_virtual_ptr<Dog>, virtual_ptr<std::shared_ptr<Dog>, zoo_registry>>);
 static_assert(std::is_same_v<
-              unique_virtual_ptr<Dog>,
-              virtual_ptr<std::unique_ptr<Dog>, zoo_registry>>);
+    unique_virtual_ptr<Dog>, virtual_ptr<std::unique_ptr<Dog>, zoo_registry>>);
 static_assert(std::is_same_v<
-              boost_intrusive_virtual_ptr<Dog>,
-              virtual_ptr<boost::intrusive_ptr<Dog>, zoo_registry>>);
+    boost_intrusive_virtual_ptr<Dog>,
+    virtual_ptr<boost::intrusive_ptr<Dog>, zoo_registry>>);
 
 // weak_virtual_ptr is not a virtual_ptr, but it defaults its registry the
 // same way, so it converts to and from the shared_virtual_ptr of its class

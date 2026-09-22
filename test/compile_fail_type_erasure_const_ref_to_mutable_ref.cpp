@@ -29,7 +29,7 @@ BOOST_OPENMETHOD(name, (virtual_<const erased&>), std::string);
 // The `any` is const and owns its value, so the overrider cannot take a
 // mutable reference to it; the `cast` overload is removed from the
 // overload set.
-BOOST_OPENMETHOD_OVERRIDE(name, (Dog & dog), std::string) {
+BOOST_OPENMETHOD_OVERRIDE(name, (Dog& dog), std::string) {
     return dog.name;
 }
 

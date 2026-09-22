@@ -92,11 +92,11 @@ BOOST_OPENMETHOD_TEST_CLASSES(Animal, Dog, Cat);
 
 BOOST_OPENMETHOD(poke, (virtual_<Animal&>, std::ostream&), void);
 
-BOOST_OPENMETHOD_OVERRIDE(poke, (Dog & dog, std::ostream& os), void) {
+BOOST_OPENMETHOD_OVERRIDE(poke, (Dog& dog, std::ostream& os), void) {
     os << dog.name << " barks.";
 }
 
-BOOST_OPENMETHOD_OVERRIDE(poke, (Cat & cat, std::ostream& os), void) {
+BOOST_OPENMETHOD_OVERRIDE(poke, (Cat& cat, std::ostream& os), void) {
     os << cat.name << " hisses.";
 }
 

@@ -936,8 +936,8 @@ struct Dog : Animal {};
 // No registry group, so the classes go to the default registry; no namespace
 // group either, so the global namespace is scanned, as always.
 BOOST_OPENMETHOD_REGISTER(
-    register_classes<{
-        ^^default_registry_target::Animal, ^^default_registry_target::Dog}>);
+    register_classes<
+        {^^default_registry_target::Animal, ^^default_registry_target::Dog}>);
 
 } // namespace default_registry_target
 
@@ -1221,7 +1221,7 @@ BOOST_OPENMETHOD_OVERRIDE(stream, (Dog&), std::ostringstream&) {
 
 BOOST_OPENMETHOD(clone, (virtual_<Animal&>), Animal*, test_registry);
 
-BOOST_OPENMETHOD_OVERRIDE(clone, (Dog & dog), Dog*) {
+BOOST_OPENMETHOD_OVERRIDE(clone, (Dog& dog), Dog*) {
     return &dog;
 }
 

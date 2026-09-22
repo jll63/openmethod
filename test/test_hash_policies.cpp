@@ -216,11 +216,12 @@ struct mch_registry :
 // every injectivity count below come out short, for no fault of the policies.
 BOOST_AUTO_TEST_CASE(generators_produce_distinct_ids) {
     for (auto n : {std::size_t(1), std::size_t(17), std::size_t(1000)}) {
-        for (auto&& named :
-             {std::pair{"packed", ids_packed(n)},
-              std::pair{"diluted", ids_diluted(n)},
-              std::pair{"multi_module", ids_multi_module(n)},
-              std::pair{"dlopened", ids_dlopened(n)}}) {
+        for (
+            auto&& named :
+            {std::pair{"packed", ids_packed(n)},
+                std::pair{"diluted", ids_diluted(n)},
+                std::pair{"multi_module", ids_multi_module(n)},
+                std::pair{"dlopened", ids_dlopened(n)}}) {
             BOOST_TEST_CONTEXT(named.first << ", n = " << n) {
                 std::set<bom::type_id> distinct(
                     named.second.begin(), named.second.end());
@@ -231,14 +232,16 @@ BOOST_AUTO_TEST_CASE(generators_produce_distinct_ids) {
 }
 
 BOOST_AUTO_TEST_CASE(injective_on_every_distribution) {
-    for (auto n :
-         {std::size_t(1), std::size_t(2), std::size_t(17), std::size_t(256),
-          std::size_t(1000)}) {
-        for (auto&& named :
-             {std::pair{"packed", ids_packed(n)},
-              std::pair{"diluted", ids_diluted(n)},
-              std::pair{"multi_module", ids_multi_module(n)},
-              std::pair{"dlopened", ids_dlopened(n)}}) {
+    for (
+        auto n :
+        {std::size_t(1), std::size_t(2), std::size_t(17), std::size_t(256),
+            std::size_t(1000)}) {
+        for (
+            auto&& named :
+            {std::pair{"packed", ids_packed(n)},
+                std::pair{"diluted", ids_diluted(n)},
+                std::pair{"multi_module", ids_multi_module(n)},
+                std::pair{"dlopened", ids_dlopened(n)}}) {
             BOOST_TEST_CONTEXT(named.first << ", n = " << n) {
                 check_injective_over<mph_registry, pol::minimal_perfect_hash<>>(
                     named.second);

@@ -261,7 +261,7 @@ class inplace_vptr_derived<Class, Base1, Base2, MoreBases...> {
         detail::boost_openmethod_update_vptr<Base2>(static_cast<Base2*>(obj));
         (detail::boost_openmethod_update_vptr<MoreBases>(
              static_cast<MoreBases*>(obj)),
-         ...);
+            ...);
     }
 };
 

@@ -284,7 +284,7 @@ struct virtual_traits<boost::type_erasure::any<C, T>&, Registry> {
         typename = std::enable_if_t<
             !std::is_rvalue_reference_v<U> &&
             (!detail::te_mutable_target<U> || detail::te_owning<T> ||
-             detail::te_mutable_bound<T>)>>
+                detail::te_mutable_bound<T>)>>
     static auto cast(boost::type_erasure::any<C, T>& arg) -> decltype(auto) {
         if constexpr (
             detail::te_pass_through<U, boost::type_erasure::any<C, T>>) {
@@ -360,7 +360,7 @@ struct virtual_traits<boost::type_erasure::any<C, T>&&, Registry> {
         typename = std::enable_if_t<
             (!std::is_rvalue_reference_v<U> || detail::te_owning<T>) &&
             (!detail::te_mutable_target<U> || detail::te_owning<T> ||
-             detail::te_mutable_bound<T>)>>
+                detail::te_mutable_bound<T>)>>
     static auto cast(boost::type_erasure::any<C, T>&& arg) -> decltype(auto) {
         if constexpr (
             detail::te_pass_through<U, boost::type_erasure::any<C, T>>) {

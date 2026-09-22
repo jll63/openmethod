@@ -20,7 +20,7 @@ struct Salesman : Employee {
 
 // tag::pay[]
 BOOST_OPENMETHOD(
-    pay, (Payroll & payroll, boost::openmethod::virtual_ptr<const Employee>),
+    pay, (Payroll& payroll, boost::openmethod::virtual_ptr<const Employee>),
     double);
 // end::pay[]
 
@@ -46,7 +46,7 @@ class Payroll {
 
 // tag::overriders[]
 BOOST_OPENMETHOD_OVERRIDE(
-    pay, (Payroll & payroll, boost::openmethod::virtual_ptr<const Employee>),
+    pay, (Payroll& payroll, boost::openmethod::virtual_ptr<const Employee>),
     double) {
     double pay = 5000.0;
     payroll.update_balance(-pay);
@@ -55,8 +55,7 @@ BOOST_OPENMETHOD_OVERRIDE(
 }
 
 BOOST_OPENMETHOD_OVERRIDE(
-    pay,
-    (Payroll & payroll, boost::openmethod::virtual_ptr<const Salesman> emp),
+    pay, (Payroll& payroll, boost::openmethod::virtual_ptr<const Salesman> emp),
     double) {
     double base = next(payroll, emp);
     double commission = emp->sales * 0.05;

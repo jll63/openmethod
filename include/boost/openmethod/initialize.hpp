@@ -197,14 +197,14 @@ class registry_state_transaction {
     struct each<detail::tuple<States...>> {
         static void save(detail::tuple<States...>& to) {
             (...,
-             (detail::get<States>(to) =
-                  detail::get<States>(Registry::state().policies)));
+                (detail::get<States>(to) =
+                        detail::get<States>(Registry::state().policies)));
         }
 
         static void restore(detail::tuple<States...>& from) {
             (...,
-             (detail::get<States>(Registry::state().policies) =
-                  std::move(detail::get<States>(from))));
+                (detail::get<States>(Registry::state().policies) =
+                        std::move(detail::get<States>(from))));
         }
     };
 
@@ -486,8 +486,9 @@ struct generic_compiler {
 
       private:
         void advance_to_valid() {
-            while (class_iter_ != class_end_ &&
-                   ci_iter_ == class_iter_->ci.end()) {
+            while (
+                class_iter_ != class_end_ &&
+                ci_iter_ == class_iter_->ci.end()) {
                 ++class_iter_;
                 if (class_iter_ != class_end_) {
                     ci_iter_ = class_iter_->ci.begin();
@@ -1334,8 +1335,9 @@ void registry<Policies...>::compiler<Options...>::augment_methods() {
             spec_iter->vp.reserve(first_info->arity());
             std::size_t param_index = 0;
 
-            for (auto type :
-                 range{overrider_info->vp_begin, overrider_info->vp_end}) {
+            for (
+                auto type :
+                range{overrider_info->vp_begin, overrider_info->vp_end}) {
                 indent _(tr);
                 auto class_ = class_map[rtti::type_index(type)];
 
@@ -2196,8 +2198,9 @@ void registry<Policies...>::compiler<Options...>::print_slots() {
                 auto cls = todo.back();
                 todo.pop_back();
 
-                for (auto neighbors :
-                     {&cls->direct_bases, &cls->direct_derived}) {
+                for (
+                    auto neighbors :
+                    {&cls->direct_bases, &cls->direct_derived}) {
                     for (auto next : *neighbors) {
                         if (component.emplace(next, id).second) {
                             todo.push_back(next);

@@ -64,8 +64,8 @@ inline auto operator<<(ostdstream& os, const void* value) -> ostdstream& {
     if (os.stream) {
         std::array<char, 20> str;
         auto end = std::to_chars(
-                       str.data(), str.data() + str.size(),
-                       reinterpret_cast<uintptr_t>(value), 16)
+            str.data(), str.data() + str.size(),
+            reinterpret_cast<uintptr_t>(value), 16)
                        .ptr;
         os << std::string_view(str.data(), end - str.data());
     }
@@ -77,8 +77,8 @@ inline auto operator<<(ostdstream& os, void (*value)()) -> ostdstream& {
     if (os.stream) {
         std::array<char, 20> str;
         auto end = std::to_chars(
-                       str.data(), str.data() + str.size(),
-                       reinterpret_cast<uintptr_t>(value), 16)
+            str.data(), str.data() + str.size(),
+            reinterpret_cast<uintptr_t>(value), 16)
                        .ptr;
         os << std::string_view(str.data(), end - str.data());
     }

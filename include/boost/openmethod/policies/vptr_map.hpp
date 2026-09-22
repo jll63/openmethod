@@ -77,10 +77,12 @@ class vptr_map : public vptr {
             const Context& ctx, const std::tuple<Options...>&) {
             decltype(st().vptrs) new_vptrs;
 
-            for (auto iter = ctx.classes_begin(); iter != ctx.classes_end();
-                 ++iter) {
-                for (auto type_iter = iter->type_id_begin();
-                     type_iter != iter->type_id_end(); ++type_iter) {
+            for (
+                auto iter = ctx.classes_begin(); iter != ctx.classes_end();
+                ++iter) {
+                for (
+                    auto type_iter = iter->type_id_begin();
+                    type_iter != iter->type_id_end(); ++type_iter) {
 
                     if constexpr (Registry::has_indirect_vptr) {
                         new_vptrs.emplace(*type_iter, iter->static_vptr());

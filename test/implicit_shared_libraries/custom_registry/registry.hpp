@@ -25,20 +25,19 @@ struct custom_registry;
 //
 //     std_rtti, vptr_map<>, default_error_handler, stderr_output
 struct custom_registry :
-    boost::openmethod::default_registry::
-        with<boost::openmethod::policies::vptr_map<>>::without<
-            boost::openmethod::policies::type_hash> {};
+    boost::openmethod::default_registry::with<boost::openmethod::policies::
+            vptr_map<>>::without<boost::openmethod::policies::type_hash> {};
 
 // Both removals above happen implicitly, by category, so assert them.
 static_assert(boost::mp11::mp_contains<
-              custom_registry::policy_list,
-              boost::openmethod::policies::vptr_map<>>::value);
+    custom_registry::policy_list,
+    boost::openmethod::policies::vptr_map<>>::value);
 static_assert(!boost::mp11::mp_contains<
-              custom_registry::policy_list,
-              boost::openmethod::policies::vptr_vector>::value);
+    custom_registry::policy_list,
+    boost::openmethod::policies::vptr_vector>::value);
 static_assert(!boost::mp11::mp_contains<
-              custom_registry::policy_list,
-              boost::openmethod::policies::fast_perfect_hash>::value);
+    custom_registry::policy_list,
+    boost::openmethod::policies::fast_perfect_hash>::value);
 
 // Where each macro goes:
 //

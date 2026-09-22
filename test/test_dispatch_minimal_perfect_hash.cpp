@@ -106,9 +106,10 @@ BOOST_AUTO_TEST_CASE(hash_is_injective_and_minimal) {
 
     std::set<std::size_t> seen;
 
-    for (auto type :
-         {&typeid(Animal), &typeid(Dog), &typeid(Cat), &typeid(Bulldog),
-          &typeid(Tiger)}) {
+    for (
+        auto type :
+        {&typeid(Animal), &typeid(Dog), &typeid(Cat), &typeid(Bulldog),
+            &typeid(Tiger)}) {
         auto index = type_hash::hash(type);
         BOOST_TEST(index >= low);
         BOOST_TEST(index <= high);

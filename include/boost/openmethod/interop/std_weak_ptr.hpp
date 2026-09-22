@@ -260,7 +260,7 @@ class weak_virtual_ptr {
     template<
         class Other,
         typename = std::enable_if_t<BOOST_OPENMETHOD_UNLESS_MRDOCS(detail::)
-                                        IsPolymorphic<Other, Registry>>,
+                IsPolymorphic<Other, Registry>>,
         typename = std::enable_if_t<std::is_constructible_v<
             std::weak_ptr<Class>, const std::shared_ptr<Other>&>>>
     weak_virtual_ptr(const std::shared_ptr<Other>& other) :
@@ -283,7 +283,7 @@ class weak_virtual_ptr {
     template<
         class Other,
         typename = std::enable_if_t<BOOST_OPENMETHOD_UNLESS_MRDOCS(detail::)
-                                        IsPolymorphic<Other, Registry>>,
+                IsPolymorphic<Other, Registry>>,
         typename = std::enable_if_t<std::is_constructible_v<
             std::weak_ptr<Class>, const std::weak_ptr<Other>&>>>
     weak_virtual_ptr(const std::weak_ptr<Other>& other) {
@@ -393,7 +393,7 @@ class weak_virtual_ptr {
     template<
         class Other,
         typename = std::enable_if_t<BOOST_OPENMETHOD_UNLESS_MRDOCS(detail::)
-                                        IsPolymorphic<Other, Registry>>,
+                IsPolymorphic<Other, Registry>>,
         typename = std::enable_if_t<std::is_assignable_v<
             std::weak_ptr<Class>&, const std::shared_ptr<Other>&>>>
     weak_virtual_ptr& operator=(const std::shared_ptr<Other>& other) {
@@ -418,7 +418,7 @@ class weak_virtual_ptr {
     template<
         class Other,
         typename = std::enable_if_t<BOOST_OPENMETHOD_UNLESS_MRDOCS(detail::)
-                                        IsPolymorphic<Other, Registry>>,
+                IsPolymorphic<Other, Registry>>,
         typename = std::enable_if_t<std::is_assignable_v<
             std::weak_ptr<Class>&, const std::weak_ptr<Other>&>>>
     weak_virtual_ptr& operator=(const std::weak_ptr<Other>& other) {

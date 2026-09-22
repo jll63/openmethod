@@ -82,27 +82,26 @@ struct check_illegal_smart_ops {
 
     // a virtual_ptr cannot be constructed from a smart_ptr to a different class
     static_assert(!std::is_constructible_v<
-                  virtual_ptr<smart_ptr<Cat>, Registry>, smart_ptr<Dog>>);
+        virtual_ptr<smart_ptr<Cat>, Registry>, smart_ptr<Dog>>);
 
     // a virtual_ptr cannot be constructed from const smart_ptr
-    static_assert(
-        !std::is_constructible_v<
-            virtual_ptr<smart_ptr<Animal>, Registry>, smart_ptr<const Animal>>);
+    static_assert(!std::is_constructible_v<
+        virtual_ptr<smart_ptr<Animal>, Registry>, smart_ptr<const Animal>>);
 
     // a smart virtual_ptr cannot be constructed from a plain reference or
     // pointer
     static_assert(!std::is_constructible_v<
-                  virtual_ptr<smart_ptr<Animal>, Registry>, Animal&>);
+        virtual_ptr<smart_ptr<Animal>, Registry>, Animal&>);
     static_assert(!std::is_constructible_v<
-                  virtual_ptr<smart_ptr<Animal>, Registry>, Animal*>);
+        virtual_ptr<smart_ptr<Animal>, Registry>, Animal*>);
 
     static_assert(!std::is_constructible_v<
-                  smart_ptr<Animal>, const other_smart_ptr<Animal>&>);
+        smart_ptr<Animal>, const other_smart_ptr<Animal>&>);
     // smart_ptr<Animal> p{other_smart_ptr<Animal>()};
 
     static_assert(!std::is_constructible_v<
-                  virtual_ptr<smart_ptr<Animal>, Registry>,
-                  virtual_ptr<Animal, Registry>>);
+        virtual_ptr<smart_ptr<Animal>, Registry>,
+        virtual_ptr<Animal, Registry>>);
 
     // ---------------------
     // test other properties
@@ -110,32 +109,27 @@ struct check_illegal_smart_ops {
     static_assert(IsSmartPtr<smart_ptr<Animal>, Registry>);
     static_assert(IsSmartPtr<smart_ptr<const Animal>, Registry>);
 
-    static_assert(
-        std::is_same_v<
-            typename virtual_ptr<smart_ptr<Animal>, Registry>::element_type,
-            Animal>);
+    static_assert(std::is_same_v<
+        typename virtual_ptr<smart_ptr<Animal>, Registry>::element_type,
+        Animal>);
 
-    static_assert(
-        std::is_same_v<
-            decltype(std::declval<virtual_ptr<smart_ptr<Animal>, Registry>>()
-                         .get()),
-            Animal*>);
+    static_assert(std::is_same_v<
+        decltype(std::declval<virtual_ptr<smart_ptr<Animal>, Registry>>()
+                .get()),
+        Animal*>);
 
-    static_assert(
-        std::is_same_v<
-            decltype(*std::declval<virtual_ptr<smart_ptr<Animal>, Registry>>()),
-            Animal&>);
+    static_assert(std::is_same_v<
+        decltype(*std::declval<virtual_ptr<smart_ptr<Animal>, Registry>>()),
+        Animal&>);
 
-    static_assert(
-        std::is_same_v<
-            decltype(std::declval<virtual_ptr<smart_ptr<Animal>, Registry>>()
-                         .pointer()),
-            const smart_ptr<Animal>&>);
+    static_assert(std::is_same_v<
+        decltype(std::declval<virtual_ptr<smart_ptr<Animal>, Registry>>()
+                .pointer()),
+        const smart_ptr<Animal>&>);
 
-    static_assert(
-        std::is_same_v<
-            decltype(*std::declval<virtual_ptr<smart_ptr<Animal>, Registry>>()),
-            Animal&>);
+    static_assert(std::is_same_v<
+        decltype(*std::declval<virtual_ptr<smart_ptr<Animal>, Registry>>()),
+        Animal&>);
 };
 
 #endif // TEST_VIRTUAL_PTR_VALUE_SEMANTICS_HPP

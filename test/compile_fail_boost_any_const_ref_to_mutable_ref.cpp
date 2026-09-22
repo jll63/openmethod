@@ -27,7 +27,7 @@ BOOST_OPENMETHOD(name, (virtual_<const boost::any&>), std::string);
 // The `any` is const, so boost::any_cast cannot produce a mutable reference to
 // the value it contains. Without the constraint on `cast`, this would fail
 // inside Boost.Any instead of at the trait.
-BOOST_OPENMETHOD_OVERRIDE(name, (Dog & dog), std::string) {
+BOOST_OPENMETHOD_OVERRIDE(name, (Dog& dog), std::string) {
     return dog.name;
 }
 
