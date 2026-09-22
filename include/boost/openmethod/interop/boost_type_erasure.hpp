@@ -189,6 +189,7 @@ struct virtual_traits<const boost::type_erasure::any<C, T>&, Registry> {
 
         assert_std_rtti_type_erasure<Registry>();
         (void)&use_any_classes<Registry, boost::type_erasure::any<C>>;
+
         return Registry::vptr::vptr(&boost::type_erasure::typeid_of(arg));
     }
 
@@ -220,6 +221,7 @@ struct virtual_traits<const boost::type_erasure::any<C, T>&, Registry> {
         } else {
             (void)&use_any_classes<
                 Registry, boost::type_erasure::any<C>, std::decay_t<U>>;
+
             return boost::type_erasure::any_cast<U>(arg);
         }
     }
@@ -267,6 +269,7 @@ struct virtual_traits<boost::type_erasure::any<C, T>&, Registry> {
 
         assert_std_rtti_type_erasure<Registry>();
         (void)&use_any_classes<Registry, boost::type_erasure::any<C>>;
+
         return Registry::vptr::vptr(&boost::type_erasure::typeid_of(arg));
     }
 
@@ -298,6 +301,7 @@ struct virtual_traits<boost::type_erasure::any<C, T>&, Registry> {
         } else {
             (void)&use_any_classes<
                 Registry, boost::type_erasure::any<C>, std::decay_t<U>>;
+
             return boost::type_erasure::any_cast<U>(arg);
         }
     }
@@ -345,6 +349,7 @@ struct virtual_traits<boost::type_erasure::any<C, T>&&, Registry> {
 
         assert_std_rtti_type_erasure<Registry>();
         (void)&use_any_classes<Registry, boost::type_erasure::any<C>>;
+
         return Registry::vptr::vptr(&boost::type_erasure::typeid_of(arg));
     }
 
@@ -436,6 +441,7 @@ struct virtual_traits<boost::type_erasure::any<C, T&>, Registry> {
 
         assert_std_rtti_type_erasure<Registry>();
         (void)&use_any_classes<Registry, boost::type_erasure::any<C>>;
+
         return Registry::vptr::vptr(&boost::type_erasure::typeid_of(arg));
     }
 
@@ -464,6 +470,7 @@ struct virtual_traits<boost::type_erasure::any<C, T&>, Registry> {
         } else {
             (void)&use_any_classes<
                 Registry, boost::type_erasure::any<C>, std::decay_t<U>>;
+
             return boost::type_erasure::any_cast<U>(arg);
         }
     }
@@ -515,6 +522,7 @@ struct virtual_traits<boost::type_erasure::any<C, const T&>, Registry> {
 
         assert_std_rtti_type_erasure<Registry>();
         (void)&use_any_classes<Registry, boost::type_erasure::any<C>>;
+
         return Registry::vptr::vptr(&boost::type_erasure::typeid_of(arg));
     }
 
@@ -545,6 +553,7 @@ struct virtual_traits<boost::type_erasure::any<C, const T&>, Registry> {
         } else {
             (void)&use_any_classes<
                 Registry, boost::type_erasure::any<C>, std::decay_t<U>>;
+
             return boost::type_erasure::any_cast<U>(arg);
         }
     }
@@ -605,6 +614,7 @@ struct openmethod_vptr {
     static auto apply(const T&) -> vptr_type {
         (void)&detail::use_any_classes<
             Registry, boost::type_erasure::any<Concept>, T>;
+
         return Registry::template static_vptr<T>;
     }
 };

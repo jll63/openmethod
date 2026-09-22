@@ -24,5 +24,6 @@ BOOST_OPENMETHOD(poke, (virtual_ptr<Cat>), void, other_registry);
 int main() {
     Cat felix;
     poke(felix);
+
     return 0;
 }

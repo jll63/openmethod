@@ -22,5 +22,6 @@ int main() {
     auto felix = std::make_shared<Animal>();
     std::weak_ptr<Animal> weak = felix;
     auto p = final_virtual_ptr(weak);
+
     return 0;
 }

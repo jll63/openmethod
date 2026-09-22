@@ -463,12 +463,14 @@ struct generic_compiler {
         auto operator++() -> const_class_iterator& {
             ++ci_iter_;
             advance_to_valid();
+
             return *this;
         }
 
         auto operator++(int) -> const_class_iterator {
             const_class_iterator tmp = *this;
             ++(*this);
+
             return tmp;
         }
 
@@ -479,6 +481,7 @@ struct generic_compiler {
             if (class_iter_ == class_end_) {
                 return true;
             }
+
             return ci_iter_ == other.ci_iter_;
         }
 
@@ -712,6 +715,7 @@ auto operator<<(trace_stream<Compiler>& tr, const T& value) -> auto& {
             Compiler::Registry::output::stream() << value;
         }
     }
+
     return tr;
 }
 

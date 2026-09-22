@@ -26,5 +26,6 @@ int main() {
     // combination is deleted; use virtual_any instead.
     std::any spot(Dog{"Spot"});
     final_virtual_ptr(spot);
+
     return 0;
 }

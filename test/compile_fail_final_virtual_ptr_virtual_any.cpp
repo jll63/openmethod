@@ -26,5 +26,6 @@ int main() {
     // virtual_ptr it returns, so the rejection catches this too.
     virtual_std_any spot = Dog{"Spot"};
     final_virtual_ptr(spot);
+
     return 0;
 }

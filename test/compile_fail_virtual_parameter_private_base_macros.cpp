@@ -30,5 +30,6 @@ BOOST_OPENMETHOD_OVERRIDE(poke, (virtual_ptr<Cat>), void) {
 int main() {
     Cat felix;
     poke(felix.as_animal());
+
     return 0;
 }

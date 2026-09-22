@@ -1216,6 +1216,7 @@ BOOST_OPENMETHOD(stream, (virtual_<Animal&>), std::ostream&, test_registry);
 
 BOOST_OPENMETHOD_OVERRIDE(stream, (Dog&), std::ostringstream&) {
     static std::ostringstream os;
+
     return os;
 }
 

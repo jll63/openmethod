@@ -169,8 +169,10 @@ struct minimal_perfect_hash : type_hash {
         // The top half of a 64x64 product.
         static auto mulhi(std::uint64_t a, std::uint64_t b) -> std::uint64_t {
 #if defined(__SIZEOF_INT128__)
+
             return std::uint64_t((static_cast<__uint128_t>(a) * b) >> 64);
 #elif defined(_MSC_VER) && defined(_M_X64)
+
             return __umulh(a, b);
 #else
             auto lo = [](std::uint64_t v) { return v & 0xffffffffull; };

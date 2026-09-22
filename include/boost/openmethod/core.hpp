@@ -358,6 +358,7 @@ template<class Registry, class... Class>
 struct init_type_ids<Registry, mp11::mp_list<Class...>> {
     static auto fn(type_id* ids) {
         (..., (*ids++ = Registry::rtti::template static_type<Class>()));
+
         return ids;
     }
 };
@@ -659,6 +660,7 @@ struct virtual_traits<Class&, Registry> {
     template<typename Derived>
     static auto cast(Class& obj) -> Derived {
         static_assert(std::is_lvalue_reference_v<Derived>);
+
         return detail::optimal_cast<Registry, Derived>(obj);
     }
 };
@@ -690,6 +692,7 @@ struct virtual_traits<Class&&, Registry> {
     template<typename Derived>
     static auto cast(Class&& obj) -> Derived {
         static_assert(std::is_rvalue_reference_v<Derived>);
+
         return detail::optimal_cast<Registry, Derived>(obj);
     }
 };
@@ -1403,6 +1406,7 @@ class virtual_ptr {
         obj = &other;
         vp = detail::box_vptr<use_indirect_vptrs>(
             detail::acquire_vptr<Registry>(other));
+
         return *this;
     }
 
@@ -1440,6 +1444,7 @@ class virtual_ptr {
         obj = other;
         vp = detail::box_vptr<use_indirect_vptrs>(
             detail::acquire_vptr<Registry>(*other));
+
         return *this;
     }
 
@@ -1474,6 +1479,7 @@ class virtual_ptr {
     virtual_ptr& operator=(const virtual_ptr<Other, Registry>& other) {
         obj = other.get();
         vp = other.vp;
+
         return *this;
     }
 
@@ -1488,6 +1494,7 @@ class virtual_ptr {
 
         obj = nullptr;
         vp = box_vptr<use_indirect_vptrs>(null_vptr);
+
         return *this;
     }
 
@@ -1813,6 +1820,7 @@ class virtual_ptr<
 
         obj = SmartPtr();
         vp = box_vptr<use_indirect_vptrs>(null_vptr);
+
         return *this;
     }
 
@@ -1842,6 +1850,7 @@ class virtual_ptr<
         obj = other;
         vp = detail::box_vptr<use_indirect_vptrs>(
             detail::acquire_vptr<Registry>(*other));
+
         return *this;
     }
 
@@ -1878,6 +1887,7 @@ class virtual_ptr<
         vp = detail::box_vptr<use_indirect_vptrs>(
             other ? detail::acquire_vptr<Registry>(*other) : detail::null_vptr);
         obj = std::move(other);
+
         return *this;
     }
 
@@ -1905,6 +1915,7 @@ class virtual_ptr<
     virtual_ptr& operator=(virtual_ptr<Other, Registry>& other) {
         obj = other.obj;
         vp = other.vp;
+
         return *this;
     }
 
@@ -1934,6 +1945,7 @@ class virtual_ptr<
     virtual_ptr& operator=(const virtual_ptr<Other, Registry>& other) {
         obj = other.obj;
         vp = other.vp;
+
         return *this;
     }
 
@@ -2946,6 +2958,7 @@ method<Id, ReturnType(Parameters...), Registry>::resolve_uni(
 
     if constexpr (is_virtual<mp_first<MethodArgList>>::value) {
         vptr_type vtbl = vptr<remove_virtual_<mp_first<MethodArgList>>>(arg);
+
         return vtbl[this->slots_strides[0]];
     } else {
         return resolve_uni<mp_rest<MethodArgList>>(more_args...);
@@ -2972,6 +2985,7 @@ method<Id, ReturnType(Parameters...), Registry>::resolve_multi_first(
         // contains a pointer into the multi-dimensional dispatch table,
         // already resolved to the appropriate group.
         auto dispatch = vtbl[slot].pw;
+
         return resolve_multi_next<1, mp_rest<MethodArgList>, MoreArgTypes...>(
             dispatch, more_args...);
     } else {
@@ -3237,6 +3251,7 @@ auto method<Id, ReturnType(Parameters...), Registry>::
         (validate_overrider_parameter<Parameters, OverriderParameters>::value &&
             ...),
         "virtual_ptr category mismatch");
+
     return Overrider(
         detail::parameter_traits<Parameters, Registry>::template cast<
             OverriderParameters>(
@@ -3268,6 +3283,7 @@ method<Id, ReturnType(Parameters...), Registry>::override_impl<
     // coverity[uninit_use]
     if (overrider_info::method) {
         BOOST_ASSERT(overrider_info::method == &method::fn);
+
         return;
     }
 

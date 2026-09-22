@@ -26,5 +26,6 @@ BOOST_OPENMETHOD_OVERRIDE(poke, (std::weak_ptr<Cat>), void) {
 int main() {
     auto felix = std::make_shared<Cat>();
     poke(std::weak_ptr<Cat>(felix));
+
     return 0;
 }

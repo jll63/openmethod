@@ -27,6 +27,7 @@ BOOST_OPENMETHOD_OVERRIDE(speak, (virtual_ptr<Dog>), const char*) {
 BOOST_OPENMETHOD_OVERRIDE(
     meet, (virtual_ptr<Dog> a, virtual_ptr<Dog> b), greeting) {
     std::string next_word = has_next() ? next(a, b).first : "n/a";
+
     return {"wag tails", next_word};
 }
 

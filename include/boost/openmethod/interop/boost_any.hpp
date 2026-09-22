@@ -97,6 +97,7 @@ struct virtual_traits<const boost::any&, Registry> {
 
         assert_std_rtti_boost_any<Registry>();
         (void)&use_any_classes<Registry, boost::any>;
+
         return Registry::vptr::vptr(&arg.type());
     }
 
@@ -129,6 +130,7 @@ struct virtual_traits<const boost::any&, Registry> {
         } else {
             (void)&detail::use_any_classes<
                 Registry, boost::any, std::decay_t<U>>;
+
             return boost::any_cast<U>(arg);
         }
     }
@@ -182,6 +184,7 @@ struct virtual_traits<boost::any&, Registry> {
 
         assert_std_rtti_boost_any<Registry>();
         (void)&use_any_classes<Registry, boost::any>;
+
         return Registry::vptr::vptr(&arg.type());
     }
 
@@ -214,6 +217,7 @@ struct virtual_traits<boost::any&, Registry> {
         } else {
             (void)&detail::use_any_classes<
                 Registry, boost::any, std::decay_t<U>>;
+
             return boost::any_cast<U>(arg);
         }
     }
@@ -267,6 +271,7 @@ struct virtual_traits<boost::any&&, Registry> {
 
         assert_std_rtti_boost_any<Registry>();
         (void)&use_any_classes<Registry, boost::any>;
+
         return Registry::vptr::vptr(&arg.type());
     }
 
@@ -299,6 +304,7 @@ struct virtual_traits<boost::any&&, Registry> {
         } else {
             (void)&detail::use_any_classes<
                 Registry, boost::any, std::decay_t<U>>;
+
             return boost::any_cast<U>(std::move(arg));
         }
     }

@@ -383,6 +383,7 @@ auto records_of(boost::mp11::mp_list<Classes...>)
             if (Registry::rtti::type_index(record.type) ==
                 Registry::rtti::type_index(type)) {
                 records.push_back(&record);
+
                 return;
             }
         }

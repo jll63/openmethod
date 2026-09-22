@@ -315,6 +315,7 @@ BOOST_AUTO_TEST_CASE(virtual_ptr_final_error) {
     } catch (...) {
         default_registry::error_handler::set(prev_handler);
         BOOST_FAIL("wrong exception");
+
         return;
     }
 

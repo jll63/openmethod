@@ -17,5 +17,6 @@ struct Animal {
 
 int main() {
     (void)sizeof(virtual_ptr<Animal>);
+
     return 0;
 }

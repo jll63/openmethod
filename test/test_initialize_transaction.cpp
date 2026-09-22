@@ -301,6 +301,7 @@ struct trapping_stream {
 inline auto operator<<(trapping_stream& os, const char* str)
     -> trapping_stream& {
     os.write(str);
+
     return os;
 }
 

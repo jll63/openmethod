@@ -297,6 +297,7 @@ class weak_virtual_ptr {
     //! @param value A `nullptr`.
     weak_virtual_ptr& operator=(std::nullptr_t) noexcept {
         reset();
+
         return *this;
     }
 
@@ -307,6 +308,7 @@ class weak_virtual_ptr {
 
         vp = std::exchange(other.vp, box_vptr<use_indirect_vptrs>(null_vptr));
         obj = std::move(other.obj);
+
         return *this;
     }
 
@@ -332,6 +334,7 @@ class weak_virtual_ptr {
         const virtual_ptr<std::shared_ptr<Other>, Registry>& other) {
         vp = vptr_of(other);
         obj = other.pointer();
+
         return *this;
     }
 
@@ -353,6 +356,7 @@ class weak_virtual_ptr {
         const weak_virtual_ptr<Other, Registry>& other) {
         vp = other.vp;
         obj = other.obj;
+
         return *this;
     }
 
@@ -376,6 +380,7 @@ class weak_virtual_ptr {
         vp = std::exchange(
             other.vp, detail::box_vptr<use_indirect_vptrs>(detail::null_vptr));
         obj = std::move(other.obj);
+
         return *this;
     }
 
@@ -400,6 +405,7 @@ class weak_virtual_ptr {
     weak_virtual_ptr& operator=(const std::shared_ptr<Other>& other) {
         vp = vptr_of(other);
         obj = other;
+
         return *this;
     }
 
@@ -424,6 +430,7 @@ class weak_virtual_ptr {
             std::weak_ptr<Class>&, const std::weak_ptr<Other>&>>>
     weak_virtual_ptr& operator=(const std::weak_ptr<Other>& other) {
         assign(other);
+
         return *this;
     }
 

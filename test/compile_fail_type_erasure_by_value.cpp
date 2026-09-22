@@ -33,5 +33,6 @@ int main() {
     // Call the method: declaring it is not enough to instantiate it on
     // every compiler, and the guard lives in the method's body.
     erased dog = Dog{"Snoopy"};
+
     return name(dog).size();
 }

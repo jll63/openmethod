@@ -116,11 +116,13 @@ using bump_method =
 
 auto bump_dog(Dog& dog) -> std::string {
     dog.name += " Jr.";
+
     return dog.name + " the dog";
 }
 
 auto bump_int(int& value) -> std::string {
     ++value;
+
     return "bumped";
 }
 
@@ -155,11 +157,13 @@ BOOST_OPENMETHOD(steal, (virtual_<erased&&>), std::string);
 // value.
 BOOST_OPENMETHOD_OVERRIDE(steal, (Dog&& dog), std::string) {
     Dog stolen(std::move(dog));
+
     return stolen.name + " the dog";
 }
 
 BOOST_OPENMETHOD_OVERRIDE(steal, (std::string&& name), std::string) {
     std::string stolen(std::move(name));
+
     return stolen;
 }
 
@@ -190,11 +194,13 @@ BOOST_OPENMETHOD(poke, (virtual_<erased_ref>), std::string);
 
 BOOST_OPENMETHOD_OVERRIDE(poke, (Dog& dog), std::string) {
     dog.name += "!";
+
     return dog.name;
 }
 
 BOOST_OPENMETHOD_OVERRIDE(poke, (int& value), std::string) {
     ++value;
+
     return "poked";
 }
 
@@ -325,6 +331,7 @@ BOOST_OPENMETHOD(poke, (virtual_<dispatchable_ref>), std::string);
 
 BOOST_OPENMETHOD_OVERRIDE(poke, (Dog& dog), std::string) {
     dog.name += "!";
+
     return dog.name;
 }
 

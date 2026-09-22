@@ -25,5 +25,6 @@ int main() {
     // deliberately not a registered class.
     virtual_std_any spot = Dog{"Spot"};
     virtual_ptr<virtual_std_any> p = spot;
+
     return 0;
 }

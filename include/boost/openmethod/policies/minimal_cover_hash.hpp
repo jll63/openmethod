@@ -103,6 +103,7 @@ inline constexpr bool has_pext = BOOST_OPENMETHOD_HAS_PEXT != 0;
 // quite enough.
 inline auto popcount64(std::uint64_t bits) -> std::size_t {
 #if defined(__GNUC__) || defined(__clang__)
+
     return std::size_t(__builtin_popcountll(bits));
 #else
     bits = bits - ((bits >> 1) & 0x5555555555555555ull);
@@ -119,6 +120,7 @@ inline auto popcount64(std::uint64_t bits) -> std::size_t {
 // registry static_asserts first.
 inline auto pext64(std::uint64_t value, std::uint64_t mask) -> std::uint64_t {
 #if BOOST_OPENMETHOD_HAS_PEXT
+
     return _pext_u64(value, mask);
 #else
     (void)value;

@@ -224,6 +224,7 @@ class virtual_any {
         obj = std::move(other.obj);
         vp = other.vp;
         other.vp = box_vptr<use_indirect_vptrs>(null_vptr);
+
         return *this;
     }
 
@@ -238,6 +239,7 @@ class virtual_any {
 
         obj = other;
         vp = box_vptr<use_indirect_vptrs>(acquire_vptr<Registry>(obj));
+
         return *this;
     }
 
@@ -252,6 +254,7 @@ class virtual_any {
 
         obj = std::move(other);
         vp = box_vptr<use_indirect_vptrs>(acquire_vptr<Registry>(obj));
+
         return *this;
     }
 
@@ -282,6 +285,7 @@ class virtual_any {
         vp = box_vptr<use_indirect_vptrs>(
             Registry::template static_vptr<std::decay_t<T>>);
         BOOST_ASSERT(unbox_vptr(vp) != nullptr);
+
         return *this;
     }
 
@@ -349,6 +353,7 @@ struct virtual_traits<const virtual_any<Any, Registry>&, Registry> {
     static auto vptr(const virtual_any<Any, Registry>& arg)
         -> const vptr_type& {
         (void)&detail::use_any_classes<Registry, Any>;
+
         return arg.vptr_ref();
     }
 
@@ -373,6 +378,7 @@ struct virtual_traits<const virtual_any<Any, Registry>&, Registry> {
             return (arg);
         } else {
             (void)&detail::use_any_classes<Registry, Any, std::decay_t<U>>;
+
             return virtual_traits<const Any&, Registry>::template cast<U>(
                 arg.obj);
         }
@@ -409,6 +415,7 @@ struct virtual_traits<virtual_any<Any, Registry>&, Registry> {
     static auto vptr(const virtual_any<Any, Registry>& arg)
         -> const vptr_type& {
         (void)&detail::use_any_classes<Registry, Any>;
+
         return arg.vptr_ref();
     }
 
@@ -435,6 +442,7 @@ struct virtual_traits<virtual_any<Any, Registry>&, Registry> {
             return (arg);
         } else {
             (void)&detail::use_any_classes<Registry, Any, std::decay_t<U>>;
+
             return virtual_traits<Any&, Registry>::template cast<U>(arg.obj);
         }
     }
@@ -470,6 +478,7 @@ struct virtual_traits<virtual_any<Any, Registry>&&, Registry> {
     static auto vptr(const virtual_any<Any, Registry>& arg)
         -> const vptr_type& {
         (void)&detail::use_any_classes<Registry, Any>;
+
         return arg.vptr_ref();
     }
 
@@ -494,6 +503,7 @@ struct virtual_traits<virtual_any<Any, Registry>&&, Registry> {
             return std::move(arg);
         } else {
             (void)&detail::use_any_classes<Registry, Any, std::decay_t<U>>;
+
             return virtual_traits<Any&&, Registry>::template cast<U>(
                 std::move(arg.obj));
         }

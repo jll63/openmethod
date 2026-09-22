@@ -19,12 +19,14 @@ constexpr std::size_t non_polymorphic_high_bit = std::size_t(1)
 
 inline std::size_t next_non_polymorphic_id() {
     static std::size_t counter = 0;
+
     return non_polymorphic_high_bit | ++counter;
 }
 
 template<typename T>
 inline std::size_t non_polymorphic_static_type() {
     static std::size_t value = next_non_polymorphic_id();
+
     return value;
 }
 } // anonymous namespace
@@ -46,6 +48,7 @@ struct Animal {
 template<typename Derived, typename Base>
 auto custom_dynamic_cast(Base& obj) -> Derived {
     using derived_type = std::remove_cv_t<std::remove_reference_t<Derived>>;
+
     return *reinterpret_cast<derived_type*>(
         const_cast<std::remove_cv_t<Base>&>(obj).cast_aux(
             derived_type::static_type));
