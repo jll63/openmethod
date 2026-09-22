@@ -13,6 +13,8 @@
 # requirement is inherited by the test subprojects too, and a relative
 # reference would be resolved from each of their directories.
 
+import testing ;
+
 project /boost/openmethod/config ;
 
 obj has_reflection : has_reflection.cpp : <cxxflags>-freflection ;
@@ -22,5 +24,11 @@ explicit has_reflection ;
 # needs. Probing beats naming an architecture - a <architecture>x86 conditional
 # does not match every toolset spelling, and a compiler that rejects -mbmi2
 # outright would take the directory down with it.
-obj has_bmi2 : has_bmi2.cpp : <cxxflags>-mbmi2 <include>../include ;
+#
+# `run`, not `obj`: the compiler accepts -mbmi2 - and emits `pext` - whenever
+# the toolchain supports the extension, whether or not the machine running the
+# build implements it in hardware. A handful of CI runners pair a BMI2-capable
+# compiler with pre-Haswell (or feature-masked) silicon, where the instruction
+# traps with SIGILL; a compile-only check cannot see that; see has_bmi2.cpp.
+run has_bmi2.cpp : : : <cxxflags>-mbmi2 <include>../include ;
 explicit has_bmi2 ;

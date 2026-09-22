@@ -120,6 +120,7 @@ auto base_of(std::size_t module, std::size_t spread) -> std::uintptr_t {
 auto ids_over(std::size_t n, std::size_t modules, std::size_t spread)
     -> std::vector<bom::type_id> {
     std::vector<std::uintptr_t> at;
+    at.reserve(modules);
 
     for (std::size_t module = 0; module != modules; ++module) {
         at.push_back(base_of(module, spread));

@@ -87,6 +87,28 @@ set(BOOST_OPENMETHOD_TEST_PCH_HEADERS
 
 set(boost_openmethod_pch_owner "")
 
+# minimal_cover_hash dispatches with BMI2's pext. A compiler accepts the
+# enabling flag - and therefore emits `pext` - whenever the toolchain supports
+# the extension, whatever the machine actually running the build implements in
+# hardware; on pre-Haswell (or feature-masked) x86-64 the instruction traps
+# with SIGILL. check_cxx_source_runs actually executes the probe, once, for
+# exactly that reason - a plain try_compile cannot see the difference. See
+# config/has_bmi2.cpp, and config/Jamfile for the b2 equivalent and the CI
+# failure that motivated both.
+if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" OR CMAKE_CXX_COMPILER_FRONTEND_VARIANT MATCHES "MSVC")
+    set(BOOST_OPENMETHOD_BMI2_FLAG /arch:AVX2)
+else()
+    set(BOOST_OPENMETHOD_BMI2_FLAG -mbmi2)
+endif()
+
+include(CheckCXXSourceRuns)
+file(READ "${CMAKE_CURRENT_SOURCE_DIR}/../config/has_bmi2.cpp" BOOST_OPENMETHOD_HAS_BMI2_SOURCE)
+set(CMAKE_REQUIRED_FLAGS ${BOOST_OPENMETHOD_BMI2_FLAG})
+set(CMAKE_REQUIRED_INCLUDES "${CMAKE_CURRENT_SOURCE_DIR}/../include")
+check_cxx_source_runs("${BOOST_OPENMETHOD_HAS_BMI2_SOURCE}" BOOST_OPENMETHOD_HAS_BMI2)
+unset(CMAKE_REQUIRED_FLAGS)
+unset(CMAKE_REQUIRED_INCLUDES)
+
 file(GLOB test_cpp_files "test_*.cpp")
 
 foreach(test_cpp ${test_cpp_files})
@@ -107,21 +129,15 @@ foreach(test_cpp ${test_cpp_files})
 
     # minimal_cover_hash dispatches with BMI2's pext, and because `hash` is
     # inlined into every call the instruction has to be enabled for the whole
-    # translation unit. Only the tests that name the policy need it, and only on
-    # x86-64 - the 64-bit pext intrinsic does not exist in 32-bit mode:
-    # elsewhere BOOST_OPENMETHOD_HAS_PEXT is 0 and the policy drops out of both.
+    # translation unit. Only the tests that name the policy need it, and only
+    # where BOOST_OPENMETHOD_HAS_BMI2 (computed above) found the instruction
+    # both compiles *and runs* - elsewhere BOOST_OPENMETHOD_HAS_PEXT is 0 and
+    # the policy drops out of both.
     set(test_needs_bmi2 FALSE)
 
-    if (test MATCHES "minimal_cover_hash|hash_policies" AND
-        CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|AMD64|amd64)$")
+    if (test MATCHES "minimal_cover_hash|hash_policies" AND BOOST_OPENMETHOD_HAS_BMI2)
         set(test_needs_bmi2 TRUE)
-
-        if (CMAKE_CXX_COMPILER_ID STREQUAL "MSVC" OR
-            CMAKE_CXX_COMPILER_FRONTEND_VARIANT MATCHES "MSVC")
-            target_compile_options(${test_target} PRIVATE /arch:AVX2)
-        else()
-            target_compile_options(${test_target} PRIVATE -mbmi2)
-        endif()
+        target_compile_options(${test_target} PRIVATE ${BOOST_OPENMETHOD_BMI2_FLAG})
     endif()
 
     file(READ ${test_cpp} test_cpp_contents)
