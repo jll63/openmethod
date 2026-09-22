@@ -313,17 +313,19 @@ struct unanimous_registry {
 
 // A registry listed explicitly wins, and a class that declares nothing goes
 // along with it; one that declares another registry does not.
-template<class Registry, class... Classes>
-struct classes_agree_with {
+template<class Registry, class Class>
+struct class_agrees_with {
+    using declared = typename registry_affinity_aux<Class>::declared;
     static_assert(
-        ((std::is_same_v<
-              typename registry_affinity_aux<Classes>::declared, void> ||
-             std::is_same_v<
-                 typename registry_affinity_aux<Classes>::declared,
-                 Registry>) &&
-            ...),
+        std::is_same_v<declared, void> || std::is_same_v<declared, Registry>,
         "registry mismatch: a class declares an affinity for another registry");
     static constexpr bool value = true;
+};
+
+template<class Registry, class... Classes>
+struct classes_agree_with {
+    static constexpr bool value =
+        (class_agrees_with<Registry, Classes>::value && ...);
 };
 
 template<class Named, class Others, typename = void>
@@ -3064,12 +3066,10 @@ method<Id, ReturnType(Parameters...), Registry>::fn_ambiguous(
 namespace detail {
 
 template<typename T, typename U>
-struct same_reference_category {
-    static constexpr bool value = (std::is_lvalue_reference<T>::value ==
-                                      std::is_lvalue_reference<U>::value) &&
-        (std::is_rvalue_reference<T>::value ==
-            std::is_rvalue_reference<U>::value);
-};
+constexpr bool same_reference_category =
+    std::is_lvalue_reference_v<T> == std::is_lvalue_reference_v<U> &&
+    std::is_rvalue_reference_v<T> == std::is_rvalue_reference_v<U>;
+
 template<class T1, class T2, typename = void>
 struct validate_overrider_parameter : std::false_type {
     static_assert(
@@ -3081,7 +3081,7 @@ struct validate_overrider_parameter<
     T1, T2,
     std::enable_if_t<
         is_virtual_ptr<T1> && is_virtual_ptr<T2> &&
-        !same_reference_category<T1, T2>::value>> : std::false_type {
+        !same_reference_category<T1, T2>>> : std::false_type {
     static_assert(
         false_t<T1, T2>, "different virtual_ptr<> reference categories");
 };
