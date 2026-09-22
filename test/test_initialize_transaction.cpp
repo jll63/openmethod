@@ -152,6 +152,7 @@ struct snapshot {
 BOOST_AUTO_TEST_CASE_TEMPLATE(
     failed_reinitialize_keeps_previous_state, Registry,
     registries<__COUNTER__>) {
+    using namespace detail;
     using explosive = typename explosive_policy::template fn<
         typename Registry::registry_type>;
     using vptr_state = typename snapshot<Registry>::vptr_state;
@@ -212,14 +213,13 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(
         (poke<Registry>::template next<poke_dog<Registry>> == before.next));
     // Parenthesized for the same reason: Boost.Test cannot print hash factors
     // or vectors of type ids.
-    auto& hash =
-        detail::get<typename snapshot<Registry>::hash_state>(st.policies);
+    auto& hash = get<typename snapshot<Registry>::hash_state>(st.policies);
     BOOST_TEST((hash.fn.mult == before.hash().fn.mult));
     BOOST_TEST((hash.fn.shift == before.hash().fn.shift));
     BOOST_TEST((hash.fn.min_value == before.hash().fn.min_value));
     BOOST_TEST((hash.fn.max_value == before.hash().fn.max_value));
     BOOST_TEST((hash.control == before.hash().control));
-    BOOST_TEST((detail::get<vptr_state>(st.policies).vptrs == before.vptrs()));
+    BOOST_TEST((get<vptr_state>(st.policies).vptrs == before.vptrs()));
     // ...including the state of the policy that threw, after writing to it.
     BOOST_TEST(Registry::template state<explosive_policy>().generation == 1);
 
@@ -419,6 +419,7 @@ BOOST_AUTO_TEST_CASE(a_throwing_report_does_not_commit) {
 BOOST_AUTO_TEST_CASE_TEMPLATE(
     failed_initialize_after_finalize_restores_what_it_found, Registry,
     registries<__COUNTER__>) {
+    using namespace detail;
     using explosive = typename explosive_policy::template fn<
         typename Registry::registry_type>;
     using vptr_state = typename snapshot<Registry>::vptr_state;
@@ -438,7 +439,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(
     finalize<Registry>();
     BOOST_TEST(!st.initialized);
     BOOST_TEST(st.dispatch_data.empty());
-    BOOST_TEST(detail::get<vptr_state>(st.policies).vptrs.empty());
+    BOOST_TEST(get<vptr_state>(st.policies).vptrs.empty());
     // Not cleared by finalize, and so still set here.
     auto dog_vptr_after_finalize = Registry::template static_vptr<Dog>;
     BOOST_TEST(dog_vptr_after_finalize != nullptr);
@@ -451,7 +452,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(
     // consistent.
     BOOST_TEST(!st.initialized);
     BOOST_TEST(st.dispatch_data.empty());
-    BOOST_TEST(detail::get<vptr_state>(st.policies).vptrs.empty());
+    BOOST_TEST(get<vptr_state>(st.policies).vptrs.empty());
     BOOST_TEST(Registry::template static_vptr<Dog> == dog_vptr_after_finalize);
 
     // And a successful call still recovers from it.

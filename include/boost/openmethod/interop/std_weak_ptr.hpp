@@ -303,8 +303,9 @@ class weak_virtual_ptr {
     weak_virtual_ptr& operator=(const weak_virtual_ptr& other) = default;
 
     weak_virtual_ptr& operator=(weak_virtual_ptr&& other) noexcept {
-        vp = std::exchange(
-            other.vp, detail::box_vptr<use_indirect_vptrs>(detail::null_vptr));
+        using namespace detail;
+
+        vp = std::exchange(other.vp, box_vptr<use_indirect_vptrs>(null_vptr));
         obj = std::move(other.obj);
         return *this;
     }
@@ -497,8 +498,10 @@ class weak_virtual_ptr {
     //!
     //! Reset the `std::weak_ptr`. Set the v-table pointer to `nullptr`.
     void reset() noexcept {
+        using namespace detail;
+
         obj.reset();
-        vp = detail::box_vptr<use_indirect_vptrs>(detail::null_vptr);
+        vp = box_vptr<use_indirect_vptrs>(null_vptr);
     }
 
     //! Swap with another `weak_virtual_ptr`

@@ -1484,8 +1484,10 @@ class virtual_ptr {
     //! @par Example
     //! include:virtual_ptr.cpp#assign_nullptr
     virtual_ptr& operator=(std::nullptr_t) {
+        using namespace detail;
+
         obj = nullptr;
-        vp = detail::box_vptr<use_indirect_vptrs>(detail::null_vptr);
+        vp = box_vptr<use_indirect_vptrs>(null_vptr);
         return *this;
     }
 
@@ -1807,8 +1809,10 @@ class virtual_ptr<
     //!
     //! @param value A `nullptr`.
     virtual_ptr& operator=(std::nullptr_t) {
+        using namespace detail;
+
         obj = SmartPtr();
-        vp = detail::box_vptr<use_indirect_vptrs>(detail::null_vptr);
+        vp = box_vptr<use_indirect_vptrs>(null_vptr);
         return *this;
     }
 

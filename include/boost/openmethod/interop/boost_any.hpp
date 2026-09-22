@@ -93,8 +93,10 @@ struct virtual_traits<const boost::any&, Registry> {
     //! @param arg A reference to a const `any`.
     //! @return A reference to the v-table pointer for the stored value.
     static auto vptr(const boost::any& arg) -> const vptr_type& {
-        detail::assert_std_rtti_boost_any<Registry>();
-        (void)&detail::use_any_classes<Registry, boost::any>;
+        using namespace detail;
+
+        assert_std_rtti_boost_any<Registry>();
+        (void)&use_any_classes<Registry, boost::any>;
         return Registry::vptr::vptr(&arg.type());
     }
 
@@ -176,8 +178,10 @@ struct virtual_traits<boost::any&, Registry> {
     //! @param arg A reference to a `boost::any`.
     //! @return A reference to the v-table pointer for the stored value.
     static auto vptr(const boost::any& arg) -> const vptr_type& {
-        detail::assert_std_rtti_boost_any<Registry>();
-        (void)&detail::use_any_classes<Registry, boost::any>;
+        using namespace detail;
+
+        assert_std_rtti_boost_any<Registry>();
+        (void)&use_any_classes<Registry, boost::any>;
         return Registry::vptr::vptr(&arg.type());
     }
 
@@ -259,8 +263,10 @@ struct virtual_traits<boost::any&&, Registry> {
     //! @param arg A reference to a `boost::any`.
     //! @return A reference to the v-table pointer for the stored value.
     static auto vptr(const boost::any& arg) -> const vptr_type& {
-        detail::assert_std_rtti_boost_any<Registry>();
-        (void)&detail::use_any_classes<Registry, boost::any>;
+        using namespace detail;
+
+        assert_std_rtti_boost_any<Registry>();
+        (void)&use_any_classes<Registry, boost::any>;
         return Registry::vptr::vptr(&arg.type());
     }
 

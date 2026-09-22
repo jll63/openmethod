@@ -196,15 +196,17 @@ class registry_state_transaction {
     template<class... States>
     struct each<detail::tuple<States...>> {
         static void save(detail::tuple<States...>& to) {
-            (...,
-                (detail::get<States>(to) =
-                        detail::get<States>(Registry::state().policies)));
+            using namespace detail;
+
+            (..., (get<States>(to) = get<States>(Registry::state().policies)));
         }
 
         static void restore(detail::tuple<States...>& from) {
+            using namespace detail;
+
             (...,
-                (detail::get<States>(Registry::state().policies) =
-                        std::move(detail::get<States>(from))));
+                (get<States>(Registry::state().policies) =
+                        std::move(get<States>(from))));
         }
     };
 

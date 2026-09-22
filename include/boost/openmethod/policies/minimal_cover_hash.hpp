@@ -272,11 +272,11 @@ struct minimal_cover_hash : type_hash {
         //! @return The index
         BOOST_FORCEINLINE
         static auto hash(type_id type) -> std::size_t {
-            auto index = std::size_t(
-                detail::pext64(
-                    static_cast<std::uint64_t>(
-                        reinterpret_cast<detail::uintptr>(type)),
-                    st().mask));
+            using namespace detail;
+
+            auto index = std::size_t(pext64(
+                static_cast<std::uint64_t>(reinterpret_cast<uintptr>(type)),
+                st().mask));
 
             if constexpr (Registry::has_runtime_checks) {
                 check(index, type);
