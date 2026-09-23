@@ -21,5 +21,6 @@ struct Animal : inplace_vptr_base<Animal> {
 int main() {
     Animal animal;
     virtual_ptr<Animal> p(animal);
+
     return 0;
 }

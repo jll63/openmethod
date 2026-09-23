@@ -16,5 +16,6 @@ BOOST_OPENMETHOD(poke, (virtual_<Cat&>), void);
 
 int main() {
     poke(Cat{});
+
     return 0;
 }

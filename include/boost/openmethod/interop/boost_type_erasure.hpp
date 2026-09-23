@@ -185,8 +185,11 @@ struct virtual_traits<const boost::type_erasure::any<C, T>&, Registry> {
     //! @return A reference to the v-table pointer for the bound value.
     static auto vptr(const boost::type_erasure::any<C, T>& arg)
         -> const vptr_type& {
-        detail::assert_std_rtti_type_erasure<Registry>();
-        (void)&detail::use_any_classes<Registry, boost::type_erasure::any<C>>;
+        using namespace detail;
+
+        assert_std_rtti_type_erasure<Registry>();
+        (void)&use_any_classes<Registry, boost::type_erasure::any<C>>;
+
         return Registry::vptr::vptr(&boost::type_erasure::typeid_of(arg));
     }
 
@@ -211,12 +214,14 @@ struct virtual_traits<const boost::type_erasure::any<C, T>&, Registry> {
             (!detail::te_mutable_target<U> || detail::te_mutable_bound<T>)>>
     static auto cast(const boost::type_erasure::any<C, T>& arg)
         -> decltype(auto) {
-        if constexpr (
-            detail::te_pass_through<U, boost::type_erasure::any<C, T>>) {
+        using namespace detail;
+
+        if constexpr (te_pass_through<U, boost::type_erasure::any<C, T>>) {
             return (arg);
         } else {
-            (void)&detail::use_any_classes<
+            (void)&use_any_classes<
                 Registry, boost::type_erasure::any<C>, std::decay_t<U>>;
+
             return boost::type_erasure::any_cast<U>(arg);
         }
     }
@@ -260,8 +265,11 @@ struct virtual_traits<boost::type_erasure::any<C, T>&, Registry> {
     //! @return A reference to the v-table pointer for the bound value.
     static auto vptr(const boost::type_erasure::any<C, T>& arg)
         -> const vptr_type& {
-        detail::assert_std_rtti_type_erasure<Registry>();
-        (void)&detail::use_any_classes<Registry, boost::type_erasure::any<C>>;
+        using namespace detail;
+
+        assert_std_rtti_type_erasure<Registry>();
+        (void)&use_any_classes<Registry, boost::type_erasure::any<C>>;
+
         return Registry::vptr::vptr(&boost::type_erasure::typeid_of(arg));
     }
 
@@ -284,14 +292,16 @@ struct virtual_traits<boost::type_erasure::any<C, T>&, Registry> {
         typename = std::enable_if_t<
             !std::is_rvalue_reference_v<U> &&
             (!detail::te_mutable_target<U> || detail::te_owning<T> ||
-             detail::te_mutable_bound<T>)>>
+                detail::te_mutable_bound<T>)>>
     static auto cast(boost::type_erasure::any<C, T>& arg) -> decltype(auto) {
-        if constexpr (
-            detail::te_pass_through<U, boost::type_erasure::any<C, T>>) {
+        using namespace detail;
+
+        if constexpr (te_pass_through<U, boost::type_erasure::any<C, T>>) {
             return (arg);
         } else {
-            (void)&detail::use_any_classes<
+            (void)&use_any_classes<
                 Registry, boost::type_erasure::any<C>, std::decay_t<U>>;
+
             return boost::type_erasure::any_cast<U>(arg);
         }
     }
@@ -335,8 +345,11 @@ struct virtual_traits<boost::type_erasure::any<C, T>&&, Registry> {
     //! @return A reference to the v-table pointer for the bound value.
     static auto vptr(const boost::type_erasure::any<C, T>& arg)
         -> const vptr_type& {
-        detail::assert_std_rtti_type_erasure<Registry>();
-        (void)&detail::use_any_classes<Registry, boost::type_erasure::any<C>>;
+        using namespace detail;
+
+        assert_std_rtti_type_erasure<Registry>();
+        (void)&use_any_classes<Registry, boost::type_erasure::any<C>>;
+
         return Registry::vptr::vptr(&boost::type_erasure::typeid_of(arg));
     }
 
@@ -360,21 +373,21 @@ struct virtual_traits<boost::type_erasure::any<C, T>&&, Registry> {
         typename = std::enable_if_t<
             (!std::is_rvalue_reference_v<U> || detail::te_owning<T>) &&
             (!detail::te_mutable_target<U> || detail::te_owning<T> ||
-             detail::te_mutable_bound<T>)>>
+                detail::te_mutable_bound<T>)>>
     static auto cast(boost::type_erasure::any<C, T>&& arg) -> decltype(auto) {
-        if constexpr (
-            detail::te_pass_through<U, boost::type_erasure::any<C, T>>) {
+        using namespace detail;
+
+        if constexpr (te_pass_through<U, boost::type_erasure::any<C, T>>) {
             return std::move(arg);
         } else {
-            (void)&detail::use_any_classes<
+            (void)&use_any_classes<
                 Registry, boost::type_erasure::any<C>, std::decay_t<U>>;
 
             if constexpr (std::is_rvalue_reference_v<U>) {
                 return std::move(
                     boost::type_erasure::any_cast<std::remove_reference_t<U>&>(
                         arg));
-            } else if constexpr (
-                !std::is_reference_v<U> && detail::te_owning<T>) {
+            } else if constexpr (!std::is_reference_v<U> && te_owning<T>) {
                 return U(std::move(boost::type_erasure::any_cast<U&>(arg)));
             } else {
                 return boost::type_erasure::any_cast<U>(arg);
@@ -424,8 +437,11 @@ struct virtual_traits<boost::type_erasure::any<C, T&>, Registry> {
     //! @return A reference to the v-table pointer for the bound value.
     static auto vptr(const boost::type_erasure::any<C, T&>& arg)
         -> const vptr_type& {
-        detail::assert_std_rtti_type_erasure<Registry>();
-        (void)&detail::use_any_classes<Registry, boost::type_erasure::any<C>>;
+        using namespace detail;
+
+        assert_std_rtti_type_erasure<Registry>();
+        (void)&use_any_classes<Registry, boost::type_erasure::any<C>>;
+
         return Registry::vptr::vptr(&boost::type_erasure::typeid_of(arg));
     }
 
@@ -445,14 +461,16 @@ struct virtual_traits<boost::type_erasure::any<C, T&>, Registry> {
     template<
         typename U, typename = std::enable_if_t<!std::is_rvalue_reference_v<U>>>
     static auto cast(boost::type_erasure::any<C, T&> arg) -> decltype(auto) {
-        if constexpr (
-            detail::te_pass_through<U, boost::type_erasure::any<C, T&>>) {
+        using namespace detail;
+
+        if constexpr (te_pass_through<U, boost::type_erasure::any<C, T&>>) {
             // by value: a reference would dangle when this function's
             // parameter goes out of scope
             return arg;
         } else {
-            (void)&detail::use_any_classes<
+            (void)&use_any_classes<
                 Registry, boost::type_erasure::any<C>, std::decay_t<U>>;
+
             return boost::type_erasure::any_cast<U>(arg);
         }
     }
@@ -500,8 +518,11 @@ struct virtual_traits<boost::type_erasure::any<C, const T&>, Registry> {
     //! @return A reference to the v-table pointer for the bound value.
     static auto vptr(const boost::type_erasure::any<C, const T&>& arg)
         -> const vptr_type& {
-        detail::assert_std_rtti_type_erasure<Registry>();
-        (void)&detail::use_any_classes<Registry, boost::type_erasure::any<C>>;
+        using namespace detail;
+
+        assert_std_rtti_type_erasure<Registry>();
+        (void)&use_any_classes<Registry, boost::type_erasure::any<C>>;
+
         return Registry::vptr::vptr(&boost::type_erasure::typeid_of(arg));
     }
 
@@ -522,14 +543,17 @@ struct virtual_traits<boost::type_erasure::any<C, const T&>, Registry> {
             !std::is_rvalue_reference_v<U> && !detail::te_mutable_target<U>>>
     static auto cast(boost::type_erasure::any<C, const T&> arg)
         -> decltype(auto) {
+        using namespace detail;
+
         if constexpr (
-            detail::te_pass_through<U, boost::type_erasure::any<C, const T&>>) {
+            te_pass_through<U, boost::type_erasure::any<C, const T&>>) {
             // by value: a reference would dangle when this function's
             // parameter goes out of scope
             return arg;
         } else {
-            (void)&detail::use_any_classes<
+            (void)&use_any_classes<
                 Registry, boost::type_erasure::any<C>, std::decay_t<U>>;
+
             return boost::type_erasure::any_cast<U>(arg);
         }
     }
@@ -590,6 +614,7 @@ struct openmethod_vptr {
     static auto apply(const T&) -> vptr_type {
         (void)&detail::use_any_classes<
             Registry, boost::type_erasure::any<Concept>, T>;
+
         return Registry::template static_vptr<T>;
     }
 };

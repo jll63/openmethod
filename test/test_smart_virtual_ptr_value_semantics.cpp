@@ -105,7 +105,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(
     static_assert(
         std::is_same_v<typename animal_virtual_ptr::element_type, Animal>);
     static_assert(std::is_same_v<
-                  decltype(std::declval<animal_virtual_ptr>().get()), Animal*>);
+        decltype(std::declval<animal_virtual_ptr>().get()), Animal*>);
     static_assert(IsSmartPtr<animal_ptr, default_registry>);
     static_assert(IsSmartPtr<const_animal_ptr, default_registry>);
     static_assert(

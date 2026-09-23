@@ -118,6 +118,7 @@ struct default_error_handler : error_handler {
         // coverity[auto_causes_copy]
         static auto set(function_type new_handler) -> function_type {
             auto prev = std::exchange(st().handler, std::move(new_handler));
+
             return prev ? prev : default_handler;
         }
 

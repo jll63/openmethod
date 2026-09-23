@@ -204,10 +204,72 @@ tables before first use.
 ## Code Conventions
 
 ### Formatting
-The project uses clang-format with an LLVM-based style:
-- `AlignAfterOpenBracket: AlwaysBreak`
+
+The project uses clang-format with an LLVM-based style, **pinned to clang-format 22**:
+`dev/reformat` calls `clang-format-22` explicitly, because 18 and 19 reject
+`BreakAfterOpenBracketFunction` with `unknown key` and refuse to run at all.
+
+- `AlignAfterOpenBracket: false`, plus `BreakAfterOpenBracket{Function,If,Loop,Switch}` and the
+  braced-list pair `BreakAfterOpenBracketBracedList` / `BreakBeforeCloseBracketBracedList`.
+  Continuations indent by 4; they are *not* aligned under the open paren. The pre-22 spelling was
+  `AlignAfterOpenBracket: AlwaysBreak`, a misnomer - v22 maps that to `true`, which aligns. No
+  `PenaltyBreak*` value and no `BlockIndent` achieves the 4-space indent; both were probed and
+  ruled out.
 - `AllowShortFunctionsOnASingleLine: false`
 - No short blocks, if statements, or loops on single lines
+- `Macros:` teaches clang-format to expand `BOOST_OPENMETHOD`, `BOOST_OPENMETHOD_OVERRIDE` and
+  their kin to `ID PARAMETERS`. Without it the parameter list is parsed as an *expression*, where
+  `&` is a binary operator, and the first parameter comes out as `Cat & a1`. The expansion
+  deliberately omits the return type: with one in it, clang-format breaks after the return type
+  and indents the method name by 8. `BOOST_OPENMETHOD_OVERRIDER` is deliberately **absent** - it
+  appears in expression position (`...)::fn(args)`), where the expansion never applies and only
+  wrecks the wrapping of the sites that do match.
+
+**A blank line precedes a `return`**, unless the `return` opens its block - the whole body of a
+function or lambda, the body of an `if`, a `case`. Where a comment is attached to the `return`,
+the blank line goes above the comment, not between them. clang-format has no option for this, so
+it is maintained by hand; `dev/reformat` will neither add nor remove these lines.
+
+**Indentation lands on a multiple of 4.** clang-format measures a continuation from the column of
+the enclosing bracket's *content*, not from the line's own indent, so a doubly-nested `((` yields
+13/14/17 and no setting moves it - `AlignAfterOpenBracket` and `AlignOperands` were probed in
+every combination. The fix is to remove a nesting level from the source (hoist the predicate into
+its own trait), never to hunt for an option.
+
+Three shapes clang-format cannot be configured into, so do not go looking:
+
+- **A ternary breaks before `?` only when aligning `:` under the `?` would overflow.** It is
+  fit-driven, so "break both operands unless the whole thing fits on one line" is not expressible.
+- **Macro arguments in expression position keep the binary-operator spacing.** A hand fix to
+  `BOOST_OPENMETHOD_OVERRIDER(poke, (std::ostream & os, ...), void)::fn(...)` is undone by the
+  next run; only `// clang-format off` holds.
+- **Files carrying `// clang-format off`** (most of `doc/modules/ROOT/examples/`) are hand-formatted
+  for the rendered docs. Edit those by hand; a reformat will not touch them.
+
+### `using namespace detail` vs `detail::`
+
+A function body that names `detail::` more than once opens with `using namespace detail;` and
+drops the qualification. A blank line follows the opening run of `using` declarations. The
+directive covers the body only - the signature stays qualified:
+
+```cpp
+static void save(detail::tuple<States...>& to) {
+    using namespace detail;
+
+    (..., (get<States>(to) = get<States>(Registry::state().policies)));
+}
+```
+
+A single use does not earn a directive: the `using` line costs a line, so it pays only where it
+unwraps two or more. Measured across the tree, no single-use body qualified.
+
+Two things a mechanical strip gets wrong - both were hit while doing this:
+
+- **A using-*declaration* is not a use.** In `using detail::generic_compiler;` the qualification
+  *is* the declaration; strip it and `using generic_compiler;` does not compile. Under a directive
+  the declaration is redundant anyway, so delete the line instead of requalifying it.
+- **`BOOST_OPENMETHOD_UNLESS_MRDOCS(detail::)` is not a qualification.** It hides one from MrDocs
+  (see *Reference (MrDocs) constraints*) and must be left alone.
 
 ### Disassembly
 Always show disassembly in **Intel syntax**, never AT&T (the toolchain's default

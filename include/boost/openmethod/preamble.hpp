@@ -495,9 +495,11 @@ inline trace trace::from_env() {
     auto result = _dupenv_s(&env, &len, "BOOST_OPENMETHOD_TRACE") == 0 && env &&
         len == 2 && *env == '1';
     free(env);
+
     return trace(result);
 #else
     auto env = getenv("BOOST_OPENMETHOD_TRACE");
+
     return trace(env && *env++ == '1' && *env++ == 0);
 #endif
 }

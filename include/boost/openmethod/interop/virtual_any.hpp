@@ -189,9 +189,11 @@ class virtual_any {
         obj(std::forward<T>(value)),
         vp(detail::box_vptr<use_indirect_vptrs>(
             Registry::template static_vptr<std::decay_t<T>>)) {
-        (void)&detail::use_any_classes<Registry, Any, std::decay_t<T>>;
+        using namespace detail;
+
+        (void)&use_any_classes<Registry, Any, std::decay_t<T>>;
         Registry::require_initialized();
-        BOOST_ASSERT(detail::unbox_vptr(vp) != nullptr);
+        BOOST_ASSERT(unbox_vptr(vp) != nullptr);
     }
 
     //! Copy constructor.
@@ -203,7 +205,9 @@ class virtual_any {
     //!
     //! @param other A `virtual_any`.
     virtual_any(virtual_any&& other) : obj(std::move(other.obj)), vp(other.vp) {
-        other.vp = detail::box_vptr<use_indirect_vptrs>(detail::null_vptr);
+        using namespace detail;
+
+        other.vp = box_vptr<use_indirect_vptrs>(null_vptr);
     }
 
     //! Copy assignment operator.
@@ -215,9 +219,12 @@ class virtual_any {
     //!
     //! @param other A `virtual_any`.
     auto operator=(virtual_any&& other) -> virtual_any& {
+        using namespace detail;
+
         obj = std::move(other.obj);
         vp = other.vp;
-        other.vp = detail::box_vptr<use_indirect_vptrs>(detail::null_vptr);
+        other.vp = box_vptr<use_indirect_vptrs>(null_vptr);
+
         return *this;
     }
 
@@ -228,9 +235,11 @@ class virtual_any {
     //!
     //! @param other An `any`.
     auto operator=(const Any& other) -> virtual_any& {
+        using namespace detail;
+
         obj = other;
-        vp = detail::box_vptr<use_indirect_vptrs>(
-            detail::acquire_vptr<Registry>(obj));
+        vp = box_vptr<use_indirect_vptrs>(acquire_vptr<Registry>(obj));
+
         return *this;
     }
 
@@ -241,9 +250,11 @@ class virtual_any {
     //!
     //! @param other An `any`.
     auto operator=(Any&& other) -> virtual_any& {
+        using namespace detail;
+
         obj = std::move(other);
-        vp = detail::box_vptr<use_indirect_vptrs>(
-            detail::acquire_vptr<Registry>(obj));
+        vp = box_vptr<use_indirect_vptrs>(acquire_vptr<Registry>(obj));
+
         return *this;
     }
 
@@ -266,12 +277,15 @@ class virtual_any {
             !std::is_same_v<std::decay_t<T>, Any> &&
             std::is_constructible_v<Any, T&&>>>
     auto operator=(T&& value) -> virtual_any& {
-        (void)&detail::use_any_classes<Registry, Any, std::decay_t<T>>;
+        using namespace detail;
+
+        (void)&use_any_classes<Registry, Any, std::decay_t<T>>;
         obj = std::forward<T>(value);
         Registry::require_initialized();
-        vp = detail::box_vptr<use_indirect_vptrs>(
+        vp = box_vptr<use_indirect_vptrs>(
             Registry::template static_vptr<std::decay_t<T>>);
-        BOOST_ASSERT(detail::unbox_vptr(vp) != nullptr);
+        BOOST_ASSERT(unbox_vptr(vp) != nullptr);
+
         return *this;
     }
 
@@ -339,6 +353,7 @@ struct virtual_traits<const virtual_any<Any, Registry>&, Registry> {
     static auto vptr(const virtual_any<Any, Registry>& arg)
         -> const vptr_type& {
         (void)&detail::use_any_classes<Registry, Any>;
+
         return arg.vptr_ref();
     }
 
@@ -363,6 +378,7 @@ struct virtual_traits<const virtual_any<Any, Registry>&, Registry> {
             return (arg);
         } else {
             (void)&detail::use_any_classes<Registry, Any, std::decay_t<U>>;
+
             return virtual_traits<const Any&, Registry>::template cast<U>(
                 arg.obj);
         }
@@ -399,6 +415,7 @@ struct virtual_traits<virtual_any<Any, Registry>&, Registry> {
     static auto vptr(const virtual_any<Any, Registry>& arg)
         -> const vptr_type& {
         (void)&detail::use_any_classes<Registry, Any>;
+
         return arg.vptr_ref();
     }
 
@@ -425,6 +442,7 @@ struct virtual_traits<virtual_any<Any, Registry>&, Registry> {
             return (arg);
         } else {
             (void)&detail::use_any_classes<Registry, Any, std::decay_t<U>>;
+
             return virtual_traits<Any&, Registry>::template cast<U>(arg.obj);
         }
     }
@@ -460,6 +478,7 @@ struct virtual_traits<virtual_any<Any, Registry>&&, Registry> {
     static auto vptr(const virtual_any<Any, Registry>& arg)
         -> const vptr_type& {
         (void)&detail::use_any_classes<Registry, Any>;
+
         return arg.vptr_ref();
     }
 
@@ -484,6 +503,7 @@ struct virtual_traits<virtual_any<Any, Registry>&&, Registry> {
             return std::move(arg);
         } else {
             (void)&detail::use_any_classes<Registry, Any, std::decay_t<U>>;
+
             return virtual_traits<Any&&, Registry>::template cast<U>(
                 std::move(arg.obj));
         }
@@ -506,7 +526,7 @@ template<class Class, class Registry>
 class virtual_ptr<
     Class, Registry,
     std::enable_if_t<BOOST_OPENMETHOD_UNLESS_MRDOCS(detail::)
-                         IsVirtualAny<std::remove_cv_t<Class>>>> {
+            IsVirtualAny<std::remove_cv_t<Class>>>> {
     static_assert(
         detail::false_t<Class>,
         "do not wrap a virtual_any in a virtual_ptr: it already carries the "

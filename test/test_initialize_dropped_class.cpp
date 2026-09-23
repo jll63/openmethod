@@ -75,12 +75,14 @@ namespace {
 // so they cannot inflate the vector.
 inline auto next_other_id() -> std::size_t {
     static std::size_t counter = 100;
+
     return ++counter;
 }
 
 template<typename T>
 inline auto other_static_type() -> std::size_t {
     static std::size_t value = next_other_id();
+
     return value;
 }
 

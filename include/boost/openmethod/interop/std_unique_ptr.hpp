@@ -50,11 +50,13 @@ struct virtual_traits<std::unique_ptr<Class>, Registry> {
                 typename Derived::element_type&>(*ptr);
             // coverity[alloc_fn]
             ptr.release();
+
             return Derived(p);
         } else {
             auto p = &static_cast<typename Derived::element_type&>(*ptr);
             // coverity[alloc_fn]
             ptr.release();
+
             return Derived(p);
         }
     }

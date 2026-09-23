@@ -383,6 +383,7 @@ auto records_of(boost::mp11::mp_list<Classes...>)
             if (Registry::rtti::type_index(record.type) ==
                 Registry::rtti::type_index(type)) {
                 records.push_back(&record);
+
                 return;
             }
         }
@@ -505,14 +506,14 @@ void expect_total(const allocation_stats& stats, std::size_t total) {
 // The slot chooser on its own.
 
 BOOST_AUTO_TEST_CASE(test_pick_slot) {
+    using namespace detail;
     using boost::dynamic_bitset;
-    using detail::generic_compiler;
 
     auto bits = [](std::initializer_list<std::size_t> slots) {
         dynamic_bitset<> result;
 
         for (auto slot : slots) {
-            detail::set_bit(result, slot);
+            set_bit(result, slot);
         }
 
         return result;
@@ -526,7 +527,7 @@ BOOST_AUTO_TEST_CASE(test_pick_slot) {
         for (std::size_t i = 0; i < used.size(); ++i) {
             classes[i].used_slots = used[i];
             cone.push_back(&classes[i]);
-            detail::merge_into(used[i], unavailable);
+            merge_into(used[i], unavailable);
         }
 
         return generic_compiler::pick_slot(cone, unavailable);
@@ -1701,7 +1702,7 @@ BOOST_AUTO_TEST_CASE(test_finalize_clears_vptr_vector) {
 
     // The vptr policy provides a finalize() (portable across MSVC/non-MSVC).
     static_assert(detail::has_finalize<
-                  test_registry::policy<policies::vptr>, const std::tuple<>&>);
+        test_registry::policy<policies::vptr>, const std::tuple<>&>);
 
     finalize<test_registry>();
     BOOST_TEST(vptrs.empty()); // finalize cleared the vector

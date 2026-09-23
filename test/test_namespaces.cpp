@@ -50,7 +50,7 @@ BOOST_OPENMETHOD_OVERRIDE(poke, (Dog&), std::string) {
 }
 
 // implement 'poke' for bulldogs
-BOOST_OPENMETHOD_OVERRIDE(poke, (Bulldog & dog), std::string) {
+BOOST_OPENMETHOD_OVERRIDE(poke, (Bulldog& dog), std::string) {
     return next(dog) + " and bite";
 }
 } // namespace canis

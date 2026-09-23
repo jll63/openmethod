@@ -32,14 +32,14 @@ namespace BOOST_OPENMETHOD_GENSYM {
 // A virtual_any hands out the v-table pointer it cached, through its
 // virtual_traits, for all three reference categories.
 static_assert(detail::has_vptr<
-              virtual_traits<const virtual_boost_any&, default_registry>,
-              const virtual_boost_any&>);
+    virtual_traits<const virtual_boost_any&, default_registry>,
+    const virtual_boost_any&>);
 static_assert(detail::has_vptr<
-              virtual_traits<virtual_boost_any&, default_registry>,
-              const virtual_boost_any&>);
+    virtual_traits<virtual_boost_any&, default_registry>,
+    const virtual_boost_any&>);
 static_assert(detail::has_vptr<
-              virtual_traits<virtual_boost_any&&, default_registry>,
-              const virtual_boost_any&>);
+    virtual_traits<virtual_boost_any&&, default_registry>,
+    const virtual_boost_any&>);
 
 MAKE_CLASSES();
 
@@ -111,11 +111,13 @@ using bump_method =
 
 auto bump_dog(Dog& dog) -> std::string {
     dog.name += " Jr.";
+
     return dog.name + " the dog";
 }
 
 auto bump_int(int& value) -> std::string {
     ++value;
+
     return "bumped";
 }
 
@@ -145,13 +147,15 @@ MAKE_CLASSES();
 
 BOOST_OPENMETHOD(steal, (virtual_boost_any&&), std::string);
 
-BOOST_OPENMETHOD_OVERRIDE(steal, (Dog && dog), std::string) {
+BOOST_OPENMETHOD_OVERRIDE(steal, (Dog&& dog), std::string) {
     Dog stolen(std::move(dog));
+
     return stolen.name + " the dog";
 }
 
-BOOST_OPENMETHOD_OVERRIDE(steal, (std::string && name), std::string) {
+BOOST_OPENMETHOD_OVERRIDE(steal, (std::string&& name), std::string) {
     std::string stolen(std::move(name));
+
     return stolen;
 }
 

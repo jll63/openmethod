@@ -103,6 +103,7 @@ inline constexpr bool has_pext = BOOST_OPENMETHOD_HAS_PEXT != 0;
 // quite enough.
 inline auto popcount64(std::uint64_t bits) -> std::size_t {
 #if defined(__GNUC__) || defined(__clang__)
+
     return std::size_t(__builtin_popcountll(bits));
 #else
     bits = bits - ((bits >> 1) & 0x5555555555555555ull);
@@ -119,6 +120,7 @@ inline auto popcount64(std::uint64_t bits) -> std::size_t {
 // registry static_asserts first.
 inline auto pext64(std::uint64_t value, std::uint64_t mask) -> std::uint64_t {
 #if BOOST_OPENMETHOD_HAS_PEXT
+
     return _pext_u64(value, mask);
 #else
     (void)value;
@@ -272,11 +274,11 @@ struct minimal_cover_hash : type_hash {
         //! @return The index
         BOOST_FORCEINLINE
         static auto hash(type_id type) -> std::size_t {
-            auto index = std::size_t(
-                detail::pext64(
-                    static_cast<std::uint64_t>(
-                        reinterpret_cast<detail::uintptr>(type)),
-                    st().mask));
+            using namespace detail;
+
+            auto index = std::size_t(pext64(
+                static_cast<std::uint64_t>(reinterpret_cast<uintptr>(type)),
+                st().mask));
 
             if constexpr (Registry::has_runtime_checks) {
                 check(index, type);
@@ -440,8 +442,9 @@ auto minimal_cover_hash<MaxBits>::fn<Registry>::initialize(
     std::vector<std::uint64_t> ids;
 
     for (auto iter = ctx.classes_begin(); iter != ctx.classes_end(); ++iter) {
-        for (auto type_iter = iter->type_id_begin();
-             type_iter != iter->type_id_end(); ++type_iter) {
+        for (
+            auto type_iter = iter->type_id_begin();
+            type_iter != iter->type_id_end(); ++type_iter) {
             ids.push_back(
                 static_cast<std::uint64_t>(
                     reinterpret_cast<detail::uintptr>(*type_iter)));

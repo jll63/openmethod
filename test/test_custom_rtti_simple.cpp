@@ -19,12 +19,14 @@ constexpr std::size_t non_polymorphic_high_bit = std::size_t(1)
 
 inline std::size_t next_non_polymorphic_id() {
     static std::size_t counter = 0;
+
     return non_polymorphic_high_bit | ++counter;
 }
 
 template<typename T>
 inline std::size_t non_polymorphic_static_type() {
     static std::size_t value = next_non_polymorphic_id();
+
     return value;
 }
 } // anonymous namespace
@@ -106,11 +108,11 @@ BOOST_OPENMETHOD_TEST_CLASSES(Animal, Dog, Cat);
 
 BOOST_OPENMETHOD(poke, (virtual_<Animal&>, std::ostream&), void);
 
-BOOST_OPENMETHOD_OVERRIDE(poke, (Dog & dog, std::ostream& os), void) {
+BOOST_OPENMETHOD_OVERRIDE(poke, (Dog& dog, std::ostream& os), void) {
     os << dog.name << " barks.";
 }
 
-BOOST_OPENMETHOD_OVERRIDE(poke, (Cat & cat, std::ostream& os), void) {
+BOOST_OPENMETHOD_OVERRIDE(poke, (Cat& cat, std::ostream& os), void) {
     os << cat.name << " hisses.";
 }
 

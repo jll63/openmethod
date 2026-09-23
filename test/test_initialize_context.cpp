@@ -47,14 +47,12 @@ struct context_checks {
             using traits = std::iterator_traits<iterator>;
 
             static_assert(std::is_same_v<
-                          typename traits::iterator_category,
-                          std::input_iterator_tag>);
+                typename traits::iterator_category, std::input_iterator_tag>);
 
             // Why it cannot be a forward iterator: `reference` is the value
             // type, so there is nothing for a second pass to refer back to.
-            static_assert(
-                std::is_same_v<
-                    typename traits::reference, typename traits::value_type>);
+            static_assert(std::is_same_v<
+                typename traits::reference, typename traits::value_type>);
 
             auto& st = Registry::template state<context_checks>();
 

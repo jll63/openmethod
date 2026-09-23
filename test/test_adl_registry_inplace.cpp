@@ -35,11 +35,10 @@ static_assert(std::is_same_v<bom::registry_affinity<Dog>, zoo_registry>);
 BOOST_OPENMETHOD(speak, (bom::virtual_<const Animal&>), std::string);
 
 static_assert(std::is_same_v<
-              BOOST_OPENMETHOD_TYPE(
-                  speak, (bom::virtual_<const Animal&>), std::string),
-              bom::method<
-                  BOOST_OPENMETHOD_ID(speak),
-                  std::string(bom::virtual_<const Animal&>), zoo_registry>>);
+    BOOST_OPENMETHOD_TYPE(speak, (bom::virtual_<const Animal&>), std::string),
+    bom::method<
+        BOOST_OPENMETHOD_ID(speak), std::string(bom::virtual_<const Animal&>),
+        zoo_registry>>);
 
 BOOST_OPENMETHOD_OVERRIDE(speak, (const Dog&), std::string) {
     return "bark";

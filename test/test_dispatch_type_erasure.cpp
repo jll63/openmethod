@@ -28,25 +28,20 @@ using erased_ref = te::any<Concept, te::_self&>;
 using erased_cref = te::any<Concept, const te::_self&>;
 
 static_assert(detail::has_vptr<
-              virtual_traits<const erased&, default_registry>, const erased&>);
+    virtual_traits<const erased&, default_registry>, const erased&>);
 
 // A registry spelled on the parameter names the same parameter as the default
 // one, for the owning any by reference and for the any references.
 static_assert(detail::validate_method_parameter<
-              virtual_<const erased&, default_registry>, default_registry,
-              void>::value);
-static_assert(
-    detail::validate_method_parameter<
-        virtual_<erased&, default_registry>, default_registry, void>::value);
-static_assert(
-    detail::validate_method_parameter<
-        virtual_<erased&&, default_registry>, default_registry, void>::value);
-static_assert(
-    detail::validate_method_parameter<
-        virtual_<erased_ref, default_registry>, default_registry, void>::value);
+    virtual_<const erased&, default_registry>, default_registry, void>::value);
 static_assert(detail::validate_method_parameter<
-              virtual_<erased_cref, default_registry>, default_registry,
-              void>::value);
+    virtual_<erased&, default_registry>, default_registry, void>::value);
+static_assert(detail::validate_method_parameter<
+    virtual_<erased&&, default_registry>, default_registry, void>::value);
+static_assert(detail::validate_method_parameter<
+    virtual_<erased_ref, default_registry>, default_registry, void>::value);
+static_assert(detail::validate_method_parameter<
+    virtual_<erased_cref, default_registry>, default_registry, void>::value);
 
 #define MAKE_CLASSES()                                                         \
     struct Dog {                                                               \
@@ -121,11 +116,13 @@ using bump_method =
 
 auto bump_dog(Dog& dog) -> std::string {
     dog.name += " Jr.";
+
     return dog.name + " the dog";
 }
 
 auto bump_int(int& value) -> std::string {
     ++value;
+
     return "bumped";
 }
 
@@ -158,13 +155,15 @@ BOOST_OPENMETHOD(steal, (virtual_<erased&&>), std::string);
 // boost::type_erasure::any_cast has no rvalue overload; the trait moves
 // the result of a mutable-reference cast, because the `any` owns its
 // value.
-BOOST_OPENMETHOD_OVERRIDE(steal, (Dog && dog), std::string) {
+BOOST_OPENMETHOD_OVERRIDE(steal, (Dog&& dog), std::string) {
     Dog stolen(std::move(dog));
+
     return stolen.name + " the dog";
 }
 
-BOOST_OPENMETHOD_OVERRIDE(steal, (std::string && name), std::string) {
+BOOST_OPENMETHOD_OVERRIDE(steal, (std::string&& name), std::string) {
     std::string stolen(std::move(name));
+
     return stolen;
 }
 
@@ -193,13 +192,15 @@ MAKE_CLASSES();
 
 BOOST_OPENMETHOD(poke, (virtual_<erased_ref>), std::string);
 
-BOOST_OPENMETHOD_OVERRIDE(poke, (Dog & dog), std::string) {
+BOOST_OPENMETHOD_OVERRIDE(poke, (Dog& dog), std::string) {
     dog.name += "!";
+
     return dog.name;
 }
 
 BOOST_OPENMETHOD_OVERRIDE(poke, (int& value), std::string) {
     ++value;
+
     return "poked";
 }
 
@@ -328,8 +329,9 @@ BOOST_OPENMETHOD_OVERRIDE(name, (const dispatchable& value), std::string) {
 
 BOOST_OPENMETHOD(poke, (virtual_<dispatchable_ref>), std::string);
 
-BOOST_OPENMETHOD_OVERRIDE(poke, (Dog & dog), std::string) {
+BOOST_OPENMETHOD_OVERRIDE(poke, (Dog& dog), std::string) {
     dog.name += "!";
+
     return dog.name;
 }
 

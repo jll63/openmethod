@@ -10,20 +10,18 @@
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(
     plain_virtual_ptr_value, Registry, test_policies) {
-    static_assert(
-        std::is_same_v<
-            typename virtual_ptr<Animal, Registry>::element_type, Animal>);
     static_assert(std::is_same_v<
-                  typename virtual_ptr<const Animal, Registry>::element_type,
-                  const Animal>);
+        typename virtual_ptr<Animal, Registry>::element_type, Animal>);
     static_assert(std::is_same_v<
-                  decltype(std::declval<virtual_ptr<Animal, Registry>>().get()),
-                  Animal*>);
+        typename virtual_ptr<const Animal, Registry>::element_type,
+        const Animal>);
+    static_assert(std::is_same_v<
+        decltype(std::declval<virtual_ptr<Animal, Registry>>().get()),
+        Animal*>);
     static_assert(!IsSmartPtr<Animal, Registry>);
     static_assert(!IsSmartPtr<const Animal, Registry>);
-    static_assert(
-        std::is_same_v<
-            decltype(*std::declval<virtual_ptr<Animal, Registry>>()), Animal&>);
+    static_assert(std::is_same_v<
+        decltype(*std::declval<virtual_ptr<Animal, Registry>>()), Animal&>);
 
     init_test<Registry>();
 
@@ -317,6 +315,7 @@ BOOST_AUTO_TEST_CASE(virtual_ptr_final_error) {
     } catch (...) {
         default_registry::error_handler::set(prev_handler);
         BOOST_FAIL("wrong exception");
+
         return;
     }
 
@@ -345,4 +344,4 @@ static_assert(
 // OK from another virtual_ptr though, because it can be constructed using
 // 'final'.
 static_assert(construct_assign_ok<
-              virtual_ptr<NonPolymorphic>, virtual_ptr<NonPolymorphic>>);
+    virtual_ptr<NonPolymorphic>, virtual_ptr<NonPolymorphic>>);

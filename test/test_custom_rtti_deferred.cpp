@@ -19,12 +19,14 @@ constexpr std::size_t non_polymorphic_high_bit = std::size_t(1)
 
 inline std::size_t next_non_polymorphic_id() {
     static std::size_t counter = 0;
+
     return non_polymorphic_high_bit | ++counter;
 }
 
 template<typename T>
 inline std::size_t non_polymorphic_static_type() {
     static std::size_t value = next_non_polymorphic_id();
+
     return value;
 }
 } // anonymous namespace
@@ -49,6 +51,7 @@ struct Animal {
 template<typename Derived, typename Base>
 auto custom_dynamic_cast(Base& obj) -> Derived {
     using derived_type = std::remove_cv_t<std::remove_reference_t<Derived>>;
+
     return *reinterpret_cast<derived_type*>(
         const_cast<std::remove_cv_t<Base>&>(obj).cast_aux(
             derived_type::static_type));
@@ -129,8 +132,9 @@ struct custom_rtti : boost::openmethod::policies::deferred_static_rtti {
 
         template<class Stream>
         static void type_name(boost::openmethod::type_id type, Stream& stream) {
-            static const char* name[] = {"?",   "Animal", "Dog",
-                                         "Cat", "Bat",    "Owl"};
+            static const char* name[] = {
+                "?", "Animal", "Dog", "Cat", "Bat", "Owl"
+            };
             auto idx = reinterpret_cast<std::size_t>(type);
             stream << (idx >= 1 && idx <= 5 ? name[idx] : "?");
         }
@@ -160,11 +164,11 @@ BOOST_OPENMETHOD_TEST_CLASSES(Animal, Dog, Cat, Bat, Owl);
 
 BOOST_OPENMETHOD(poke, (virtual_<Animal&>, std::ostream&), void);
 
-BOOST_OPENMETHOD_OVERRIDE(poke, (Dog & dog, std::ostream& os), void) {
+BOOST_OPENMETHOD_OVERRIDE(poke, (Dog& dog, std::ostream& os), void) {
     os << dog.name << " barks.";
 }
 
-BOOST_OPENMETHOD_OVERRIDE(poke, (Cat & cat, std::ostream& os), void) {
+BOOST_OPENMETHOD_OVERRIDE(poke, (Cat& cat, std::ostream& os), void) {
     os << cat.name << " hisses.";
 }
 
@@ -179,11 +183,11 @@ BOOST_OPENMETHOD_OVERRIDE(meet, (Dog&, Dog&, std::ostream& os), void) {
 // `dynamic_cast_ref` rather than a static_cast - with type ids that are only
 // assigned during static construction.
 
-BOOST_OPENMETHOD_OVERRIDE(poke, (Bat & bat, std::ostream& os), void) {
+BOOST_OPENMETHOD_OVERRIDE(poke, (Bat& bat, std::ostream& os), void) {
     os << bat.name << " screeches.";
 }
 
-BOOST_OPENMETHOD_OVERRIDE(poke, (Owl & owl, std::ostream& os), void) {
+BOOST_OPENMETHOD_OVERRIDE(poke, (Owl& owl, std::ostream& os), void) {
     os << owl.name << " hoots.";
 }
 

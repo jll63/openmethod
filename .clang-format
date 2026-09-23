@@ -2,7 +2,13 @@
 Language:        Cpp
 # BasedOnStyle:  LLVM
 AccessModifierOffset: -2
-AlignAfterOpenBracket: AlwaysBreak
+AlignAfterOpenBracket: false
+BreakAfterOpenBracketBracedList: true
+BreakBeforeCloseBracketBracedList: true
+BreakAfterOpenBracketFunction: true
+BreakAfterOpenBracketIf: true
+BreakAfterOpenBracketLoop: true
+BreakAfterOpenBracketSwitch: true
 AlignConsecutiveMacros: false
 AlignConsecutiveAssignments: false
 AlignConsecutiveDeclarations: false
@@ -87,6 +93,13 @@ IndentWrappedFunctionNames: false
 JavaScriptQuotes: Leave
 JavaScriptWrapImports: true
 KeepEmptyLinesAtTheStartOfBlocks: true
+Macros:
+  - 'BOOST_OPENMETHOD(ID, PARAMETERS, RETURN_TYPE)=ID PARAMETERS'
+  - 'BOOST_OPENMETHOD_OVERRIDE(ID, PARAMETERS, RETURN_TYPE)=ID PARAMETERS'
+  - 'BOOST_OPENMETHOD_INLINE_OVERRIDE(ID, PARAMETERS, RETURN_TYPE)=ID PARAMETERS'
+  - 'BOOST_OPENMETHOD_DECLARE_OVERRIDER(ID, PARAMETERS, RETURN_TYPE)=ID PARAMETERS'
+  - 'BOOST_OPENMETHOD_DEFINE_OVERRIDER(ID, PARAMETERS, RETURN_TYPE)=ID PARAMETERS'
+  - 'BOOST_OPENMETHOD_TYPE(ID, PARAMETERS, RETURN_TYPE)=ID PARAMETERS'
 MacroBlockBegin: ''
 MacroBlockEnd:   ''
 MaxEmptyLinesToKeep: 1

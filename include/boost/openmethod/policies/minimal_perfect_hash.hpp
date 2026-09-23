@@ -169,8 +169,10 @@ struct minimal_perfect_hash : type_hash {
         // The top half of a 64x64 product.
         static auto mulhi(std::uint64_t a, std::uint64_t b) -> std::uint64_t {
 #if defined(__SIZEOF_INT128__)
+
             return std::uint64_t((static_cast<__uint128_t>(a) * b) >> 64);
 #elif defined(_MSC_VER) && defined(_M_X64)
+
             return __umulh(a, b);
 #else
             auto lo = [](std::uint64_t v) { return v & 0xffffffffull; };
@@ -218,7 +220,8 @@ struct minimal_perfect_hash : type_hash {
         //! Returns the hash range: `[0, slots - 1]`.
         static auto hash_range() -> std::pair<std::size_t, std::size_t> {
             return std::pair{
-                std::size_t(0), std::size_t(st().size ? st().size - 1 : 0)};
+                std::size_t(0), std::size_t(st().size ? st().size - 1 : 0)
+            };
         }
 
         //! Map a type id to an index
@@ -369,8 +372,9 @@ auto minimal_perfect_hash<Lambda, LoadPercent, MaxSeeds>::fn<Registry>::
     std::vector<std::uint64_t> ids;
 
     for (auto iter = ctx.classes_begin(); iter != ctx.classes_end(); ++iter) {
-        for (auto type_iter = iter->type_id_begin();
-             type_iter != iter->type_id_end(); ++type_iter) {
+        for (
+            auto type_iter = iter->type_id_begin();
+            type_iter != iter->type_id_end(); ++type_iter) {
             ids.push_back(
                 std::uint64_t(reinterpret_cast<detail::uintptr>(*type_iter)));
         }

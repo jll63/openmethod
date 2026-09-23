@@ -1,8 +1,11 @@
 #!/bin/bash
 
+# Format every C++ source in the repository. Pinned to clang-format 22: the
+# house style needs BreakAfterOpenBracket*, which 18 and 19 reject outright.
+
 cd "$(dirname $0)/.."
 
-srcs=$(find include examples test \
-    -name '*.?pp' | grep -v cmake_fetchcontent | grep -v /CMakeFiles)
+srcs=$(git ls-files --cached --others --exclude-standard \
+    '*.hpp' '*.cpp' '*.ipp')
 
-clang-format -i --verbose $srcs
+clang-format-22 -i --verbose $srcs

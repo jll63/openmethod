@@ -64,29 +64,37 @@ struct Ghost : Animal {};
 // and do not call BOOST_OPENMETHOD_REGISTER_CLASSES - see test_classes.hpp.
 BOOST_OPENMETHOD_CLASSES(Animal, Dog, Cat, Bulldog, Tiger);
 
-BOOST_OPENMETHOD(name, (virtual_<const Animal&>), std::string);
-BOOST_OPENMETHOD_OVERRIDE(name, (const Animal&), std::string) {
+BOOST_OPENMETHOD(
+name,(virtual_<const Animal&>), std::string);
+BOOST_OPENMETHOD_OVERRIDE(
+name,(const Animal&), std::string) {
     return "animal";
 }
-BOOST_OPENMETHOD_OVERRIDE(name, (const Dog&), std::string) {
+BOOST_OPENMETHOD_OVERRIDE(
+name,(const Dog&), std::string) {
     return "dog";
 }
-BOOST_OPENMETHOD_OVERRIDE(name, (const Cat&), std::string) {
+BOOST_OPENMETHOD_OVERRIDE(
+name,(const Cat&), std::string) {
     return "cat";
 }
-BOOST_OPENMETHOD_OVERRIDE(name, (const Bulldog&), std::string) {
+BOOST_OPENMETHOD_OVERRIDE(
+name,(const Bulldog&), std::string) {
     return "bulldog";
 }
 
 BOOST_OPENMETHOD(
-    meet, (virtual_<const Animal&>, virtual_<const Animal&>), std::string);
-BOOST_OPENMETHOD_OVERRIDE(meet, (const Animal&, const Animal&), std::string) {
+meet,(virtual_<const Animal&>, virtual_<const Animal&>), std::string);
+BOOST_OPENMETHOD_OVERRIDE(
+meet,(const Animal&, const Animal&), std::string) {
     return "ignore";
 }
-BOOST_OPENMETHOD_OVERRIDE(meet, (const Dog&, const Cat&), std::string) {
+BOOST_OPENMETHOD_OVERRIDE(
+meet,(const Dog&, const Cat&), std::string) {
     return "chase";
 }
-BOOST_OPENMETHOD_OVERRIDE(meet, (const Cat&, const Dog&), std::string) {
+BOOST_OPENMETHOD_OVERRIDE(
+meet,(const Cat&, const Dog&), std::string) {
     return "hiss";
 }
 
@@ -121,9 +129,10 @@ BOOST_AUTO_TEST_CASE(hash_is_injective) {
 
     std::set<std::size_t> seen;
 
-    for (auto type :
-         {&typeid(Animal), &typeid(Dog), &typeid(Cat), &typeid(Bulldog),
-          &typeid(Tiger)}) {
+    for (
+        auto type :
+        {&typeid(Animal), &typeid(Dog), &typeid(Cat), &typeid(Bulldog),
+            &typeid(Tiger)}) {
         auto index = type_hash::hash(type);
         BOOST_TEST(index >= low);
         BOOST_TEST(index <= high);

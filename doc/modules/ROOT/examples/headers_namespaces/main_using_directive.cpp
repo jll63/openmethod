@@ -17,7 +17,7 @@ struct Bulldog : Dog {
 BOOST_OPENMETHOD_CLASSES(Dog, Bulldog);
 
 BOOST_OPENMETHOD_OVERRIDE(
-    poke, (std::ostream & os, virtual_ptr<Bulldog> dog), void) {
+    poke, (std::ostream& os, virtual_ptr<Bulldog> dog), void) {
     next(os, dog);
     os << " and bites back";
 }

@@ -41,6 +41,7 @@ class static_list {
         if (!first) {
             first = &node;
             node.prev_ptr = &node;
+
             return;
         }
 
@@ -63,17 +64,20 @@ class static_list {
         if (&node == last) {
             if (&node == first) {
                 first = nullptr;
+
                 return;
             }
 
             first->prev_ptr = prev;
             prev->next_ptr = nullptr;
+
             return;
         }
 
         if (&node == first) {
             first = next;
             first->prev_ptr = last;
+
             return;
         }
 
@@ -116,12 +120,14 @@ class static_list {
         auto operator++() -> iterator& {
             BOOST_ASSERT(ptr);
             ptr = ptr->next_ptr;
+
             return *this;
         }
 
         auto operator++(int) -> iterator {
             auto tmp = *this;
             ++(*this);
+
             return tmp;
         }
 
@@ -168,12 +174,14 @@ class static_list {
         auto operator++() -> const_iterator& {
             BOOST_ASSERT(ptr);
             ptr = ptr->next_ptr;
+
             return *this;
         }
 
         auto operator++(int) -> const_iterator {
             auto tmp = *this;
             ++(*this);
+
             return tmp;
         }
 

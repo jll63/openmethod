@@ -58,5 +58,6 @@ BOOST_OPENMETHOD_REGISTER(use_classes<Animal, bad_registry>);
 
 int main() {
     initialize<bad_registry>();
+
     return 0;
 }

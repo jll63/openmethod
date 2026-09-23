@@ -260,7 +260,7 @@ class weak_virtual_ptr {
     template<
         class Other,
         typename = std::enable_if_t<BOOST_OPENMETHOD_UNLESS_MRDOCS(detail::)
-                                        IsPolymorphic<Other, Registry>>,
+                IsPolymorphic<Other, Registry>>,
         typename = std::enable_if_t<std::is_constructible_v<
             std::weak_ptr<Class>, const std::shared_ptr<Other>&>>>
     weak_virtual_ptr(const std::shared_ptr<Other>& other) :
@@ -283,7 +283,7 @@ class weak_virtual_ptr {
     template<
         class Other,
         typename = std::enable_if_t<BOOST_OPENMETHOD_UNLESS_MRDOCS(detail::)
-                                        IsPolymorphic<Other, Registry>>,
+                IsPolymorphic<Other, Registry>>,
         typename = std::enable_if_t<std::is_constructible_v<
             std::weak_ptr<Class>, const std::weak_ptr<Other>&>>>
     weak_virtual_ptr(const std::weak_ptr<Other>& other) {
@@ -297,15 +297,18 @@ class weak_virtual_ptr {
     //! @param value A `nullptr`.
     weak_virtual_ptr& operator=(std::nullptr_t) noexcept {
         reset();
+
         return *this;
     }
 
     weak_virtual_ptr& operator=(const weak_virtual_ptr& other) = default;
 
     weak_virtual_ptr& operator=(weak_virtual_ptr&& other) noexcept {
-        vp = std::exchange(
-            other.vp, detail::box_vptr<use_indirect_vptrs>(detail::null_vptr));
+        using namespace detail;
+
+        vp = std::exchange(other.vp, box_vptr<use_indirect_vptrs>(null_vptr));
         obj = std::move(other.obj);
+
         return *this;
     }
 
@@ -331,6 +334,7 @@ class weak_virtual_ptr {
         const virtual_ptr<std::shared_ptr<Other>, Registry>& other) {
         vp = vptr_of(other);
         obj = other.pointer();
+
         return *this;
     }
 
@@ -352,6 +356,7 @@ class weak_virtual_ptr {
         const weak_virtual_ptr<Other, Registry>& other) {
         vp = other.vp;
         obj = other.obj;
+
         return *this;
     }
 
@@ -375,6 +380,7 @@ class weak_virtual_ptr {
         vp = std::exchange(
             other.vp, detail::box_vptr<use_indirect_vptrs>(detail::null_vptr));
         obj = std::move(other.obj);
+
         return *this;
     }
 
@@ -393,12 +399,13 @@ class weak_virtual_ptr {
     template<
         class Other,
         typename = std::enable_if_t<BOOST_OPENMETHOD_UNLESS_MRDOCS(detail::)
-                                        IsPolymorphic<Other, Registry>>,
+                IsPolymorphic<Other, Registry>>,
         typename = std::enable_if_t<std::is_assignable_v<
             std::weak_ptr<Class>&, const std::shared_ptr<Other>&>>>
     weak_virtual_ptr& operator=(const std::shared_ptr<Other>& other) {
         vp = vptr_of(other);
         obj = other;
+
         return *this;
     }
 
@@ -418,11 +425,12 @@ class weak_virtual_ptr {
     template<
         class Other,
         typename = std::enable_if_t<BOOST_OPENMETHOD_UNLESS_MRDOCS(detail::)
-                                        IsPolymorphic<Other, Registry>>,
+                IsPolymorphic<Other, Registry>>,
         typename = std::enable_if_t<std::is_assignable_v<
             std::weak_ptr<Class>&, const std::weak_ptr<Other>&>>>
     weak_virtual_ptr& operator=(const std::weak_ptr<Other>& other) {
         assign(other);
+
         return *this;
     }
 
@@ -497,8 +505,10 @@ class weak_virtual_ptr {
     //!
     //! Reset the `std::weak_ptr`. Set the v-table pointer to `nullptr`.
     void reset() noexcept {
+        using namespace detail;
+
         obj.reset();
-        vp = detail::box_vptr<use_indirect_vptrs>(detail::null_vptr);
+        vp = box_vptr<use_indirect_vptrs>(null_vptr);
     }
 
     //! Swap with another `weak_virtual_ptr`

@@ -313,16 +313,19 @@ struct unanimous_registry {
 
 // A registry listed explicitly wins, and a class that declares nothing goes
 // along with it; one that declares another registry does not.
-template<class Registry, class... Classes>
-struct classes_agree_with {
+template<class Registry, class Class>
+struct class_agrees_with {
+    using declared = typename registry_affinity_aux<Class>::declared;
     static_assert(
-        ((std::is_same_v<
-              typename registry_affinity_aux<Classes>::declared, void> ||
-          std::is_same_v<
-              typename registry_affinity_aux<Classes>::declared, Registry>) &&
-         ...),
+        std::is_same_v<declared, void> || std::is_same_v<declared, Registry>,
         "registry mismatch: a class declares an affinity for another registry");
     static constexpr bool value = true;
+};
+
+template<class Registry, class... Classes>
+struct classes_agree_with {
+    static constexpr bool value =
+        (class_agrees_with<Registry, Classes>::value && ...);
 };
 
 template<class Named, class Others, typename = void>
@@ -355,6 +358,7 @@ template<class Registry, class... Class>
 struct init_type_ids<Registry, mp11::mp_list<Class...>> {
     static auto fn(type_id* ids) {
         (..., (*ids++ = Registry::rtti::template static_type<Class>()));
+
         return ids;
     }
 };
@@ -656,6 +660,7 @@ struct virtual_traits<Class&, Registry> {
     template<typename Derived>
     static auto cast(Class& obj) -> Derived {
         static_assert(std::is_lvalue_reference_v<Derived>);
+
         return detail::optimal_cast<Registry, Derived>(obj);
     }
 };
@@ -687,6 +692,7 @@ struct virtual_traits<Class&&, Registry> {
     template<typename Derived>
     static auto cast(Class&& obj) -> Derived {
         static_assert(std::is_rvalue_reference_v<Derived>);
+
         return detail::optimal_cast<Registry, Derived>(obj);
     }
 };
@@ -1018,9 +1024,8 @@ decltype(auto) acquire_vptr(const ArgType& arg) {
 
     Registry::require_initialized();
 
-    if constexpr (has_vptr<
-                      virtual_traits<const ArgType&, Registry>,
-                      const ArgType&>) {
+    if constexpr (
+        has_vptr<virtual_traits<const ArgType&, Registry>, const ArgType&>) {
         return virtual_traits<const ArgType&, Registry>::vptr(arg);
     } else {
         return Registry::template policy<policies::vptr>::dynamic_vptr(arg);
@@ -1326,7 +1331,7 @@ class virtual_ptr {
         class Other,
         typename = std::enable_if_t<std::is_constructible_v<Class*, Other*>>,
         typename = std::enable_if_t<BOOST_OPENMETHOD_UNLESS_MRDOCS(detail::)
-                                        IsPolymorphic<Class, Registry, Other>>>
+                IsPolymorphic<Class, Registry, Other>>>
     virtual_ptr(Other* other) :
         vp(detail::box_vptr<use_indirect_vptrs>(
             detail::acquire_vptr<Registry>(*other))),
@@ -1396,11 +1401,12 @@ class virtual_ptr {
         class Other,
         typename = std::enable_if_t<std::is_assignable_v<Class*&, Other*>>,
         typename = std::enable_if_t<BOOST_OPENMETHOD_UNLESS_MRDOCS(detail::)
-                                        IsPolymorphic<Class, Registry, Other>>>
+                IsPolymorphic<Class, Registry, Other>>>
     virtual_ptr& operator=(Other& other) {
         obj = &other;
         vp = detail::box_vptr<use_indirect_vptrs>(
             detail::acquire_vptr<Registry>(other));
+
         return *this;
     }
 
@@ -1433,11 +1439,12 @@ class virtual_ptr {
         class Other,
         typename = std::enable_if_t<std::is_assignable_v<Class*&, Other*>>,
         typename = std::enable_if_t<BOOST_OPENMETHOD_UNLESS_MRDOCS(detail::)
-                                        IsPolymorphic<Class, Registry, Other>>>
+                IsPolymorphic<Class, Registry, Other>>>
     virtual_ptr& operator=(Other* other) {
         obj = other;
         vp = detail::box_vptr<use_indirect_vptrs>(
             detail::acquire_vptr<Registry>(*other));
+
         return *this;
     }
 
@@ -1472,6 +1479,7 @@ class virtual_ptr {
     virtual_ptr& operator=(const virtual_ptr<Other, Registry>& other) {
         obj = other.get();
         vp = other.vp;
+
         return *this;
     }
 
@@ -1482,8 +1490,11 @@ class virtual_ptr {
     //! @par Example
     //! include:virtual_ptr.cpp#assign_nullptr
     virtual_ptr& operator=(std::nullptr_t) {
+        using namespace detail;
+
         obj = nullptr;
-        vp = detail::box_vptr<use_indirect_vptrs>(detail::null_vptr);
+        vp = box_vptr<use_indirect_vptrs>(null_vptr);
+
         return *this;
     }
 
@@ -1567,7 +1578,7 @@ template<class SmartPtr, class Registry>
 class virtual_ptr<
     SmartPtr, Registry,
     std::enable_if_t<BOOST_OPENMETHOD_UNLESS_MRDOCS(detail::)
-                         IsSmartPtr<SmartPtr, Registry>>> {
+            IsSmartPtr<SmartPtr, Registry>>> {
 
 #ifndef __MRDOCS__
     template<class, class, typename>
@@ -1661,8 +1672,8 @@ class virtual_ptr<
             BOOST_OPENMETHOD_UNLESS_MRDOCS(detail::)
                 SameSmartPtr<SmartPtr, Other, Registry> &&
             std::is_constructible_v<SmartPtr, const Other&>>,
-        typename = std::enable_if_t<BOOST_OPENMETHOD_UNLESS_MRDOCS(
-            detail::) IsPolymorphic<typename Other::element_type, Registry>>>
+        typename = std::enable_if_t<BOOST_OPENMETHOD_UNLESS_MRDOCS(detail::)
+                IsPolymorphic<typename Other::element_type, Registry>>>
     virtual_ptr(const Other& other) :
         vp(detail::box_vptr<use_indirect_vptrs>(
             other ? detail::acquire_vptr<Registry>(*other)
@@ -1690,8 +1701,8 @@ class virtual_ptr<
             BOOST_OPENMETHOD_UNLESS_MRDOCS(detail::)
                 SameSmartPtr<SmartPtr, Other, Registry> &&
             std::is_constructible_v<SmartPtr, Other&>>,
-        typename = std::enable_if_t<BOOST_OPENMETHOD_UNLESS_MRDOCS(
-            detail::) IsPolymorphic<typename Other::element_type, Registry>>>
+        typename = std::enable_if_t<BOOST_OPENMETHOD_UNLESS_MRDOCS(detail::)
+                IsPolymorphic<typename Other::element_type, Registry>>>
     virtual_ptr(Other& other) :
         vp(detail::box_vptr<use_indirect_vptrs>(
             other ? detail::acquire_vptr<Registry>(*other)
@@ -1726,8 +1737,8 @@ class virtual_ptr<
             BOOST_OPENMETHOD_UNLESS_MRDOCS(detail::)
                 SameSmartPtr<SmartPtr, Other, Registry> &&
             std::is_constructible_v<SmartPtr, Other&&>>,
-        typename = std::enable_if_t<BOOST_OPENMETHOD_UNLESS_MRDOCS(
-            detail::) IsPolymorphic<typename Other::element_type, Registry>>>
+        typename = std::enable_if_t<BOOST_OPENMETHOD_UNLESS_MRDOCS(detail::)
+                IsPolymorphic<typename Other::element_type, Registry>>>
     virtual_ptr(Other&& other) :
         vp(detail::box_vptr<use_indirect_vptrs>(
             other ? detail::acquire_vptr<Registry>(*other)
@@ -1805,8 +1816,11 @@ class virtual_ptr<
     //!
     //! @param value A `nullptr`.
     virtual_ptr& operator=(std::nullptr_t) {
+        using namespace detail;
+
         obj = SmartPtr();
-        vp = detail::box_vptr<use_indirect_vptrs>(detail::null_vptr);
+        vp = box_vptr<use_indirect_vptrs>(null_vptr);
+
         return *this;
     }
 
@@ -1830,12 +1844,13 @@ class virtual_ptr<
             BOOST_OPENMETHOD_UNLESS_MRDOCS(detail::)
                 SameSmartPtr<SmartPtr, Other, Registry> &&
             std::is_assignable_v<SmartPtr, const Other&>>,
-        typename = std::enable_if_t<BOOST_OPENMETHOD_UNLESS_MRDOCS(
-            detail::) IsPolymorphic<typename Other::element_type, Registry>>>
+        typename = std::enable_if_t<BOOST_OPENMETHOD_UNLESS_MRDOCS(detail::)
+                IsPolymorphic<typename Other::element_type, Registry>>>
     virtual_ptr& operator=(const Other& other) {
         obj = other;
         vp = detail::box_vptr<use_indirect_vptrs>(
             detail::acquire_vptr<Registry>(*other));
+
         return *this;
     }
 
@@ -1866,12 +1881,13 @@ class virtual_ptr<
             BOOST_OPENMETHOD_UNLESS_MRDOCS(detail::)
                 SameSmartPtr<SmartPtr, Other, Registry> &&
             std::is_assignable_v<SmartPtr, Other&&>>,
-        typename = std::enable_if_t<BOOST_OPENMETHOD_UNLESS_MRDOCS(
-            detail::) IsPolymorphic<typename Other::element_type, Registry>>>
+        typename = std::enable_if_t<BOOST_OPENMETHOD_UNLESS_MRDOCS(detail::)
+                IsPolymorphic<typename Other::element_type, Registry>>>
     virtual_ptr& operator=(Other&& other) {
         vp = detail::box_vptr<use_indirect_vptrs>(
             other ? detail::acquire_vptr<Registry>(*other) : detail::null_vptr);
         obj = std::move(other);
+
         return *this;
     }
 
@@ -1899,6 +1915,7 @@ class virtual_ptr<
     virtual_ptr& operator=(virtual_ptr<Other, Registry>& other) {
         obj = other.obj;
         vp = other.vp;
+
         return *this;
     }
 
@@ -1928,6 +1945,7 @@ class virtual_ptr<
     virtual_ptr& operator=(const virtual_ptr<Other, Registry>& other) {
         obj = other.obj;
         vp = other.vp;
+
         return *this;
     }
 
@@ -2596,7 +2614,7 @@ class method<Id, ReturnType(Parameters...), Registry> :
     //! none is more specialized than all the others.
     //!
     auto operator()(typename BOOST_OPENMETHOD_UNLESS_MRDOCS(detail::)
-                        StripVirtualDecorator<Parameters>::type... args) const
+            StripVirtualDecorator<Parameters>::type... args) const
         -> ReturnType;
 
     //! Check if a next most specialized overrider exists
@@ -2728,8 +2746,8 @@ class method<Id, ReturnType(Parameters...), Registry> :
 
     template<typename MethodArgList, typename ArgType, typename... MoreArgTypes>
     auto resolve_multi_first(
-        const ArgType& arg,
-        const MoreArgTypes&... more_args) const -> detail::word;
+        const ArgType& arg, const MoreArgTypes&... more_args) const
+        -> detail::word;
 
     template<
         std::size_t VirtualArg, typename MethodArgList, typename ArgType,
@@ -2875,8 +2893,9 @@ method<Id, ReturnType(Parameters...), Registry>::operator()(
     using namespace detail;
     auto pf = resolve(args...);
 
-    return pf(std::forward<typename StripVirtualDecorator<Parameters>::type>(
-        args)...);
+    return pf(
+        std::forward<typename StripVirtualDecorator<Parameters>::type>(
+            args)...);
 }
 
 template<
@@ -2896,7 +2915,7 @@ BOOST_FORCEINLINE
         pf = resolve_uni<mp11::mp_list<Parameters...>, ArgType...>(args...).pf;
     } else {
         pf = resolve_multi_first<mp11::mp_list<Parameters...>, ArgType...>(
-                 args...)
+            args...)
                  .pf;
     }
 
@@ -2915,9 +2934,9 @@ BOOST_FORCEINLINE auto method<Id, ReturnType(Parameters...), Registry>::vptr(
 
         if constexpr (detail::has_vptr_fn<decltype(obj), Registry>) {
             return boost_openmethod_vptr(obj, static_cast<Registry*>(nullptr));
-        } else if constexpr (detail::has_vptr<
-                                 virtual_traits<MethodArg, Registry>,
-                                 decltype(obj)>) {
+        } else if constexpr (
+            detail::has_vptr<
+                virtual_traits<MethodArg, Registry>, decltype(obj)>) {
             return virtual_traits<MethodArg, Registry>::vptr(obj);
         } else {
             return Registry::template policy<policies::vptr>::dynamic_vptr(obj);
@@ -2930,8 +2949,8 @@ template<
 template<typename MethodArgList, typename ArgType, typename... MoreArgTypes>
 BOOST_FORCEINLINE auto
 method<Id, ReturnType(Parameters...), Registry>::resolve_uni(
-    const ArgType& arg,
-    const MoreArgTypes&... more_args) const -> detail::word {
+    const ArgType& arg, const MoreArgTypes&... more_args) const
+    -> detail::word {
 
     using namespace detail;
     using namespace policies;
@@ -2939,6 +2958,7 @@ method<Id, ReturnType(Parameters...), Registry>::resolve_uni(
 
     if constexpr (is_virtual<mp_first<MethodArgList>>::value) {
         vptr_type vtbl = vptr<remove_virtual_<mp_first<MethodArgList>>>(arg);
+
         return vtbl[this->slots_strides[0]];
     } else {
         return resolve_uni<mp_rest<MethodArgList>>(more_args...);
@@ -2950,8 +2970,8 @@ template<
 template<typename MethodArgList, typename ArgType, typename... MoreArgTypes>
 BOOST_FORCEINLINE auto
 method<Id, ReturnType(Parameters...), Registry>::resolve_multi_first(
-    const ArgType& arg,
-    const MoreArgTypes&... more_args) const -> detail::word {
+    const ArgType& arg, const MoreArgTypes&... more_args) const
+    -> detail::word {
 
     using namespace detail;
     using namespace boost::mp11;
@@ -2965,6 +2985,7 @@ method<Id, ReturnType(Parameters...), Registry>::resolve_multi_first(
         // contains a pointer into the multi-dimensional dispatch table,
         // already resolved to the appropriate group.
         auto dispatch = vtbl[slot].pw;
+
         return resolve_multi_next<1, mp_rest<MethodArgList>, MoreArgTypes...>(
             dispatch, more_args...);
     } else {
@@ -3063,12 +3084,10 @@ method<Id, ReturnType(Parameters...), Registry>::fn_ambiguous(
 namespace detail {
 
 template<typename T, typename U>
-struct same_reference_category {
-    static constexpr bool value = (std::is_lvalue_reference<T>::value ==
-                                   std::is_lvalue_reference<U>::value) &&
-        (std::is_rvalue_reference<T>::value ==
-         std::is_rvalue_reference<U>::value);
-};
+constexpr bool same_reference_category =
+    std::is_lvalue_reference_v<T> == std::is_lvalue_reference_v<U> &&
+    std::is_rvalue_reference_v<T> == std::is_rvalue_reference_v<U>;
+
 template<class T1, class T2, typename = void>
 struct validate_overrider_parameter : std::false_type {
     static_assert(
@@ -3080,7 +3099,7 @@ struct validate_overrider_parameter<
     T1, T2,
     std::enable_if_t<
         is_virtual_ptr<T1> && is_virtual_ptr<T2> &&
-        !same_reference_category<T1, T2>::value>> : std::false_type {
+        !same_reference_category<T1, T2>>> : std::false_type {
     static_assert(
         false_t<T1, T2>, "different virtual_ptr<> reference categories");
 };
@@ -3214,7 +3233,7 @@ struct explain_overrider_mismatch<
     // `true_type` - so the fold is a backstop, not the check.
     static_assert(
         (validate_overrider_parameter<Parameters, OverriderParameters>::value &&
-         ...),
+            ...),
         "BOOST_OPENMETHOD_OVERRIDE: the overrider does not match the method");
 };
 
@@ -3230,8 +3249,9 @@ auto method<Id, ReturnType(Parameters...), Registry>::
     using namespace detail;
     static_assert(
         (validate_overrider_parameter<Parameters, OverriderParameters>::value &&
-         ...),
+            ...),
         "virtual_ptr category mismatch");
+
     return Overrider(
         detail::parameter_traits<Parameters, Registry>::template cast<
             OverriderParameters>(
@@ -3263,6 +3283,7 @@ method<Id, ReturnType(Parameters...), Registry>::override_impl<
     // coverity[uninit_use]
     if (overrider_info::method) {
         BOOST_ASSERT(overrider_info::method == &method::fn);
+
         return;
     }
 
@@ -3309,9 +3330,9 @@ void method<Id, ReturnType(Parameters...), Registry>::override_impl<
         virtual_type<FnReturnType, Registry>>();
     this->type = Registry::rtti::template static_type<decltype(Function)>();
     using Thunk = thunk<Function, decltype(Function)>;
-    detail::
-        init_type_ids<Registry, typename Thunk::OverriderVirtualParameters>::fn(
-            this->vp_type_ids);
+    detail::init_type_ids<
+        Registry, typename Thunk::OverriderVirtualParameters>::fn(this
+            ->vp_type_ids);
 }
 
 // =============================================================================
@@ -3355,7 +3376,8 @@ consteval auto is_registry_type(std::meta::info type) -> bool {
     return std::meta::extract<bool>(std::meta::substitute(
         ^^is_registry,
         {
-            type}));
+            type
+        }));
 }
 
 // How `register_classes` interprets one item of one of its argument groups.
@@ -3428,8 +3450,8 @@ consteval auto register_classes_groups_are_homogeneous() -> bool {
     return (
         ... &&
         (register_classes_group_has_unknown<Groups>() ||
-         register_classes_group_kind<Groups>() !=
-             register_classes_kind::invalid));
+            register_classes_group_kind<Groups>() !=
+                register_classes_kind::invalid));
 }
 
 // The groups must come in the order the `register_classes_kind` enumerators
@@ -3445,7 +3467,8 @@ consteval auto register_classes_groups_are_ordered() -> bool {
         return true;
     } else {
         register_classes_kind kinds[] = {
-            register_classes_group_kind<Groups>()...};
+            register_classes_group_kind<Groups>()...
+        };
         auto last = register_classes_kind::empty;
 
         for (auto kind : kinds) {
@@ -3634,7 +3657,8 @@ consteval auto reflected_registered_classes_info() -> std::meta::info {
                 std::meta::substitute(
                     ^^method_classes,
                     {
-                        found}));
+                        found
+                    }));
             auto types = std::meta::template_arguments_of(list);
 
             for (auto type : types) {

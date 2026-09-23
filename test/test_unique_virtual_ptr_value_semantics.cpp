@@ -19,18 +19,15 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(
     init_test<Registry>();
 
     static_assert(std::is_same_v<
-                  typename unique_virtual_ptr<Animal, Registry>::element_type,
-                  Animal>);
+        typename unique_virtual_ptr<Animal, Registry>::element_type, Animal>);
     static_assert(std::is_same_v<
-                  decltype(std::declval<unique_virtual_ptr<Animal, Registry>>()
-                               .get()),
-                  Animal*>);
+        decltype(std::declval<unique_virtual_ptr<Animal, Registry>>().get()),
+        Animal*>);
     static_assert(IsSmartPtr<std::unique_ptr<Animal>, Registry>);
     static_assert(IsSmartPtr<std::unique_ptr<const Animal>, Registry>);
-    static_assert(
-        std::is_same_v<
-            decltype(*std::declval<unique_virtual_ptr<Animal, Registry>>()),
-            Animal&>);
+    static_assert(std::is_same_v<
+        decltype(*std::declval<unique_virtual_ptr<Animal, Registry>>()),
+        Animal&>);
 
     {
         // unique_virtual_ptr<Dog>(nullptr)
@@ -48,21 +45,19 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(
         !construct_assign_ok<unique_virtual_ptr<Dog, Registry>, Dog*>);
 
     static_assert(!construct_assign_ok<
-                  unique_virtual_ptr<Dog, Registry>, std::unique_ptr<Dog>&>);
-
-    static_assert(
-        !construct_assign_ok<
-            unique_virtual_ptr<Dog, Registry>, const std::unique_ptr<Dog>&>);
+        unique_virtual_ptr<Dog, Registry>, std::unique_ptr<Dog>&>);
 
     static_assert(!construct_assign_ok<
-                  unique_virtual_ptr<Dog, Registry>, unique_virtual_ptr<Dog>>);
+        unique_virtual_ptr<Dog, Registry>, const std::unique_ptr<Dog>&>);
 
     static_assert(!construct_assign_ok<
-                  unique_virtual_ptr<Dog, Registry>, unique_virtual_ptr<Dog>&>);
+        unique_virtual_ptr<Dog, Registry>, unique_virtual_ptr<Dog>>);
 
-    static_assert(
-        !construct_assign_ok<
-            unique_virtual_ptr<Dog, Registry>, const unique_virtual_ptr<Dog>&>);
+    static_assert(!construct_assign_ok<
+        unique_virtual_ptr<Dog, Registry>, unique_virtual_ptr<Dog>&>);
+
+    static_assert(!construct_assign_ok<
+        unique_virtual_ptr<Dog, Registry>, const unique_virtual_ptr<Dog>&>);
 
     {
         // construct from unique_ptr temporary
@@ -76,24 +71,21 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(
         BOOST_TEST(p.vptr() == Registry::template static_vptr<Dog>);
     }
 
-    static_assert(
-        !construct_assign_ok<
-            unique_virtual_ptr<Dog, Registry>, const std::unique_ptr<Dog>&>);
+    static_assert(!construct_assign_ok<
+        unique_virtual_ptr<Dog, Registry>, const std::unique_ptr<Dog>&>);
 
     static_assert(!construct_assign_ok<
-                  unique_virtual_ptr<Dog, Registry>, std::unique_ptr<Dog>&>);
+        unique_virtual_ptr<Dog, Registry>, std::unique_ptr<Dog>&>);
 
     static_assert(!construct_assign_ok<
-                  unique_virtual_ptr<Dog, Registry>,
-                  const unique_virtual_ptr<Dog, Registry>&>);
+        unique_virtual_ptr<Dog, Registry>,
+        const unique_virtual_ptr<Dog, Registry>&>);
 
     static_assert(!construct_assign_ok<
-                  unique_virtual_ptr<Dog, Registry>,
-                  unique_virtual_ptr<Dog, Registry>&>);
+        unique_virtual_ptr<Dog, Registry>, unique_virtual_ptr<Dog, Registry>&>);
 
     static_assert(!construct_assign_ok<
-                  unique_virtual_ptr<Dog, Registry>,
-                  unique_virtual_ptr<Dog, Registry>&>);
+        unique_virtual_ptr<Dog, Registry>, unique_virtual_ptr<Dog, Registry>&>);
 
     {
         // assign from smart ptr temporary
@@ -280,16 +272,16 @@ template struct check_illegal_smart_ops<
 
 // Cannot construct or assign a virtual_ptr from a non-polymorphic object.
 static_assert(!construct_assign_ok<
-              virtual_ptr<std::unique_ptr<NonPolymorphic>>,
-              const std::unique_ptr<NonPolymorphic>&>);
+    virtual_ptr<std::unique_ptr<NonPolymorphic>>,
+    const std::unique_ptr<NonPolymorphic>&>);
 static_assert(!construct_assign_ok<
-              virtual_ptr<std::unique_ptr<NonPolymorphic>>,
-              std::unique_ptr<NonPolymorphic>&>);
+    virtual_ptr<std::unique_ptr<NonPolymorphic>>,
+    std::unique_ptr<NonPolymorphic>&>);
 static_assert(!construct_assign_ok<
-              virtual_ptr<std::unique_ptr<NonPolymorphic>>,
-              std::unique_ptr<NonPolymorphic>&&>);
+    virtual_ptr<std::unique_ptr<NonPolymorphic>>,
+    std::unique_ptr<NonPolymorphic>&&>);
 // OK to move from another virtual_ptr though, because it can be constructed
 // using 'final'.
 static_assert(construct_assign_ok<
-              virtual_ptr<std::unique_ptr<NonPolymorphic>>,
-              virtual_ptr<std::unique_ptr<NonPolymorphic>>&&>);
+    virtual_ptr<std::unique_ptr<NonPolymorphic>>,
+    virtual_ptr<std::unique_ptr<NonPolymorphic>>&&>);

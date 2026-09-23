@@ -24,7 +24,7 @@ BOOST_OPENMETHOD(speak, (boost::openmethod::virtual_ptr<Animal>), const char*);
 BOOST_OPENMETHOD(
     meet,
     (boost::openmethod::virtual_ptr<Animal>,
-     boost::openmethod::virtual_ptr<Animal>),
+        boost::openmethod::virtual_ptr<Animal>),
     greeting);
 
 inline auto call_speak(boost::openmethod::virtual_ptr<Animal> animal) {

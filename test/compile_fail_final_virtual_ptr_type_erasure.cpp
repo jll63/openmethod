@@ -30,5 +30,6 @@ int main() {
     // combination is deleted; use virtual_any instead.
     erased spot(Dog{"Spot"});
     final_virtual_ptr(spot);
+
     return 0;
 }

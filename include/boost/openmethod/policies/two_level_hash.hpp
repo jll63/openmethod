@@ -325,8 +325,9 @@ auto two_level_hash<Lambda, MaxDoublings>::fn<Registry>::initialize(
     std::vector<std::uint64_t> ids;
 
     for (auto iter = ctx.classes_begin(); iter != ctx.classes_end(); ++iter) {
-        for (auto type_iter = iter->type_id_begin();
-             type_iter != iter->type_id_end(); ++type_iter) {
+        for (
+            auto type_iter = iter->type_id_begin();
+            type_iter != iter->type_id_end(); ++type_iter) {
             ids.push_back(
                 std::uint64_t(reinterpret_cast<detail::uintptr>(*type_iter)));
         }

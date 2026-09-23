@@ -25,11 +25,11 @@ using boost::openmethod::virtual_;
 
 BOOST_OPENMETHOD(poke, (virtual_<Animal&>, std::ostream&), void);
 
-BOOST_OPENMETHOD_OVERRIDE(poke, (Cat & animal, std::ostream& os), void) {
+BOOST_OPENMETHOD_OVERRIDE(poke, (Cat& animal, std::ostream& os), void) {
     os << animal.name << " hisses.\n";
 }
 
-BOOST_OPENMETHOD_OVERRIDE(poke, (Dog & animal, std::ostream& os), void) {
+BOOST_OPENMETHOD_OVERRIDE(poke, (Dog& animal, std::ostream& os), void) {
     os << animal.name << " barks.\n";
 }
 

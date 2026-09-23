@@ -126,8 +126,10 @@ class inplace_vptr_base : protected detail::inplace_vptr_base_tag {
   protected:
     //! Set the vptr to `Class`\'s v-table.
     inplace_vptr_base() noexcept {
-        (void)&detail::inplace_vptr_use_classes<Class, Registry>;
-        detail::boost_openmethod_update_vptr<Class>(static_cast<Class*>(this));
+        using namespace detail;
+
+        (void)&inplace_vptr_use_classes<Class, Registry>;
+        boost_openmethod_update_vptr<Class>(static_cast<Class*>(this));
     }
 
     //! Set the vptr to `nullptr`.
@@ -203,8 +205,9 @@ class inplace_vptr_derived<Class, Base> {
     //! Set the vptr to `Class`\'s v-table.
     inplace_vptr_derived() noexcept {
         using namespace detail;
-        (void)&detail::inplace_vptr_use_classes<
-            Class, Base, detail::inplace_vptr_registry<Class>>;
+
+        (void)&inplace_vptr_use_classes<
+            Class, Base, inplace_vptr_registry<Class>>;
         boost_openmethod_update_vptr<Class>(static_cast<Class*>(this));
     }
 
@@ -246,22 +249,24 @@ class inplace_vptr_derived<Class, Base1, Base2, MoreBases...> {
   protected:
     //! Set the vptr to `Class`\'s v-table.
     inplace_vptr_derived() noexcept {
-        (void)&detail::inplace_vptr_use_classes<
-            Class, Base1, Base2, MoreBases...,
-            detail::inplace_vptr_registry<Base1>>;
-        detail::boost_openmethod_update_vptr<Class>(static_cast<Class*>(this));
+        using namespace detail;
+
+        (void)&inplace_vptr_use_classes<
+            Class, Base1, Base2, MoreBases..., inplace_vptr_registry<Base1>>;
+        boost_openmethod_update_vptr<Class>(static_cast<Class*>(this));
     }
 
     //! Set the vptr in each base class.
     //!
     //! For each base, set its vptr to the base's v-table.
     ~inplace_vptr_derived() noexcept {
+        using namespace detail;
+
         auto obj = static_cast<Class*>(this);
-        detail::boost_openmethod_update_vptr<Base1>(static_cast<Base1*>(obj));
-        detail::boost_openmethod_update_vptr<Base2>(static_cast<Base2*>(obj));
-        (detail::boost_openmethod_update_vptr<MoreBases>(
-             static_cast<MoreBases*>(obj)),
-         ...);
+        boost_openmethod_update_vptr<Base1>(static_cast<Base1*>(obj));
+        boost_openmethod_update_vptr<Base2>(static_cast<Base2*>(obj));
+        (boost_openmethod_update_vptr<MoreBases>(static_cast<MoreBases*>(obj)),
+            ...);
     }
 };
 

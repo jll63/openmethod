@@ -59,7 +59,7 @@ BOOST_OPENMETHOD(describe, (virtual_<const Pet&> pet, std::ostream& os), void);
 BOOST_OPENMETHOD(
     meet,
     (virtual_<std::shared_ptr<Animal>>,
-     virtual_<const std::shared_ptr<Animal>&>, std::ostream& os),
+        virtual_<const std::shared_ptr<Animal>&>, std::ostream& os),
     void);
 
 BOOST_OPENMETHOD_OVERRIDE(

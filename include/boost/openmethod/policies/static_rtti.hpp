@@ -53,6 +53,7 @@ struct static_rtti : rtti {
         template<typename T>
         static auto static_type() -> type_id {
             static char id;
+
             return &id;
         }
     };

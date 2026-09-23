@@ -26,19 +26,19 @@ using boost::openmethod::virtual_;
 BOOST_OPENMETHOD(
     meet, (virtual_<Animal&>, virtual_<Animal&>, std::ostream&), void);
 
-BOOST_OPENMETHOD_OVERRIDE(meet, (Cat & a1, Cat& a2, std::ostream& os), void) {
+BOOST_OPENMETHOD_OVERRIDE(meet, (Cat& a1, Cat& a2, std::ostream& os), void) {
     os << a1.name << " ignores " << a2.name << "\n";
 }
 
-BOOST_OPENMETHOD_OVERRIDE(meet, (Dog & a1, Cat& a2, std::ostream& os), void) {
+BOOST_OPENMETHOD_OVERRIDE(meet, (Dog& a1, Cat& a2, std::ostream& os), void) {
     os << a1.name << " chases " << a2.name << "\n";
 }
 
-BOOST_OPENMETHOD_OVERRIDE(meet, (Cat & a1, Dog& a2, std::ostream& os), void) {
+BOOST_OPENMETHOD_OVERRIDE(meet, (Cat& a1, Dog& a2, std::ostream& os), void) {
     os << a1.name << " runs away from " << a2.name << "\n";
 }
 
-BOOST_OPENMETHOD_OVERRIDE(meet, (Dog & a1, Dog& a2, std::ostream& os), void) {
+BOOST_OPENMETHOD_OVERRIDE(meet, (Dog& a1, Dog& a2, std::ostream& os), void) {
     os << a1.name << " wags tail at " << a2.name << "\n";
 }
 

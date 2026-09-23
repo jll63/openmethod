@@ -15,30 +15,27 @@
 #include <memory>
 
 static_assert(SameSmartPtr<
-              std::shared_ptr<Animal>, std::shared_ptr<Dog>, default_registry>);
+    std::shared_ptr<Animal>, std::shared_ptr<Dog>, default_registry>);
 
 static_assert(!SameSmartPtr<
-              std::shared_ptr<Animal>, std::unique_ptr<Dog>, default_registry>);
+    std::shared_ptr<Animal>, std::unique_ptr<Dog>, default_registry>);
 
 static_assert(!SameSmartPtr<
-              std::shared_ptr<Animal>, shared_virtual_ptr<std::unique_ptr<Dog>>,
-              default_registry>);
+    std::shared_ptr<Animal>, shared_virtual_ptr<std::unique_ptr<Dog>>,
+    default_registry>);
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(
     shared_virtual_ptr_value, Registry, test_policies) {
     static_assert(std::is_same_v<
-                  typename shared_virtual_ptr<Animal, Registry>::element_type,
-                  Animal>);
+        typename shared_virtual_ptr<Animal, Registry>::element_type, Animal>);
     static_assert(std::is_same_v<
-                  decltype(std::declval<shared_virtual_ptr<Animal, Registry>>()
-                               .get()),
-                  Animal*>);
+        decltype(std::declval<shared_virtual_ptr<Animal, Registry>>().get()),
+        Animal*>);
     static_assert(IsSmartPtr<std::shared_ptr<Animal>, Registry>);
     static_assert(IsSmartPtr<std::shared_ptr<const Animal>, Registry>);
-    static_assert(
-        std::is_same_v<
-            decltype(*std::declval<shared_virtual_ptr<Animal, Registry>>()),
-            Animal&>);
+    static_assert(std::is_same_v<
+        decltype(*std::declval<shared_virtual_ptr<Animal, Registry>>()),
+        Animal&>);
 
     init_test<Registry>();
 
@@ -368,22 +365,22 @@ template struct check_illegal_smart_ops<
 
 // Cannot construct or assign a virtual_ptr from a non-polymorphic object.
 static_assert(!construct_assign_ok<
-              virtual_ptr<std::shared_ptr<NonPolymorphic>>,
-              const std::shared_ptr<NonPolymorphic>&>);
+    virtual_ptr<std::shared_ptr<NonPolymorphic>>,
+    const std::shared_ptr<NonPolymorphic>&>);
 static_assert(!construct_assign_ok<
-              virtual_ptr<std::shared_ptr<NonPolymorphic>>,
-              std::shared_ptr<NonPolymorphic>&>);
+    virtual_ptr<std::shared_ptr<NonPolymorphic>>,
+    std::shared_ptr<NonPolymorphic>&>);
 static_assert(!construct_assign_ok<
-              virtual_ptr<std::shared_ptr<NonPolymorphic>>,
-              std::shared_ptr<NonPolymorphic>&&>);
+    virtual_ptr<std::shared_ptr<NonPolymorphic>>,
+    std::shared_ptr<NonPolymorphic>&&>);
 // OK from another virtual_ptr though, because it can be constructed using
 // 'final'.
 static_assert(std::is_assignable_v<
-              virtual_ptr<std::shared_ptr<NonPolymorphic>>,
-              const virtual_ptr<std::shared_ptr<NonPolymorphic>>&>);
+    virtual_ptr<std::shared_ptr<NonPolymorphic>>,
+    const virtual_ptr<std::shared_ptr<NonPolymorphic>>&>);
 static_assert(construct_assign_ok<
-              virtual_ptr<std::shared_ptr<NonPolymorphic>>,
-              virtual_ptr<std::shared_ptr<NonPolymorphic>>&>);
+    virtual_ptr<std::shared_ptr<NonPolymorphic>>,
+    virtual_ptr<std::shared_ptr<NonPolymorphic>>&>);
 static_assert(construct_assign_ok<
-              virtual_ptr<std::shared_ptr<NonPolymorphic>>,
-              virtual_ptr<std::shared_ptr<NonPolymorphic>>&&>);
+    virtual_ptr<std::shared_ptr<NonPolymorphic>>,
+    virtual_ptr<std::shared_ptr<NonPolymorphic>>&&>);

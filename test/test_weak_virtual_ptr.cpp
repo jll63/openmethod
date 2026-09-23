@@ -26,15 +26,15 @@ static_assert(std::is_nothrow_move_assignable_v<weak_virtual_ptr<Animal>>);
 
 static_assert(std::is_same_v<weak_virtual_ptr<Animal>::element_type, Animal>);
 static_assert(std::is_same_v<
-              decltype(std::declval<weak_virtual_ptr<Animal>>().lock()),
-              shared_virtual_ptr<Animal>>);
+    decltype(std::declval<weak_virtual_ptr<Animal>>().lock()),
+    shared_virtual_ptr<Animal>>);
 static_assert(std::is_same_v<
-              decltype(std::declval<weak_virtual_ptr<Animal>>().pointer()),
-              const std::weak_ptr<Animal>&>);
+    decltype(std::declval<weak_virtual_ptr<Animal>>().pointer()),
+    const std::weak_ptr<Animal>&>);
 
 // Construction is allowed from shared and weak pointers, virtual or not...
 static_assert(std::is_constructible_v<
-              weak_virtual_ptr<Animal>, shared_virtual_ptr<Animal>>);
+    weak_virtual_ptr<Animal>, shared_virtual_ptr<Animal>>);
 static_assert(
     std::is_constructible_v<weak_virtual_ptr<Animal>, shared_virtual_ptr<Dog>>);
 static_assert(
@@ -44,7 +44,7 @@ static_assert(
 static_assert(
     std::is_constructible_v<weak_virtual_ptr<Animal>, std::weak_ptr<Dog>>);
 static_assert(std::is_constructible_v<
-              weak_virtual_ptr<const Animal>, shared_virtual_ptr<Dog>>);
+    weak_virtual_ptr<const Animal>, shared_virtual_ptr<Dog>>);
 
 // ...but not from a plain pointer, reference or virtual_ptr, nor from a
 // different class or a const object...
@@ -55,12 +55,11 @@ static_assert(
 static_assert(
     !std::is_constructible_v<weak_virtual_ptr<Cat>, shared_virtual_ptr<Dog>>);
 static_assert(!std::is_constructible_v<
-              weak_virtual_ptr<Animal>, shared_virtual_ptr<const Animal>>);
-static_assert(
-    !std::is_constructible_v<
-        weak_virtual_ptr<NonPolymorphic>, std::shared_ptr<NonPolymorphic>>);
+    weak_virtual_ptr<Animal>, shared_virtual_ptr<const Animal>>);
 static_assert(!std::is_constructible_v<
-              weak_virtual_ptr<NonPolymorphic>, std::weak_ptr<NonPolymorphic>>);
+    weak_virtual_ptr<NonPolymorphic>, std::shared_ptr<NonPolymorphic>>);
+static_assert(!std::is_constructible_v<
+    weak_virtual_ptr<NonPolymorphic>, std::weak_ptr<NonPolymorphic>>);
 
 // ...and a weak virtual_ptr converts to nothing but another weak virtual_ptr.
 static_assert(
@@ -68,11 +67,11 @@ static_assert(
 static_assert(
     !std::is_assignable_v<virtual_ptr<Animal>&, weak_virtual_ptr<Animal>>);
 static_assert(!std::is_constructible_v<
-              shared_virtual_ptr<Animal>, weak_virtual_ptr<Animal>>);
+    shared_virtual_ptr<Animal>, weak_virtual_ptr<Animal>>);
 static_assert(!std::is_assignable_v<
-              shared_virtual_ptr<Animal>&, weak_virtual_ptr<Animal>>);
+    shared_virtual_ptr<Animal>&, weak_virtual_ptr<Animal>>);
 static_assert(!std::is_constructible_v<
-              std::shared_ptr<Animal>, weak_virtual_ptr<Animal>>);
+    std::shared_ptr<Animal>, weak_virtual_ptr<Animal>>);
 
 BOOST_AUTO_TEST_CASE_TEMPLATE(
     weak_virtual_ptr_from_shared_virtual_ptr, Registry, test_policies) {
@@ -90,7 +89,7 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(
     {
         auto locked = weak.lock();
         static_assert(std::is_same_v<
-                      decltype(locked), shared_virtual_ptr<Animal, Registry>>);
+            decltype(locked), shared_virtual_ptr<Animal, Registry>>);
         BOOST_TEST(locked.get() == snoopy.get());
         BOOST_TEST(locked.vptr() == Registry::template static_vptr<Dog>);
         BOOST_TEST(weak.use_count() == 3);

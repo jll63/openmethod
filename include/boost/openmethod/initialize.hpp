@@ -196,15 +196,17 @@ class registry_state_transaction {
     template<class... States>
     struct each<detail::tuple<States...>> {
         static void save(detail::tuple<States...>& to) {
-            (...,
-             (detail::get<States>(to) =
-                  detail::get<States>(Registry::state().policies)));
+            using namespace detail;
+
+            (..., (get<States>(to) = get<States>(Registry::state().policies)));
         }
 
         static void restore(detail::tuple<States...>& from) {
+            using namespace detail;
+
             (...,
-             (detail::get<States>(Registry::state().policies) =
-                  std::move(detail::get<States>(from))));
+                (get<States>(Registry::state().policies) =
+                        std::move(get<States>(from))));
         }
     };
 
@@ -461,12 +463,14 @@ struct generic_compiler {
         auto operator++() -> const_class_iterator& {
             ++ci_iter_;
             advance_to_valid();
+
             return *this;
         }
 
         auto operator++(int) -> const_class_iterator {
             const_class_iterator tmp = *this;
             ++(*this);
+
             return tmp;
         }
 
@@ -477,6 +481,7 @@ struct generic_compiler {
             if (class_iter_ == class_end_) {
                 return true;
             }
+
             return ci_iter_ == other.ci_iter_;
         }
 
@@ -486,8 +491,9 @@ struct generic_compiler {
 
       private:
         void advance_to_valid() {
-            while (class_iter_ != class_end_ &&
-                   ci_iter_ == class_iter_->ci.end()) {
+            while (
+                class_iter_ != class_end_ &&
+                ci_iter_ == class_iter_->ci.end()) {
                 ++class_iter_;
                 if (class_iter_ != class_end_) {
                     ci_iter_ = class_iter_->ci.begin();
@@ -709,6 +715,7 @@ auto operator<<(trace_stream<Compiler>& tr, const T& value) -> auto& {
             Compiler::Registry::output::stream() << value;
         }
     }
+
     return tr;
 }
 
@@ -1334,8 +1341,9 @@ void registry<Policies...>::compiler<Options...>::augment_methods() {
             spec_iter->vp.reserve(first_info->arity());
             std::size_t param_index = 0;
 
-            for (auto type :
-                 range{overrider_info->vp_begin, overrider_info->vp_end}) {
+            for (
+                auto type :
+                range{overrider_info->vp_begin, overrider_info->vp_end}) {
                 indent _(tr);
                 auto class_ = class_map[rtti::type_index(type)];
 
@@ -2196,8 +2204,9 @@ void registry<Policies...>::compiler<Options...>::print_slots() {
                 auto cls = todo.back();
                 todo.pop_back();
 
-                for (auto neighbors :
-                     {&cls->direct_bases, &cls->direct_derived}) {
+                for (
+                    auto neighbors :
+                    {&cls->direct_bases, &cls->direct_derived}) {
                     for (auto next : *neighbors) {
                         if (component.emplace(next, id).second) {
                             todo.push_back(next);

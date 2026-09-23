@@ -58,5 +58,6 @@ int main() {
     // Call the method: declaring it is not enough to instantiate it on
     // every compiler, and the guard lives in `virtual_traits::vptr`.
     std::any dog = Dog{"Snoopy"};
+
     return name(dog).size();
 }

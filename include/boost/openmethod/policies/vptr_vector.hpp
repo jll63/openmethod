@@ -115,10 +115,12 @@ struct vptr_vector : vptr {
             } else {
                 size = 0;
 
-                for (auto iter = ctx.classes_begin(); iter != ctx.classes_end();
-                     ++iter) {
-                    for (auto type_iter = iter->type_id_begin();
-                         type_iter != iter->type_id_end(); ++type_iter) {
+                for (
+                    auto iter = ctx.classes_begin(); iter != ctx.classes_end();
+                    ++iter) {
+                    for (
+                        auto type_iter = iter->type_id_begin();
+                        type_iter != iter->type_id_end(); ++type_iter) {
                         size = (std::max)(size, std::size_t(*type_iter));
                     }
                 }
@@ -134,10 +136,12 @@ struct vptr_vector : vptr {
             // below does not write is null instead.
             decltype(st().vptrs) new_vptrs(size);
 
-            for (auto iter = ctx.classes_begin(); iter != ctx.classes_end();
-                 ++iter) {
-                for (auto type_iter = iter->type_id_begin();
-                     type_iter != iter->type_id_end(); ++type_iter) {
+            for (
+                auto iter = ctx.classes_begin(); iter != ctx.classes_end();
+                ++iter) {
+                for (
+                    auto type_iter = iter->type_id_begin();
+                    type_iter != iter->type_id_end(); ++type_iter) {
                     std::size_t index;
 
                     if constexpr (has_type_hash) {

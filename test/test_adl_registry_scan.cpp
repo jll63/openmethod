@@ -60,31 +60,28 @@ static_assert(std::is_same_v<scan<void()>, default_registry>);
 // Mixing a class that declares an affinity with one that does not: the latter
 // yields. This is what keeps a first affinity from cascading errors.
 static_assert(std::is_same_v<
-              scan<void(virtual_<const Animal&>, virtual_<const Widget&>)>,
-              zoo_registry>);
+    scan<void(virtual_<const Animal&>, virtual_<const Widget&>)>,
+    zoo_registry>);
 static_assert(std::is_same_v<
-              scan<void(virtual_<const Widget&>, virtual_<const Animal&>)>,
-              zoo_registry>);
+    scan<void(virtual_<const Widget&>, virtual_<const Animal&>)>,
+    zoo_registry>);
 
 // Mixed shapes agreeing.
-static_assert(
-    std::is_same_v<
-        scan<void(virtual_ptr<Animal>, virtual_<const Dog&>)>, zoo_registry>);
+static_assert(std::is_same_v<
+    scan<void(virtual_ptr<Animal>, virtual_<const Dog&>)>, zoo_registry>);
 
 // Non-virtual parameters are ignored.
 static_assert(std::is_same_v<
-              scan<void(int, virtual_<const Animal&>, char*)>, zoo_registry>);
+    scan<void(int, virtual_<const Animal&>, char*)>, zoo_registry>);
 
 // A registry spelled on a parameter is what that parameter carries, whatever
 // its class declares - so it decides the method's registry on its own.
 static_assert(std::is_same_v<
-              scan<void(virtual_ptr<Widget, other_registry>)>, other_registry>);
-static_assert(
-    std::is_same_v<
-        scan<void(virtual_<const Widget&, other_registry>)>, other_registry>);
+    scan<void(virtual_ptr<Widget, other_registry>)>, other_registry>);
 static_assert(std::is_same_v<
-              scan<void(virtual_<const Animal&, default_registry>)>,
-              default_registry>);
+    scan<void(virtual_<const Widget&, other_registry>)>, other_registry>);
+static_assert(std::is_same_v<
+    scan<void(virtual_<const Animal&, default_registry>)>, default_registry>);
 
 // Two carriers that disagree are an error; see
 // compile_fail_method_conflicting_carriers.cpp.
@@ -100,9 +97,9 @@ static_assert(
     std::is_same_v<scan<void(virtual_<const Animal&>)>, zoo_registry>);
 static_assert(std::is_same_v<scan<void(virtual_ptr<Animal>)>, zoo_registry>);
 static_assert(std::is_same_v<
-              scan<void(virtual_<const Widget&, zoo_registry>)>, zoo_registry>);
+    scan<void(virtual_<const Widget&, zoo_registry>)>, zoo_registry>);
 static_assert(std::is_same_v<
-              scan<void(virtual_ptr<Widget, zoo_registry>)>, zoo_registry>);
+    scan<void(virtual_ptr<Widget, zoo_registry>)>, zoo_registry>);
 static_assert(
     std::is_same_v<scan<void(virtual_ptr<Widget>)>, default_registry>);
 
@@ -112,28 +109,24 @@ static_assert(
 
 // An adopter and a carrier: the carrier decides, whichever order.
 static_assert(std::is_same_v<
-              scan<void(virtual_<const Widget&>, virtual_ptr<Animal>)>,
-              zoo_registry>);
+    scan<void(virtual_<const Widget&>, virtual_ptr<Animal>)>, zoo_registry>);
 static_assert(std::is_same_v<
-              scan<void(virtual_ptr<Animal>, virtual_<const Widget&>)>,
-              zoo_registry>);
+    scan<void(virtual_ptr<Animal>, virtual_<const Widget&>)>, zoo_registry>);
 static_assert(std::is_same_v<
-              scan<void(virtual_<const Widget&>, virtual_ptr<Widget>)>,
-              default_registry>);
+    scan<void(virtual_<const Widget&>, virtual_ptr<Widget>)>,
+    default_registry>);
 
 // Two carriers that agree, in either shape.
-static_assert(
-    std::is_same_v<
-        scan<void(virtual_<const Animal&>, virtual_ptr<Dog>)>, zoo_registry>);
-static_assert(
-    std::is_same_v<
-        scan<void(virtual_ptr<Widget, zoo_registry>, virtual_<const Animal&>)>,
-        zoo_registry>);
+static_assert(std::is_same_v<
+    scan<void(virtual_<const Animal&>, virtual_ptr<Dog>)>, zoo_registry>);
+static_assert(std::is_same_v<
+    scan<void(virtual_ptr<Widget, zoo_registry>, virtual_<const Animal&>)>,
+    zoo_registry>);
 
 // Two adopters: still the macro default.
 static_assert(std::is_same_v<
-              scan<void(virtual_<const Widget&>, virtual_<const Widget&>)>,
-              default_registry>);
+    scan<void(virtual_<const Widget&>, virtual_<const Widget&>)>,
+    default_registry>);
 
 // An affinity declared for the default registry itself is declared all the
 // same: it constrains, see compile_fail_adl_registry_pinned_default.cpp.
@@ -142,27 +135,26 @@ struct Pinned {
     friend auto boost_openmethod_registry(Pinned*) -> default_registry;
 };
 
-static_assert(
-    std::is_same_v<
-        detail::registry_affinity_aux<Pinned>::declared, default_registry>);
+static_assert(std::is_same_v<
+    detail::registry_affinity_aux<Pinned>::declared, default_registry>);
 
 // A class that declares nothing carries nothing: `void`, the sentinel that
 // makes a `virtual_` parameter adopt the method's registry.
 static_assert(
     std::is_same_v<detail::registry_affinity_aux<Widget>::declared, void>);
 static_assert(std::is_same_v<
-              detail::param_registry<virtual_<const Widget&>>::type, void>);
+    detail::param_registry<virtual_<const Widget&>>::type, void>);
 
 // A registry named on the declaration wins, and the parameters are not
 // consulted at all - the form that predates this feature.
 BOOST_OPENMETHOD(ping, (virtual_<const Widget&>), std::string, other_registry);
 
 static_assert(std::is_same_v<
-              BOOST_OPENMETHOD_TYPE(
-                  ping, (virtual_<const Widget&>), std::string, other_registry),
-              method<
-                  BOOST_OPENMETHOD_ID(ping),
-                  std::string(virtual_<const Widget&>), other_registry>>);
+    BOOST_OPENMETHOD_TYPE(
+        ping, (virtual_<const Widget&>), std::string, other_registry),
+    method<
+        BOOST_OPENMETHOD_ID(ping), std::string(virtual_<const Widget&>),
+        other_registry>>);
 
 BOOST_AUTO_TEST_CASE(scan_is_compile_time_only) {
     BOOST_TEST(true);

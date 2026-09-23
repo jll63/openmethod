@@ -24,5 +24,6 @@ BOOST_OPENMETHOD(name, (virtual_std_any), std::string);
 
 int main() {
     virtual_std_any dog = Dog{"Snoopy"};
+
     return name(dog).size();
 }

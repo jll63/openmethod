@@ -141,12 +141,11 @@ static_assert(std::is_same_v<picked<Widget, kennel_registry>, kennel_registry>);
 BOOST_OPENMETHOD(speak, (virtual_<const Animal&>), std::string);
 BOOST_OPENMETHOD(poke, (virtual_ptr<Animal>), std::string);
 
-static_assert(
-    std::is_same_v<
-        BOOST_OPENMETHOD_TYPE(speak, (virtual_<const Animal&>), std::string),
-        method<
-            BOOST_OPENMETHOD_ID(speak), std::string(virtual_<const Animal&>),
-            zoo_registry>>);
+static_assert(std::is_same_v<
+    BOOST_OPENMETHOD_TYPE(speak, (virtual_<const Animal&>), std::string),
+    method<
+        BOOST_OPENMETHOD_ID(speak), std::string(virtual_<const Animal&>),
+        zoo_registry>>);
 
 BOOST_OPENMETHOD_OVERRIDE(speak, (const Dog&), std::string) {
     return "bark";

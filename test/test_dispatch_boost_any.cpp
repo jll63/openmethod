@@ -29,20 +29,17 @@ namespace BOOST_OPENMETHOD_GENSYM {
 // pass virtual args as const boost::any& (const ref)
 
 static_assert(detail::has_vptr<
-              virtual_traits<const boost::any&, default_registry>,
-              const boost::any&>);
+    virtual_traits<const boost::any&, default_registry>, const boost::any&>);
 
 // A registry spelled on the parameter names the same parameter as the default
 // one, in each of the three forms.
 static_assert(detail::validate_method_parameter<
-              virtual_<const boost::any&, default_registry>, default_registry,
-              void>::value);
+    virtual_<const boost::any&, default_registry>, default_registry,
+    void>::value);
 static_assert(detail::validate_method_parameter<
-              virtual_<boost::any&, default_registry>, default_registry,
-              void>::value);
+    virtual_<boost::any&, default_registry>, default_registry, void>::value);
 static_assert(detail::validate_method_parameter<
-              virtual_<boost::any&&, default_registry>, default_registry,
-              void>::value);
+    virtual_<boost::any&&, default_registry>, default_registry, void>::value);
 
 MAKE_CLASSES();
 
@@ -59,6 +56,7 @@ BOOST_OPENMETHOD_OVERRIDE(name, (const std::string& name), std::string) {
 BOOST_OPENMETHOD_OVERRIDE(name, (const int& value), std::string) {
     std::ostringstream os;
     os << value << " the integer";
+
     return os.str();
 }
 
@@ -101,9 +99,8 @@ namespace BOOST_OPENMETHOD_GENSYM {
 // -----------------------------------------------------------------------------
 // pass virtual args as boost::any& (mutable ref)
 
-static_assert(
-    detail::has_vptr<
-        virtual_traits<boost::any&, default_registry>, const boost::any&>);
+static_assert(detail::has_vptr<
+    virtual_traits<boost::any&, default_registry>, const boost::any&>);
 
 MAKE_CLASSES();
 
@@ -123,11 +120,13 @@ using bump_method =
 
 auto bump_dog(Dog& dog) -> std::string {
     dog.name += " Jr.";
+
     return dog.name + " the dog";
 }
 
 auto bump_string(std::string& name) -> std::string {
     name += "!";
+
     return name;
 }
 
@@ -135,6 +134,7 @@ auto bump_int(int& value) -> std::string {
     ++value;
     std::ostringstream os;
     os << value << " the integer";
+
     return os.str();
 }
 
@@ -165,27 +165,29 @@ namespace BOOST_OPENMETHOD_GENSYM {
 // -----------------------------------------------------------------------------
 // pass virtual args as boost::any&& (xvalue ref)
 
-static_assert(
-    detail::has_vptr<
-        virtual_traits<boost::any&&, default_registry>, const boost::any&>);
+static_assert(detail::has_vptr<
+    virtual_traits<boost::any&&, default_registry>, const boost::any&>);
 
 MAKE_CLASSES();
 
 BOOST_OPENMETHOD(steal, (virtual_<boost::any&&>), std::string);
 
-BOOST_OPENMETHOD_OVERRIDE(steal, (Dog && dog), std::string) {
+BOOST_OPENMETHOD_OVERRIDE(steal, (Dog&& dog), std::string) {
     Dog stolen(std::move(dog));
+
     return stolen.name + " the dog";
 }
 
-BOOST_OPENMETHOD_OVERRIDE(steal, (std::string && name), std::string) {
+BOOST_OPENMETHOD_OVERRIDE(steal, (std::string&& name), std::string) {
     std::string stolen(std::move(name));
+
     return stolen;
 }
 
 BOOST_OPENMETHOD_OVERRIDE(steal, (int&& value), std::string) {
     std::ostringstream os;
     os << value << " the integer";
+
     return os.str();
 }
 
@@ -252,6 +254,7 @@ using bump_method =
 
 auto bump_dog(Dog& dog) -> std::string {
     dog.name += " Jr.";
+
     return dog.name + " the dog";
 }
 
@@ -264,8 +267,9 @@ BOOST_OPENMETHOD_REGISTER(bump_method::override<bump_any>);
 
 BOOST_OPENMETHOD(steal, (virtual_<boost::any&&>), std::string);
 
-BOOST_OPENMETHOD_OVERRIDE(steal, (Dog && dog), std::string) {
+BOOST_OPENMETHOD_OVERRIDE(steal, (Dog&& dog), std::string) {
     Dog stolen(std::move(dog));
+
     return stolen.name + " the dog";
 }
 

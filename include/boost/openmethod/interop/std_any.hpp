@@ -91,8 +91,11 @@ struct virtual_traits<const std::any&, Registry> {
     //! @param arg A reference to a const `any`.
     //! @return A reference to the v-table pointer for the stored value.
     static auto vptr(const std::any& arg) -> const vptr_type& {
-        detail::assert_std_rtti_std_any<Registry>();
-        (void)&detail::use_any_classes<Registry, std::any>;
+        using namespace detail;
+
+        assert_std_rtti_std_any<Registry>();
+        (void)&use_any_classes<Registry, std::any>;
+
         return Registry::vptr::vptr(&arg.type());
     }
 
@@ -116,6 +119,7 @@ struct virtual_traits<const std::any&, Registry> {
             return (arg);
         } else {
             (void)&detail::use_any_classes<Registry, std::any, std::decay_t<U>>;
+
             return std::any_cast<U>(arg);
         }
     }
@@ -163,8 +167,11 @@ struct virtual_traits<std::any&, Registry> {
     //! @param arg A reference to a `std::any`.
     //! @return A reference to the v-table pointer for the stored value.
     static auto vptr(const std::any& arg) -> const vptr_type& {
-        detail::assert_std_rtti_std_any<Registry>();
-        (void)&detail::use_any_classes<Registry, std::any>;
+        using namespace detail;
+
+        assert_std_rtti_std_any<Registry>();
+        (void)&use_any_classes<Registry, std::any>;
+
         return Registry::vptr::vptr(&arg.type());
     }
 
@@ -189,6 +196,7 @@ struct virtual_traits<std::any&, Registry> {
             return (arg);
         } else {
             (void)&detail::use_any_classes<Registry, std::any, std::decay_t<U>>;
+
             return std::any_cast<U>(arg);
         }
     }
@@ -236,8 +244,11 @@ struct virtual_traits<std::any&&, Registry> {
     //! @param arg A reference to a const `any`.
     //! @return A reference to the v-table pointer for the stored value.
     static auto vptr(const std::any& arg) -> const vptr_type& {
-        detail::assert_std_rtti_std_any<Registry>();
-        (void)&detail::use_any_classes<Registry, std::any>;
+        using namespace detail;
+
+        assert_std_rtti_std_any<Registry>();
+        (void)&use_any_classes<Registry, std::any>;
+
         return Registry::vptr::vptr(&arg.type());
     }
 
@@ -259,6 +270,7 @@ struct virtual_traits<std::any&&, Registry> {
             return std::move(arg);
         } else {
             (void)&detail::use_any_classes<Registry, std::any, std::decay_t<U>>;
+
             return std::any_cast<U>(std::move(arg));
         }
     }
