@@ -441,6 +441,19 @@ struct foreign_parameter_info :
     std::size_t param;
     // The initialization count of the parameter's registry.
     const std::size_t* host_generation;
+    // Identify the method across modules, each of which may register a copy
+    // of it: by the state of the method's registry - one symbol per registry -
+    // and by its type_id, compared by that registry's rtti policy, the only
+    // one that can.
+    const void* method_state;
+    bool (*same_method)(type_id, type_id);
+    // The method's type_id. A function, because the method's registry may
+    // defer its type ids, and not have resolved them yet when the parameter's
+    // registry is initialized - which is after static construction, when any
+    // rtti policy can answer.
+    type_id (*method_type)();
+    // Like `overrider_info::resolve_vp`, for the method.
+    void (*resolve_vp)(type_id* ids, std::size_t param);
 
     // Published by the parameter's registry.
 
@@ -474,6 +487,11 @@ struct overrider_info : static_list<overrider_info>::static_link {
     type_id type;        // of the function, for trace
     void (**next)();
     type_id *vp_begin, *vp_end;
+    // Set the type_id of the class of a virtual parameter in `vp_begin`, by
+    // the rtti policy of the registry the parameter dispatches in. Called by
+    // that registry's initialize() when its type ids are deferred and it is
+    // not the method's.
+    void (*resolve_vp)(type_id* ids, std::size_t param);
     void (*pf)();
     // Set by BOOST_OPENMETHOD_INLINE_OVERRIDE (see the Inline template
     // parameter of override_impl/override_aux and class inline_override in

@@ -315,6 +315,8 @@ struct generic_compiler {
         // v-table (see foreign_class).
         detail::word* foreign_entry = nullptr;
         bool foreign_abstract = false;
+        // The position of the class in the cone, for the trace.
+        std::size_t foreign_position = 0;
 
         auto is_foreign() const -> bool {
             return ci.empty();
@@ -326,22 +328,30 @@ struct generic_compiler {
     };
 
     // A parameter of a method of another registry, dispatched through the
-    // v-tables of this one.
+    // v-tables of this one. Each module may register a copy of the method,
+    // and with it a record of the parameter; the copies share the slot.
     struct foreign_parameter {
-        detail::foreign_parameter_info* info;
+        struct copy {
+            detail::foreign_parameter_info* info;
+            // The class of each overrider of this copy, for the parameter.
+            std::vector<class_*> overriders;
+            // Staged by write_global_data(), published by
+            // commit_global_data().
+            std::vector<detail::foreign_class> cone;
+            std::vector<std::size_t> overrider_positions;
+        };
+
         class_* vp;
-        // The class of each overrider, for this parameter.
-        std::vector<class_*> overriders;
+        std::vector<copy> copies;
         std::size_t slot = 0;
-        // Staged by write_global_data(), published by commit_global_data().
-        std::vector<detail::foreign_class> cone;
-        std::vector<std::size_t> overrider_positions;
     };
 
     // An entry in the v-table of another registry, filled for one of this
     // registry's methods.
     struct foreign_write {
         detail::word* entry;
+        // The class, in the trace.
+        const class_* cls;
         struct method* method;
         std::size_t dim, group;
         detail::word value;
@@ -696,7 +706,7 @@ auto operator<<(trace_stream<Compiler>& tr, const generic_compiler::class_& cls)
     -> trace_stream<Compiler>& {
     if constexpr (Compiler::has_trace) {
         if (cls.is_foreign()) {
-            tr << "(class of another registry)";
+            tr << "foreign#" << cls.foreign_position;
         } else {
             tr << type_name(cls.ci[0]->type);
         }
@@ -900,6 +910,9 @@ struct registry<Policies...>::compiler : detail::generic_compiler {
     void calculate_transitive_derived(class_& cls);
     void augment_methods();
     void augment_foreign_parameters();
+    void trace_foreign_parameters(const detail::method_info& info);
+    void trace_unfilled_entry(
+        class_& cls, std::size_t slot, const detail::word* address);
     void assign_slots();
     void assign_tree_slots(class_& cls, std::size_t base_slot);
     void assign_slots(class_& cls);
@@ -1346,6 +1359,7 @@ void registry<Policies...>::compiler<Options...>::augment_methods() {
 
                     for (auto& cls : param->cone) {
                         auto& proxy = method.foreign_classes.emplace_back();
+                        proxy.foreign_position = &cls - param->cone.data();
                         proxy.foreign_entry = cls.entry;
                         proxy.foreign_abstract = cls.is_abstract;
                     }
@@ -1391,6 +1405,10 @@ void registry<Policies...>::compiler<Options...>::augment_methods() {
         ++tr << type_name(first_info->method_type_id) << " " << method.vp
              << "\n";
         indent _(tr);
+
+        if constexpr (has_trace) {
+            trace_foreign_parameters(*first_info);
+        }
 
         if (rtti::type_index(first_info->return_type_id) !=
             rtti::type_index(rtti::template static_type<void>())) {
@@ -1617,19 +1635,43 @@ void registry<Policies...>::compiler<Options...>::augment_foreign_parameters() {
     };
 
     for (auto& info : registry::static_::st.foreign_parameters) {
-        // Both registries defer, or neither (see `method`).
+        // The type ids of the parameter are this registry's to resolve: the
+        // method, in another registry, resolved them at construction unless
+        // this one defers them. Only this position - the others follow the
+        // deferral of their own registries.
         if constexpr (has_deferred_static_rtti) {
-            static_cast<deferred_method_info&>(*info.method).resolve_type_ids();
+            info.resolve_vp(info.method->vp_begin, info.param);
 
             for (auto& spec : info.method->overriders) {
-                static_cast<deferred_overrider_info&>(spec).resolve_type_ids();
+                spec.resolve_vp(spec.vp_begin, info.param);
             }
         }
 
-        auto& param = foreign_parameters.emplace_back();
-        param.info = &info;
-        param.vp = find_class(info.method->vp_begin[info.param]);
-        ++tr << "parameter " << info.param << ": " << *param.vp << "\n";
+        // The same parameter of another copy of the same method.
+        auto same = std::find_if(
+            foreign_parameters.begin(), foreign_parameters.end(),
+            [&info](const foreign_parameter& param) {
+                auto other = param.copies.front().info;
+
+                return other->method_state == info.method_state &&
+                    other->param == info.param &&
+                    info.same_method(other->method_type(), info.method_type());
+            });
+
+        auto& param = same != foreign_parameters.end()
+            ? *same
+            : foreign_parameters.emplace_back();
+        auto is_new = param.copies.empty();
+        auto& copy = param.copies.emplace_back();
+        copy.info = &info;
+
+        if (is_new) {
+            param.vp = find_class(info.method->vp_begin[info.param]);
+            param.vp->used_by_vp.push_back({&param.slot, nullptr, info.param});
+        }
+
+        ++tr << "parameter " << info.param << ": " << *param.vp
+             << (is_new ? "\n" : " (another copy)\n");
 
         for (auto& spec : info.method->overriders) {
             auto cls = find_class(spec.vp_begin[info.param]);
@@ -1646,11 +1688,67 @@ void registry<Policies...>::compiler<Options...>::augment_foreign_parameters() {
                 abort();
             }
 
-            param.overriders.push_back(cls);
+            copy.overriders.push_back(cls);
         }
 
-        param.vp->used_by_vp.push_back({&param.slot, nullptr, info.param});
+        {
+            indent _(tr);
+            ++tr << "overriders: " << copy.overriders << "\n";
+        }
     }
+}
+
+// What the registries of a method's foreign parameters published for them.
+// Their classes are known here only by position in the cone: `foreign#0` is
+// the parameter's class. The registry that published them names them in its
+// own trace.
+template<class... Policies>
+template<class... Options>
+void registry<Policies...>::compiler<Options...>::trace_foreign_parameters(
+    const detail::method_info& info) {
+    using namespace detail;
+
+    for (auto& param : range{info.foreign_begin, info.foreign_end}) {
+        ++tr << "parameter " << param.param
+             << " dispatches in another registry, published at generation "
+             << param.generation << ": slot " << param.slot << "\n";
+        indent _(tr);
+
+        for (auto& cls : param.cone) {
+            ++tr << "foreign#" << (&cls - param.cone.data()) << ": entry at "
+                 << cls.entry << (cls.is_abstract ? ", abstract" : "")
+                 << ", derived:";
+
+            auto derived = cls.transitive_derived;
+            std::sort(derived.begin(), derived.end());
+
+            for (auto position : derived) {
+                tr << " foreign#" << position;
+            }
+
+            tr << "\n";
+        }
+    }
+}
+
+// An entry of this registry's v-tables that it leaves empty: a hole, or the
+// slot of a parameter of another registry's method, which that registry fills.
+template<class... Policies>
+template<class... Options>
+void registry<Policies...>::compiler<Options...>::trace_unfilled_entry(
+    class_& cls, std::size_t slot, const detail::word* address) {
+    for (auto& param : foreign_parameters) {
+        if (param.slot == slot &&
+            (param.vp == &cls || param.vp->is_base_of(&cls))) {
+            ++tr << address << " for (method of another registry) parameter "
+                 << param.copies.front().info->param
+                 << ", filled by its registry\n";
+
+            return;
+        }
+    }
+
+    ++tr << "empty\n";
 }
 
 // Slot allocation. The scheme follows the remarks Steven Watanabe made on the
@@ -1891,7 +1989,7 @@ void registry<Policies...>::compiler<Options...>::build_dispatch_tables() {
                     if (cls->is_foreign()) {
                         // Written at commit, see write_global_data().
                         foreign_writes.push_back(
-                            {cls->foreign_entry, &m, dim, group_num, {}});
+                            {cls->foreign_entry, cls, &m, dim, group_num, {}});
                         continue;
                     }
 
@@ -2194,7 +2292,12 @@ void registry<Policies...>::compiler<Options...>::write_global_data() {
 
         for (auto& entry : cls.vtbl) {
             if (entry.method_index == no_method) {
-                ++tr << "empty\n";
+                if constexpr (has_trace) {
+                    trace_unfilled_entry(
+                        cls, cls.first_slot + (&entry - cls.vtbl.data()),
+                        gv_iter);
+                }
+
                 BOOST_ASSERT(gv_iter + 1 <= gv_last);
                 *gv_iter++ = std::size_t(0);
 
@@ -2235,15 +2338,34 @@ void registry<Policies...>::compiler<Options...>::write_global_data() {
 
     // The entries of this registry's methods in other registries' v-tables.
     // They are written at commit, like everything else.
+    if (!foreign_writes.empty()) {
+        ++tr << "Entries in the v-tables of other registries, written at "
+                "commit:\n";
+    }
+
     for (auto& write : foreign_writes) {
+        indent _(tr);
         auto& m = *write.method;
+        ++tr << write.entry << " " << *write.cls << " method #" << m.index
+             << " ";
 
         if (m.arity() == 1) {
-            write.value = m.dispatch_table[write.group]->pf;
-        } else if (write.dim == 0) {
-            write.value = std::uintptr_t(m.gv_dispatch_table + write.group);
+            auto spec = m.dispatch_table[write.group];
+            write.value = spec->pf;
+            tr << "spec #" << spec->spec_index << "\n";
+            indent _2(tr);
+            ++tr << type_name(m.infos[0]->method_type_id) << "\n";
+            ++tr << spec_name(m, spec) << "\n";
         } else {
-            write.value = write.group;
+            if (write.dim == 0) {
+                write.value = std::uintptr_t(m.gv_dispatch_table + write.group);
+            } else {
+                write.value = write.group;
+            }
+
+            tr << "vp #" << write.dim << " group #" << write.group << "\n";
+            indent _2(tr);
+            ++tr << type_name(m.infos[0]->method_type_id) << "\n";
         }
     }
 
@@ -2263,10 +2385,11 @@ void registry<Policies...>::compiler<Options...>::write_global_data() {
             }
         }
 
-        param.cone.reserve(cone.size());
+        auto& first = param.copies.front();
+        first.cone.reserve(cone.size());
 
         for (auto cls : cone) {
-            auto& foreign = param.cone.emplace_back();
+            auto& foreign = first.cone.emplace_back();
             // The dispatch data is ours; `vptr` is const only for the users of
             // the v-tables.
             foreign.entry = const_cast<word*>(cls->vptr) + param.slot;
@@ -2277,8 +2400,45 @@ void registry<Policies...>::compiler<Options...>::write_global_data() {
             }
         }
 
-        for (auto cls : param.overriders) {
-            param.overrider_positions.push_back(position.at(cls));
+        // Each copy gets its own, to swap in at commit, which cannot throw.
+        for (auto& copy : param.copies) {
+            if (&copy != &first) {
+                copy.cone = first.cone;
+            }
+
+            for (auto cls : copy.overriders) {
+                copy.overrider_positions.push_back(position.at(cls));
+            }
+        }
+
+        if constexpr (has_trace) {
+            if (&param == &foreign_parameters.front()) {
+                ++tr << "Publishing to methods of other registries, "
+                        "generation "
+                     << (static_::st.generation + 1) << ":\n";
+            }
+
+            indent _(tr);
+            ++tr << "parameter " << first.info->param << ", slot " << param.slot
+                 << ", " << param.copies.size()
+                 << (param.copies.size() == 1 ? " copy" : " copies")
+                 << " of the method\n";
+            indent _2(tr);
+
+            for (auto cls : cone) {
+                auto& foreign = first.cone[position.at(cls)];
+                ++tr << "foreign#" << position.at(cls) << " is " << *cls
+                     << ": entry at " << foreign.entry
+                     << (foreign.is_abstract ? ", abstract" : "") << "\n";
+            }
+
+            for (auto& copy : param.copies) {
+                ++tr << "overriders at positions "
+                     << range{
+                            copy.overrider_positions.begin(),
+                            copy.overrider_positions.end()}
+                     << "\n";
+            }
         }
     }
 
@@ -2354,10 +2514,12 @@ void registry<Policies...>::compiler<Options...>::commit_global_data(
     auto generation = ++static_::st.generation;
 
     for (auto& param : foreign_parameters) {
-        param.info->slot = param.slot;
-        param.info->cone.swap(param.cone);
-        param.info->overriders.swap(param.overrider_positions);
-        param.info->generation = generation;
+        for (auto& copy : param.copies) {
+            copy.info->slot = param.slot;
+            copy.info->cone.swap(copy.cone);
+            copy.info->overriders.swap(copy.overrider_positions);
+            copy.info->generation = generation;
+        }
     }
 
     for (auto& write : foreign_writes) {

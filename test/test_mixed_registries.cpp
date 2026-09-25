@@ -13,6 +13,7 @@
 #include <boost/openmethod/policies/throw_error_handler.hpp>
 #include <boost/openmethod/initialize.hpp>
 
+#include <algorithm>
 #include <cstddef>
 #include <string>
 #include <type_traits>
@@ -368,4 +369,58 @@ BOOST_AUTO_TEST_CASE(parameter_registry_initialized_again) {
     initialize<garage_registry>();
     BOOST_TEST(run_over(dog, car) == "dog, car");
     BOOST_TEST(carry(car, dog) == "car, dog");
+}
+
+// A program whose modules share a registry may hold several copies of a
+// method, one per module, each registering a record of its foreign parameters.
+// Fake a second copy of `carry`: its parameter must share the slot of the
+// first, rather than take one of its own.
+BOOST_AUTO_TEST_CASE(copies_share_the_slot) {
+    using carry_method = BOOST_OPENMETHOD_TYPE(
+        carry,
+        (virtual_<const Vehicle&>, virtual_<const Animal&, zoo_registry>),
+        std::string, garage_registry);
+    auto& real = carry_method::fn;
+    BOOST_TEST_REQUIRE(real.foreign_end - real.foreign_begin == 1);
+    auto& real_param = *real.foreign_begin;
+
+    std::size_t slots_strides[3] = {};
+    detail::method_info copy{};
+    copy.vp_begin = real.vp_begin;
+    copy.vp_end = real.vp_end;
+    copy.not_implemented = real.not_implemented;
+    copy.ambiguous = real.ambiguous;
+    copy.method_type_id = real.method_type_id;
+    copy.return_type_id = real.return_type_id;
+    copy.slots_strides_ptr = slots_strides;
+
+    detail::foreign_parameter_info param{};
+    param.method = &copy;
+    param.param = real_param.param;
+    param.host_generation = real_param.host_generation;
+    param.method_state = real_param.method_state;
+    param.same_method = real_param.same_method;
+    param.method_type = real_param.method_type;
+    param.resolve_vp = real_param.resolve_vp;
+    copy.foreign_begin = &param;
+    copy.foreign_end = &param + 1;
+
+    garage_registry::state().methods.push_back(copy);
+    zoo_registry::state().foreign_parameters.push_back(param);
+
+    initialize_all();
+
+    BOOST_TEST(param.slot == real_param.slot);
+    BOOST_TEST_REQUIRE(param.cone.size() == real_param.cone.size());
+    BOOST_TEST(param.cone[0].entry == real_param.cone[0].entry);
+    BOOST_TEST(
+        std::equal(slots_strides, slots_strides + 3, real.slots_strides_ptr));
+
+    Car car;
+    Dog dog;
+    BOOST_TEST(carry(car, dog) == "car, dog");
+
+    zoo_registry::state().foreign_parameters.remove(param);
+    garage_registry::state().methods.remove(copy);
+    initialize_all();
 }

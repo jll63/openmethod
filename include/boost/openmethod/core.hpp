@@ -352,20 +352,34 @@ using class_list_registry = typename pick_class_registry<
     typename extract_registry<Classes...>::registry,
     typename extract_registry<Classes...>::others>::type;
 
-// Each class's type_id, computed by the rtti policy of the registry in the same
+// Set `ids[Index]`, for each `Index` in `Positions`, to the type_id of the class
+// in that position, computed by the rtti policy of the registry in the same
 // position: the virtual parameters of a method may belong to different
-// registries.
-template<class Classes, class Registries>
+// registries, and their type ids may be resolved at different times.
+template<class Classes, class Registries, class Positions>
 struct init_type_ids;
 
-template<class... Class, class... Registry>
-struct init_type_ids<mp11::mp_list<Class...>, mp11::mp_list<Registry...>> {
-    static auto fn(type_id* ids) {
-        (..., (*ids++ = Registry::rtti::template static_type<Class>()));
-
-        return ids;
+template<class Classes, class Registries, class... Index>
+struct init_type_ids<Classes, Registries, mp11::mp_list<Index...>> {
+    // `Positions` is empty for a method whose virtual parameters all belong to
+    // other registries, and are all resolved elsewhere.
+    static void fn([[maybe_unused]] type_id* ids) {
+        (...,
+            (ids[Index::value] =
+                    mp11::mp_at<Registries, Index>::rtti::template static_type<
+                        mp11::mp_at<Classes, Index>>()));
     }
 };
+
+// The same, for one position, known at run time.
+template<class Classes, class Registries>
+void init_type_id(type_id* ids, std::size_t position) {
+    mp11::mp_with_index<mp11::mp_size<Classes>::value>(
+        position, [ids](auto index) {
+            ids[index] = mp11::mp_at<Registries, decltype(index)>::rtti::
+                template static_type<mp11::mp_at<Classes, decltype(index)>>();
+        });
+}
 
 template<class Base, class Derived>
 struct is_unambiguous_accessible_base_of : std::is_base_of<Base, Derived> {
@@ -2506,8 +2520,9 @@ using parameter_class = virtual_type<
 //!
 //! A registry in which a parameter of a method of another registry dispatches
 //! must be initialized before the method's registry, and the method's registry
-//! must be initialized again whenever that registry is. The two must both use
-//! @ref policies::deferred_static_rtti, or neither.
+//! must be initialized again whenever that registry is. Each parameter's type
+//! ids follow the registry it dispatches in: a registry with
+//! @ref policies::deferred_static_rtti may be mixed with one without.
 //!
 //! Specializations of `method` have a single instance: the static member `fn`,
 //! which has an `operator()` that forwards to the appropriate overrider. It is
@@ -2761,17 +2776,21 @@ class method<Id, ReturnType(Parameters...), Registry> :
     static constexpr auto ForeignCount =
         mp11::mp_size<ForeignParameters>::value;
 
-    // A foreign parameter's type ids are resolved by its registry's
-    // initialize(), which runs before the method's: both must defer, or
-    // neither.
-    template<class ParamRegistry>
-    using same_deferral = mp11::mp_bool<
-        ParamRegistry::has_deferred_static_rtti ==
-        Registry::has_deferred_static_rtti>;
-    static_assert(
-        mp11::mp_all_of<VirtualRegistries, same_deferral>::value,
-        "a method and the registries of its virtual parameters must all use "
-        "deferred static rtti, or none of them");
+    // A parameter's type ids follow the deferral of the registry it dispatches
+    // in. Those of the parameters in the method's registry are resolved with
+    // the method's own, by `resolve_type_ids`; those of a foreign parameter,
+    // at construction, or - if its registry defers them - by that registry's
+    // initialize(), through `resolve_type_id`.
+    template<class Index>
+    using is_deferred_parameter = mp11::mp_bool<
+        mp11::mp_at<VirtualRegistries, Index>::has_deferred_static_rtti>;
+    using NativeParameters =
+        mp11::mp_remove_if<mp11::mp_iota_c<Arity>, is_foreign_parameter>;
+    using EagerForeignParameters =
+        mp11::mp_remove_if<ForeignParameters, is_deferred_parameter>;
+
+    static auto method_type() -> type_id;
+    static void resolve_type_id(type_id* ids, std::size_t param);
 
     type_id vp_type_ids[Arity];
     std::array<detail::foreign_parameter_info, ForeignCount> foreign_parameters;
@@ -2847,6 +2866,7 @@ class method<Id, ReturnType(Parameters...), Registry> :
             detail::overrider_info> {
         explicit override_impl(FunctionPointer* next = nullptr);
         void resolve_type_ids();
+        static void resolve_type_id(type_id* ids, std::size_t param);
 
         static type_id vp_type_ids[Arity];
     };
@@ -2903,6 +2923,10 @@ method<Id, ReturnType(Parameters...), Registry>::method() {
         resolve_type_ids();
     }
 
+    detail::init_type_ids<
+        VirtualClasses, VirtualRegistries,
+        EagerForeignParameters>::fn(vp_type_ids);
+
     this->vp_begin = vp_type_ids;
     this->vp_end = vp_type_ids + Arity;
     this->not_implemented = reinterpret_cast<void (*)()>(fn_not_implemented);
@@ -2922,6 +2946,13 @@ method<Id, ReturnType(Parameters...), Registry>::method() {
         param.method = this;
         param.param = Param::value;
         param.host_generation = &ParamRegistry::static_::st.generation;
+        param.method_state = &Registry::static_::st;
+        param.same_method = [](type_id a, type_id b) {
+            return Registry::rtti::type_index(a) ==
+                Registry::rtti::type_index(b);
+        };
+        param.method_type = method_type;
+        param.resolve_vp = resolve_type_id;
         ParamRegistry::static_::st.foreign_parameters.push_back(param);
     });
 }
@@ -2930,10 +2961,24 @@ template<
     typename Id, typename... Parameters, typename ReturnType, class Registry>
 void method<Id, ReturnType(Parameters...), Registry>::resolve_type_ids() {
     using namespace detail;
-    this->method_type_id = rtti::template static_type<method>();
+    this->method_type_id = method_type();
     this->return_type_id =
         rtti::template static_type<virtual_type<ReturnType, Registry>>();
-    init_type_ids<VirtualClasses, VirtualRegistries>::fn(this->vp_type_ids);
+    init_type_ids<VirtualClasses, VirtualRegistries, NativeParameters>::fn(
+        this->vp_type_ids);
+}
+
+template<
+    typename Id, typename... Parameters, typename ReturnType, class Registry>
+auto method<Id, ReturnType(Parameters...), Registry>::method_type() -> type_id {
+    return rtti::template static_type<method>();
+}
+
+template<
+    typename Id, typename... Parameters, typename ReturnType, class Registry>
+void method<Id, ReturnType(Parameters...), Registry>::resolve_type_id(
+    type_id* ids, std::size_t param) {
+    detail::init_type_id<VirtualClasses, VirtualRegistries>(ids, param);
 }
 
 template<
@@ -3422,10 +3467,15 @@ method<Id, ReturnType(Parameters...), Registry>::override_impl<
         resolve_type_ids();
     }
 
+    using Thunk = thunk<Function, decltype(Function)>;
+    init_type_ids<
+        typename Thunk::OverriderVirtualParameters, VirtualRegistries,
+        EagerForeignParameters>::fn(vp_type_ids);
+    this->resolve_vp = resolve_type_id;
+
     this->next = reinterpret_cast<void (**)()>(
         p_next ? p_next : &method::next<Function>);
 
-    using Thunk = thunk<Function, decltype(Function)>;
     this->pf = reinterpret_cast<void (*)()>(Thunk::fn);
 
     this->vp_begin = vp_type_ids;
@@ -3445,9 +3495,21 @@ void method<Id, ReturnType(Parameters...), Registry>::override_impl<
         virtual_type<FnReturnType, Registry>>();
     this->type = Registry::rtti::template static_type<decltype(Function)>();
     using Thunk = thunk<Function, decltype(Function)>;
-    detail::init_type_ids<
-        typename Thunk::OverriderVirtualParameters, VirtualRegistries>::fn(this
-            ->vp_type_ids);
+    init_type_ids<
+        typename Thunk::OverriderVirtualParameters, VirtualRegistries,
+        NativeParameters>::fn(vp_type_ids);
+}
+
+template<
+    typename Id, typename... Parameters, typename ReturnType, class Registry>
+template<auto Function, typename FnReturnType, bool Inline>
+void method<Id, ReturnType(Parameters...), Registry>::
+    override_impl<Function, FnReturnType, Inline>::resolve_type_id(
+        type_id* ids, std::size_t param) {
+    using Thunk = thunk<Function, decltype(Function)>;
+    detail::init_type_id<
+        typename Thunk::OverriderVirtualParameters, VirtualRegistries>(
+        ids, param);
 }
 
 // =============================================================================
