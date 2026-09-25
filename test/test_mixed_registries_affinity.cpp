@@ -20,8 +20,6 @@
 
 using namespace boost::openmethod;
 
-namespace {
-
 struct zoo_registry : default_registry::with<policies::vptr_map<>> {};
 
 // Holds the methods.
@@ -87,8 +85,6 @@ BOOST_OPENMETHOD(
 BOOST_OPENMETHOD_OVERRIDE(adopted, (const Dog&, const Car&), std::string) {
     return "dog, car";
 }
-
-} // namespace
 
 BOOST_AUTO_TEST_CASE(any_method_registry) {
     initialize<zoo_registry>();
