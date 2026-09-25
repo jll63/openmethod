@@ -3,6 +3,10 @@
 // See accompanying file LICENSE_1_0.txt
 // or copy at http://www.boost.org/LICENSE_1_0.txt)
 
+#include <cstdint>
+#include <iostream>
+#include <limits>
+#include <sstream>
 #include <string>
 #include <type_traits>
 
@@ -43,6 +47,17 @@ struct Plus : Node {
     const Node& right;
 };
 
+auto next_non_node_type_id() -> type_id {
+    static auto next = std::numeric_limits<std::uintptr_t>::max();
+
+    return reinterpret_cast<type_id>(next--);
+}
+
+auto non_node_type_index(type_id type) -> std::size_t {
+    return std::numeric_limits<std::uintptr_t>::max() -
+        reinterpret_cast<std::uintptr_t>(type) + 1;
+}
+
 struct node_rtti : policies::rtti {
     template<class Registry>
     struct fn : defaults {
@@ -54,7 +69,9 @@ struct node_rtti : policies::rtti {
             if constexpr (is_polymorphic<T>) {
                 return reinterpret_cast<type_id>(T::static_type);
             } else {
-                return nullptr;
+                static const auto id = next_non_node_type_id();
+
+                return id;
             }
         }
 
@@ -66,6 +83,18 @@ struct node_rtti : policies::rtti {
                 return nullptr;
             }
         }
+
+        template<class Stream>
+        static void type_name(type_id type, Stream& stream) {
+            static const char* const names[] = {"Node", "Number", "Plus"};
+            auto id = reinterpret_cast<std::uintptr_t>(type);
+
+            if (id >= 1 && id <= 3) {
+                stream << names[id - 1];
+            } else {
+                stream << "<" << non_node_type_index(type) << ">";
+            }
+        }
     };
 };
 
@@ -73,6 +102,18 @@ struct node_registry : registry<node_rtti, policies::vptr_vector> {};
 
 BOOST_OPENMETHOD_CLASSES(Node, Number, Plus, node_registry);
 // end::nodes[]
+
+// tag::value[]
+BOOST_OPENMETHOD(value, (virtual_<const Node&>), int, node_registry);
+
+BOOST_OPENMETHOD_OVERRIDE(value, (const Number& number), int) {
+    return number.value;
+}
+
+BOOST_OPENMETHOD_OVERRIDE(value, (const Plus& plus), int) {
+    return value(plus.left) + value(plus.right);
+}
+// end::value[]
 
 // tag::formats[]
 struct Format {
@@ -113,11 +154,18 @@ BOOST_AUTO_TEST_CASE(mixed_registries) {
     initialize();
     // end::initialize[]
 
+    std::ostringstream captured;
+    auto* cout_buf = std::cout.rdbuf(captured.rdbuf());
+
     // tag::call[]
     Number one(1), two(2), three(3);
     Plus sum(one, two), total(sum, three);
 
-    BOOST_TEST(render(total, Postfix()) == "1 2 + 3 +");
-    BOOST_TEST(render(total, Infix()) == "((1 + 2) + 3)");
+    std::cout << render(total, Postfix()) << " = " << value(total) << "\n";
+    std::cout << render(total, Infix()) << " = " << value(total) << "\n";
     // end::call[]
+
+    std::cout.rdbuf(cout_buf);
+
+    BOOST_TEST(captured.str() == "1 2 + 3 + = 6\n((1 + 2) + 3) = 6\n");
 }

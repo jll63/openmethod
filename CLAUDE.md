@@ -661,8 +661,8 @@ one and the file still compiles, binds to `default_registry`, and fails at run t
 A virtual parameter dispatches in `detail::dispatch_registry<Parameter, R>` - what it carries, or
 the method's registry `R` when it carries nothing - and everything per-parameter goes through that
 registry: `parameter_traits`, `method::vptr` (the declared parameter is the template argument, not
-`remove_virtual_<>` of it), the type ids (`init_type_ids<Classes, Registries>`, one rtti per
-position), `init_bad_call` (one rtti per argument). "Another registry" means another *state*:
+`remove_virtual_<>` of it), the type ids (`init_type_ids<Classes, Registries, Positions>`, one rtti
+per position), `init_bad_call` (one rtti per argument). "Another registry" means another *state*:
 `detail::same_registry` compares `registry_type`, so `struct zoo : default_registry {}` is the
 default registry under a second name, and a parameter carrying it is native.
 
@@ -695,21 +695,48 @@ id is UB). So a foreign parameter is described to the method's registry by *posi
   `method::check_foreign_parameters` refuses a call once S has been initialized again. Both raise
   `parameter_registry_not_initialized`. Consequence: S before R, R again after S, and a cycle
   (an R method with an S parameter, an S method with an R parameter) cannot be initialized.
-- Each module's copy of a method registers its own records, so S allocates one slot per copy;
-  R uses the first copy's and propagates `slots_strides` as before. The other slots are wasted,
-  not wrong.
-- `has_deferred_static_rtti` must agree between R and every S (static_assert in `method`, test
-  `compile_fail_mixed_registries_deferred.cpp`): S resolves the method's deferred ids itself.
+- Each module's copy of a method registers its own record. S groups them into one
+  `foreign_parameter` with several `copies`, sharing a slot, by the key (`method_state`, method
+  type id, `param`). The method's state address is one symbol per registry; the type ids are
+  compared by `same_method`, which the method template builds from *its* registry's
+  `rtti::type_index` - S cannot compare them itself, and a raw comparison would fail in exactly
+  the multi-module case (one `type_info` per module). Each copy still gets its own overrider
+  positions, since its overrider list is its own. `copies_share_the_slot` in
+  `test_mixed_registries.cpp` fakes a second copy.
+- **Each parameter's type ids follow the deferral of the registry it dispatches in**, never the
+  method's. `method::resolve_type_ids()` (R's, at construction or in R's `initialize()`) sets the
+  method's own ids and the *native* positions only (`NativeParameters`). A foreign position whose
+  registry does not defer is set at construction (`EagerForeignParameters`); one whose registry
+  defers is set by S's `initialize()`, through `foreign_parameter_info::resolve_vp` for the method
+  and `overrider_info::resolve_vp` for each overrider - function pointers built by the templates,
+  since S knows neither type. Neither registry calls the other's rtti during static construction.
+  The slot-sharing key calls `method_type()` rather than reading `method_type_id`, which a
+  deferring R has not resolved yet when S initializes; the `deferred_static_rtti` contract only
+  promises ids from the first `initialize()` on, which S's is. `test_mixed_registries_deferred.cpp`
+  assigns its ids at the start of the test, so an early read yields 0 and fails.
 - The C++26 scan (`method_traits_aux`) registers only the classes of the parameters that dispatch
   in the method's registry (`detail::dispatches_in`).
 - `rebind_parameter_registry` still rebinds every `virtual_ptr` to the method's registry, so an
   overrider that spells a third registry on a foreign parameter gets "cannot find method" rather
   than "registry mismatch".
 
+**The trace follows the handshake across both registries** - `trace()` on each `initialize()`
+shows it end to end, and the entry addresses match between the two halves. S prints the overrider
+classes of each foreign parameter, says which parameter an entry it leaves empty belongs to rather
+than `empty`, and ends with `Publishing to methods of other registries` (generation, slot, number
+of module copies, the cone with each class and entry address, the overrider positions). R prints,
+under the method, what it received per foreign parameter, names the cone classes `foreign#k`
+(`foreign#0` is the parameter's class) wherever a `class_` is printed, and ends with
+`Entries in the v-tables of other registries, written at commit`. **A registry with no `output`
+policy cannot be traced at all** (`Registry::output::stream()` is `void`) - that is existing
+behaviour, but it bites here, because a custom-rtti registry written for an example often has no
+`output`.
+
 Tests: `test_mixed_registries.cpp` (two number-based rtti policies that collide on purpose, plus
-std_rtti; foreign first, second and only parameter; `next`; errors; re-initialization) and
-`test_mixed_registries_affinity.cpp` (the affinity and spelling shapes that used to be
-"registry mismatch" compile-fail tests).
+std_rtti; foreign first, second and only parameter; `next`; errors; re-initialization; copies
+sharing a slot), `test_mixed_registries_affinity.cpp` (the affinity and spelling shapes that used
+to be "registry mismatch" compile-fail tests) and `test_mixed_registries_deferred.cpp` (deferred
+and eager registries, both ways round).
 
 ### Flattened headers for Compiler Explorer
 
