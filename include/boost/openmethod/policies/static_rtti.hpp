@@ -7,11 +7,11 @@
 #define BOOST_OPENMETHOD_POLICY_MINIMAL_RTTI_HPP
 
 #include <boost/openmethod/preamble.hpp>
+#include <boost/openmethod/detail/type_key.hpp>
 
 #include <boost/current_function.hpp>
 
 #include <cstddef>
-#include <functional>
 #include <string_view>
 #include <type_traits>
 
@@ -172,43 +172,7 @@ struct static_rtti_name {
     bool shareable;
 };
 
-// What named_static_rtti::type_index returns: the name, and for a class that
-// cannot be shared, the type_id as well, which keeps it apart from other
-// classes with the same name.
-struct static_rtti_key {
-    std::string_view name;
-    const void* local;
-
-    friend auto operator==(const static_rtti_key& a, const static_rtti_key& b)
-        -> bool {
-        return a.local == b.local && a.name == b.name;
-    }
-
-    friend auto operator!=(const static_rtti_key& a, const static_rtti_key& b)
-        -> bool {
-        return !(a == b);
-    }
-
-    friend auto operator<(const static_rtti_key& a, const static_rtti_key& b)
-        -> bool {
-        if (a.name != b.name) {
-            return a.name < b.name;
-        }
-
-        return std::less<const void*>()(a.local, b.local);
-    }
-};
-
 } // namespace boost::openmethod::detail
-
-template<>
-struct std::hash<boost::openmethod::detail::static_rtti_key> {
-    auto operator()(const boost::openmethod::detail::static_rtti_key& key) const
-        -> std::size_t {
-        return std::hash<std::string_view>()(key.name) ^
-            std::hash<const void*>()(key.local);
-    }
-};
 
 namespace boost::openmethod::policies {
 
@@ -267,7 +231,7 @@ struct named_static_rtti : rtti {
         //! @param type A `type_id`.
         //! @return The name of the class, and `type` itself if the class
         //! cannot be shared.
-        static auto type_index(type_id type) -> detail::static_rtti_key {
+        static auto type_index(type_id type) -> detail::type_key {
             auto id = static_cast<const detail::static_rtti_name*>(type);
 
             return {id->name, id->shareable ? nullptr : type};
