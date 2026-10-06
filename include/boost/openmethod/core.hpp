@@ -2279,34 +2279,109 @@ using overrider_virtual_types = boost::mp11::mp_remove<
         MethodParameters, OverriderParameters>,
     void>;
 
-template<class Method, class Rtti, std::size_t Index>
+// Whether a registration of a class says that it is `declared`, or derives from
+// it. Only the bases listed in the same `use_classes` are known.
+template<class Registry>
+auto is_or_derives_from(const class_info& ci, type_id declared) -> bool {
+    using rtti = typename Registry::rtti;
+
+    auto key = rtti::type_index(declared);
+
+    if (rtti::type_index(ci.type) == key) {
+        return true;
+    }
+
+    for (auto base = ci.first_base; base != ci.last_base; ++base) {
+        if (rtti::type_index(*base) == key) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+// The class of an object, found from its v-table pointer, for an rtti policy
+// that cannot tell the dynamic type. Used only to report an error.
+//
+// The object's own class always matches, because the v-table pointer came from
+// its `static_vptr`. Another class may match as well: a v-table whose leading
+// slots are unused is pointed to before its start, possibly at the start of
+// another class' v-table. Then only a class that derives from `declared` will
+// do. If that still does not settle it, `declared` is the answer: it is less
+// precise, but true.
+template<class Registry>
+auto class_of_vptr(vptr_type vptr, type_id declared) -> type_id {
+    using rtti = typename Registry::rtti;
+
+    if (!vptr) {
+        return declared;
+    }
+
+    for (bool derived_only : {false, true}) {
+        type_id found = nullptr;
+        bool unique = true;
+
+        for (auto& ci : Registry::state().classes) {
+            if (*ci.static_vptr != vptr ||
+                (derived_only && !is_or_derives_from<Registry>(ci, declared))) {
+                continue;
+            }
+
+            if (!found) {
+                found = ci.type;
+            } else if (rtti::type_index(ci.type) != rtti::type_index(found)) {
+                unique = false;
+                break;
+            }
+        }
+
+        if (found && unique) {
+            return found;
+        }
+    }
+
+    return declared;
+}
+
+template<class Method, class Registry, std::size_t Index>
 struct init_bad_call {
     template<typename Arg, typename... Args>
     static auto fn(bad_call& error, const Arg& arg, const Args&... args) {
+        using rtti = typename Registry::rtti;
+
         if constexpr (Index == 0u) {
-            error.method = Rtti::template static_type<Method>();
+            error.method = rtti::template static_type<Method>();
             error.arity = sizeof...(args) + 1;
         }
 
         type_id arg_type_id;
 
         if constexpr (is_virtual_ptr<Arg>) {
-            arg_type_id = Rtti::dynamic_type(*arg);
+            using Class = std::remove_cv_t<typename Arg::element_type>;
+
+            if constexpr (rtti::template is_polymorphic<Class>) {
+                arg_type_id = rtti::dynamic_type(*arg);
+            } else {
+                arg_type_id = class_of_vptr<Registry>(
+                    arg.vptr(), rtti::template static_type<Class>());
+            }
+        } else if constexpr (rtti::template is_polymorphic<Arg>) {
+            arg_type_id = rtti::dynamic_type(arg);
         } else {
-            arg_type_id = Rtti::dynamic_type(arg);
+            arg_type_id = rtti::template static_type<Arg>();
         }
 
         error.types[Index] = arg_type_id;
 
-        init_bad_call<Method, Rtti, Index + 1>::fn(error, args...);
+        init_bad_call<Method, Registry, Index + 1>::fn(error, args...);
     }
 
     static auto fn(bad_call&) {
     }
 };
 
-template<class Method, class Rtti>
-struct init_bad_call<Method, Rtti, bad_call::max_types> {
+template<class Method, class Registry>
+struct init_bad_call<Method, Registry, bad_call::max_types> {
     static auto fn(bad_call&) {
     }
 };
@@ -3095,7 +3170,7 @@ method<Id, ReturnType(Parameters...), Registry>::fn_not_implemented(
 
     if constexpr (Registry::has_error_handler) {
         no_overrider error;
-        detail::init_bad_call<method, rtti, 0u>::fn(
+        detail::init_bad_call<method, Registry, 0u>::fn(
             error,
             detail::parameter_traits<Parameters, Registry>::peek(args)...);
         Registry::error_handler::error(error);
@@ -3113,7 +3188,7 @@ method<Id, ReturnType(Parameters...), Registry>::fn_ambiguous(
 
     if constexpr (Registry::has_error_handler) {
         ambiguous_call error;
-        detail::init_bad_call<method, rtti, 0u>::fn(
+        detail::init_bad_call<method, Registry, 0u>::fn(
             error,
             detail::parameter_traits<Parameters, Registry>::peek(args)...);
         Registry::error_handler::error(error);
