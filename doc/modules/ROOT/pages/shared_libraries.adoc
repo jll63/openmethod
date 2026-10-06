@@ -272,6 +272,15 @@ in each module; cpp:initialize[] copes - it treats them as several ids for the
 same class - but they are extra ids for the hash to separate. This is why the
 library's own shared-library tests mark their classes `BOOST_SYMBOL_VISIBLE`.
 
+NOTE: Under cpp:static_rtti[], a type id is the address of a static variable
+in a template of the library, which has hidden visibility under
+`-fvisibility=hidden`, and is never shared by a Windows DLL. Each module then
+has its own id for every class, and nothing tells cpp:initialize[] that they
+designate the same class: it takes them for unrelated classes, and a call made
+in one module on an object created in another lands in the wrong overrider.
+Use cpp:named_static_rtti[] instead: it maps the ids to the names of the
+classes, and cpp:initialize[] merges them.
+
 ### What it costs
 
 cpp:fast_perfect_hash[], the default, searches for a multiplier `M` and a shift
