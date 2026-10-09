@@ -65,10 +65,13 @@ struct std_rtti : rtti {
    This function is optional; if it is not provided, _type_ is rendered as
    "type_id(_type_)".
 
-* `type_index` returns an object that _uniquely_ identifies a class.
+* `type_index` returns an object that identifies a class across modules.
     Some forms of RTTI (most notably, C{plus}{plus}'s `typeid` operator) do not
     guarantee that the type information object for a class is unique within
-    the same program.
+    the same program: there is typically one per module. The key must compare
+    equal for all of them, and differ for two different classes - including
+    two classes with the same name in different translation units, such as
+    classes defined in anonymous namespaces, so a name alone is not enough.
     This function is optional; if not provided, `type` is assumed to be
     unique, and used as is.
 

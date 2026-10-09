@@ -2256,36 +2256,14 @@ using overrider_virtual_types = boost::mp11::mp_remove<
         MethodParameters, OverriderParameters>,
     void>;
 
-// Whether a registration of a class says that it is `declared`, or derives from
-// it. Only the bases listed in the same `use_classes` are known.
-template<class Registry>
-auto is_or_derives_from(const class_info& ci, type_id declared) -> bool {
-    using rtti = typename Registry::rtti;
-
-    auto key = rtti::type_index(declared);
-
-    if (rtti::type_index(ci.type) == key) {
-        return true;
-    }
-
-    for (auto base = ci.first_base; base != ci.last_base; ++base) {
-        if (rtti::type_index(*base) == key) {
-            return true;
-        }
-    }
-
-    return false;
-}
-
 // The class of an object, found from its v-table pointer, for an rtti policy
 // that cannot tell the dynamic type. Used only to report an error.
 //
 // The object's own class always matches, because the v-table pointer came from
-// its `static_vptr`. Another class may match as well: a v-table whose leading
-// slots are unused is pointed to before its start, possibly at the start of
-// another class' v-table. Then only a class that derives from `declared` will
-// do. If that still does not settle it, `declared` is the answer: it is less
-// precise, but true.
+// its `static_vptr`, so a single match is the answer. Another class may match
+// as well: a v-table whose leading slots are unused is pointed to before its
+// start, possibly at the start of another class' v-table. Then `declared` is
+// the answer: it is less precise, but true.
 template<class Registry>
 auto class_of_vptr(vptr_type vptr, type_id declared) -> type_id {
     using rtti = typename Registry::rtti;
@@ -2294,30 +2272,21 @@ auto class_of_vptr(vptr_type vptr, type_id declared) -> type_id {
         return declared;
     }
 
-    for (bool derived_only : {false, true}) {
-        type_id found = nullptr;
-        bool unique = true;
+    type_id found = nullptr;
 
-        for (auto& ci : Registry::state().classes) {
-            if (*ci.static_vptr != vptr ||
-                (derived_only && !is_or_derives_from<Registry>(ci, declared))) {
-                continue;
-            }
-
-            if (!found) {
-                found = ci.type;
-            } else if (rtti::type_index(ci.type) != rtti::type_index(found)) {
-                unique = false;
-                break;
-            }
+    for (auto& ci : Registry::state().classes) {
+        if (*ci.static_vptr != vptr) {
+            continue;
         }
 
-        if (found && unique) {
-            return found;
+        if (!found) {
+            found = ci.type;
+        } else if (rtti::type_index(ci.type) != rtti::type_index(found)) {
+            return declared;
         }
     }
 
-    return declared;
+    return found ? found : declared;
 }
 
 template<class Method, class Registry, std::size_t Index>
