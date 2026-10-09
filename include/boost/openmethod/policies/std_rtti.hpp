@@ -9,7 +9,6 @@
 #include <boost/openmethod/preamble.hpp>
 #include <boost/openmethod/detail/type_key.hpp>
 
-#include <cstddef>
 #include <string_view>
 
 #ifndef BOOST_NO_RTTI
@@ -34,144 +33,21 @@
 
 namespace boost::openmethod::detail {
 
-inline auto mangled_is_digit(char c) -> bool {
-    return c >= '0' && c <= '9';
-}
-
-// Whether a type name mangled per the Itanium C++ ABI designates a type that a
-// different type, in another translation unit, may share the name of: one with
-// internal linkage, or none. The mangling says so:
+// Whether a type name mangled per the Itanium C++ ABI designates a type that
+// a different type, in another translation unit, may share the name of. Only
+// the marks that cannot occur in an identifier are recognized, so the answer
+// does not depend on parsing the name:
 //
-//   _GLOBAL__N...   begins the name of an anonymous namespace
-//   L <name>        at the start of a name, or in the encoding of a function
-//                   or variable (after `Z`, or `_Z` in an expression), names a
-//                   static one: a type local to a static function, a lambda
-//                   in the initializer of a static variable, or a template
-//                   argument that is the address of a static variable
-//   Ut              an unnamed type
-//   $ or .          in a name, Clang's or GCC's name for an unnamed type, or a
-//                   lambda
+//   _GLOBAL__N   the name of an anonymous namespace (a reserved identifier)
+//   $            Clang's name for an unnamed type or a lambda: `$_0`
+//   .            GCC's name for an unnamed type: `._anon_0`
 //
-// Source names are skipped by their length, so an identifier like `ZLib` is
-// not taken for a mark, and so are the numbers that are not lengths. A mark
-// read where there is none only keeps the copies of a class apart, as if it
-// had internal linkage.
+// A class local to a static function, or a template instantiated with the
+// address of a static variable, is not recognized - as on MSVC, whose
+// decorated names do not tell those apart either.
 inline auto itanium_internal_linkage(std::string_view name) -> bool {
-    const std::size_t n = name.size();
-    std::size_t i = 0;
-    bool encoding = false;
-    bool literal_value = false;
-
-    auto skip_number = [&]() {
-        if (i < n && name[i] == 'n') {
-            ++i;
-        }
-
-        while (i < n && mangled_is_digit(name[i])) {
-            ++i;
-        }
-    };
-
-    while (i < n) {
-        char c = name[i];
-        char next = i + 1 < n ? name[i + 1] : '\0';
-
-        if (mangled_is_digit(c)) {
-            std::size_t length = 0;
-
-            while (i < n && mangled_is_digit(name[i])) {
-                length = 10 * length + std::size_t(name[i++] - '0');
-            }
-
-            auto identifier = name.substr(i, length);
-
-            // An anonymous namespace, or a name that is not an identifier:
-            // `$_0` (Clang) or `._anon_0` (GCC) for an unnamed type.
-            if (identifier.substr(0, 10) == "_GLOBAL__N" ||
-                identifier.find_first_of("$.") != std::string_view::npos) {
-                return true;
-            }
-
-            i += length;
-
-            // The value of an enum literal follows its type.
-            if (literal_value) {
-                literal_value = false;
-                skip_number();
-            }
-
-            continue;
-        }
-
-        switch (c) {
-        case '$':
-            return true;
-
-        case 'U':
-            if (next == 't') {
-                return true;
-            }
-
-            break;
-
-        case 'Z':
-            encoding = true;
-            break;
-
-        case 'L':
-            if (mangled_is_digit(next)) {
-                // A static function or variable, in an encoding or at the
-                // start of a name; an enum literal never comes there.
-                if (encoding || i == 0 || name[i - 1] == 'N') {
-                    return true;
-                }
-
-                // An enum literal: L <type> <value> E.
-                literal_value = true;
-            } else if (next >= 'a' && next <= 'z') {
-                // A literal of a builtin type: L <type> <value> E.
-                i += 2;
-                skip_number();
-                continue;
-            }
-
-            break;
-
-        case 'S':
-            // A substitution, S <base 36 number> _, or an abbreviation like St.
-            ++i;
-
-            while (
-                i < n &&
-                (mangled_is_digit(name[i]) ||
-                    (name[i] >= 'A' && name[i] <= 'Z'))) {
-                ++i;
-            }
-
-            continue;
-
-        case 'D':
-            // A vector type: Dv <number> _.
-            if (next == 'v') {
-                i += 2;
-                skip_number();
-                continue;
-            }
-
-            break;
-
-        case 'T': // a template parameter: T <number> _
-        case 'A': // an array type: A <number> _
-        case '_': // a discriminator: _ <digit>, or __ <number> _
-            ++i;
-            skip_number();
-            continue;
-        }
-
-        ++i;
-    }
-
-    return false;
+    return name.find("_GLOBAL__N") != std::string_view::npos ||
+        name.find_first_of("$.") != std::string_view::npos;
 }
 
 } // namespace boost::openmethod::detail
@@ -248,22 +124,25 @@ struct std_rtti : rtti {
         //! program typically has one per module. `type_index` maps a `type_id`
         //! to a key that compares equal for all the type ids of one class,
         //! which is what @ref initialize uses to group the registrations coming
-        //! from different modules. The key must also tell apart two classes
-        //! that have the same name, which classes with internal linkage in
-        //! different translation units can.
+        //! from different modules. The key also tells apart two classes with
+        //! the same name in different translation units, when they are defined
+        //! in anonymous namespaces, or are unnamed classes or lambdas.
         //!
-        //! With MSVC, and with GCC and libstdc++, the key is a
-        //! `std::type_index`. Their `std::type_info` equality compares names,
-        //! except for classes with internal linkage, which MSVC names
-        //! uniquely, and which GCC marks for libstdc++ to compare by address.
-        //!
-        //! Elsewhere, `std::type_index` does not do. libc++ compares the
+        //! The type of the key is unspecified; it supports `==`, `<` and
+        //! `std::hash`. With MSVC, and with GCC and libstdc++, it is a
+        //! `std::type_index`: their `std::type_info` equality compares names,
+        //! except where the name of a class is shared by another one, in a
+        //! different translation unit. Elsewhere it is not: libc++ compares the
         //! `std::type_info` objects of a class with hidden visibility by
         //! address, so the copies in different modules are unequal, and Clang
         //! does not mark the classes with internal linkage for libstdc++. The
-        //! key is then the mangled name of the class, plus its `type_id` if
-        //! the mangled name shows that the class has internal linkage, or
-        //! none.
+        //! key is then the mangled name, plus the `type_id` if the mangled name
+        //! shows an anonymous namespace, an unnamed class, or a lambda.
+        //!
+        //! @warning Two classes with the same name, local to `static`
+        //! functions in different translation units, or two instantiations of
+        //! a template on the addresses of `static` variables with the same
+        //! name, may be taken for the same class.
         //!
         //! @param type A `type_id`.
         //! @return A key identifying the class of `type`.
@@ -273,10 +152,12 @@ struct std_rtti : rtti {
 #if BOOST_OPENMETHOD_DETAIL_STD_TYPE_INDEX
             return std::type_index(info);
 #else
+            using namespace detail;
+
             const char* name = info.name();
 
-            return detail::type_key{
-                name, detail::itanium_internal_linkage(name) ? type : nullptr
+            return type_key{
+                name, itanium_internal_linkage(name) ? type : nullptr
             };
 #endif
         }

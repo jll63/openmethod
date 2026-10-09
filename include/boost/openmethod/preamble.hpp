@@ -622,11 +622,16 @@ struct RttiFn {
     template<typename Stream>
     static auto type_name(type_id type, Stream& stream);
 
-    //! Returns a key that uniquely identifies a class.
+    //! Returns a key that identifies a class across modules.
+    //!
+    //! The key must compare equal for all the type ids of one class - one per
+    //! module, typically - and differ for two different classes, including
+    //! two classes with the same name in different translation units, such as
+    //! classes defined in anonymous namespaces. It must support `==`, `<` and
+    //! `std::hash`.
     //!
     //! @param type A `type_id`.
-    //! @return A unique value that identifies a class with the given
-    //! `type_id`.
+    //! @return A key that identifies the class of `type`.
     static auto type_index(type_id type);
 
     //! Casts an object to a type.

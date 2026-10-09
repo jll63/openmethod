@@ -4,9 +4,9 @@
 // or copy at http://www.boost.org/LICENSE_1_0.txt)
 
 // std_rtti::type_index must be equal for the copies of a class in different
-// modules, and different for two classes with internal linkage that have the
-// same name. Where std::type_index does not do that, it scans the mangled name
-// for internal linkage.
+// modules, and different for two classes with the same name in anonymous
+// namespaces, or unnamed. Where std::type_index does not do that, it looks for
+// their marks in the mangled name.
 
 #include <boost/openmethod.hpp>
 
@@ -23,19 +23,21 @@ BOOST_AUTO_TEST_CASE(mangled_names) {
     const char* shared[] = {
         "6Global",
         "N2ns5InnerE",
-        "10ZLibStream",   // not `ZL`, the mark of a static entity
-        "12UtilityClass", // not `Ut`, the mark of an unnamed type
+        "10ZLibStream",
+        "12UtilityClass",
+        "N3app3BoxINS_1XENS_7UtilityEE", // `Ut` after a substitution
         "3BoxISt3mapINSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEESt6"
         "vectorIiSaIiEESt4lessIS6_ESaISt4pairIKS6_S9_EEEE",
         "3BoxINSt3__13mapINS0_12basic_stringIcNS0_11char_traitsIcEENS0_"
         "9allocatorIcEEEENS0_6vectorIiNS5_IiEEEENS0_4lessIS7_EENS5_INS0_"
         "4pairIKS7_SA_EEEEEEE",
-        "4VBoxIL5Color12EE",           // an enum literal, not a static entity
-        "4VBoxILN2ns5ShadeE12EE",      // the same, of a nested enum
-        "4VBoxILin3EE",                // a negative integer literal
-        "4VBoxIXadL_Z10extern_varEEE", // the address of an extern variable
+        "4VBoxIL5Color12EE",
+        "4VBoxILN2ns5ShadeE12EE",
+        "4VBoxILin3EE",
+        "4VBoxIXadL_Z10extern_varEEE",
+        "4VBoxIXadL_Z10extern_varEEL5Color1EE", // an enum literal after `_Z`
         "3BoxIA10_iE",
-        "Z15local_in_externvE5Local", // local to a function defined once
+        "Z15local_in_externvE5Local",
         "N5boost10openmethod6methodI22speak_boost_openmethodFvNS0_11virtual_"
         "ptrI6GlobalNS0_16default_registryEvEESt3mapINSt7__cxx1112basic_"
         "stringIcSt11char_traitsIcESaIcEEESt6vectorIiSaIiEESt4lessISD_ESaISt4"
@@ -50,12 +52,10 @@ BOOST_AUTO_TEST_CASE(mangled_names) {
     const char* internal[] = {
         "N12_GLOBAL__N_14AnonE",
         "3BoxIN12_GLOBAL__N_14AnonEE",
-        "4VBoxIXadL_ZL10static_varEEE",
-        "ZL15local_in_staticvE5Local",
-        "ZN2nsL15local_in_staticEvE5Local",
-        "NL6lambdaMUlvE_E", // GCC: a lambda in a static variable
-        "3$_0",             // Clang: an unnamed type, or a lambda
-        "10._anon_100",     // GCC: an unnamed type
+        "N3app3BoxINS_12_GLOBAL__N_11YEEE",         // after a substitution
+        "4VBoxILN2ns5ShadeE12EN12_GLOBAL__N_11XEE", // after an enum literal
+        "3$_0",                                     // Clang: an unnamed type
+        "10._anon_100",                             // GCC: an unnamed type
     };
 
     for (auto name : internal) {

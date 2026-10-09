@@ -64,7 +64,7 @@ struct static_rtti : rtti {
         //! Returns the @ref type_id of `Class`.
         //!
         //! @tparam Class A class.
-        template<typename T>
+        template<class Class>
         static auto static_type() -> type_id {
             static char id;
 
@@ -159,7 +159,9 @@ constexpr auto static_rtti_shareable() -> bool {
         std::is_class_v<T> || std::is_union_v<T> || std::is_enum_v<T>) {
         return std::meta::has_external_linkage(^^T);
     } else {
-        return true;
+        // A function or pointer type, for example, has no linkage of its
+        // own, but may involve a class that has internal linkage.
+        return !static_rtti_marked_local(static_rtti_type_name<T>());
     }
 #else
     return !static_rtti_marked_local(static_rtti_type_name<T>());
@@ -214,13 +216,14 @@ struct named_static_rtti : rtti {
         //! Returns the @ref type_id of `Class`.
         //!
         //! @tparam Class A class.
-        template<typename T>
+        template<class Class>
         static auto static_type() -> type_id {
+            using namespace detail;
+
             // Not const: two local classes can have the same name, and a
             // linker may fold identical read-only objects into one.
-            static detail::static_rtti_name id{
-                detail::static_rtti_type_name<T>(),
-                detail::static_rtti_shareable<T>()
+            static static_rtti_name id{
+                static_rtti_type_name<Class>(), static_rtti_shareable<Class>()
             };
 
             return &id;
