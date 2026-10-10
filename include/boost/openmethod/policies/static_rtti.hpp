@@ -99,12 +99,13 @@ constexpr auto static_rtti_type_name() -> std::string_view {
         static_rtti_prefix != std::string_view::npos,
         "named_static_rtti requires __PRETTY_FUNCTION__ or __FUNCSIG__");
 
-    constexpr std::size_t suffix =
-        static_rtti_probe.size() - static_rtti_prefix - 4;
     constexpr std::string_view signature = static_rtti_signature<T>();
 
+    // The name of `T` takes the place of `void` in the probe.
     return signature.substr(
-        static_rtti_prefix, signature.size() - static_rtti_prefix - suffix);
+        static_rtti_prefix,
+        signature.size() - static_rtti_probe.size() +
+            std::string_view("void").size());
 }
 
 constexpr auto static_rtti_is_qualifier(char c) -> bool {
@@ -151,28 +152,22 @@ constexpr auto static_rtti_marked_local(std::string_view name) -> bool {
 }
 
 // Whether the copies of `T`'s type_id in different modules designate the same
-// type, and can be merged by name.
+// type, and can be merged by `name`, the name of `T`. Called at run time: the
+// scan of the name, evaluated at compile time, would cost more than the rest of
+// the registration of a class.
 template<typename T>
-constexpr auto static_rtti_shareable() -> bool {
+auto static_rtti_shareable(std::string_view name) -> bool {
 #if BOOST_OPENMETHOD_HAS_REFLECTION
     if constexpr (
         std::is_class_v<T> || std::is_union_v<T> || std::is_enum_v<T>) {
         return std::meta::has_external_linkage(^^T);
-    } else {
-        // A function or pointer type, for example, has no linkage of its
-        // own, but may involve a class that has internal linkage.
-        return !static_rtti_marked_local(static_rtti_type_name<T>());
     }
-#else
-    return !static_rtti_marked_local(static_rtti_type_name<T>());
 #endif
-}
 
-// What a named_static_rtti type_id points to.
-struct static_rtti_name {
-    std::string_view name;
-    bool shareable;
-};
+    // Without reflection; or a function or pointer type, which has no linkage
+    // of its own, but may involve a class that has internal linkage.
+    return !static_rtti_marked_local(name);
+}
 
 } // namespace boost::openmethod::detail
 
@@ -220,10 +215,12 @@ struct named_static_rtti : rtti {
         static auto static_type() -> type_id {
             using namespace detail;
 
-            // Not const: two local classes can have the same name, and a
-            // linker may fold identical read-only objects into one.
-            static static_rtti_name id{
-                static_rtti_type_name<Class>(), static_rtti_shareable<Class>()
+            // The type_id points to the key: the name of the class, and, if
+            // the class cannot be shared, the address of the key itself,
+            // which sets it apart from another class with the same name.
+            constexpr auto name = static_rtti_type_name<Class>();
+            static const type_key id{
+                name, static_rtti_shareable<Class>(name) ? nullptr : &id
             };
 
             return &id;
@@ -234,10 +231,8 @@ struct named_static_rtti : rtti {
         //! @param type A `type_id`.
         //! @return The name of the class, and `type` itself if the class
         //! cannot be shared.
-        static auto type_index(type_id type) -> detail::type_key {
-            auto id = static_cast<const detail::static_rtti_name*>(type);
-
-            return {id->name, id->shareable ? nullptr : type};
+        static auto type_index(type_id type) {
+            return *static_cast<const detail::type_key*>(type);
         }
 
         //! Writes the name of a class to a stream.
@@ -246,7 +241,7 @@ struct named_static_rtti : rtti {
         //! @param stream A stream to write to.
         template<typename Stream>
         static void type_name(type_id type, Stream& stream) {
-            stream << static_cast<const detail::static_rtti_name*>(type)->name;
+            stream << static_cast<const detail::type_key*>(type)->name;
         }
     };
 };

@@ -10,14 +10,18 @@
 #include <boost/openmethod.hpp>
 #include <boost/openmethod/policies/static_rtti.hpp>
 #include <boost/openmethod/policies/throw_error_handler.hpp>
+#include <boost/openmethod/inplace_vptr.hpp>
 #include <boost/openmethod/interop/std_unique_ptr.hpp>
 #include <boost/openmethod/initialize.hpp>
 
 #define BOOST_TEST_MODULE openmethod
 #include <boost/test/unit_test.hpp>
 
+#include <boost/mp11/list.hpp>
+
 #include <sstream>
-#include <string>
+#include <string_view>
+#include <type_traits>
 
 using namespace boost::openmethod;
 
@@ -33,51 +37,28 @@ struct Dog : Animal {};
 
 struct Cat : Animal {};
 
-namespace with_static_rtti {
+struct BOOST_OPENMETHOD_ID(speak);
+struct BOOST_OPENMETHOD_ID(meet);
 
-using R = static_registry;
-
-BOOST_OPENMETHOD_CLASSES(Animal, Dog, Cat, R);
-
-BOOST_OPENMETHOD(speak, (virtual_ptr<Animal, R>), void);
-
-BOOST_OPENMETHOD_OVERRIDE(speak, (virtual_ptr<Cat, R>), void) {
+template<class Registry>
+void speak_cat(virtual_ptr<Cat, Registry>) {
 }
 
-BOOST_OPENMETHOD(meet, (virtual_ptr<Animal, R>, virtual_ptr<Animal, R>), void);
-
-BOOST_OPENMETHOD_OVERRIDE(
-    meet, (virtual_ptr<Dog, R>, virtual_ptr<Animal, R>), void) {
+template<class Registry>
+void meet_dog_animal(
+    virtual_ptr<Dog, Registry>, virtual_ptr<Animal, Registry>) {
 }
 
-BOOST_OPENMETHOD_OVERRIDE(
-    meet, (virtual_ptr<Animal, R>, virtual_ptr<Dog, R>), void) {
+template<class Registry>
+void meet_animal_dog(
+    virtual_ptr<Animal, Registry>, virtual_ptr<Dog, Registry>) {
 }
 
-} // namespace with_static_rtti
-
-namespace with_named_static_rtti {
-
-using R = named_registry;
-
-BOOST_OPENMETHOD_CLASSES(Animal, Dog, Cat, R);
-
-BOOST_OPENMETHOD(speak, (virtual_ptr<Animal, R>), void);
-
-BOOST_OPENMETHOD_OVERRIDE(speak, (virtual_ptr<Cat, R>), void) {
+// std::string_view::ends_with is C++20.
+auto ends_with(std::string_view s, std::string_view suffix) -> bool {
+    return s.size() >= suffix.size() &&
+        s.substr(s.size() - suffix.size()) == suffix;
 }
-
-BOOST_OPENMETHOD(meet, (virtual_ptr<Animal, R>, virtual_ptr<Animal, R>), void);
-
-BOOST_OPENMETHOD_OVERRIDE(
-    meet, (virtual_ptr<Dog, R>, virtual_ptr<Animal, R>), void) {
-}
-
-BOOST_OPENMETHOD_OVERRIDE(
-    meet, (virtual_ptr<Animal, R>, virtual_ptr<Dog, R>), void) {
-}
-
-} // namespace with_named_static_rtti
 
 // Checks that `call` reports `Error`, and that every argument is reported as a
 // Dog - the class of the object, not Animal, the class of the parameter.
@@ -95,43 +76,89 @@ void check_error(Call call, std::size_t arity) {
             BOOST_TEST(
                 (rtti::type_index(error.types[i]) ==
                     rtti::type_index(rtti::template static_type<Dog>())));
+
+            if constexpr (std::is_same_v<Registry, named_registry>) {
+                // MSVC prints `struct Dog`.
+                std::ostringstream os;
+                rtti::type_name(error.types[i], os);
+                BOOST_TEST(ends_with(os.str(), "Dog"));
+            }
         }
     } catch (...) {
         BOOST_FAIL("wrong exception");
     }
 }
 
-BOOST_AUTO_TEST_CASE(static_rtti_errors) {
-    using namespace with_static_rtti;
+using registries = boost::mp11::mp_list<static_registry, named_registry>;
 
-    initialize<R>();
+BOOST_AUTO_TEST_CASE_TEMPLATE(bad_call_types, Registry, registries) {
+    BOOST_OPENMETHOD_REGISTER(use_classes<Animal, Dog, Cat, Registry>);
+
+    using speak = method<
+        BOOST_OPENMETHOD_ID(speak), void(virtual_ptr<Animal, Registry>),
+        Registry>;
+    BOOST_OPENMETHOD_REGISTER(
+        typename speak::template override<speak_cat<Registry>>);
+
+    using meet = method<
+        BOOST_OPENMETHOD_ID(meet),
+        void(virtual_ptr<Animal, Registry>, virtual_ptr<Animal, Registry>),
+        Registry>;
+    BOOST_OPENMETHOD_REGISTER(
+        typename meet::template override<
+            meet_dog_animal<Registry>, meet_animal_dog<Registry>>);
+
+    initialize<Registry>();
     Dog dog;
 
-    check_error<R, no_overrider>([&] { speak(final_virtual_ptr<R>(dog)); }, 1);
-    check_error<R, no_overrider>(
-        [&] { speak(make_unique_virtual<Dog, R>()); }, 1);
-    check_error<R, ambiguous_call>(
-        [&] { meet(final_virtual_ptr<R>(dog), final_virtual_ptr<R>(dog)); }, 2);
+    check_error<Registry, no_overrider>(
+        [&] { speak::fn(final_virtual_ptr<Registry>(dog)); }, 1);
+    check_error<Registry, no_overrider>(
+        [&] { speak::fn(make_unique_virtual<Dog, Registry>()); }, 1);
+    check_error<Registry, ambiguous_call>(
+        [&] {
+            meet::fn(
+                final_virtual_ptr<Registry>(dog),
+                final_virtual_ptr<Registry>(dog));
+        },
+        2);
 }
 
-BOOST_AUTO_TEST_CASE(named_static_rtti_errors) {
-    using namespace with_named_static_rtti;
+// An rtti policy that deems polymorphic classes polymorphic, but has no
+// dynamic_type: classes that carry their v-table pointer do not need it.
+struct inplace_rtti : policies::rtti {
+    template<class Registry>
+    struct fn : policies::static_rtti::fn<Registry> {
+        template<class Class>
+        static constexpr bool is_polymorphic = std::is_polymorphic_v<Class>;
+    };
+};
 
-    initialize<R>();
-    Dog dog;
+struct inplace_registry :
+    registry<inplace_rtti, policies::throw_error_handler> {};
 
-    check_error<R, no_overrider>([&] { speak(final_virtual_ptr<R>(dog)); }, 1);
-    check_error<R, no_overrider>(
-        [&] { speak(make_unique_virtual<Dog, R>()); }, 1);
-    check_error<R, ambiguous_call>(
-        [&] { meet(final_virtual_ptr<R>(dog), final_virtual_ptr<R>(dog)); }, 2);
+struct Shape : inplace_vptr_base<Shape, inplace_registry> {
+    virtual ~Shape() = default;
+};
+
+struct Square : Shape, inplace_vptr_derived<Square, Shape> {};
+
+BOOST_OPENMETHOD_CLASSES(Shape, Square, inplace_registry);
+
+BOOST_OPENMETHOD(draw, (virtual_<Shape&>), void, inplace_registry);
+
+BOOST_AUTO_TEST_CASE(bad_call_types_inplace_vptr) {
+    using rtti = inplace_registry::rtti;
+
+    initialize<inplace_registry>();
+    Square square;
 
     try {
-        speak(final_virtual_ptr<R>(dog));
+        draw(square);
+        BOOST_FAIL("should have thrown");
     } catch (const no_overrider& error) {
-        std::ostringstream os;
-        R::rtti::type_name(error.types[0], os);
-        auto name = os.str();
-        BOOST_TEST(name.substr(name.size() - 3) == "Dog");
+        BOOST_TEST(error.types[0] == rtti::static_type<Square>());
+    } catch (...) {
+        BOOST_FAIL("wrong exception");
     }
 }
