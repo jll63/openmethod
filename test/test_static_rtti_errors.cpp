@@ -9,6 +9,7 @@
 
 #include <boost/openmethod.hpp>
 #include <boost/openmethod/policies/static_rtti.hpp>
+#include <boost/openmethod/policies/named_static_rtti.hpp>
 #include <boost/openmethod/policies/throw_error_handler.hpp>
 #include <boost/openmethod/inplace_vptr.hpp>
 #include <boost/openmethod/interop/std_unique_ptr.hpp>

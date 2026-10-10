@@ -1,0 +1,191 @@
+// Copyright (c) 2017-2026 Jean-Louis Leroy
+// Distributed under the Boost Software License, Version 1.0.
+// See accompanying file LICENSE_1_0.txt
+// or copy at http://www.boost.org/LICENSE_1_0.txt)
+
+#ifndef BOOST_OPENMETHOD_POLICY_NAMED_STATIC_RTTI_HPP
+#define BOOST_OPENMETHOD_POLICY_NAMED_STATIC_RTTI_HPP
+
+#include <boost/openmethod/policies/static_rtti.hpp>
+#include <boost/openmethod/detail/type_key.hpp>
+
+#include <boost/current_function.hpp>
+
+#include <cstddef>
+#include <string_view>
+#include <type_traits>
+
+namespace boost::openmethod::detail {
+
+// The signature of this function, as the compiler prints it, contains the name
+// of `T`. Its prefix and suffix are the same for every `T`; they are measured
+// on `void`.
+template<typename T>
+constexpr auto static_rtti_signature() -> const char* {
+    return BOOST_CURRENT_FUNCTION;
+}
+
+inline constexpr std::string_view static_rtti_probe =
+    static_rtti_signature<void>();
+inline constexpr std::size_t static_rtti_prefix =
+    static_rtti_probe.find("void");
+
+template<typename T>
+constexpr auto static_rtti_type_name() -> std::string_view {
+    // Without __PRETTY_FUNCTION__ or __FUNCSIG__, BOOST_CURRENT_FUNCTION falls
+    // back on a name that does not contain `T`, and every class would get the
+    // same name.
+    static_assert(
+        static_rtti_prefix != std::string_view::npos,
+        "named_static_rtti requires __PRETTY_FUNCTION__ or __FUNCSIG__");
+
+    constexpr std::string_view signature = static_rtti_signature<T>();
+
+    // The name of `T` takes the place of `void` in the probe.
+    return signature.substr(
+        static_rtti_prefix,
+        signature.size() - static_rtti_probe.size() +
+            std::string_view("void").size());
+}
+
+constexpr auto static_rtti_is_qualifier(char c) -> bool {
+    return (c >= 'a' && c <= 'z') || c == ' ' || c == '&';
+}
+
+// A class with internal linkage, or none, may print the same name as a
+// different class. Only the compilers know which classes they are; this guesses
+// it from the marks they leave in the name. GCC prints a local class as
+// `f()::L`, or `S::f() const::L`: a scope closed by a parenthesis, maybe
+// followed by qualifiers.
+constexpr auto static_rtti_marked_local(std::string_view name) -> bool {
+    constexpr std::string_view marks[] = {
+        "{anonymous}",           // GCC
+        "(anonymous namespace)", // Clang
+        "`",           // MSVC: `anonymous-namespace', `anonymous namespace'
+        "<lambda",     // GCC, MSVC
+        "(lambda at ", // Clang
+        "<unnamed",    // GCC, MSVC
+        "(unnamed ",   // Clang
+    };
+
+    for (auto mark : marks) {
+        if (name.find(mark) != std::string_view::npos) {
+            return true;
+        }
+    }
+
+    for (
+        auto pos = name.find("::"); pos != std::string_view::npos;
+        pos = name.find("::", pos + 2)) {
+        auto i = pos;
+
+        while (i > 0 && static_rtti_is_qualifier(name[i - 1])) {
+            --i;
+        }
+
+        if (i > 0 && name[i - 1] == ')') {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+// Whether the copies of `T`'s type_id in different modules designate the same
+// type, and can be merged by `name`, the name of `T`. Called at run time: the
+// scan of the name, evaluated at compile time, would cost more than the rest of
+// the registration of a class.
+template<typename T>
+auto static_rtti_shareable(std::string_view name) -> bool {
+#if BOOST_OPENMETHOD_HAS_REFLECTION
+    if constexpr (
+        std::is_class_v<T> || std::is_union_v<T> || std::is_enum_v<T>) {
+        return std::meta::has_external_linkage(^^T);
+    }
+#endif
+
+    // Without reflection; or a function or pointer type, which has no linkage
+    // of its own, but may involve a class that has internal linkage.
+    return !static_rtti_marked_local(name);
+}
+
+} // namespace boost::openmethod::detail
+
+namespace boost::openmethod::policies {
+
+//! Implementation of the `rtti` policy that identifies classes by name.
+//!
+//! `named_static_rtti` is a @ref static_rtti that works across modules. It
+//! categorizes all types as non-polymorphic, and its type ids are addresses
+//! that differ from one module to the next, like those of @ref static_rtti. In
+//! addition, `type_index` maps them to the name of the class, as the compiler
+//! prints it, so the registry merges the copies of a class coming from
+//! different modules.
+//!
+//! All the modules must be built with the same compiler, because the names
+//! must be spelled the same way. The cost is paid once, by @ref initialize.
+//! Dispatch does not use names.
+//!
+//! A class that has internal linkage, or none, is not shared: it is identified
+//! by its `type_id`, as with @ref static_rtti. This covers the classes defined
+//! in an anonymous namespace, local classes, lambdas, unnamed classes, and the
+//! templates instantiated with any of these. With C++26 reflection, the policy
+//! asks the compiler which classes they are. Otherwise, it recognizes them from
+//! the marks that the compiler leaves in their names.
+//!
+//! @warning Clang and MSVC leave no mark in the name of a local class. Clang
+//! prints it unqualified, and MSVC prints it as if the function were a
+//! namespace (`main::Local`). Without reflection, two local classes that print
+//! the same name are taken for the same class, and so is a local class that
+//! prints the same name as a class at namespace scope. So is a class template
+//! instantiated with an entity that has internal linkage, such as the address
+//! of a `static` variable, with all compilers.
+//!
+//! @see [Custom RTTI](xref:ROOT:custom_rtti.adoc)
+struct named_static_rtti : rtti {
+    //! A RttiFn metafunction.
+    //!
+    //! @tparam Registry The registry containing this policy.
+    template<class Registry>
+    struct fn : static_rtti::fn<Registry> {
+        //! Returns the @ref type_id of `Class`.
+        //!
+        //! @tparam Class A class.
+        template<class Class>
+        static auto static_type() -> type_id {
+            using namespace detail;
+
+            // The type_id points to the key: the name of the class, and, if
+            // the class cannot be shared, the address of the key itself,
+            // which sets it apart from another class with the same name.
+            constexpr auto name = static_rtti_type_name<Class>();
+            static const type_key id{
+                name, static_rtti_shareable<Class>(name) ? nullptr : &id
+            };
+
+            return &id;
+        }
+
+        //! Returns a key that identifies a class across modules.
+        //!
+        //! @param type A `type_id`.
+        //! @return The name of the class, and `type` itself if the class
+        //! cannot be shared.
+        static auto type_index(type_id type) {
+            return *static_cast<const detail::type_key*>(type);
+        }
+
+        //! Writes the name of a class to a stream.
+        //!
+        //! @param type A `type_id`.
+        //! @param stream A stream to write to.
+        template<typename Stream>
+        static void type_name(type_id type, Stream& stream) {
+            stream << static_cast<const detail::type_key*>(type)->name;
+        }
+    };
+};
+
+} // namespace boost::openmethod::policies
+
+#endif
