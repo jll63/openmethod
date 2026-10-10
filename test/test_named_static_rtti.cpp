@@ -7,7 +7,7 @@ struct named_registry;
 #define BOOST_OPENMETHOD_DEFAULT_REGISTRY named_registry
 
 #include <boost/openmethod.hpp>
-#include <boost/openmethod/policies/static_rtti.hpp>
+#include <boost/openmethod/policies/named_static_rtti.hpp>
 #include <boost/openmethod/interop/std_unique_ptr.hpp>
 #include <boost/openmethod/initialize.hpp>
 

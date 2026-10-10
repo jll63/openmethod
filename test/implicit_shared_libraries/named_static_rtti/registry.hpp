@@ -12,7 +12,7 @@ struct static_registry;
 #define BOOST_OPENMETHOD_DEFAULT_REGISTRY static_registry
 
 #include <boost/openmethod.hpp>
-#include <boost/openmethod/policies/static_rtti.hpp>
+#include <boost/openmethod/policies/named_static_rtti.hpp>
 
 struct BOOST_SYMBOL_VISIBLE static_registry :
     boost::openmethod::registry<
