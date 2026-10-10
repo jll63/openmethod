@@ -2289,6 +2289,9 @@ auto class_of_vptr(vptr_type vptr, type_id declared) -> type_id {
     return found ? found : declared;
 }
 
+// An rtti policy may omit `dynamic_type` (see custom_rtti.adoc).
+BOOST_OPENMETHOD_DETAIL_HAS_STATIC_FN(dynamic_type);
+
 template<class Method, class Registry, std::size_t Index>
 struct init_bad_call {
     template<typename Arg, typename... Args>
@@ -2305,14 +2308,22 @@ struct init_bad_call {
         if constexpr (is_virtual_ptr<Arg>) {
             using Class = std::remove_cv_t<typename Arg::element_type>;
 
-            if constexpr (rtti::template is_polymorphic<Class>) {
+            if constexpr (
+                rtti::template is_polymorphic<Class> &&
+                has_dynamic_type<rtti, const Class&>) {
                 arg_type_id = rtti::dynamic_type(*arg);
             } else {
                 arg_type_id = class_of_vptr<Registry>(
                     arg.vptr(), rtti::template static_type<Class>());
             }
-        } else if constexpr (rtti::template is_polymorphic<Arg>) {
+        } else if constexpr (
+            rtti::template is_polymorphic<Arg> &&
+            has_dynamic_type<rtti, const Arg&>) {
             arg_type_id = rtti::dynamic_type(arg);
+        } else if constexpr (has_vptr_fn<Arg, Registry>) {
+            arg_type_id = class_of_vptr<Registry>(
+                boost_openmethod_vptr(arg, static_cast<Registry*>(nullptr)),
+                rtti::template static_type<Arg>());
         } else {
             arg_type_id = rtti::template static_type<Arg>();
         }

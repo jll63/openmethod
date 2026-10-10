@@ -71,6 +71,7 @@ auto name() -> std::string {
     return os.str();
 }
 
+// std::string_view::ends_with is C++20.
 auto ends_with(std::string_view s, std::string_view suffix) -> bool {
     return s.size() >= suffix.size() &&
         s.substr(s.size() - suffix.size()) == suffix;
@@ -95,6 +96,10 @@ BOOST_AUTO_TEST_CASE(keys) {
     BOOST_TEST(key<Stray>().local == rtti::static_type<Stray>());
 }
 
+// GCC prints both classes as `local_classes::test_method()::Local`, and marks
+// them as local; reflection does not need marks. Clang and MSVC leave no mark:
+// see the warning in the documentation of named_static_rtti.
+#if BOOST_OPENMETHOD_HAS_REFLECTION || defined(BOOST_GCC)
 BOOST_AUTO_TEST_CASE(local_classes) {
     struct Local {};
     auto first = key<Local>();
@@ -103,39 +108,25 @@ BOOST_AUTO_TEST_CASE(local_classes) {
         struct Local {};
         auto second = key<Local>();
 
-#if BOOST_OPENMETHOD_HAS_REFLECTION ||                                         \
-    (defined(__GNUC__) && !defined(__clang__))
-        // GCC prints both as `local_classes::test_method()::Local`, and marks
-        // them as local; reflection does not need marks.
         BOOST_TEST(first.local != nullptr);
         BOOST_TEST((first != second));
-#else
-        // Clang and MSVC leave no mark; see the warning in the documentation
-        // of named_static_rtti.
-        (void)first;
-        (void)second;
-#endif
     }
 }
+#endif
 
 BOOST_AUTO_TEST_CASE(dispatch) {
     boost::openmethod::initialize();
 
-    {
-        std::stringstream os;
-        poke(make_unique_virtual<Dog>(), os);
-        BOOST_TEST(os.str() == "bark");
-    }
-    {
-        std::stringstream os;
-        poke(make_unique_virtual<Cat>(), os);
-        BOOST_TEST(os.str() == "hiss");
-    }
-    {
-        std::stringstream os;
-        poke(make_unique_virtual<Stray>(), os);
-        BOOST_TEST(os.str() == "growl");
-    }
+    auto poked = [](auto animal) {
+        std::ostringstream os;
+        poke(animal, os);
+
+        return os.str();
+    };
+
+    BOOST_TEST(poked(make_unique_virtual<Dog>()) == "bark");
+    BOOST_TEST(poked(make_unique_virtual<Cat>()) == "hiss");
+    BOOST_TEST(poked(make_unique_virtual<Stray>()) == "growl");
 }
 
 BOOST_OPENMETHOD_TEST_REGISTER_CLASSES();

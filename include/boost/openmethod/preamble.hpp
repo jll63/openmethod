@@ -275,10 +275,11 @@ struct bad_call : openmethod_error {
     static constexpr std::size_t max_types = 16;
     //! The type_ids of the arguments.
     //!
-    //! For a class that the `rtti` policy deems polymorphic, the dynamic type
-    //! of the argument, as reported by the policy. Otherwise, for a
-    //! `virtual_ptr`, the class whose v-table it points to, or, if that is not
-    //! conclusive, the class of the parameter.
+    //! If the `rtti` policy deems the class polymorphic and provides
+    //! `dynamic_type`, the dynamic type of the argument, as reported by the
+    //! policy. Otherwise, the class whose v-table the argument uses, through a
+    //! `virtual_ptr` or a v-table pointer stored in the object, or, if that is
+    //! not conclusive, the class of the parameter.
     type_id types[max_types];
 };
 

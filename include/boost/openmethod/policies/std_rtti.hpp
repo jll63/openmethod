@@ -21,14 +21,13 @@
 // for the copies of one class in different modules, and different for two
 // classes with internal linkage that have the same name. See
 // std_rtti::type_index.
-#ifndef BOOST_OPENMETHOD_DETAIL_STD_TYPE_INDEX
-#if defined(_MSC_VER) ||                                                       \
-    (defined(__GLIBCXX__) && defined(__GNUC__) && !defined(__clang__) &&       \
-        !defined(__INTEL_COMPILER))
+//
+// _MSC_VER, not BOOST_MSVC: what matters is MSVC's standard library, which
+// clang-cl uses too.
+#if defined(_MSC_VER) || (defined(BOOST_GCC) && defined(__GLIBCXX__))
 #define BOOST_OPENMETHOD_DETAIL_STD_TYPE_INDEX 1
 #else
 #define BOOST_OPENMETHOD_DETAIL_STD_TYPE_INDEX 0
-#endif
 #endif
 
 namespace boost::openmethod::detail {
@@ -154,7 +153,7 @@ struct std_rtti : rtti {
 #else
             using namespace detail;
 
-            const char* name = info.name();
+            std::string_view name = info.name();
 
             return type_key{
                 name, itanium_internal_linkage(name) ? type : nullptr
