@@ -125,22 +125,23 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(bad_call_types, Registry, registries) {
         2);
 }
 
-// An rtti policy that deems polymorphic classes polymorphic, but has no
-// dynamic_type: classes that carry their v-table pointer do not need it.
+// An rtti policy that deems every class polymorphic, but has no dynamic_type:
+// classes that carry their v-table pointer do not need it. The classes must
+// not be polymorphic in the C++ sense: inplace_vptr_base's constructor casts
+// `this` to the derived class, which UBSan rejects while the C++ v-table
+// pointer is not set yet.
 struct inplace_rtti : policies::rtti {
     template<class Registry>
     struct fn : policies::static_rtti::fn<Registry> {
         template<class Class>
-        static constexpr bool is_polymorphic = std::is_polymorphic_v<Class>;
+        static constexpr bool is_polymorphic = true;
     };
 };
 
 struct inplace_registry :
     registry<inplace_rtti, policies::throw_error_handler> {};
 
-struct Shape : inplace_vptr_base<Shape, inplace_registry> {
-    virtual ~Shape() = default;
-};
+struct Shape : inplace_vptr_base<Shape, inplace_registry> {};
 
 struct Square : Shape, inplace_vptr_derived<Square, Shape> {};
 
