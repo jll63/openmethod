@@ -590,11 +590,31 @@ struct InitializeContext {
 //! Blueprint for @ref rtti metafunctions (exposition only).
 template<class Registry>
 struct RttiFn {
-    //! Tests if a class is polymorphic.
+    //! Tests if the policy can find the class of an object at run time.
+    //!
+    //! `true` if `Class` is polymorphic in the sense of the policy: given a
+    //! reference to a `Class`, `dynamic_type` finds the class of the object
+    //! it refers to. This need not match the C++ notion of a polymorphic
+    //! class. When it is `true`:
+    //!
+    //! @li `virtual_<Class&>` is a valid parameter type. A class that carries
+    //! its own v-table pointer, see @ref inplace_vptr_base, is valid either
+    //! way.
+    //!
+    //! @li A @ref virtual_ptr can be constructed from a reference, a pointer
+    //! or a smart pointer to a `Class`. Otherwise, @ref final_virtual_ptr is
+    //! the only way to make one.
+    //!
+    //! @li With runtime checks, @ref final_virtual_ptr verifies that the class
+    //! of the object is exactly `Class`.
+    //!
+    //! The value is up to the policy, and must be a constant expression.
+    //! @ref std_rtti uses `std::is_polymorphic_v<Class>`; @ref static_rtti
+    //! deems no class polymorphic.
     //!
     //! @tparam Class A class.
     template<class Class>
-    static constexpr bool is_polymorphic = std::is_polymorphic_v<Class>;
+    static const bool is_polymorphic;
 
     //! Returns the static @ref type_id of a type.
     //!
