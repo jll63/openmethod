@@ -20,19 +20,6 @@ namespace boost::openmethod {
 
 namespace detail {
 
-template<class ParamRegistry, class Registry>
-struct validate_method_parameter<
-    virtual_<const boost::any&, ParamRegistry>, Registry, void> :
-    std::true_type {};
-
-template<class ParamRegistry, class Registry>
-struct validate_method_parameter<
-    virtual_<boost::any&, ParamRegistry>, Registry, void> : std::true_type {};
-
-template<class ParamRegistry, class Registry>
-struct validate_method_parameter<
-    virtual_<boost::any&&, ParamRegistry>, Registry, void> : std::true_type {};
-
 // `boost::any::type()` yields a `std::type_info`, which is a valid `type_id`
 // only for an rtti policy that identifies classes by `&typeid(T)`. Under any
 // other policy the lookup key is meaningless, and `type_id` being

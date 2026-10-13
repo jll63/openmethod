@@ -94,31 +94,6 @@ constexpr bool te_pass_through =
 // placeholder of the parameter, so methods and overriders agree on a
 // single registered root per Concept.
 
-template<class C, typename T, class ParamRegistry, class Registry>
-struct validate_method_parameter<
-    virtual_<const boost::type_erasure::any<C, T>&, ParamRegistry>, Registry,
-    void> : std::true_type {};
-
-template<class C, typename T, class ParamRegistry, class Registry>
-struct validate_method_parameter<
-    virtual_<boost::type_erasure::any<C, T>&, ParamRegistry>, Registry, void> :
-    std::true_type {};
-
-template<class C, typename T, class ParamRegistry, class Registry>
-struct validate_method_parameter<
-    virtual_<boost::type_erasure::any<C, T>&&, ParamRegistry>, Registry, void> :
-    std::true_type {};
-
-template<class C, typename T, class ParamRegistry, class Registry>
-struct validate_method_parameter<
-    virtual_<boost::type_erasure::any<C, T&>, ParamRegistry>, Registry, void> :
-    std::true_type {};
-
-template<class C, typename T, class ParamRegistry, class Registry>
-struct validate_method_parameter<
-    virtual_<boost::type_erasure::any<C, const T&>, ParamRegistry>, Registry,
-    void> : std::true_type {};
-
 template<class C, class ParamRegistry, class Registry>
 struct validate_method_parameter<
     virtual_<

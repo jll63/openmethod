@@ -2316,6 +2316,22 @@ template<class Class, class Registry>
 struct parameter_traits<const virtual_ptr<Class, Registry, void>&, Registry> :
     virtual_traits<const virtual_ptr<Class, Registry, void>&, Registry> {};
 
+// Whether a virtual parameter can yield a v-table pointer at all, by any of
+// the three routes `method::vptr` tries, in that order: the ADL hook on the
+// class, the parameter's own `virtual_traits` - which is how the interop
+// headers dispatch on a type-erased value - and the `rtti` policy being able
+// to read the class of an object, which `is_polymorphic` reports.
+//
+// A trait of its own because a condition spanning the three does not fit the
+// indentation, and because each route is worth naming.
+template<typename T, class Registry>
+constexpr bool has_vptr_source =
+    has_vptr_fn<virtual_type<T, Registry>, Registry> ||
+    has_vptr<
+        virtual_traits<T, Registry>,
+        decltype(virtual_traits<T, Registry>::peek(std::declval<T>()))> ||
+    Registry::rtti::template is_polymorphic<virtual_type<T, Registry>>;
+
 template<typename T, class Registry, typename = void>
 struct validate_method_parameter : std::true_type {};
 
@@ -2329,13 +2345,11 @@ template<typename T, class ParamRegistry, class Registry>
 struct validate_method_parameter<
     virtual_<T, ParamRegistry>, Registry,
     std::void_t<typename virtual_traits<T, Registry>::virtual_type>> :
-    std::bool_constant<
-        has_vptr_fn<virtual_type<T, Registry>, Registry> ||
-        Registry::rtti::template is_polymorphic<virtual_type<T, Registry>>> {
+    std::bool_constant<has_vptr_source<T, Registry>> {
     static_assert(
         validate_method_parameter::value,
-        "virtual_<> parameter is not a polymorphic class and no "
-        "boost_openmethod_vptr is applicable");
+        "virtual_<> parameter is not a polymorphic class, and neither a "
+        "boost_openmethod_vptr nor a virtual_traits vptr is applicable");
 
     // The class is complete here (is_polymorphic needs it), so this is one of
     // the checkpoints where its affinity is asked again.
