@@ -71,16 +71,45 @@ auto name() -> std::string {
     return os.str();
 }
 
-// std::string_view::ends_with is C++20.
-auto ends_with(std::string_view s, std::string_view suffix) -> bool {
-    return s.size() >= suffix.size() &&
-        s.substr(s.size() - suffix.size()) == suffix;
+BOOST_AUTO_TEST_CASE(names) {
+    // The class-keys MSVC prints are dropped, so the name is the same on
+    // every compiler.
+    BOOST_TEST(name<Dog>() == "Dog");
+    BOOST_TEST(name<Cat>() == "Cat");
 }
 
-BOOST_AUTO_TEST_CASE(names) {
-    // MSVC prints `struct Dog`.
-    BOOST_TEST(ends_with(name<Dog>(), "Dog"));
-    BOOST_TEST(ends_with(name<Cat>(), "Cat"));
+// MSVC prints the class-key of every class it names; the other compilers
+// print none. Only the strip itself can be checked here, on names spelled the
+// way MSVC spells them.
+BOOST_AUTO_TEST_CASE(class_keys) {
+    using boost::openmethod::detail::static_rtti_strip;
+    using boost::openmethod::detail::static_rtti_stripped_size;
+
+#define TEST_STRIP(RAW, STRIPPED)                                              \
+    {                                                                          \
+        constexpr std::string_view raw = RAW;                                  \
+        constexpr auto size = static_rtti_stripped_size(raw);                  \
+        constexpr auto chars = static_rtti_strip<size>(raw);                   \
+        BOOST_TEST(std::string_view(chars.data(), size) == STRIPPED);          \
+    }
+
+    TEST_STRIP("struct Dog", "Dog")
+    TEST_STRIP("class Dog", "Dog")
+    TEST_STRIP("union U", "U")
+    TEST_STRIP("Dog", "Dog")
+    TEST_STRIP("struct Box<struct Dog,enum Color>", "Box<Dog,Color>")
+    TEST_STRIP("struct A<class B<union C>>", "A<B<C>>")
+    TEST_STRIP("ns::class Y", "ns::Y")
+    TEST_STRIP(
+        "`anonymous-namespace'::struct Stray", "`anonymous-namespace'::Stray")
+
+    // A class-key is only one where a name cannot continue.
+    TEST_STRIP("structural", "structural")
+    TEST_STRIP("enumerator", "enumerator")
+    TEST_STRIP("struct Box<structural>", "Box<structural>")
+    TEST_STRIP("myclass X", "myclass X")
+
+#undef TEST_STRIP
 }
 
 BOOST_AUTO_TEST_CASE(keys) {

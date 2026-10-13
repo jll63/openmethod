@@ -25,6 +25,8 @@ BOOST_AUTO_TEST_CASE(mangled_names) {
         "N2ns5InnerE",
         "10ZLibStream",
         "12UtilityClass",
+        "8Foo$Impl", // `$` is a valid identifier character on GCC and Clang
+        "6A$B$C$",
         "N3app3BoxINS_1XENS_7UtilityEE", // `Ut` after a substitution
         "3BoxISt3mapINSt7__cxx1112basic_stringIcSt11char_traitsIcESaIcEEESt6"
         "vectorIiSaIiEESt4lessIS6_ESaISt4pairIKS6_S9_EEEE",
