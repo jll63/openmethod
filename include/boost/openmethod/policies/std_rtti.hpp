@@ -38,15 +38,33 @@ namespace boost::openmethod::detail {
 // does not depend on parsing the name:
 //
 //   _GLOBAL__N   the name of an anonymous namespace (a reserved identifier)
-//   $            Clang's name for an unnamed type or a lambda: `$_0`
+//   $_<digit>    Clang's name for an unnamed type or a lambda: `$_0`
 //   .            GCC's name for an unnamed type: `._anon_0`
+//
+// A bare `$` is not one of them: GCC and Clang accept it in an identifier
+// unless `-fno-dollars-in-identifiers` is given, so a class named `Foo$Impl`
+// would be taken for an unnamed one and never merged across modules.
 //
 // A class local to a static function, or a template instantiated with the
 // address of a static variable, is not recognized - as on MSVC, whose
 // decorated names do not tell those apart either.
+inline auto itanium_unnamed_mark(std::string_view name) -> bool {
+    for (
+        auto pos = name.find("$_"); pos != std::string_view::npos;
+        pos = name.find("$_", pos + 2)) {
+        auto next = pos + 2;
+
+        if (next < name.size() && name[next] >= '0' && name[next] <= '9') {
+            return true;
+        }
+    }
+
+    return false;
+}
+
 inline auto itanium_internal_linkage(std::string_view name) -> bool {
     return name.find("_GLOBAL__N") != std::string_view::npos ||
-        name.find_first_of("$.") != std::string_view::npos;
+        name.find('.') != std::string_view::npos || itanium_unnamed_mark(name);
 }
 
 } // namespace boost::openmethod::detail
@@ -92,13 +110,16 @@ struct std_rtti : rtti {
 
         //! Returns the dynamic @ref type_id of an object.
         //!
-        //! Returns `&typeid(obj)`, cast to `type_id`.
+        //! Returns `&typeid(obj)`, cast to `type_id`. `Class` must be
+        //! polymorphic, or `typeid` would yield the static type.
         //!
         //! @tparam Class A registered class.
         //! @param obj A reference to an instance of `Class`.
         //! @return The type_id of `obj`'s class.
         template<class Class>
         static auto dynamic_type(const Class& obj) -> type_id {
+            static_assert(is_polymorphic<Class>);
+
             return &typeid(obj);
         }
 
@@ -146,13 +167,13 @@ struct std_rtti : rtti {
         //! @param type A `type_id`.
         //! @return A key identifying the class of `type`.
         static auto type_index(type_id type) {
+            using namespace detail;
+
             const auto& info = *reinterpret_cast<const std::type_info*>(type);
 
 #if BOOST_OPENMETHOD_DETAIL_STD_TYPE_INDEX
             return std::type_index(info);
 #else
-            using namespace detail;
-
             std::string_view name = info.name();
 
             return type_key{

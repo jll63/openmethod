@@ -55,12 +55,6 @@ void meet_animal_dog(
     virtual_ptr<Animal, Registry>, virtual_ptr<Dog, Registry>) {
 }
 
-// std::string_view::ends_with is C++20.
-auto ends_with(std::string_view s, std::string_view suffix) -> bool {
-    return s.size() >= suffix.size() &&
-        s.substr(s.size() - suffix.size()) == suffix;
-}
-
 // Checks that `call` reports `Error`, and that every argument is reported as a
 // Dog - the class of the object, not Animal, the class of the parameter.
 template<class Registry, class Error, class Call>
@@ -79,10 +73,9 @@ void check_error(Call call, std::size_t arity) {
                     rtti::type_index(rtti::template static_type<Dog>())));
 
             if constexpr (std::is_same_v<Registry, named_registry>) {
-                // MSVC prints `struct Dog`.
                 std::ostringstream os;
                 rtti::type_name(error.types[i], os);
-                BOOST_TEST(ends_with(os.str(), "Dog"));
+                BOOST_TEST(os.str() == "Dog");
             }
         }
     } catch (...) {
@@ -125,21 +118,12 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(bad_call_types, Registry, registries) {
         2);
 }
 
-// An rtti policy that deems every class polymorphic, but has no dynamic_type:
-// classes that carry their v-table pointer do not need it. The classes must
-// not be polymorphic in the C++ sense: inplace_vptr_base's constructor casts
-// `this` to the derived class, which UBSan rejects while the C++ v-table
-// pointer is not set yet.
-struct inplace_rtti : policies::rtti {
-    template<class Registry>
-    struct fn : policies::static_rtti::fn<Registry> {
-        template<class Class>
-        static constexpr bool is_polymorphic = true;
-    };
-};
-
+// A class that carries its own v-table pointer needs no dynamic_type: the
+// class is read from the pointer. The classes must not be polymorphic in the
+// C++ sense: inplace_vptr_base's constructor casts `this` to the derived
+// class, which UBSan rejects while the C++ v-table pointer is not set yet.
 struct inplace_registry :
-    registry<inplace_rtti, policies::throw_error_handler> {};
+    registry<policies::static_rtti, policies::throw_error_handler> {};
 
 struct Shape : inplace_vptr_base<Shape, inplace_registry> {};
 

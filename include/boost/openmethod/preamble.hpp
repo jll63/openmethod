@@ -275,11 +275,11 @@ struct bad_call : openmethod_error {
     static constexpr std::size_t max_types = 16;
     //! The type_ids of the arguments.
     //!
-    //! If the `rtti` policy deems the class polymorphic and provides
-    //! `dynamic_type`, the dynamic type of the argument, as reported by the
-    //! policy. Otherwise, the class whose v-table the argument uses, through a
-    //! `virtual_ptr` or a v-table pointer stored in the object, or, if that is
-    //! not conclusive, the class of the parameter.
+    //! If the `rtti` policy deems the class polymorphic, the dynamic type of
+    //! the argument, as reported by the policy. Otherwise, the class whose
+    //! v-table the argument uses, through a `virtual_ptr` or a v-table pointer
+    //! stored in the object, or, if that is not conclusive, the class of the
+    //! parameter.
     type_id types[max_types];
 };
 
@@ -612,6 +612,10 @@ struct RttiFn {
     //! @ref std_rtti uses `std::is_polymorphic_v<Class>`; @ref static_rtti
     //! deems no class polymorphic.
     //!
+    //! @warning When this is `true`, the policy owes a @ref dynamic_type for
+    //! `Class`. A policy that deems no class polymorphic may omit
+    //! `dynamic_type` altogether.
+    //!
     //! @tparam Class A class.
     template<class Class>
     static const bool is_polymorphic;
@@ -628,6 +632,10 @@ struct RttiFn {
     static auto static_type() -> type_id;
 
     //! Returns the dynamic @ref type_id of an object.
+    //!
+    //! Required for every class that @ref is_polymorphic deems polymorphic,
+    //! and never called for any other, so a policy that deems no class
+    //! polymorphic may omit it.
     //!
     //! @tparam Class A registered class.
     //! @param obj A reference to an instance of `Class`.
@@ -1152,6 +1160,33 @@ struct initialize_aux;
     template<class T, class... Args>                                           \
     constexpr bool BOOST_PP_CAT(has_, FN) =                                    \
         BOOST_PP_CAT(has_, BOOST_PP_CAT(FN, _aux))<void, T, Args...>::value
+
+namespace detail {
+
+BOOST_OPENMETHOD_DETAIL_HAS_STATIC_FN(dynamic_type);
+
+// The class of an object, as the registry's `rtti` policy reports it.
+//
+// A policy owes a `dynamic_type` for every class it deems polymorphic, and
+// the library reads the class of an object only through this function, so a
+// policy that breaks either half of that contract is named here instead of
+// failing somewhere down a dispatch or an error path.
+template<class Registry, typename Class>
+auto dynamic_type_of(const Class& obj) -> type_id {
+    using rtti = typename Registry::rtti;
+
+    static_assert(
+        rtti::template is_polymorphic<std::remove_cv_t<Class>>,
+        "the rtti policy does not deem this class polymorphic");
+    static_assert(
+        has_dynamic_type<rtti, const Class&>,
+        "the rtti policy deems this class polymorphic, so it must provide "
+        "dynamic_type");
+
+    return rtti::dynamic_type(obj);
+}
+
+} // namespace detail
 
 //! The single shared instance of a registry's state.
 //!

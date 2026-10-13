@@ -11,6 +11,7 @@
 
 #include <boost/current_function.hpp>
 
+#include <array>
 #include <cstddef>
 #include <string_view>
 #include <type_traits>
@@ -31,7 +32,7 @@ inline constexpr std::size_t static_rtti_prefix =
     static_rtti_probe.find("void");
 
 template<typename T>
-constexpr auto static_rtti_type_name() -> std::string_view {
+constexpr auto static_rtti_printed_name() -> std::string_view {
     // Without __PRETTY_FUNCTION__ or __FUNCSIG__, BOOST_CURRENT_FUNCTION falls
     // back on a name that does not contain `T`, and every class would get the
     // same name.
@@ -46,6 +47,106 @@ constexpr auto static_rtti_type_name() -> std::string_view {
         static_rtti_prefix,
         signature.size() - static_rtti_probe.size() +
             std::string_view("void").size());
+}
+
+// MSVC prints the class-key of every class it names, at the head of the name
+// and inside template arguments: `struct Box<struct Dog,enum Color>`. Two
+// modules that disagree on the key of a class - `class Dog;` in one and
+// `struct Dog {...}` in the other, which is only a warning - would print two
+// names for it, and the registry would not merge them. Dropping the keys also
+// makes the name of a class the same on every compiler, which is what a
+// diagnostic shows.
+constexpr std::string_view static_rtti_class_keys[] = {
+    "struct ", "class ", "union ", "enum "
+};
+
+// A keyword is only one where a name cannot continue, or `structural` would
+// lose its head.
+constexpr auto static_rtti_name_char(char c) -> bool {
+    return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z') ||
+        (c >= '0' && c <= '9') || c == '_';
+}
+
+// The length of the class-key starting at `pos`, or zero.
+constexpr auto static_rtti_class_key_at(std::string_view name, std::size_t pos)
+    -> std::size_t {
+    if (pos > 0 && static_rtti_name_char(name[pos - 1])) {
+        return 0;
+    }
+
+    for (auto key : static_rtti_class_keys) {
+        if (name.substr(pos, key.size()) == key) {
+            return key.size();
+        }
+    }
+
+    return 0;
+}
+
+constexpr auto static_rtti_stripped_size(std::string_view name) -> std::size_t {
+    std::size_t size = 0;
+
+    for (std::size_t pos = 0; pos < name.size();) {
+        if (auto key = static_rtti_class_key_at(name, pos)) {
+            pos += key;
+        } else {
+            ++pos;
+            ++size;
+        }
+    }
+
+    return size;
+}
+
+// Whether this compiler prints class-keys at all, asked of a class whose own
+// name holds no answer. Only MSVC does, and only there is the stripping below
+// worth an array per class.
+struct static_rtti_probe_class {};
+
+inline constexpr bool static_rtti_prints_class_keys =
+    static_rtti_class_key_at(
+        static_rtti_printed_name<static_rtti_probe_class>(), 0) != 0;
+
+// The printed name of `T` with the class-keys removed, in storage of its own,
+// since it is no longer a substring of the signature. `type_index` compares
+// the contents, not the address, so a copy per module costs nothing but space.
+template<std::size_t Size>
+constexpr auto static_rtti_strip(std::string_view name)
+    -> std::array<char, Size> {
+    std::array<char, Size> result{};
+
+    for (std::size_t pos = 0, i = 0; pos < name.size();) {
+        if (auto key = static_rtti_class_key_at(name, pos)) {
+            pos += key;
+        } else {
+            result[i++] = name[pos++];
+        }
+    }
+
+    return result;
+}
+
+template<typename T>
+struct static_rtti_stripped_name {
+    static constexpr auto size =
+        static_rtti_stripped_size(static_rtti_printed_name<T>());
+
+    static constexpr std::array<char, size> chars =
+        static_rtti_strip<size>(static_rtti_printed_name<T>());
+};
+
+template<typename T>
+constexpr auto static_rtti_type_name() -> std::string_view {
+    // Where the compiler prints no class-key, the name is already the answer,
+    // and it costs nothing: a view into the signature, which is a string
+    // literal the program carries anyway.
+    if constexpr (static_rtti_prints_class_keys) {
+        using stripped = static_rtti_stripped_name<T>;
+
+        return {stripped::chars.data(), stripped::size};
+    } else {
+        return static_rtti_printed_name<T>();
+    }
 }
 
 constexpr auto static_rtti_is_qualifier(char c) -> bool {
@@ -123,8 +224,9 @@ namespace boost::openmethod::policies {
 //! different modules.
 //!
 //! All the modules must be built with the same compiler, because the names
-//! must be spelled the same way. The cost is paid once, by @ref initialize.
-//! Dispatch does not use names.
+//! must be spelled the same way. Dispatch does not use names at all. They are
+//! read before `main`, once per class in each module, as the class registers
+//! itself, and compared once, by @ref initialize.
 //!
 //! A class that has internal linkage, or none, is not shared: it is identified
 //! by its `type_id`, as with @ref static_rtti. This covers the classes defined
