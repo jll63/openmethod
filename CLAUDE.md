@@ -632,7 +632,7 @@ interop shapes differ from one another. What each does, with the method on anoth
 | parameter spelling `R` | decides an unannotated method's registry | checked against a method naming another |
 |---|---|---|
 | `virtual_<Animal&, R>` (ordinary carrier) | yes | yes - `core.hpp`, "the parameter belongs to another registry" |
-| `virtual_<const std::any&, R>` (interop) | yes | **no - nothing checks it** (#123) |
+| `virtual_<const std::any&, R>` (interop) | yes | yes - the same check, since #123 |
 | `virtual_any<A, R>&` | no, abstains | yes - `virtual_any.hpp`, "registry mismatch" |
 
 - `interop/std_any.hpp`, `interop/boost_any.hpp`, `interop/boost_type_erasure.hpp` and
@@ -640,10 +640,16 @@ interop shapes differ from one another. What each does, with the method on anoth
   keeps whatever affinity it declares itself. A parameter may still *spell* a registry - a
   different thing from declaring an affinity, and the reason #116 gave the
   `validate_method_parameter` specializations the registry parameter `virtual_` gained in #113.
-  A specialization there must never go back to the bare `virtual_<T>` spelling. Those
-  specializations accept any `ParamRegistry` without ever comparing it, which is the middle row
-  above and a bug rather than a decision (#123); `virtual_any`'s are a different shape
-  (`virtual_any<Any, Registry>&`) and do compare. None of this is covered in `doc/`.
+  **Those three headers no longer specialize `validate_method_parameter` at all** (#123). They
+  used to accept every parameter of their shape unconditionally, which also waved the registry
+  check through - the middle row above, a bug rather than a decision. They were there only
+  because the generic rule did not recognize a `virtual_traits::vptr` as a way to reach a
+  v-table; `detail::has_vptr_source` now names all three routes (the ADL hook, the parameter's
+  `virtual_traits`, and `is_polymorphic`), so the generic rule covers the interop shapes and
+  applies its registry check and affinity recheck to them. `interop/boost_type_erasure.hpp`
+  keeps one specialization, and it is a *rejection*: an owning `any<C, _self>` passed by value.
+  `virtual_any`'s are a different shape (`virtual_any<Any, Registry>&`) and do compare. None of
+  this is covered in `doc/`.
 - The C++26 `register_classes` still defaults to the macro - its groups may name a namespace,
   whose classes are only known during the scan that the choice of registry feeds.
 

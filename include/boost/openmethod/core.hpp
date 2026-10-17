@@ -1003,12 +1003,19 @@ struct is_virtual_ptr_aux<const virtual_ptr<Class, Registry, void>&> :
 template<typename T>
 constexpr bool is_virtual_ptr = detail::is_virtual_ptr_aux<T>::value;
 
+// Whether `boost_openmethod_vptr`, the customization point found by ADL, yields
+// a v-table pointer for `Class` in `Registry`. The class provides it, as
+// `inplace_vptr_base` does; the catch-all `boost_openmethod_vptr(...)` makes
+// the question safe to ask of any class.
 template<class Class, class Registry>
-constexpr bool has_vptr_fn = std::is_same_v<
+constexpr bool has_adl_vptr = std::is_same_v<
     decltype(boost_openmethod_vptr(
         std::declval<const Class&>(), std::declval<Registry*>())),
     vptr_type>;
 
+// `has_vptr<Traits, Arg>`: whether `Traits::vptr(arg)` exists. That is how a
+// `virtual_traits` specialization yields a v-table pointer, for a type that
+// cannot carry an ADL overload of its own, such as `std::any`.
 BOOST_OPENMETHOD_DETAIL_HAS_STATIC_FN(vptr);
 
 template<class Registry, class ArgType>
@@ -1018,7 +1025,7 @@ decltype(auto) acquire_vptr(const ArgType& arg) {
     // to the v-table pointer. The hook also returns the vptr by value,
     // which indirect registries cannot store (see box_vptr).
     static_assert(
-        !has_vptr_fn<ArgType, Registry>,
+        !has_adl_vptr<ArgType, Registry>,
         "do not wrap an object that has a boost_openmethod_vptr overload "
         "in a virtual_ptr; call methods directly on the object");
 
@@ -2369,6 +2376,22 @@ template<class Class, class Registry>
 struct parameter_traits<const virtual_ptr<Class, Registry, void>&, Registry> :
     virtual_traits<const virtual_ptr<Class, Registry, void>&, Registry> {};
 
+// Whether a virtual parameter can yield a v-table pointer at all, by any of
+// the three routes `method::vptr` tries, in that order: the ADL hook on the
+// class, the parameter's own `virtual_traits` - which is how the interop
+// headers dispatch on a type-erased value - and the `rtti` policy being able
+// to read the class of an object, which `is_polymorphic` reports.
+//
+// A trait of its own because a condition spanning the three does not fit the
+// indentation, and because each route is worth naming.
+template<typename T, class Registry>
+constexpr bool has_vptr_source =
+    has_adl_vptr<virtual_type<T, Registry>, Registry> ||
+    has_vptr<
+        virtual_traits<T, Registry>,
+        decltype(virtual_traits<T, Registry>::peek(std::declval<T>()))> ||
+    Registry::rtti::template is_polymorphic<virtual_type<T, Registry>>;
+
 template<typename T, class Registry, typename = void>
 struct validate_method_parameter : std::true_type {};
 
@@ -2382,13 +2405,11 @@ template<typename T, class ParamRegistry, class Registry>
 struct validate_method_parameter<
     virtual_<T, ParamRegistry>, Registry,
     std::void_t<typename virtual_traits<T, Registry>::virtual_type>> :
-    std::bool_constant<
-        has_vptr_fn<virtual_type<T, Registry>, Registry> ||
-        Registry::rtti::template is_polymorphic<virtual_type<T, Registry>>> {
+    std::bool_constant<has_vptr_source<T, Registry>> {
     static_assert(
         validate_method_parameter::value,
-        "virtual_<> parameter is not a polymorphic class and no "
-        "boost_openmethod_vptr is applicable");
+        "virtual_<> parameter is not a polymorphic class, and neither a "
+        "boost_openmethod_vptr nor a virtual_traits vptr is applicable");
 
     // The class is complete here (is_polymorphic needs it), so this is one of
     // the checkpoints where its affinity is asked again.
@@ -2985,7 +3006,7 @@ BOOST_FORCEINLINE auto method<Id, ReturnType(Parameters...), Registry>::vptr(
     } else {
         decltype(auto) obj = virtual_traits<MethodArg, Registry>::peek(arg);
 
-        if constexpr (detail::has_vptr_fn<decltype(obj), Registry>) {
+        if constexpr (detail::has_adl_vptr<decltype(obj), Registry>) {
             return boost_openmethod_vptr(obj, static_cast<Registry*>(nullptr));
         } else if constexpr (
             detail::has_vptr<

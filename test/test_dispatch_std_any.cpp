@@ -41,6 +41,22 @@ static_assert(detail::validate_method_parameter<
 static_assert(detail::validate_method_parameter<
     virtual_<std::any&&, default_registry>, default_registry, void>::value);
 
+// The parameter's own virtual_traits is what yields its v-table pointer: the
+// third way a virtual parameter can have one, next to the ADL hook and a
+// class the rtti policy deems polymorphic. Before #123 the interop headers
+// said so by accepting every parameter of this shape unconditionally, which
+// also waved the registry check through.
+static_assert(detail::has_vptr_source<const std::any&, default_registry>);
+static_assert(detail::has_vptr_source<std::any&, default_registry>);
+static_assert(detail::has_vptr_source<std::any&&, default_registry>);
+
+// An interop parameter is an ordinary carrier: it decides the registry of a
+// method that names none, and compile_fail_std_any_registry_mismatch.cpp
+// covers the other half, a method that names a different one.
+static_assert(std::is_same_v<
+    detail::method_registry<void(virtual_<const std::any&>)>,
+    default_registry>);
+
 MAKE_CLASSES();
 
 BOOST_OPENMETHOD(name, (virtual_<const std::any&>), std::string);
