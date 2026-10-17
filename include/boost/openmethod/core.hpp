@@ -2325,7 +2325,7 @@ struct init_bad_call {
             }
         } else if constexpr (rtti::template is_polymorphic<Arg>) {
             arg_type_id = dynamic_type_of<Registry>(arg);
-        } else if constexpr (has_vptr_fn<Arg, Registry>) {
+        } else if constexpr (has_adl_vptr<Arg, Registry>) {
             arg_type_id = class_of_vptr<Registry>(
                 boost_openmethod_vptr(arg, static_cast<Registry*>(nullptr)),
                 rtti::template static_type<Arg>());
