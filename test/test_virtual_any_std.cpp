@@ -341,4 +341,56 @@ BOOST_AUTO_TEST_CASE(virtual_any_mixed_with_virtual_ptr) {
 }
 } // namespace BOOST_OPENMETHOD_GENSYM
 
+namespace BOOST_OPENMETHOD_GENSYM {
+
+// -----------------------------------------------------------------------------
+// a bad_call reports the class held in the virtual_any, not the virtual_any
+
+struct throw_registry :
+    default_registry::with<policies::throw_error_handler> {};
+
+struct Dog {};
+
+struct Cat {};
+
+using throw_any = virtual_any<std::any, throw_registry>;
+
+using name_method =
+    method<struct name_id, std::string(const throw_any&), throw_registry>;
+
+using pet_method =
+    method<struct pet_id, std::string(const throw_any&), throw_registry>;
+
+auto name_dog(const Dog&) -> std::string {
+    return "dog";
+}
+
+auto pet_cat(const Cat&) -> std::string {
+    return "purr";
+}
+
+// `name_dog` registers Dog; `pet` has no overrider for it.
+BOOST_OPENMETHOD_REGISTER(name_method::override<name_dog>);
+BOOST_OPENMETHOD_REGISTER(pet_method::override<pet_cat>);
+
+BOOST_AUTO_TEST_CASE(virtual_any_bad_call_types) {
+    using rtti = throw_registry::rtti;
+
+    initialize<throw_registry>();
+    throw_any dog = Dog();
+
+    try {
+        pet_method::fn(dog);
+        BOOST_FAIL("should have thrown");
+    } catch (const no_overrider& error) {
+        BOOST_TEST(error.arity == 1u);
+        BOOST_TEST(
+            (rtti::type_index(error.types[0]) ==
+                rtti::type_index(rtti::static_type<Dog>())));
+    } catch (...) {
+        BOOST_FAIL("wrong exception");
+    }
+}
+} // namespace BOOST_OPENMETHOD_GENSYM
+
 BOOST_OPENMETHOD_TEST_REGISTER_CLASSES();

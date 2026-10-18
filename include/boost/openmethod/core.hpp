@@ -2317,10 +2317,14 @@ auto class_of_vptr(vptr_type vptr, type_id declared) -> type_id {
     return found;
 }
 
-// The class of a virtual argument, for a `bad_call`.
-template<class Registry, typename Arg>
+// The class of a virtual argument, for a `bad_call`, read through the routes
+// `method::vptr` takes to dispatch it. `Parameter` is the parameter's type,
+// stripped of `virtual_`: its `virtual_traits` may read the class of a value a
+// type-erased argument (an `any`) holds.
+template<class Registry, typename Parameter, typename Arg>
 auto bad_call_type(const Arg& arg) -> type_id {
     using rtti = typename Registry::rtti;
+    using traits = virtual_traits<Parameter, Registry>;
 
     if constexpr (is_virtual_ptr<Arg>) {
         using Class = std::remove_cv_t<typename Arg::element_type>;
@@ -2337,6 +2341,9 @@ auto bad_call_type(const Arg& arg) -> type_id {
         return class_of_vptr<Registry>(
             boost_openmethod_vptr(arg, static_cast<Registry*>(nullptr)),
             rtti::template static_type<Arg>());
+    } else if constexpr (has_vptr<traits, const Arg&>) {
+        return class_of_vptr<Registry>(
+            traits::vptr(arg), rtti::template static_type<Arg>());
     } else {
         return rtti::template static_type<Arg>();
     }
@@ -2354,11 +2361,13 @@ template<
     class Registry, std::size_t Index, class ParameterList, typename Arg,
     typename... Args>
 void init_bad_call_types(bad_call& error, const Arg& arg, const Args&... args) {
+    using parameter = boost::mp11::mp_first<ParameterList>;
     using rest = boost::mp11::mp_rest<ParameterList>;
 
-    if constexpr (is_virtual<boost::mp11::mp_first<ParameterList>>::value) {
+    if constexpr (is_virtual<parameter>::value) {
         if constexpr (Index < bad_call::max_types) {
-            error.types[Index] = bad_call_type<Registry>(arg);
+            error.types[Index] =
+                bad_call_type<Registry, remove_virtual_<parameter>>(arg);
         }
 
         init_bad_call_types<Registry, Index + 1, rest>(error, args...);
