@@ -270,10 +270,15 @@ struct bad_call : openmethod_error {
     //! The type_id of method that was called
     type_id method;
     //! The number of @em virtual arguments in the call
+    //!
+    //! The other arguments play no part in dispatch, and are not reported.
     std::size_t arity;
     //! The maximum size of `types`
     static constexpr std::size_t max_types = 16;
-    //! The type_ids of the arguments.
+    //! The type_ids of the virtual arguments, in order.
+    //!
+    //! `types[i]` describes the i-th virtual argument, whatever its position
+    //! among all the arguments. Only the first `max_types` are recorded.
     //!
     //! If the `rtti` policy deems the class polymorphic, the dynamic type of
     //! the argument, as reported by the policy. Otherwise, the class whose

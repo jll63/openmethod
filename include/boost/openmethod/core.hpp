@@ -2317,52 +2317,62 @@ auto class_of_vptr(vptr_type vptr, type_id declared) -> type_id {
     return found;
 }
 
-template<class Method, class Registry, std::size_t Index>
-struct init_bad_call {
-    template<typename Arg, typename... Args>
-    static auto fn(bad_call& error, const Arg& arg, const Args&... args) {
-        using rtti = typename Registry::rtti;
+// The class of a virtual argument, for a `bad_call`.
+template<class Registry, typename Arg>
+auto bad_call_type(const Arg& arg) -> type_id {
+    using rtti = typename Registry::rtti;
 
-        if constexpr (Index == 0u) {
-            error.method = rtti::template static_type<Method>();
-            error.arity = sizeof...(args) + 1;
-        }
+    if constexpr (is_virtual_ptr<Arg>) {
+        using Class = std::remove_cv_t<typename Arg::element_type>;
 
-        type_id arg_type_id;
-
-        if constexpr (is_virtual_ptr<Arg>) {
-            using Class = std::remove_cv_t<typename Arg::element_type>;
-
-            if constexpr (rtti::template is_polymorphic<Class>) {
-                arg_type_id = dynamic_type_of<Registry>(*arg);
-            } else {
-                arg_type_id = class_of_vptr<Registry>(
-                    arg.vptr(), rtti::template static_type<Class>());
-            }
-        } else if constexpr (rtti::template is_polymorphic<Arg>) {
-            arg_type_id = dynamic_type_of<Registry>(arg);
-        } else if constexpr (has_adl_vptr<Arg, Registry>) {
-            arg_type_id = class_of_vptr<Registry>(
-                boost_openmethod_vptr(arg, static_cast<Registry*>(nullptr)),
-                rtti::template static_type<Arg>());
+        if constexpr (rtti::template is_polymorphic<Class>) {
+            return dynamic_type_of<Registry>(*arg);
         } else {
-            arg_type_id = rtti::template static_type<Arg>();
+            return class_of_vptr<Registry>(
+                arg.vptr(), rtti::template static_type<Class>());
+        }
+    } else if constexpr (rtti::template is_polymorphic<Arg>) {
+        return dynamic_type_of<Registry>(arg);
+    } else if constexpr (has_adl_vptr<Arg, Registry>) {
+        return class_of_vptr<Registry>(
+            boost_openmethod_vptr(arg, static_cast<Registry*>(nullptr)),
+            rtti::template static_type<Arg>());
+    } else {
+        return rtti::template static_type<Arg>();
+    }
+}
+
+// Records the class of each virtual argument, in order, as dispatch sees
+// them: the other arguments play no part in it, so `types[i]` is the class of
+// the i-th *virtual* argument. `ParameterList` is the method's parameters,
+// walked in step with the arguments, as `resolve_uni` does.
+template<class Registry, std::size_t Index, class ParameterList>
+void init_bad_call_types(bad_call&) {
+}
+
+template<
+    class Registry, std::size_t Index, class ParameterList, typename Arg,
+    typename... Args>
+void init_bad_call_types(bad_call& error, const Arg& arg, const Args&... args) {
+    using rest = boost::mp11::mp_rest<ParameterList>;
+
+    if constexpr (is_virtual<boost::mp11::mp_first<ParameterList>>::value) {
+        if constexpr (Index < bad_call::max_types) {
+            error.types[Index] = bad_call_type<Registry>(arg);
         }
 
-        error.types[Index] = arg_type_id;
-
-        init_bad_call<Method, Registry, Index + 1>::fn(error, args...);
+        init_bad_call_types<Registry, Index + 1, rest>(error, args...);
+    } else {
+        init_bad_call_types<Registry, Index, rest>(error, args...);
     }
+}
 
-    static auto fn(bad_call&) {
-    }
-};
-
-template<class Method, class Registry>
-struct init_bad_call<Method, Registry, bad_call::max_types> {
-    static auto fn(bad_call&) {
-    }
-};
+template<class Method, class Registry, class ParameterList, typename... Args>
+void init_bad_call(bad_call& error, const Args&... args) {
+    error.method = Registry::rtti::template static_type<Method>();
+    error.arity = boost::mp11::mp_count_if<ParameterList, is_virtual>::value;
+    init_bad_call_types<Registry, 0, ParameterList>(error, args...);
+}
 
 template<class Registry>
 using method_base = std::conditional_t<
@@ -3148,7 +3158,7 @@ method<Id, ReturnType(Parameters...), Registry>::fn_not_implemented(
 
     if constexpr (Registry::has_error_handler) {
         no_overrider error;
-        detail::init_bad_call<method, Registry, 0u>::fn(
+        detail::init_bad_call<method, Registry, mp11::mp_list<Parameters...>>(
             error,
             detail::parameter_traits<Parameters, Registry>::peek(args)...);
         Registry::error_handler::error(error);
@@ -3166,7 +3176,7 @@ method<Id, ReturnType(Parameters...), Registry>::fn_ambiguous(
 
     if constexpr (Registry::has_error_handler) {
         ambiguous_call error;
-        detail::init_bad_call<method, Registry, 0u>::fn(
+        detail::init_bad_call<method, Registry, mp11::mp_list<Parameters...>>(
             error,
             detail::parameter_traits<Parameters, Registry>::peek(args)...);
         Registry::error_handler::error(error);

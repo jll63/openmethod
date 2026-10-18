@@ -40,9 +40,14 @@ struct Cat : Animal {};
 
 struct BOOST_OPENMETHOD_ID(speak);
 struct BOOST_OPENMETHOD_ID(meet);
+struct BOOST_OPENMETHOD_ID(sniff);
 
 template<class Registry>
 void speak_cat(virtual_ptr<Cat, Registry>) {
+}
+
+template<class Registry>
+void sniff_cat(int, virtual_ptr<Cat, Registry>) {
 }
 
 template<class Registry>
@@ -102,6 +107,12 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(bad_call_types, Registry, registries) {
         typename meet::template override<
             meet_dog_animal<Registry>, meet_animal_dog<Registry>>);
 
+    using sniff = method<
+        BOOST_OPENMETHOD_ID(sniff), void(int, virtual_ptr<Animal, Registry>),
+        Registry>;
+    BOOST_OPENMETHOD_REGISTER(
+        typename sniff::template override<sniff_cat<Registry>>);
+
     initialize<Registry>();
     Dog dog;
 
@@ -116,6 +127,12 @@ BOOST_AUTO_TEST_CASE_TEMPLATE(bad_call_types, Registry, registries) {
                 final_virtual_ptr<Registry>(dog));
         },
         2);
+
+    // A non-virtual argument plays no part in dispatch, and is not reported:
+    // the arity counts the virtual arguments only, and `types[0]` is the first
+    // of them, though it is the second argument.
+    check_error<Registry, no_overrider>(
+        [&] { sniff::fn(42, final_virtual_ptr<Registry>(dog)); }, 1);
 }
 
 // A class that carries its own v-table pointer needs no dynamic_type: the
